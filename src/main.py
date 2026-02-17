@@ -4,22 +4,30 @@ import json
 import sys
 import time
 import subprocess
-print("MAIN sys.executable =", sys.executable)
 
 import pandas as pd
 from psutil import virtual_memory
+from src.experiment import build_experiment_config
 
 def main():
+    channels = ["meta","google","snapchat","tiktok","moloco", "liveintent", "beehiiv", "amazon"]
+    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
+
+    cfg = build_experiment_config(
+        channels=channels,
+        multipliers=multipliers,
+        kpi_col="subscriptions", 
+    )
+
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
-    src_dir = os.path.join(project_root, "src")          
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
-
-    output_file = os.path.join(output_dir, "prior_sensitivity_results.csv")
-
-    channels = ["meta","google","snapchat","tiktok","moloco", "liveintent", "beehiiv", "amazon"]
-    roi_mu_values = [0.2, 0.4, 0.6, 0.8]
+    output_file = os.path.join(output_dir, "prior_sensitivity_results_5mu.csv")
+    
+    print("Spend cols used:", cfg.spend_cols)
+    print("Computed mu0 =", round(cfg.mu0, 6))
+    print("Mu grid =", cfg.roi_mu_values)
 
     channels_json = json.dumps(channels)
 
@@ -27,18 +35,19 @@ def main():
     if os.path.exists(output_file):
         results_df = pd.read_csv(output_file)
         print("Existing results found. Loading...")
+        # normalize float formatting to avoid float mismatch
+        results_df["roi_prior_mu"] = results_df["roi_prior_mu"].astype(float).round(6)
+        already_done = set(zip(results_df["target_channel"].astype(str), results_df["roi_prior_mu"]))
     else:
-        results_df = pd.DataFrame(columns=["channel","estimated_roi","target_channel","roi_prior_mu"])
+        already_done = set()
 
-    already_done = set()
-    if len(results_df):
-        already_done = set(zip(results_df["target_channel"], results_df["roi_prior_mu"]))
-
-    total_runs = len(channels) * len(roi_mu_values)
+    total_runs = len(cfg.channels) * len(cfg.roi_mu_values)
     run_id = 1
 
     for target_channel in channels:
-        for mu in roi_mu_values:
+        for mu in cfg.roi_mu_values:
+            # round mu consistently
+            mu = round(float(mu), 6)
 
             if (target_channel, mu) in already_done:
                 print(f"Skipping {target_channel}, mu={mu}")
@@ -50,11 +59,12 @@ def main():
             print("RAM before run:", virtual_memory().percent, "%")
 
             t0 = time.time()
-            tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu}.csv")
-
+            mu_tag = str(mu).replace(".", "p")
+            tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}.csv")
+            
             print("RAM after run:", virtual_memory().percent, "%")
             cmd = [
-                sys.executable, "run_meridian_once.py",
+                sys.executable, "-m", "src.run_meridian_once",
                 "--csv", data_csv,
                 "--channels_json", channels_json,
                 "--target_channel", target_channel,
@@ -67,26 +77,28 @@ def main():
                 "--seed", "0",
             ]
 
-            # run subprocess from src/ so "from utils import ..." works
-            proc = subprocess.run(
-                cmd,
-                cwd=src_dir,
-                capture_output=True,
-                text=True
-            )
+            env = os.environ.copy()
+            env["TF_CPP_MIN_LOG_LEVEL"] = "3"   # suppress INFO/WARN
+            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+
+            proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
 
             print("\n--- Subprocess STDOUT ---\n", proc.stdout)
             print("\n--- Subprocess STDERR ---\n", proc.stderr)
 
             if proc.returncode != 0:
+                print("\n--- Subprocess STDOUT ---\n", proc.stdout)
+                print("\n--- Subprocess STDERR ---\n", proc.stderr)
                 raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
 
             if not os.path.exists(tmp_out):
                 raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
 
             part = pd.read_csv(tmp_out)
-            results_df = pd.concat([results_df, part], ignore_index=True)
-            results_df.to_csv(output_file, index=False)
+            part["roi_prior_mu"] = part["roi_prior_mu"].astype(float).round(6)
+            write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
+            part.to_csv(output_file, mode="a", header=write_header, index=False) 
+            already_done.add((target_channel, mu))         
 
             os.remove(tmp_out)
 
