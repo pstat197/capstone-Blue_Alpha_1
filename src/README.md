@@ -10,7 +10,6 @@ This folder contains the runnable scripts for fitting Meridian MMM models and ru
   - [Overview](#overview)
   - [Repo Layout (within `src`)](#repo-layout-within-src)
   - [How the Pipeline Works](#how-the-pipeline-works)
-  - [Inputs and Outputs](#inputs-and-outputs)
   - [Choosing ROI Prior Mean (μ)](#choosing-roi-prior-mean-μ)
     - [Step 1 — Data-Calibrated Baseline](#step-1--data-calibrated-baseline)
     - [Step 2 — Wide Sensitivity via Multipliers](#step-2--wide-sensitivity-via-multipliers)
@@ -29,7 +28,16 @@ This folder contains the runnable scripts for fitting Meridian MMM models and ru
 ## Repo Layout (within `src`)
 
 - `main.py`  
-  Runs the full prior sensitivity experiment (loops over channels × μ grid, aggregates results).
+  Runs the full prior sensitivity experiment (loops over channels × μ grid, calls `run_meridian_once.py`, aggregates outputs).
+
+- `experiment.py`  
+  Centralizes experiment configuration and **data-calibrated μ grid construction**:
+  - loads the Mocha CSV
+  - detects spend columns (`{channel}_spend`)
+  - computes baseline μ0 = median(subscriptions / total_spend)
+  - generates μ grid via `μ = μ0 × multipliers`
+  - returns a structured `ExperimentConfig` (paths, channels, μ values)
+
 - `run_meridian_once.py`  
   Fits one Meridian model for a given target channel + μ and extracts ROI outputs.
 - `utils.py`  
@@ -39,23 +47,28 @@ This folder contains the runnable scripts for fitting Meridian MMM models and ru
 
 ## How the Pipeline Works
 
-1. `main.py` defines the sensitivity grid of μ values and target channels.
-2. For each `(channel, μ)` combination, `main.py` calls `run_meridian_once.py`.
-3. `run_meridian_once.py` builds the Meridian model spec (often via `utils.py`), fits the model, and extracts ROI summaries.
-4. `main.py` aggregates run-level ROI results into a single results table.
+1. `experiment.py` loads `data/raw/monthly_mocha.csv` and constructs the experiment configuration:
+   - identifies spend columns as `{channel}_spend`
+   - computes a data-calibrated baseline center:
+     `μ0 = median(subscriptions / total_spend)`
+   - builds the sensitivity grid:
+     `μ_grid = μ0 × {0.4, 0.7, 1.0, 1.4, 2.0}`
+
+2. `main.py` reads `ExperimentConfig` from `experiment.py` and loops over each `(target_channel, μ)` pair.
+
+3. For each run, `main.py` calls `run_meridian_once.py` as a subprocess, passing:
+   - dataset path
+   - full channel list (JSON)
+   - target channel
+   - μ value
+   - sampling params and output CSV path
+
+4. `run_meridian_once.py` builds the Meridian model spec (using `utils.py`), fits the model, and writes a run-level ROI summary.
+
+5. `main.py` aggregates all run-level outputs into a single results file:
+   - `data/output/prior_sensitivity_results_5mu.csv`
 
 ---
-
-## Inputs and Outputs
-
-### Inputs
-- Dataset CSV (e.g., `data/raw/monthly_mocha.csv`)
-- Target channel(s) for sensitivity runs
-- μ grid (ROI prior mean values)
-
-### Outputs
-- A combined results CSV summarizing ROI estimates across all runs  
-  (e.g., `data/output/prior_sensitivity_results.csv`)
 
 ## Choosing ROI Prior Mean (μ) for Sensitivity Analysis
 
@@ -108,7 +121,7 @@ If broader stress-testing is needed:
 ---
 
 ### Step 3 — Coarse-to-fine refinement
-We use a coarse grid firs* to reduce computation. If results change materially between adjacent settings (e.g., between 1.0× and 1.4×), we refine by adding intermediate values such as:
+We use a coarse grid first to reduce computation. If results change materially between adjacent settings (e.g., between 1.0× and 1.4×), we refine by adding intermediate values such as:
 
 `μ ∈ μ0 × {1.2, 1.3}`
 

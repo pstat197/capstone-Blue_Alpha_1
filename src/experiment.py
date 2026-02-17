@@ -43,7 +43,7 @@ def build_experiment_config(
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    output_file = os.path.join(output_dir, "prior_sensitivity_results_5u.csv")
+    output_file = os.path.join(output_dir, "prior_sensitivity_results_5mu.csv")
 
     df = pd.read_csv(data_csv)
 

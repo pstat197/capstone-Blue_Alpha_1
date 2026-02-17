@@ -6,7 +6,6 @@ import time
 import subprocess
 
 import pandas as pd
-from psutil import virtual_memory
 from src.experiment import build_experiment_config
 
 def main():
@@ -56,13 +55,11 @@ def main():
 
             print(f"\n===== Run {run_id}/{total_runs} =====")
             print(f"Channel: {target_channel}, Prior mu: {mu}")
-            print("RAM before run:", virtual_memory().percent, "%")
 
             t0 = time.time()
             mu_tag = str(mu).replace(".", "p")
             tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}.csv")
             
-            print("RAM after run:", virtual_memory().percent, "%")
             cmd = [
                 sys.executable, "-m", "src.run_meridian_once",
                 "--csv", data_csv,
@@ -102,7 +99,6 @@ def main():
 
             os.remove(tmp_out)
 
-            print("RAM after run (parent):", virtual_memory().percent, "%")
             print("Iteration time:", round(time.time() - t0, 2), "seconds")
 
             run_id += 1
