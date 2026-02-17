@@ -33,6 +33,23 @@ This project quantifies how changes in these priors affect key model outputs, he
 - Implement automated prior perturbation loops
 - Extract and store ROI metrics for comparison
 
+## Setup (VSCode + venv)
+
+### Windows
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+### MacOS/Linux
+
+```powershell
+python3 -m venv .venv 
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
 ## Contributors
 BlueAlpha Capstone Project 1 Group
 

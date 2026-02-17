@@ -1,0 +1,13 @@
+# Core
+google-meridian[schema]
+pandas
+numpy
+psutil
+matplotlib
+
+# TF stack (CPU)
+tensorflow
+tensorflow-probability
+
+# Optional (only for notebooks/interactive)
+ipython
