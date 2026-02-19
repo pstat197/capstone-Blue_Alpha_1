@@ -73,14 +73,11 @@ def build_experiment_config(
     mu0 = compute_mu0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_mu_values = make_mu_grid(mu0, multipliers)
 
-    if sigma_grid is None:
-        sigma_grid = [0.05, 0.1, 0.2]
 
     sigma0 = compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
-    roi_sigma_values = make_sigma_grid(sigma0, multipliers)
+    roi_sigma_values = make_sigma_grid(sigma0, multipliers) if sigma_grid is None else sigma_grid
 
-    if dist_grid is None:
-        dist_grid = ["Normal", "LogNormal"]
+    roi_dist_values = ["Normal", "LogNormal"] if dist_grid is None else dist_grid   
 
     return ExperimentConfig(
         project_root=project_root,
@@ -93,6 +90,6 @@ def build_experiment_config(
         mu0=mu0,
         multipliers=multipliers,
         roi_mu_values=roi_mu_values,
-        roi_sigma_values=sigma_grid,
-        roi_dist_values=dist_grid,
+        roi_sigma_values=roi_sigma_values,
+        roi_dist_values=roi_dist_values,
     )

@@ -24,6 +24,8 @@ def main():
     parser.add_argument("--channels_json", required=True)
     parser.add_argument("--target_channel", required=True)
     parser.add_argument("--mu", type=float, required=True)
+    parser.add_argument("--sigma", type=float, default=None)
+    parser.add_argument("--dist", type=str, default=None)
     parser.add_argument("--out_csv", required=True)
 
     # sampling params
@@ -64,7 +66,9 @@ def main():
     model_spec = build_model_spec(
         channels=channels,
         target_channel=args.target_channel,
-        roi_mu=args.mu
+        roi_mu=args.mu,
+        roi_sigma=args.sigma,
+        roi_dist=args.dist
     )
 
     # --- fit ---
