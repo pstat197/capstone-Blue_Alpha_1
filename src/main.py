@@ -40,69 +40,83 @@ def main():
     else:
         already_done = set()
 
-    total_runs = len(cfg.channels) * len(cfg.roi_mu_values)
+    total_runs = len(cfg.channels) * sum(len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) if cfg.roi_sigma_values and cfg.roi_dist_values else 1
+                                        for mu in cfg.roi_mu_values)
     run_id = 1
 
     for target_channel in channels:
         for mu in cfg.roi_mu_values:
-            # round mu consistently
-            mu = round(float(mu), 6)
+            sigma_values = cfg.roi_sigma_values if cfg.roi_sigma_values else [cfg.default_sigma]
 
-            if (target_channel, mu) in already_done:
-                print(f"Skipping {target_channel}, mu={mu}")
-                run_id += 1
-                continue
+            dist_values = cfg.roi_dist_values if cfg.roi_dist_values else [cfg.default_dist]
 
-            print(f"\n===== Run {run_id}/{total_runs} =====")
-            print(f"Channel: {target_channel}, Prior mu: {mu}")
+            for sigma in sigma_values:
+                for dist in dist_values:
+                    # round mu consistently
+                    mu = round(float(mu), 6)
+                    sigma = round(float(sigma), 6)
 
-            t0 = time.time()
-            mu_tag = str(mu).replace(".", "p")
-            tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}.csv")
+                    if (target_channel, mu, sigma, dist) in already_done:
+                        print(f"Skipping {target_channel}, mu={mu}, sigma={sigma}, dist={dist}")
+                        run_id += 1
+                        continue
+
+                    print(f"\n===== Run {run_id}/{total_runs} =====")
+                    print(f"Channel: {target_channel}, Prior mu: {mu}, Prior sigma: {sigma}, Dist: {dist}")
+
+                    t0 = time.time()
+                    mu_tag = str(mu).replace(".", "p")
+                    sigma_tag = str(sigma).replace(".", "p")
+                    dist_tag = dist
+                    tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
             
-            cmd = [
-                sys.executable, "-m", "src.run_meridian_once",
-                "--csv", data_csv,
-                "--channels_json", channels_json,
-                "--target_channel", target_channel,
-                "--mu", str(mu),
-                "--out_csv", tmp_out,
-                "--n_chains", "1",
-                "--n_adapt", "100",
-                "--n_burnin", "50",
-                "--n_keep", "20",
-                "--seed", "0",
-            ]
+                    cmd = [
+                        sys.executable, "-m", "src.run_meridian_once",
+                        "--csv", data_csv,
+                        "--channels_json", channels_json,
+                        "--target_channel", target_channel,
+                        "--mu", str(mu),
+                        "--sigma", str(sigma),
+                        "--dist", dist,
+                        "--out_csv", tmp_out,
+                        "--n_chains", "1",
+                        "--n_adapt", "100",
+                        "--n_burnin", "50",
+                        "--n_keep", "20",
+                        "--seed", "0",
+                    ]
 
-            env = os.environ.copy()
-            env["TF_CPP_MIN_LOG_LEVEL"] = "3"   # suppress INFO/WARN
-            env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+                    env = os.environ.copy()
+                    env["TF_CPP_MIN_LOG_LEVEL"] = "3"   # suppress INFO/WARN
+                    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-            proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
+                    proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
 
-            print("\n--- Subprocess STDOUT ---\n", proc.stdout)
-            print("\n--- Subprocess STDERR ---\n", proc.stderr)
+                    print("\n--- Subprocess STDOUT ---\n", proc.stdout)
+                    print("\n--- Subprocess STDERR ---\n", proc.stderr)
 
-            if proc.returncode != 0:
-                print("\n--- Subprocess STDOUT ---\n", proc.stdout)
-                print("\n--- Subprocess STDERR ---\n", proc.stderr)
-                raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
+                    if proc.returncode != 0:
+                        print("\n--- Subprocess STDOUT ---\n", proc.stdout)
+                        print("\n--- Subprocess STDERR ---\n", proc.stderr)
+                        raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
 
-            if not os.path.exists(tmp_out):
-                raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
+                    if not os.path.exists(tmp_out):
+                        raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
 
-            part = pd.read_csv(tmp_out)
-            part["roi_prior_mu"] = part["roi_prior_mu"].astype(float).round(6)
-            write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
-            part.to_csv(output_file, mode="a", header=write_header, index=False) 
-            already_done.add((target_channel, mu))         
+                    part = pd.read_csv(tmp_out)
+                    part["roi_prior_mu"] = part["roi_prior_mu"].astype(float).round(6)
+                    part["roi_prior_sigma"] = part["roi_prior_sigma"].astype(float).round(6)
+                    part["roi_prior_dist"] = part["roi_prior_dist"].astype(str)
+                    write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
+                    part.to_csv(output_file, mode="a", header=write_header, index=False) 
+                    already_done.add((target_channel, mu, sigma, dist))         
 
-            os.remove(tmp_out)
+                    os.remove(tmp_out)
 
-            print("Iteration time:", round(time.time() - t0, 2), "seconds")
+                    print("Iteration time:", round(time.time() - t0, 2), "seconds")
 
-            run_id += 1
-
+                    run_id += 1
+            
     print("\nALL RUNS COMPLETED.")
     print("Saved to:", output_file)
 

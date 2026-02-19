@@ -18,6 +18,8 @@ class ExperimentConfig:
     mu0: float
     multipliers: List[float]
     roi_mu_values: List[float]
+    roi_sigma_values: List[float]
+    roi_dist_values: List[str]
 
 
 def compute_mu0(df: pd.DataFrame, kpi_col: str, spend_cols: List[str]) -> float:
@@ -25,9 +27,17 @@ def compute_mu0(df: pd.DataFrame, kpi_col: str, spend_cols: List[str]) -> float:
     mu0 = (df[kpi_col] / total_spend).median()
     return float(mu0)
 
+def compute_sigma0(df: pd.DataFrame, kpi_col: str, spend_cols: List[str]) -> float:
+    total_spend = df[spend_cols].sum(axis=1)
+    roi = df[kpi_col] / total_spend
+    sigma0 = roi.std()
+    return float(sigma0)
 
 def make_mu_grid(mu0: float, multipliers: List[float], digits: int = 6) -> List[float]:
     return [round(mu0 * m, digits) for m in multipliers]
+
+def make_sigma_grid(sigma0: float, multipliers: List[float], digits: int = 6) -> List[float]:
+    return [round(sigma0 * m, digits) for m in multipliers]
 
 
 def build_experiment_config(
@@ -35,6 +45,8 @@ def build_experiment_config(
     multipliers: List[float],
     kpi_col: str = "subscriptions",
     spend_suffix: str = "_spend",
+    sigma_grid: list = None,
+    dist_grid: list = None,
 ) -> ExperimentConfig:
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -61,6 +73,15 @@ def build_experiment_config(
     mu0 = compute_mu0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_mu_values = make_mu_grid(mu0, multipliers)
 
+    if sigma_grid is None:
+        sigma_grid = [0.05, 0.1, 0.2]
+
+    sigma0 = compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
+    roi_sigma_values = make_sigma_grid(sigma0, multipliers)
+
+    if dist_grid is None:
+        dist_grid = ["Normal", "LogNormal"]
+
     return ExperimentConfig(
         project_root=project_root,
         data_csv=data_csv,
@@ -72,4 +93,6 @@ def build_experiment_config(
         mu0=mu0,
         multipliers=multipliers,
         roi_mu_values=roi_mu_values,
+        roi_sigma_values=sigma_grid,
+        roi_dist_values=dist_grid,
     )
