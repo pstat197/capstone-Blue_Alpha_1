@@ -1,0 +1,366 @@
+\documentclass{article}
+\usepackage{graphicx} % Required for inserting images
+
+\title{Prior Sensitivity Capstone Theory}
+\author{Aidan Frazier, Jimmy Wu, Jasper Luo, Quinlan Wilson, Coraline Zhu}
+\date{February 19 2026}
+
+\begin{document}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Base Deliverable (Weeks 3--5): Theory of One-at-a-Time Prior Sensitivity}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Objective}
+The goal of the base deliverable is to construct a \emph{systematic prior sensitivity analysis}
+for a Bayesian Marketing Mix Model (MMM). We vary \textbf{one prior hyperparameter at a time}
+(either its mean or variance), while holding all other priors fixed, and evaluate the theoretical
+impact on posterior channel effects, ROI, and cross-channel attribution.
+
+\vspace{0.5em}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Bayesian MMM Setup}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Let $t = 1,\dots,T$ index time and $k = 1,\dots,K$ index media channels.
+The observation model is:
+
+\begin{equation}
+y_t = \alpha + \sum_{k=1}^{K} g_k(x_{kt};\theta_k)\,\beta_k + \mathbf{z}_t^\top \boldsymbol{\gamma} + \varepsilon_t,
+\qquad
+\varepsilon_t \sim \mathcal{N}(0,\sigma^2),
+\end{equation}
+
+where:
+\begin{itemize}
+\item $g_k(\cdot)$ represents adstock and saturation transforms,
+\item $\beta_k$ is the marginal effectiveness of channel $k$,
+\item $\mathbf{z}_t$ are controls,
+\item $\sigma^2$ is noise variance.
+\end{itemize}
+
+We assume a prior of the form:
+
+\begin{equation}
+\beta_k \sim \mathcal{N}(\mu_k, \sigma_k^2),
+\end{equation}
+
+where:
+\begin{itemize}
+\item $\mu_k$ is the prior mean (expected channel lift),
+\item $\sigma_k^2$ is the prior variance (uncertainty / shrinkage strength).
+\end{itemize}
+
+The posterior satisfies:
+
+\begin{equation}
+p(\boldsymbol{\beta} \mid \mathcal{D}) \propto 
+p(\mathcal{D} \mid \boldsymbol{\beta}) 
+\prod_{k=1}^K p(\beta_k \mid \mu_k, \sigma_k^2).
+\end{equation}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Theoretical Effect of Adjusting the Prior Mean}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Suppose we adjust $\mu_j$ for a single channel $j$, holding all else fixed.
+
+\subsubsection*{Posterior shift mechanism}
+
+Assuming Gaussian, the posterior mean almost surely follows a weighted average:
+
+\begin{equation}
+\mathbb{E}[\beta_j \mid \mathcal{D}] 
+\approx 
+w_j \hat{\beta}_j^{\text{MLE}} 
++ (1 - w_j)\mu_j,
+\end{equation}
+
+where
+
+\begin{equation}
+w_j = 
+\frac{\text{Information from data}}{\text{Information from data} + 1/\sigma_j^2}.
+\end{equation}
+
+Thus:
+
+\begin{itemize}
+\item Increasing $\mu_j$ shifts the posterior mean upward.
+\item The magnitude of shift depends on the relative strength of the data.
+\item If the likelihood is weak (short time series, noisy data, collinearity), the prior exerts stronger influence.
+\end{itemize}
+
+\subsubsection*{Propagation through time}
+
+Because $g_j(\cdot)$ includes adstock, an increase in $\beta_j$ affects:
+
+\begin{equation}
+C_{jt} = g_j(x_{jt};\theta_j)\,\beta_j
+\end{equation}
+
+across multiple time periods, amplifying the impact of a prior mean shift
+on cumulative contribution and ROI.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Theoretical Effect of Adjusting the Prior Variance}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Now suppose we vary $\sigma_j^2$ while holding $\mu_j$ fixed.
+
+\subsubsection*{Shrinkage interpretation}
+
+The posterior precision satisfies:
+
+\begin{equation}
+\text{Precision}_{\text{posterior}} 
+=
+\text{Precision}_{\text{likelihood}} 
++ \frac{1}{\sigma_j^2}.
+\end{equation}
+
+Thus:
+
+\begin{itemize}
+\item Smaller $\sigma_j^2$ (tighter prior) $\Rightarrow$ stronger shrinkage toward $\mu_j$.
+\item Larger $\sigma_j^2$ (diffuse prior) $\Rightarrow$ posterior approaches likelihood-based estimate.
+\end{itemize}
+
+Variance adjustment controls \emph{how strongly} the prior pulls the estimate,
+whereas mean adjustment controls \emph{where} it pulls it.
+
+In practice:
+
+\begin{itemize}
+\item Tight variance stabilizes ROI and reduces extreme channel effects.
+\item Large variance increases flexibility but also increases instability in attribution.
+\end{itemize}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Cross-Channel Effects: Theoretical Mechanism}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Cross-channel effects arise due to multicollinearity among transformed media variables.
+
+Let $\mathbf{X}$ denote the transformed design matrix with columns
+$\mathbf{x}_1,\dots,\mathbf{x}_K$.
+The posterior covariance matrix of $\boldsymbol{\beta}$ is approximately:
+
+\begin{equation}
+\mathrm{Var}(\boldsymbol{\beta} \mid \mathcal{D})
+\approx
+\left(
+\mathbf{X}^\top \mathbf{X} + \mathbf{\Lambda}
+\right)^{-1},
+\end{equation}
+
+where $\mathbf{\Lambda} = \mathrm{diag}(1/\sigma_1^2,\dots,1/\sigma_K^2)$. 
+
+A natural question arises in the one-at-a-time sensitivity framework:
+\emph{Why do other channels change if we only modify a single prior?}
+
+The answer lies in the joint structure of Bayesian estimation.
+
+\subsubsection*{Joint posterior dependence}
+
+Even when only the prior of channel $j$ is modified,
+the posterior is not estimated independently channel-by-channel.
+Instead, the posterior distribution is joint:
+
+\begin{equation}
+p(\boldsymbol{\beta} \mid \mathcal{D})
+\propto
+p(\mathcal{D} \mid \boldsymbol{\beta})
+\prod_{k=1}^K p(\beta_k).
+\end{equation}
+
+Because the likelihood depends on all coefficients simultaneously,
+the posterior for each $\beta_k$ depends on the entire vector $\boldsymbol{\beta}$.
+
+Thus, changing the prior for $\beta_j$
+alters the joint posterior geometry.
+
+\subsubsection*{Finite signal constraint}
+
+The observed outcome $y_t$ contains a finite amount of signal.
+Attribution across channels must collectively explain this signal:
+
+\begin{equation}
+y_t \approx \sum_{k=1}^K g_k(x_{kt}) \beta_k + \text{controls}.
+\end{equation}
+
+If the posterior for $\beta_j$ increases
+due to a higher prior mean,
+the model cannot arbitrarily increase total predicted contribution.
+Instead, other correlated channels must adjust downward
+to maintain consistency with observed data.
+
+This creates an implicit conservation effect:
+\begin{equation}
+\textbf{Total explained variation is constrained by the data.}
+\end{equation}
+
+\subsubsection*{Role of multicollinearity}
+
+Cross-channel movement is strongest when media channels are correlated.
+If two channels move together over time,
+the likelihood cannot clearly distinguish their effects.
+
+In that case, the prior acts as a tiebreaker.
+Adjusting the prior for channel $j$
+changes how attribution is split between correlated channels.
+
+Importantly, this is not a secondary or numerical artifact —
+it is a structural consequence of estimating parameters jointly.
+
+\subsubsection*{Variance adjustments and redistribution}
+
+When the prior variance of $\beta_j$ is tightened,
+the coefficient becomes less flexible.
+The model compensates by allowing correlated channels
+to absorb variation that $\beta_j$ can no longer capture.
+
+Conversely, when prior variance is widened,
+channel $j$ gains flexibility,
+often reducing the burden on neighboring channels.
+
+\subsubsection*{Interpretation}
+
+Therefore, even a single prior adjustment
+modifies the entire attribution equilibrium.
+
+Cross-channel effects occur because:
+
+\begin{itemize}
+\item Attribution is jointly determined.
+\item Total explainable variation is finite.
+\item Media channels are correlated.
+\item Bayesian shrinkage redistributes explanatory weight.
+\end{itemize}
+
+In short,
+changing one prior does not alter one parameter in isolation;
+it reshapes the global allocation of explanatory power
+across all channels.
+
+\subs
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Example: Application within our Project}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Because the Mocha dataset is a single monthly/weekly dataset and we do not have historical ROI experiments, lift tests, or benchmark priors, we set the ROI prior mean ($\mu$) using a data-calibrated scale and then conduct wide prior sensitivity using multiplicative changes (percent shifts), rather than an arbitrary additive step.
+
+ROI is interpreted on the scale:
+\[
+ROI \approx \frac{\text{incremental \; subscriptions}}{\$\,\text{spend}}.
+\]
+
+From the dataset medians:
+\begin{itemize}
+  \item $\mathrm{median}(\text{subscriptions}) \approx 11{,}580$
+  \item $\mathrm{median}(\text{total spend}) \approx 211{,}250$
+\end{itemize}
+
+So a naive baseline is:
+\[
+ROI_0 \approx \frac{11580}{211250} \approx 0.055
+\quad \text{subscriptions per dollar.}
+\]
+
+\subsubsection*{Step 1 --- Data-calibrated baseline center (weakly-informative)}
+
+We set a weakly-informative baseline center:
+\[
+\mu_0 = \mathrm{median}\!\left(\frac{\text{subscriptions}}{\text{total\_spend}}\right) \approx 0.055.
+\]
+
+\subsubsection*{Step 2a --- Wide sensitivity using multiplicative shifts}
+To address uncertainty (no experiments/benchmarks), we vary $\mu$ by multiplicative factors around $\mu_0$, which corresponds to interpretable percent changes (e.g., $1.2\times$, $1.4\times$). Because ROI is a ratio-scale quantity, multiplicative perturbations are more meaningful than an additive step.
+
+\paragraph{Coarse wide grid (5 points, log-symmetric).}
+We first run a coarse grid designed to be roughly balanced in log-space (up/down factors are approximately reciprocal):
+\[
+\mu \in \mu_0 \times \{0.4,\; 0.7,\; 1.0,\; 1.4,\; 2.0\}.
+\]
+
+With $\mu_0 \approx 0.055$, this is approximately:
+\[
+\{0.022,\; 0.0385,\; 0.055,\; 0.077,\; 0.110\}.
+\]
+
+\paragraph{Optional wider grid (7 points).}
+If broader stress-testing is needed:
+\[
+\mu \in \mu_0 \times \{0.2,\; 0.4,\; 0.7,\; 1.0,\; 1.4,\; 2.0,\; 3.0\}.
+\]
+
+\subsubsection*{Step 2b --- Prior scale ($\sigma$) and distribution family (Normal vs LogNormal)}
+
+In addition to perturbing the prior mean $\mu$, we also perturb the prior scale $\sigma$ and test two distribution families for the ROI prior: \texttt{Normal} and \texttt{LogNormal}. This is important because $\sigma$ controls how strongly the prior regularizes channel ROI (narrow priors shrink more), and the distribution family controls the support of ROI (Normal permits negative ROI, while LogNormal enforces strictly positive ROI).
+
+\paragraph{Baseline scale calibration.}
+We calibrate a baseline scale from the empirical ROI ratio:
+\[
+r_t = \frac{\text{subscriptions}_t}{\text{total\_spend}_t}.
+\]
+We then set:
+\[
+\sigma_0 = \mathrm{sd}(r_t),
+\]
+as a weakly-informative default uncertainty level around $\mu_0$.
+
+\paragraph{Multiplicative grid for $\sigma$.}
+Analogous to $\mu$, we vary $\sigma$ using multiplicative factors:
+\[
+\sigma \in \sigma_0 \times \{0.4,\; 0.7,\; 1.0,\; 1.4,\; 2.0\}.
+\]
+This produces priors ranging from relatively tight (stronger shrinkage) to relatively diffuse (weaker shrinkage).
+
+\paragraph{Distribution family sensitivity.}
+We test:
+\[
+\text{dist} \in \{\texttt{Normal},\; \texttt{LogNormal}\}.
+\]
+\begin{itemize}
+  \item \texttt{Normal}$(\mu,\sigma)$ is symmetric and permits negative ROI, which can be reasonable when a channel is plausibly ineffective or harmful.
+  \item \texttt{LogNormal}$(\text{loc},\text{scale})$ enforces strictly positive ROI. We use the standard parameterization
+  \[
+  \log(ROI)\sim \mathcal{N}(\text{loc},\text{scale}),
+  \]
+  so the ``location'' parameter corresponds to the mean on the log scale.
+\end{itemize}
+
+\subsubsection*{Step 3 --- Coarse grid first (and refine only if needed)}
+
+We run the 5-point grid first (either per channel or globally), and only refine if we observe a clear ``break'' in results (e.g., ROI estimates flip sign, contributions reorder, or fit metrics shift).
+
+A practical refinement rule of thumb is:
+\begin{itemize}
+  \item If results are stable across multipliers $\{0.7,\;1.0,\;1.4\}$, stop.
+  \item If results change substantially between $0.7$ and $1.4$, add intermediate multipliers such as $1.2\times$ and $1.3\times$.
+\end{itemize}
+
+\subsubsection*{Step 4 --- Quick sanity check: a ``reasonableness'' bound}
+
+We apply a simple prior reasonableness check to ensure the chosen $\mu$ values do not imply implausible incremental outcomes. For a given $\mu$, the implied incremental subscriptions scale is approximately:
+\[
+\text{implied \; incremental \; subscriptions} \approx \mu \times (\text{typical \; spend}).
+\]
+
+Using a median spend of approximately $211{,}000$, at $\mu = 0.165$ the implied incremental subscriptions are:
+\[
+0.165 \times 211{,}000 \approx 34{,}800,
+\]
+which is about $3\times$ the median observed subscriptions (approximately $11{,}600$). This is wide, but not astronomically large.
+
+As a guardrail, if a candidate $\mu$ grid implies outcomes on the order of $10\times$--$50\times$ the observed KPI scale, we treat the range as too wide and adjust it.
+
+
+
+
+
+\end{document}
