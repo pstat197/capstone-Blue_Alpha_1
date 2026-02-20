@@ -10,3 +10,7 @@ tensorflow-probability
 
 # Optional (only for notebooks/interactive)
 ipython
+
+#output
+data/output/*
+!data/output/.gitkeep

@@ -1,5 +1,6 @@
 # src/run_meridian_once.py
 import argparse
+from html import parser
 import json
 import gc
 import warnings
@@ -24,6 +25,8 @@ def main():
     parser.add_argument("--channels_json", required=True)
     parser.add_argument("--target_channel", required=True)
     parser.add_argument("--mu", type=float, required=True)
+    parser.add_argument("--sigma", type=float, required=True)
+    parser.add_argument("--dist", type=str, required=True)
     parser.add_argument("--out_csv", required=True)
 
     # sampling params
@@ -64,7 +67,9 @@ def main():
     model_spec = build_model_spec(
         channels=channels,
         target_channel=args.target_channel,
-        roi_mu=args.mu
+        roi_mu=args.mu,
+        roi_sigma=args.sigma,
+        roi_dist=args.dist
     )
 
     # --- fit ---
@@ -81,7 +86,8 @@ def main():
     roi_df = extract_roi_mean(mmm, channels)
     roi_df["target_channel"] = args.target_channel
     roi_df["roi_prior_mu"] = args.mu
-
+    roi_df["roi_prior_sigma"] = args.sigma
+    roi_df["roi_prior_dist"] = args.dist
     roi_df.to_csv(args.out_csv, index=False)
 
     # cleanup inside subprocess
