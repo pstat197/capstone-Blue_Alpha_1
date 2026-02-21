@@ -7,27 +7,35 @@ import subprocess
 
 import pandas as pd
 from src.experiment import build_experiment_config
-from src.io_utils import normalize_columns
+from src.io_utils import normalize_columns, parse_channels_and_output
 
 def main():
-    channels = ["meta","google","snapchat","tiktok","moloco", "liveintent", "beehiiv", "amazon"]
+    channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
     multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
 
     cfg = build_experiment_config(
         channels=channels,
         multipliers=multipliers,
         kpi_col="subscriptions",
+        output_file="prior_sensitivity_results.csv",
     )
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "prior_sensitivity_results_meta.csv")
+
+    target_channels_to_run, output_file = parse_channels_and_output(
+        full_channels=channels,
+        output_dir=output_dir,
+        default_target="tiktok",
+    )
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
     print("Mu grid =", cfg.roi_mu_values)
+    print("Target channels to run:", target_channels_to_run)
+    print("Output file:", output_file)
 
     channels_json = json.dumps(channels)
 
@@ -54,17 +62,13 @@ def main():
     else:
         already_done = set()
 
-    target_channels_to_run = ["meta"]
-    total_runs = len(target_channels_to_run) * sum(
-        len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) if cfg.roi_sigma_values and cfg.roi_dist_values else 1
-        for mu in cfg.roi_mu_values
-    )
+    total_runs = len(target_channels_to_run) * len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values)
     run_id = 1
 
     for target_channel in target_channels_to_run:
         for mu in cfg.roi_mu_values:
-            sigma_values = cfg.roi_sigma_values if cfg.roi_sigma_values else [cfg.default_sigma]
-            dist_values = cfg.roi_dist_values if cfg.roi_dist_values else [cfg.default_dist]
+            sigma_values = cfg.roi_sigma_values
+            dist_values = cfg.roi_dist_values
 
             for sigma in sigma_values:
                 for dist in dist_values:
@@ -125,15 +129,12 @@ def main():
                     if useful:
                         print("\n--- Subprocess STDERR (filtered) ---\n", "\n".join(useful))
 
-                    if proc.returncode != 0:
-                        raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
-
                     if not os.path.exists(tmp_out):
                         raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
 
                     part = pd.read_csv(tmp_out)
 
-                    # (B3) normalize tmp output schema too (in case it's old column names)
+                    # normalize tmp output schema too (in case it's old column names)
                     part = normalize_columns(part)
 
                     part["roi_prior_mu"] = pd.to_numeric(part["roi_prior_mu"], errors="coerce").round(6)
