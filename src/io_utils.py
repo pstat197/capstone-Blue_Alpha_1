@@ -1,4 +1,8 @@
+# src/io_utils.py
+import argparse
+import os
 import pandas as pd
+from typing import List, Tuple
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     rename_map = {
@@ -28,3 +32,34 @@ def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
             df[col] = pd.NA
 
     return df
+
+def parse_channels_and_output(
+    *,
+    full_channels: List[str],
+    output_dir: str,
+    default_target: str = "tiktok",
+) -> Tuple[List[str], str]:
+    """
+    Parse CLI args and return:
+      - target_channels_to_run: list[str]
+      - output_file: absolute output CSV path
+    """
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--channels",
+        nargs="+",
+        default=[default_target],
+        help='Target channels to run. Example: --channels tiktok OR --channels meta google. Use "all" for all.',
+    )
+    args = parser.parse_args()
+
+    if len(args.channels) == 1 and str(args.channels[0]).lower() == "all":
+        target_channels_to_run = full_channels
+        tag = "all"
+    else:
+        target_channels_to_run = args.channels
+        tag = "_".join(target_channels_to_run)
+
+    output_file = os.path.join(output_dir, f"prior_sensitivity_results_{tag}.csv")
+    return target_channels_to_run, output_file

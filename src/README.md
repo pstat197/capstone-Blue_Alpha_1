@@ -19,8 +19,6 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - [How the Pipeline Works](#how-the-pipeline-works)
 - [ROI Prior Grids (μ and σ)](#roi-prior-grids-μ-and-σ)
 - [How to Run](#how-to-run)
-- [Outputs](#outputs)
-- [Notes / Common Issues](#notes--common-issues)
 
 ## Overview
 
@@ -34,11 +32,12 @@ The model can include all channels, but we can choose to only run sensitivity fo
 
 - `src/main.py`  
   Orchestrates the experiment. Loops over:
-  - `target_channels_to_run` (default `["meta"]`)
+  - target channels provided via CLI: `--channels` (e.g., `tiktok`, or `all`)
   - `roi_mu_values` grid
   - `roi_sigma_values` grid
   - `roi_dist_values` grid  
   Calls `run_meridian_once.py` as a subprocess and appends results into one CSV.
+  The output CSV is auto-named based on the CLI channels (e.g., `prior_sensitivity_results_tiktok.csv`).
 
 - `src/experiment.py`  
   Centralizes experiment configuration and grid construction:
@@ -66,8 +65,9 @@ The model can include all channels, but we can choose to only run sensitivity fo
   - `extract_roi_mean(...)` (extracts ROI summaries from the fitted model)
 
 - `src/io_utils.py`  
-  I/O utilities:
-  - `normalize_columns(df)` to make result CSVs backward compatible (e.g., `prior_sigma` → `roi_prior_sigma`).
+  I/O + CLI utilities:
+  - `normalize_columns(df)` to make result CSVs backward compatible (e.g., `prior_sigma` → `roi_prior_sigma`)
+  - `parse_channels_and_output(...)` parses `--channels` and auto-creates the output filename
 
 ---
 
@@ -100,9 +100,11 @@ Example channels:
    - dists:
      - `dist_grid = ["Normal", "LogNormal"]`
 
-2. `main.py` chooses which target channels to run sensitivity for:
-   - default: `target_channels_to_run = ["meta"]`
-   - the model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target.
+2. `main.py` chooses which target channels to run sensitivity for via CLI:
+   - example: `python -m src.main --channels tiktok`
+   - all channels: `python -m src.main --channels all`
+   The model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target channel(s).
+   The output file name is automatically generated based on `--channels`.
 
 3. For each `(target_channel, μ, σ, dist)` combination:
    - `main.py` calls `run_meridian_once.py` in a subprocess
@@ -142,6 +144,25 @@ So:
 We also test the ROI prior distribution family:
 
 - `dist ∈ {"Normal", "LogNormal"}`
+
+## How to Run
+
+Run from the repo root.
+
+### Run one target channel (recommended for long runs)
+
+**Command Line Arguments:**
+```bash
+python -m src.main --channels tiktok
+python -m src.main --channels meta google
+python -m src.main --channels all
+```
+
+**Output:**
+- data/output/prior_sensitivity_results_tiktok.csv
+- data/output/prior_sensitivity_results_meta_google.csv
+- data/output/prior_sensitivity_results_all.csv
+
 
 ---
 
