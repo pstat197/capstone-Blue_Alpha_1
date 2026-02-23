@@ -8,9 +8,8 @@ matplotlib
 tensorflow
 tensorflow-probability
 
-# Optional (only for notebooks/interactive)
-ipython
+# Visualization
+seaborn
 
-#output
-data/output/*
-!data/output/.gitkeep
+# Optional
+ipython
