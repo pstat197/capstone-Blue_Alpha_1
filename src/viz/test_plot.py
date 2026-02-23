@@ -2,12 +2,14 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-# Read the CSV (same folder as this script)
-df = pd.read_csv("prior_sensitivity_results_all_channels.csv")
+# Paths
+ROOT = Path(__file__).resolve().parents[2]
 
-# Create a folder to store figures
-out_dir = Path("figures")
-out_dir.mkdir(exist_ok=True)
+csv_path = ROOT / "data" / "output" / "prior_sensitivity_results_all_channels.csv"
+out_dir = ROOT / "docs" / "figures"
+out_dir.mkdir(parents=True, exist_ok=True)
+
+df = pd.read_csv(csv_path)
 
 # 1) Histogram of Estimated ROI
 plt.figure()
@@ -39,5 +41,4 @@ plt.tight_layout()
 plt.savefig(out_dir / "prior_sigma_vs_roi.png", dpi=300, bbox_inches="tight")
 plt.close()
 
-print("Done! Saved 3 plots in the figures/ folder.")
-
+print(f"Done! Saved 3 plots to: {out_dir}")
