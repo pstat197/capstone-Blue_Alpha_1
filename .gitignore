@@ -20,3 +20,6 @@ venv/
 
 data/output/*
 !data/output/.gitkeep
+
+docs/figures/*
+!docs/figures/.gitkeep

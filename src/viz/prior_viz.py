@@ -5,14 +5,13 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import List, Optional, Tuple
-
+from typing import List, Tuple
 
 # Repo paths (robust)
-ROOT = Path(__file__).resolve().parents[2] 
+ROOT = Path(__file__).resolve().parents[2]
 DATA_OUT = ROOT / "data" / "output"
 FIG_DIR = ROOT / "docs" / "figures"
-
+ROI_FIG_DIR = FIG_DIR / "roi"   
 
 DEFAULT_CHANNEL_ORDER = [
     "meta",
@@ -90,7 +89,7 @@ def _load_df(csv_path: Path) -> pd.DataFrame:
 # 2) Heatmap
 def plot_prior_sensitivity_heatmap(
     csv_path: Path,
-    out_dir: Path = FIG_DIR / "heatmap",
+    out_dir: Path = ROI_FIG_DIR / "heatmap",   # <-- changed
     fname_base: str = "prior_sensitivity_heatmap",
     cmap: str = "viridis",
     figsize: Tuple[int, int] = (12, 8),
@@ -111,6 +110,7 @@ def plot_prior_sensitivity_heatmap(
     pivot = ranges.pivot(index="target_channel", columns="channel", values="roi_range")
     mask = pivot.isna()
 
+    # keep diagonal only (same behavior as your notebook)
     pivot = pivot.where(np.eye(pivot.shape[0], pivot.shape[1], dtype=bool))
 
     plt.figure(figsize=figsize)
@@ -155,7 +155,7 @@ def plot_prior_sensitivity_heatmap(
 def plot_prior_sensitivity_ranking(
     csv_path: Path,
     diag_only: bool = True,
-    out_dir: Path = FIG_DIR / "sensitivity_ranking",
+    out_dir: Path = ROI_FIG_DIR / "sensitivity_ranking",  # <-- changed
     fname_base: str = "prior_sensitivity_ranking",
     figsize: Tuple[int, int] = (10, 6),
     dpi: int = 300,
@@ -218,11 +218,76 @@ def plot_prior_sensitivity_ranking(
 
     return png_path, pdf_path
 
+def plot_basic_roi_figures(
+    csv_path: Path,
+    out_dir: Path = ROI_FIG_DIR / "basic",
+    dpi: int = 300,
+    show: bool = False,
+) -> None:
+    """
+    Generates basic ROI plots:
+    1) histogram of estimated ROI
+    2) scatter: roi_prior_mu vs estimated_roi
+    3) scatter: roi_prior_sigma vs estimated_roi
+    Saves PNGs into docs/figures/roi/basic/.
+    """
+    df = pd.read_csv(csv_path)
+
+    required = {"estimated_roi", "roi_prior_mu", "roi_prior_sigma"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {missing}. Found: {list(df.columns)}")
+
+    # make sure numeric
+    for col in ["estimated_roi", "roi_prior_mu", "roi_prior_sigma"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["estimated_roi", "roi_prior_mu", "roi_prior_sigma"])
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1) Histogram of Estimated ROI
+    plt.figure()
+    plt.hist(df["estimated_roi"], bins=20)
+    plt.title("Distribution of Estimated ROI")
+    plt.xlabel("Estimated ROI")
+    plt.ylabel("Frequency")
+    plt.tight_layout()
+    plt.savefig(out_dir / "roi_histogram.png", dpi=dpi, bbox_inches="tight")
+    if show:
+        plt.show()
+    plt.close()
+
+    # 2) Scatter: Prior Mean vs Estimated ROI
+    plt.figure()
+    plt.scatter(df["roi_prior_mu"], df["estimated_roi"])
+    plt.title("Prior Mean vs Estimated ROI")
+    plt.xlabel("ROI Prior Mean (mu)")
+    plt.ylabel("Estimated ROI")
+    plt.tight_layout()
+    plt.savefig(out_dir / "prior_mean_vs_roi.png", dpi=dpi, bbox_inches="tight")
+    if show:
+        plt.show()
+    plt.close()
+
+    # 3) Scatter: Prior Sigma vs Estimated ROI
+    plt.figure()
+    plt.scatter(df["roi_prior_sigma"], df["estimated_roi"])
+    plt.title("Prior Sigma vs Estimated ROI")
+    plt.xlabel("ROI Prior Sigma")
+    plt.ylabel("Estimated ROI")
+    plt.tight_layout()
+    plt.savefig(out_dir / "prior_sigma_vs_roi.png", dpi=dpi, bbox_inches="tight")
+    if show:
+        plt.show()
+    plt.close()
+
+    print(f"Done! Saved 3 plots to: {out_dir}")
 
 # CLI entry
 def main():
     merged_csv = merge_channel_results()
 
+    plot_basic_roi_figures(merged_csv, show=False)                 
     plot_prior_sensitivity_heatmap(merged_csv, show=False)
     plot_prior_sensitivity_ranking(merged_csv, diag_only=True, show=False)
 

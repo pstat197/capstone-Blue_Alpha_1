@@ -19,6 +19,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - [How the Pipeline Works](#how-the-pipeline-works)
 - [ROI Prior Grids (μ and σ)](#roi-prior-grids-μ-and-σ)
 - [How to Run](#how-to-run)
+- [Visualization](#visualization)
 
 ## Overview
 
@@ -82,6 +83,14 @@ The model can include all channels, but we can choose to only run sensitivity fo
   - `load_resume_state(...)` loads existing results and builds a resume-safe “already done” set
   - `append_tmp_to_output(...)` appends run-level temporary outputs into the master results CSV
 
+- `src/viz/`  
+  Visualization utilities for sensitivity results:
+  - `src/viz/prior_viz.py` merges per-channel result CSVs and generates summary plots:
+    - basic ROI plots (histogram + scatter vs μ/σ)
+    - prior sensitivity heatmap
+    - prior sensitivity ranking
+  - The merged CSV is saved to: `data/output/prior_sensitivity_results_all_channels.csv`
+  - Figures are saved under `docs/figures/roi/` by default (`basic/`, `heatmap/`, `sensitivity_ranking/`).
 ---
 
 ## Inputs and Naming Conventions
@@ -197,6 +206,14 @@ python -m src.main --targets meta tiktok
 
 **Output:**
 - data/output/prior_sensitivity_results_multi_meta_tiktok.csv
+
+## Visualization
+
+After generating sensitivity CSVs, you can create summary plots (basic ROI plots + heatmap + ranking):
+
+```bash
+python -m src.viz.prior_viz
+```
 
 ---
 
