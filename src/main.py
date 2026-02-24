@@ -5,70 +5,137 @@ import sys
 import time
 import subprocess
 
-import pandas as pd
 from src.experiment import build_experiment_config
-from src.io_utils import normalize_columns
+from src.io_utils import (
+    parse_channels_and_output,
+    load_resume_state,
+    append_tmp_to_output,
+)
 
 def main():
-    channels = ["meta","google","snapchat","tiktok","moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [ 0.7, 1.0, 1.4]
+    channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
+    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
 
     cfg = build_experiment_config(
         channels=channels,
         multipliers=multipliers,
         kpi_col="subscriptions",
+        output_file="prior_sensitivity_results.csv",
     )
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "prior_sensitivity_results_tiktok_meta.csv")
+
+    target_channels_to_run, output_file, targets = parse_channels_and_output(
+        full_channels=channels,
+        output_dir=output_dir,
+        default_target="tiktok",
+    )
+
+    channels_json = json.dumps(channels)
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
     print("Mu grid =", cfg.roi_mu_values)
+    print("Output file:", output_file)
 
-    channels_json = json.dumps(channels)
+    # resume-safe load
+    already_done = load_resume_state(output_file)
 
-    # resume-safe
-    if os.path.exists(output_file):
-        results_df = pd.read_csv(output_file)
-        print("Existing results found. Loading...")
+    env = os.environ.copy()
+    env["TF_CPP_MIN_LOG_LEVEL"] = "3"
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-        results_df = normalize_columns(results_df)
+    # MODE A: multiprior (linked)
+    if targets is not None:
+        targets = sorted([str(x) for x in targets])
+        targets_str = ",".join(targets)
+        targets_tag = "_".join(targets)
 
-        # normalize float formatting to avoid float mismatch
-        results_df["roi_prior_mu"] = pd.to_numeric(results_df["roi_prior_mu"], errors="coerce").round(6)
-        results_df["roi_prior_sigma"] = pd.to_numeric(results_df["roi_prior_sigma"], errors="coerce").round(6)
-        results_df["roi_prior_dist"] = results_df["roi_prior_dist"].astype(str)
+        print("MODE: MULTI-PRIOR (linked)")
+        print("Targets to perturb together:", targets_str)
 
-        already_done = set(
-            zip(
-                results_df["target_channel"].astype(str),
-                results_df["roi_prior_mu"],
-                results_df["roi_prior_sigma"],
-                results_df["roi_prior_dist"],
-            )
-        )
-    else:
-        already_done = set()
+        total_runs = len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values)
+        run_id = 1
 
-    target_channels_to_run = ["meta", "tiktok"]
-    total_runs = len(target_channels_to_run) * sum(
-        len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) if cfg.roi_sigma_values and cfg.roi_dist_values else 1
-        for mu in cfg.roi_mu_values
-    )
+        for mu in cfg.roi_mu_values:
+            for sigma in cfg.roi_sigma_values:
+                for dist in cfg.roi_dist_values:
+                    mu = round(float(mu), 6)
+                    sigma = round(float(sigma), 6)
+                    dist = str(dist)
+
+                    overrides = {ch: {"mu": mu, "sigma": sigma, "dist": dist} for ch in targets}
+                    prior_key = json.dumps(overrides, sort_keys=True)
+
+                    if prior_key in already_done:
+                        print(f"Skipping targets={targets_str}, mu={mu}, sigma={sigma}, dist={dist}")
+                        run_id += 1
+                        continue
+
+                    print(f"\n===== Run {run_id}/{total_runs} =====")
+                    print(f"Targets: {targets_str}, Prior mu: {mu}, Prior sigma: {sigma}, Dist: {dist}")
+
+                    t0 = time.time()
+                    mu_tag = str(mu).replace(".", "p")
+                    sigma_tag = str(sigma).replace(".", "p")
+                    dist_tag = dist
+                    tmp_out = os.path.join(output_dir, f"_tmp_roi_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+
+                    cmd = [
+                        sys.executable, "-m", "src.run_meridian_once",
+                        "--csv", data_csv,
+                        "--channels_json", channels_json,
+                        "--roi_prior_overrides_json", prior_key,
+                        "--out_csv", tmp_out,
+                        "--n_chains", "1",
+                        "--n_adapt", "100",
+                        "--n_burnin", "50",
+                        "--n_keep", "20",
+                        "--seed", "0",
+                    ]
+
+                    proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
+                    if proc.returncode != 0:
+                        print("\n--- Subprocess STDOUT ---\n", proc.stdout)
+                        print("\n--- Subprocess STDERR ---\n", proc.stderr)
+                        raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
+
+                    append_tmp_to_output(
+                        tmp_out=tmp_out,
+                        output_file=output_file,
+                        ensure_cols={
+                            "prior_key": prior_key,
+                            "targets": targets_str,
+                            "roi_prior_overrides_json": prior_key,
+                            "target_channel": targets_str,
+                        },
+                        cast_single_target=False,
+                    )
+
+                    already_done.add(prior_key)
+                    os.remove(tmp_out)
+
+                    print("Iteration time:", round(time.time() - t0, 2), "seconds")
+                    run_id += 1
+
+        print("\nALL RUNS COMPLETED.")
+        print("Saved to:", output_file)
+        return
+
+    # MODE B: single-target
+    print("MODE: SINGLE-TARGET")
+    print("Target channels to run:", target_channels_to_run)
+
+    total_runs = len(target_channels_to_run) * len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values)
     run_id = 1
 
     for target_channel in target_channels_to_run:
         for mu in cfg.roi_mu_values:
-            sigma_values = cfg.roi_sigma_values if cfg.roi_sigma_values else [cfg.default_sigma]
-            dist_values = cfg.roi_dist_values if cfg.roi_dist_values else [cfg.default_dist]
-
-            for sigma in sigma_values:
-                for dist in dist_values:
-                    # round mu consistently
+            for sigma in cfg.roi_sigma_values:
+                for dist in cfg.roi_dist_values:
                     mu = round(float(mu), 6)
                     sigma = round(float(sigma), 6)
                     dist = str(dist)
@@ -106,47 +173,20 @@ def main():
                         "--baseline_dist", str(cfg.roi_dist_values[0]),
                     ]
 
-                    env = os.environ.copy()
-                    env["TF_CPP_MIN_LOG_LEVEL"] = "3"   # suppress INFO/WARN
-                    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
-
                     proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
-
                     if proc.returncode != 0:
                         print("\n--- Subprocess STDOUT ---\n", proc.stdout)
                         print("\n--- Subprocess STDERR ---\n", proc.stderr)
                         raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
 
-                    stderr_lines = proc.stderr.splitlines()
-                    useful = [
-                        ln for ln in stderr_lines
-                        if not ln.startswith("WARNING:") and not ln.startswith("WARNING:tensorflow:")
-                    ]
+                    append_tmp_to_output(
+                        tmp_out=tmp_out,
+                        output_file=output_file,
+                        ensure_cols=None,
+                        cast_single_target=True,
+                    )
 
-                    useful = [ln for ln in useful if "device_compiler.h" not in ln and "Compiled cluster using XLA" not in ln]
-
-                    if useful:
-                        print("\n--- Subprocess STDERR (filtered) ---\n", "\n".join(useful))
-
-                    if proc.returncode != 0:
-                        raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
-
-                    if not os.path.exists(tmp_out):
-                        raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
-
-                    part = pd.read_csv(tmp_out)
-
-                    # (B3) normalize tmp output schema too (in case it's old column names)
-                    part = normalize_columns(part)
-
-                    part["roi_prior_mu"] = pd.to_numeric(part["roi_prior_mu"], errors="coerce").round(6)
-                    part["roi_prior_sigma"] = pd.to_numeric(part["roi_prior_sigma"], errors="coerce").round(6)
-                    part["roi_prior_dist"] = part["roi_prior_dist"].astype(str)
-
-                    write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
-                    part.to_csv(output_file, mode="a", header=write_header, index=False)
                     already_done.add((target_channel, mu, sigma, dist))
-
                     os.remove(tmp_out)
 
                     print("Iteration time:", round(time.time() - t0, 2), "seconds")

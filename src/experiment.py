@@ -1,9 +1,8 @@
 # src/experiment.py
 import os
-from dataclasses import dataclass
-from typing import List
-
 import pandas as pd
+from dataclasses import dataclass
+from typing import List, Optional
 
 
 @dataclass
@@ -47,6 +46,7 @@ def build_experiment_config(
     spend_suffix: str = "_spend",
     sigma_grid: list = None,
     dist_grid: list = None,
+    output_file: Optional[str] = None,  
 ) -> ExperimentConfig:
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -55,11 +55,15 @@ def build_experiment_config(
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    output_file = os.path.join(output_dir, "prior_sensitivity_results_tiktok_meta.csv")
+    if output_file is None:
+        output_file = "prior_sensitivity_results.csv"
+
+    if not os.path.isabs(output_file):
+        output_file = os.path.join(output_dir, output_file)
 
     df = pd.read_csv(data_csv)
 
-    spend_cols = [f"{ch}_spend" for ch in channels]
+    spend_cols = [f"{ch}{spend_suffix}" for ch in channels]
 
     missing = [c for c in spend_cols if c not in df.columns]
     if missing:
@@ -73,11 +77,10 @@ def build_experiment_config(
     mu0 = compute_mu0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_mu_values = make_mu_grid(mu0, multipliers)
 
-
     sigma0 = compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_sigma_values = make_sigma_grid(sigma0, multipliers) if sigma_grid is None else sigma_grid
 
-    roi_dist_values = ["Normal", "LogNormal"] if dist_grid is None else dist_grid   
+    roi_dist_values = ["Normal", "LogNormal"] if dist_grid is None else dist_grid
 
     return ExperimentConfig(
         project_root=project_root,

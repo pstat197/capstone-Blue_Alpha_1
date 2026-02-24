@@ -19,8 +19,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - [How the Pipeline Works](#how-the-pipeline-works)
 - [ROI Prior Grids (μ and σ)](#roi-prior-grids-μ-and-σ)
 - [How to Run](#how-to-run)
-- [Outputs](#outputs)
-- [Notes / Common Issues](#notes--common-issues)
+- [Visualization](#visualization)
 
 ## Overview
 
@@ -33,12 +32,19 @@ The model can include all channels, but we can choose to only run sensitivity fo
 ## Repo Layout
 
 - `src/main.py`  
-  Orchestrates the experiment. Loops over:
-  - `target_channels_to_run` (default `["meta"]`)
-  - `roi_mu_values` grid
-  - `roi_sigma_values` grid
-  - `roi_dist_values` grid  
+  Orchestrates the experiment. Supports two modes:
+
+  **Single-target mode (Base):**
+  - target channels provided via CLI: `--channels` (e.g., `tiktok`, or `all`)
+  - loops over `roi_mu_values`, `roi_sigma_values`, `roi_dist_values`
+
+  **Multi-prior mode (Expanded, linked):**
+  - target channels provided via CLI: `--targets` (e.g., `meta tiktok`)
+  - applies the same `(μ, σ, dist)` setting to all targets simultaneously (“linked” scenario)
+
   Calls `run_meridian_once.py` as a subprocess and appends results into one CSV.
+  Output files are auto-named based on the CLI arguments (e.g., `prior_sensitivity_results_tiktok.csv`,
+  `prior_sensitivity_results_meta_tiktok.csv`).
 
 - `src/experiment.py`  
   Centralizes experiment configuration and grid construction:
@@ -56,19 +62,35 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - `src/run_meridian_once.py`  
   Fits one Meridian model given:
   - full channel list (for model media inputs)
-  - a chosen `target_channel`
-  - ROI prior (`μ`, `σ`, `dist`) for that target channel  
+  - **Single-target mode:** one `target_channel` and ROI prior (`μ`, `σ`, `dist`)
+  - **Multi-prior mode:** a JSON dict of ROI prior overrides for multiple targets (linked multi-prior)  
   Writes a run-level ROI summary to a temporary CSV that `main.py` appends to the master results file.
 
 - `src/utils.py`  
   Model helpers:
-  - `build_model_spec(...)` (injects the ROI prior for the target channel)
-  - `extract_roi_mean(...)` (extracts ROI summaries from the fitted model)
+  - `build_model_spec(...)` injects ROI priors for either:
+    - a single target channel, or
+    - multiple target channels via an overrides dict (multi-prior)
+  - `extract_roi_mean(...)` extracts ROI summaries from the fitted model
 
 - `src/io_utils.py`  
-  I/O utilities:
-  - `normalize_columns(df)` to make result CSVs backward compatible (e.g., `prior_sigma` → `roi_prior_sigma`).
+  I/O + CLI utilities:
+  - `normalize_columns(df)` to make result CSVs backward compatible (e.g., `prior_sigma` → `roi_prior_sigma`)
+  - `parse_channels_and_output(...)` parses:
+    - `--channels` for single-target mode
+    - `--targets` for linked multi-prior mode
+    and auto-creates the output filename
+  - `load_resume_state(...)` loads existing results and builds a resume-safe “already done” set
+  - `append_tmp_to_output(...)` appends run-level temporary outputs into the master results CSV
 
+- `src/viz/`  
+  Visualization utilities for sensitivity results:
+  - `src/viz/prior_viz.py` merges per-channel result CSVs and generates summary plots:
+    - basic ROI plots (histogram + scatter vs μ/σ)
+    - prior sensitivity heatmap
+    - prior sensitivity ranking
+  - The merged CSV is saved to: `data/output/prior_sensitivity_results_all_channels.csv`
+  - Figures are saved under `docs/figures/roi/` by default (`basic/`, `heatmap/`, `sensitivity_ranking/`).
 ---
 
 ## Inputs and Naming Conventions
@@ -100,13 +122,23 @@ Example channels:
    - dists:
      - `dist_grid = ["Normal", "LogNormal"]`
 
-2. `main.py` chooses which target channels to run sensitivity for:
-   - default: `target_channels_to_run = ["meta"]`
-   - the model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target.
+2. `main.py` chooses the run mode via CLI:
 
-3. For each `(target_channel, μ, σ, dist)` combination:
-   - `main.py` calls `run_meridian_once.py` in a subprocess
-   - the subprocess fits a Meridian model and writes a temporary output CSV
+   **Single-target mode (Base):**
+   - example: `python -m src.main --channels tiktok`
+   - all channels: `python -m src.main --channels all`
+
+   The model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target channel(s).
+   The output file name is automatically generated based on `--channels`.
+
+   **Multi-prior mode (Expanded, linked):**
+   - example: `python -m src.main --targets meta tiktok`
+
+   In this mode, the same `(μ, σ, dist)` setting is applied to all targets simultaneously (a “linked” scenario).
+   This satisfies “test multiple priors at once” while keeping compute manageable.
+   The output file name is auto-generated based on `--targets`.
+
+3. For each scenario (single-target or multi-prior) and each `(μ, σ, dist)` combination:
 
 4. `main.py` appends that temporary output into the master results file and deletes the temp file.
 
@@ -142,6 +174,46 @@ So:
 We also test the ROI prior distribution family:
 
 - `dist ∈ {"Normal", "LogNormal"}`
+
+## How to Run
+
+Run all commands from the **repo root**.
+
+### Single-target mode (Base)
+
+Run sensitivity for one or more target channels (the ROI prior is modified for each target channel **one at a time**):
+
+**Command Line Arguments:**
+```bash
+python -m src.main --channels tiktok
+python -m src.main --channels meta google
+python -m src.main --channels all
+```
+
+**Output:**
+- data/output/prior_sensitivity_results_tiktok.csv
+- data/output/prior_sensitivity_results_meta_google.csv
+- data/output/prior_sensitivity_results_all.csv
+
+### Multi-prior mode (Expanded, linked)
+
+Run sensitivity where multiple target channels are perturbed together using the same (μ, σ, dist) per iteration (“linked” scenario):
+
+**Command Line Arguments:**
+```bash
+python -m src.main --targets meta tiktok
+```
+
+**Output:**
+- data/output/prior_sensitivity_results_multi_meta_tiktok.csv
+
+## Visualization
+
+After generating sensitivity CSVs, you can create summary plots (basic ROI plots + heatmap + ranking):
+
+```bash
+python -m src.viz.prior_viz
+```
 
 ---
 

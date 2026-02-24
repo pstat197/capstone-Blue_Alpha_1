@@ -1,13 +1,11 @@
 # src/run_meridian_once.py
 import argparse
-from html import parser
 import json
 import gc
 import warnings
 
 import pandas as pd
 import tensorflow as tf
-
 import faulthandler
 
 from meridian.data import data_frame_input_data_builder
@@ -23,27 +21,49 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--csv", required=True)
     parser.add_argument("--channels_json", required=True)
-    parser.add_argument("--target_channel", required=True)
-    parser.add_argument("--mu", type=float, required=True)
-    parser.add_argument("--sigma", type=float, required=True)
-    parser.add_argument("--dist", type=str, required=True)
+
+    # multi-prior overrides
+    parser.add_argument("--roi_prior_overrides_json", default=None)
+
+    parser.add_argument("--target_channel", default=None)
+    parser.add_argument("--mu", type=float, default=None)
+    parser.add_argument("--sigma", type=float, default=None)
+    parser.add_argument("--dist", type=str, default=None)
+
     parser.add_argument("--out_csv", required=True)
 
-    # sampling params
     parser.add_argument("--n_chains", type=int, default=1)
     parser.add_argument("--n_adapt", type=int, default=100)
     parser.add_argument("--n_burnin", type=int, default=50)
     parser.add_argument("--n_keep", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
 
-    parser.add_argument("--baseline_mu", type=float, required=True)
-    parser.add_argument("--baseline_sigma", type=float, required=True)
-    parser.add_argument("--baseline_dist", type=str, required=True)
+    parser.add_argument("--baseline_mu", type=float, default=None)
+    parser.add_argument("--baseline_sigma", type=float, default=None)
+    parser.add_argument("--baseline_dist", type=str, default=None)
 
     args = parser.parse_args()
     channels = json.loads(args.channels_json)
 
-    # --- load data ---
+    # determine mode
+    multiprior = args.roi_prior_overrides_json is not None
+
+    if not multiprior:
+        if args.target_channel is None or args.mu is None or args.sigma is None or args.dist is None:
+            raise ValueError(
+                "Single-target mode requires --target_channel, --mu, --sigma, --dist "
+                "OR provide --roi_prior_overrides_json for multi-prior mode."
+            )
+        if (
+            args.baseline_mu is None or
+            args.baseline_sigma is None or
+            args.baseline_dist is None
+        ):
+            raise ValueError(
+                "Single-target mode requires baseline parameters: --baseline_mu, --baseline_sigma, --baseline_dist"
+        )
+
+    # load data
     df = pd.read_csv(args.csv)
     if "date" in df.columns:
         df["date"] = pd.to_datetime(df["date"])
@@ -51,7 +71,7 @@ def main():
     else:
         df["time"] = pd.to_datetime(df["time"])
 
-    # --- build input_data (same as your colab builder) ---
+    # build input_data
     builder = data_frame_input_data_builder.DataFrameInputDataBuilder(
         kpi_type="non_revenue",
         default_kpi_column="subscriptions"
@@ -67,16 +87,39 @@ def main():
 
     input_data = builder.build()
 
-    # --- build spec ---
-    model_spec = build_model_spec(
-        channels=channels,
-        target_channel=args.target_channel,
-        roi_mu=args.mu,
-        roi_sigma=args.sigma,
-        roi_dist=args.dist
-    )
+    # build spec
+    if multiprior:
+        overrides = json.loads(args.roi_prior_overrides_json)
+        model_spec = build_model_spec(
+            channels=channels,
+            roi_prior_overrides=overrides
+        )
 
-    # --- fit ---
+        targets = sorted(list(overrides.keys()))
+        targets_str = ",".join(targets)
+
+        first = overrides[targets[0]]
+        shared_mu = first.get("mu", None)
+        shared_sigma = first.get("sigma", None)
+        shared_dist = first.get("dist", None)
+
+        prior_key = json.dumps(overrides, sort_keys=True)
+
+    else:
+        model_spec = build_model_spec(
+            channels=channels,
+            target_channel=args.target_channel,
+            roi_mu=args.mu,
+            roi_sigma=args.sigma,
+            roi_dist=args.dist
+        )
+        targets_str = args.target_channel
+        shared_mu = args.mu
+        shared_sigma = args.sigma
+        shared_dist = args.dist
+        prior_key = None
+
+    # fit
     mmm = model.Meridian(input_data=input_data, model_spec=model_spec)
 
     mmm.sample_posterior(
@@ -88,18 +131,23 @@ def main():
     )
 
     roi_df = extract_roi_mean(mmm, channels)
-    roi_df["target_channel"] = args.target_channel
-    roi_df["roi_prior_mu"] = args.mu
-    roi_df["roi_prior_sigma"] = args.sigma
-    roi_df["roi_prior_dist"] = args.dist
+    roi_df["target_channel"] = targets_str
+    roi_df["roi_prior_mu"] = shared_mu
+    roi_df["roi_prior_sigma"] = shared_sigma
+    roi_df["roi_prior_dist"] = shared_dist
 
-    is_baseline = (
-        round(args.mu, 6) == round(args.baseline_mu, 6)
-        and round(args.sigma, 6) == round(args.baseline_sigma, 6)
-        and args.dist == args.baseline_dist
-    )
+    if not multiprior:
+        is_baseline = (
+            round(args.mu, 6) == round(args.baseline_mu, 6) and
+            round(args.sigma, 6) == round(args.baseline_sigma, 6) and
+            str(args.dist) == str(args.baseline_dist)
+        )
+        roi_df["is_baseline"] = is_baseline
 
-    roi_df["is_baseline"] = is_baseline
+    if multiprior:
+        roi_df["targets"] = targets_str
+        roi_df["prior_key"] = prior_key
+        roi_df["roi_prior_overrides_json"] = prior_key
 
     roi_df.to_csv(args.out_csv, index=False)
 
@@ -107,10 +155,11 @@ def main():
     tf.keras.backend.clear_session()
     gc.collect()
 
+
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
+    except Exception:
         import traceback
         traceback.print_exc()
         raise

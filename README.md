@@ -58,12 +58,19 @@ Example channels:
   - `run_meridian_once.py`: runs one Meridian fit for one `(target_channel, μ, σ, dist)`
   - `utils.py`: shared helpers (build model spec / priors, ROI extraction)
   - `io_utils.py`: I/O helpers (e.g., `normalize_columns()` for backward-compatible results)
+  - `viz/`: visualization utilities for sensitivity results
+    - `viz/prior_viz.py`: merges per-channel result CSVs and generates summary plots (basic ROI plots + heatmap + ranking); outputs to `docs/figures/roi/`
 
 - `docs/`  
   Project documentation and deliverables.
   - `docs/reports/`: written reports (PDF)
   - `docs/slides/`: presentation slides / handouts (PDF)
   - `docs/theory/`: theory write-up (LaTeX source + PDF)
+  - `docs/figures/`: generated figures for reports/slides
+    - `docs/figures/roi/`: ROI prior sensitivity plots
+      - `docs/figures/roi/basic/`: histogram + scatter plots (μ/σ vs estimated ROI)
+      - `docs/figures/roi/heatmap/`: prior sensitivity heatmap
+      - `docs/figures/roi/sensitivity_ranking/`: sensitivity ranking bar chart
 
 - `data/`  
   Data inputs and generated outputs.
