@@ -11,7 +11,7 @@ from src.io_utils import normalize_columns
 
 def main():
     channels = ["meta","google","snapchat","tiktok","moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
+    multipliers = [ 0.7, 1.0, 1.4]
 
     cfg = build_experiment_config(
         channels=channels,
@@ -23,7 +23,7 @@ def main():
     data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
-    output_file = os.path.join(output_dir, "prior_sensitivity_results_meta.csv")
+    output_file = os.path.join(output_dir, "prior_sensitivity_results_tiktok_meta.csv")
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
@@ -54,7 +54,7 @@ def main():
     else:
         already_done = set()
 
-    target_channels_to_run = ["meta"]
+    target_channels_to_run = ["meta", "tiktok"]
     total_runs = len(target_channels_to_run) * sum(
         len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) if cfg.roi_sigma_values and cfg.roi_dist_values else 1
         for mu in cfg.roi_mu_values
@@ -101,6 +101,9 @@ def main():
                         "--n_burnin", "50",
                         "--n_keep", "20",
                         "--seed", "0",
+                        "--baseline_mu", str(cfg.mu0),
+                        "--baseline_sigma", str(cfg.roi_sigma_values[0]),
+                        "--baseline_dist", str(cfg.roi_dist_values[0]),
                     ]
 
                     env = os.environ.copy()

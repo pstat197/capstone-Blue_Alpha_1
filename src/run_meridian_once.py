@@ -36,6 +36,10 @@ def main():
     parser.add_argument("--n_keep", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
 
+    parser.add_argument("--baseline_mu", type=float, required=True)
+    parser.add_argument("--baseline_sigma", type=float, required=True)
+    parser.add_argument("--baseline_dist", type=str, required=True)
+
     args = parser.parse_args()
     channels = json.loads(args.channels_json)
 
@@ -88,6 +92,15 @@ def main():
     roi_df["roi_prior_mu"] = args.mu
     roi_df["roi_prior_sigma"] = args.sigma
     roi_df["roi_prior_dist"] = args.dist
+
+    is_baseline = (
+        round(args.mu, 6) == round(args.baseline_mu, 6)
+        and round(args.sigma, 6) == round(args.baseline_sigma, 6)
+        and args.dist == args.baseline_dist
+    )
+
+    roi_df["is_baseline"] = is_baseline
+
     roi_df.to_csv(args.out_csv, index=False)
 
     # cleanup inside subprocess
