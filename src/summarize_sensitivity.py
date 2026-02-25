@@ -1,11 +1,15 @@
 import os
 import pandas as pd
+import numpy as np
 
 
 def build_prior_key(row, baseline_mu):
-    multiplier = round(row["roi_prior_mu"] / baseline_mu, 3)
 
-    return f"mu_x{multiplier}_sigma{row['roi_prior_sigma']}_dist{row['roi_prior_dist']}"
+    if baseline_mu == 0:
+        return "mu_xNA"
+    
+    multiplier = round(row["roi_prior_mu"] / baseline_mu, 3)
+    return f"mu_x{multiplier}"
 
 def main():
 
@@ -14,74 +18,58 @@ def main():
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    data_csv = os.path.join(project_root, "data", "output", "prior_sensitivity_results_tiktok_meta.csv")
+    data_csv = os.path.join(project_root, "data", "output", "prior_sensitivity_results_multi_meta_tiktok.csv")
     output_file = os.path.join(project_root, "data", "output", "prior_sensitivity_summary_tiktok_meta.csv")
-
-    pair_name = "tiktok_meta"
 
     df = pd.read_csv(data_csv)
 
     final_rows = []
 
-    for channel in df["target_channel"].unique():
-        channel_df = df[df["target_channel"] == channel]
+    baseline_mask = (
+        (df["roi_prior_mu"] == df["roi_prior_mu"].median()) &
+        (df["roi_prior_dist"] == "LogNormal")
+    )
 
-        channel_df = channel_df[channel_df["channel"] == channel]
+    baseline_df = df[baseline_mask]
 
-        if channel_df.empty:
-            print(f"No data for channel {channel}, skipping...")
-            continue
-
-
-
-        baseline_row = channel_df[channel_df["is_baseline"] == True]
-
-        if baseline_row.empty:
-            print(f"No baseline found for channel {channel}, skipping...")
-            continue
-        elif len(baseline_row) != 1:
-            print(f"Multiple baselines found for channel {channel}, found {len(baseline_row)}, skipping...")
-            continue
-
-        baseline_roi = baseline_row["estimated_roi"].iloc[0]
-        baseline_mu = baseline_row["roi_prior_mu"].iloc[0]
-
-        channel_df["roi_baseline"] = baseline_roi
-        channel_df["roi_new"] = channel_df["estimated_roi"]
-        channel_df["delta_abs"] = (channel_df["roi_new"] - baseline_roi).abs()
-
-        if baseline_roi != 0:
-            channel_df["delta_pct"] = ((channel_df["roi_new"] / baseline_roi) - 1).abs()
-        else:
-            channel_df["delta_pct"] = None
-        
-        channel_df["prior_key"] = channel_df.apply(lambda row: build_prior_key(row, baseline_mu), axis=1)
-
-        channel_df["targets"] = pair_name
-
-        final_rows.append(
-            channel_df[[
-                "targets",
-                "prior_key",
-                "channel",
-                "roi_baseline",
-                "roi_new",
-                "delta_abs",
-                "delta_pct"
-            ]]
-        )
-    
-    if not final_rows:
-        print("No data processed.")
+    if baseline_df.empty:
+        print("No baseline found.")
         return
     
-    result = pd.concat(final_rows, ignore_index=True)
+    baseline_summary = (
+        baseline_df.groupby(["targets", "channel"])["estimated_roi"]
+        .mean()
+        .reset_index()
+        .rename(columns={"estimated_roi": "roi_baseline"})
+    )
 
-    result = result[result["delta_abs"] > 0]
+    df = df.merge(baseline_summary, on=["targets", "channel"], how="left")
+
+    df["roi_new"] = df["estimated_roi"]
+
+    df["delta_abs"] = (df["roi_new"] - df["roi_baseline"]).abs()
+
+    df["delta_pct"] = np.where(
+        df["roi_baseline"] != 0,
+        ((df["roi_new"] / df["roi_baseline"]) - 1).abs(),
+        None
+    )
+
+    df = df[~df["is_baseline"]]
+
+    result = df[[
+        "targets",
+        "prior_key",
+        "channel",
+        "roi_baseline",
+        "roi_new",
+        "delta_abs",
+        "delta_pct"
+    ]]
 
     result.to_csv(output_file, index=False)
 
-    print("\nTornado ready files saved to:")
+    print("Saved tornado-ready summary to:")
     print(output_file)
 
 if __name__ == "__main__":

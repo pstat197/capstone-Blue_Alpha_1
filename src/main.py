@@ -14,7 +14,7 @@ from src.io_utils import (
 
 def main():
     channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
+    multipliers = [0.7, 1.0, 1.4]
 
     cfg = build_experiment_config(
         channels=channels,
@@ -41,6 +41,10 @@ def main():
     print("Mu grid =", cfg.roi_mu_values)
     print("Output file:", output_file)
 
+    baseline_mu = cfg.mu0
+    baseline_sigma = cfg.roi_sigma_values[0]
+    baseline_dist = "LogNormal"
+
     # resume-safe load
     already_done = load_resume_state(output_file)
 
@@ -63,6 +67,7 @@ def main():
         for mu in cfg.roi_mu_values:
             for sigma in cfg.roi_sigma_values:
                 for dist in cfg.roi_dist_values:
+                    
                     mu = round(float(mu), 6)
                     sigma = round(float(sigma), 6)
                     dist = str(dist)
@@ -90,6 +95,9 @@ def main():
                         "--channels_json", channels_json,
                         "--roi_prior_overrides_json", prior_key,
                         "--out_csv", tmp_out,
+                        "--baseline_mu", str(baseline_mu),
+                        "--baseline_sigma", str(baseline_sigma),
+                        "--baseline_dist", str(baseline_dist),
                         "--n_chains", "1",
                         "--n_adapt", "100",
                         "--n_burnin", "50",
@@ -153,6 +161,8 @@ def main():
                     sigma_tag = str(sigma).replace(".", "p")
                     dist_tag = dist
                     tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                    
+
 
                     cmd = [
                         sys.executable, "-m", "src.run_meridian_once",
@@ -163,14 +173,14 @@ def main():
                         "--sigma", str(sigma),
                         "--dist", dist,
                         "--out_csv", tmp_out,
+                        "--baseline_mu", str(baseline_mu),
+                        "--baseline_sigma", str(baseline_sigma),
+                        "--baseline_dist", baseline_dist,
                         "--n_chains", "1",
                         "--n_adapt", "100",
                         "--n_burnin", "50",
                         "--n_keep", "20",
                         "--seed", "0",
-                        "--baseline_mu", str(cfg.mu0),
-                        "--baseline_sigma", str(cfg.roi_sigma_values[0]),
-                        "--baseline_dist", str(cfg.roi_dist_values[0]),
                     ]
 
                     proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
