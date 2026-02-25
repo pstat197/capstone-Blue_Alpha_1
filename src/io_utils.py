@@ -83,7 +83,6 @@ def parse_channels_and_output(
 
 AlreadyDone = Union[Set[str], Set[tuple]]
 
-
 def load_resume_state(output_file: str) -> AlreadyDone:
     """
     Load existing output CSV (if it exists) and return already_done.
