@@ -18,13 +18,6 @@ faulthandler.enable()
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel("ERROR")
 
-def is_baseline_run(mu, sigma, dist, baseline_mu, baseline_sigma, baseline_dist):
-    return (
-        baseline_mu is not None and baseline_sigma is not None and baseline_dist is not None and
-        mu == round(baseline_mu, 6) and
-        sigma == round(baseline_sigma, 6) and
-        str(dist) == str(baseline_dist)
-    )
 
 def main():
     parser = argparse.ArgumentParser()
@@ -34,6 +27,7 @@ def main():
     # multi-prior overrides
     parser.add_argument("--roi_prior_overrides_json", default=None)
 
+    # single-target args
     parser.add_argument("--target_channel", default=None)
     parser.add_argument("--mu", type=float, default=None)
     parser.add_argument("--sigma", type=float, default=None)
@@ -50,14 +44,12 @@ def main():
     parser.add_argument("--baseline_mu", type=float, default=None)
     parser.add_argument("--baseline_sigma", type=float, default=None)
     parser.add_argument("--baseline_dist", type=str, default=None)
-    parser.add_argument("--is_baseline", type=str, default="False")
 
     args = parser.parse_args()
     channels = json.loads(args.channels_json)
 
     # determine mode
     multiprior = args.roi_prior_overrides_json is not None
-
 
     if not multiprior:
         if args.target_channel is None or args.mu is None or args.sigma is None or args.dist is None:
@@ -124,7 +116,6 @@ def main():
 
     # fit
     mmm = model.Meridian(input_data=input_data, model_spec=model_spec)
-
     mmm.sample_posterior(
         n_chains=args.n_chains,
         n_adapt=args.n_adapt,
@@ -134,31 +125,25 @@ def main():
     )
 
     roi_df = extract_roi_mean(mmm, channels)
+
     roi_df["target_channel"] = targets_str
-    roi_df["roi_prior_mu"] = (
-        args.mu if not multiprior else shared_mu
-    )
-    roi_df["roi_prior_sigma"] = (
-        args.sigma if not multiprior else shared_sigma
-    )
-    roi_df["roi_prior_dist"] = (
-        args.dist if not multiprior else shared_dist
-    )
+    roi_df["roi_prior_mu"] = (args.mu if not multiprior else shared_mu)
+    roi_df["roi_prior_sigma"] = (args.sigma if not multiprior else shared_sigma)
+    roi_df["roi_prior_dist"] = (args.dist if not multiprior else shared_dist)
 
-    roi_df["roi_prior_mu"] = pd.to_numeric(
-        roi_df["roi_prior_mu"], errors="coerce"
-    ).round(6)
+    roi_df["roi_prior_mu"] = pd.to_numeric(roi_df["roi_prior_mu"], errors="coerce").round(6)
+    roi_df["roi_prior_sigma"] = pd.to_numeric(roi_df["roi_prior_sigma"], errors="coerce").round(6)
+    roi_df["roi_prior_dist"] = roi_df["roi_prior_dist"].astype(str)
 
-    roi_df["roi_prior_sigma"] = pd.to_numeric(
-        roi_df["roi_prior_sigma"], errors="coerce"
-    ).round(6)
-
-    roi_df["is_baseline"] = (
-        (np.isclose(roi_df["roi_prior_mu"], args.baseline_mu)) &
-        (np.isclose(roi_df["roi_prior_sigma"], args.baseline_sigma)) &
-        (roi_df["roi_prior_dist"] == args.baseline_dist)
-    )
-
+    # baseline flag
+    if args.baseline_mu is not None and args.baseline_sigma is not None and args.baseline_dist is not None:
+        roi_df["is_baseline"] = (
+            np.isclose(roi_df["roi_prior_mu"], float(args.baseline_mu)) &
+            np.isclose(roi_df["roi_prior_sigma"], float(args.baseline_sigma)) &
+            (roi_df["roi_prior_dist"] == str(args.baseline_dist))
+        )
+    else:
+        roi_df["is_baseline"] = False
 
     if multiprior:
         roi_df["targets"] = targets_str

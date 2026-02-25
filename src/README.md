@@ -19,6 +19,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - [How the Pipeline Works](#how-the-pipeline-works)
 - [ROI Prior Grids (μ and σ)](#roi-prior-grids-μ-and-σ)
 - [How to Run](#how-to-run)
+- [Tornado Ready Summary Table](#tornado-ready-summary-table)
 - [Visualization](#visualization)
 
 ## Overview
@@ -32,19 +33,24 @@ The model can include all channels, but we can choose to only run sensitivity fo
 ## Repo Layout
 
 - `src/main.py`  
-  Orchestrates the experiment. Supports two modes:
+  Orchestrates the sensitivity experiment and supports two run modes:
 
   **Single-target mode (Base):**
-  - target channels provided via CLI: `--channels` (e.g., `tiktok`, or `all`)
+  - target channels provided via CLI: `--channels` (e.g., `tiktok`, `meta google`, or `all`)
   - loops over `roi_mu_values`, `roi_sigma_values`, `roi_dist_values`
 
   **Multi-prior mode (Expanded, linked):**
   - target channels provided via CLI: `--targets` (e.g., `meta tiktok`)
-  - applies the same `(μ, σ, dist)` setting to all targets simultaneously (“linked” scenario)
+  - applies the same `(μ, σ, dist)` to *all targets simultaneously* by passing a JSON overrides dict
+    via `--roi_prior_overrides_json` (linked scenario)
 
-  Calls `run_meridian_once.py` as a subprocess and appends results into one CSV.
-  Output files are auto-named based on the CLI arguments (e.g., `prior_sensitivity_results_tiktok.csv`,
-  `prior_sensitivity_results_meta_tiktok.csv`).
+  **Baseline parameters (passed to every run):**
+  - `baseline_mu = cfg.mu0`
+  - `baseline_sigma = cfg.roi_sigma_values[0]`
+  - `baseline_dist = "LogNormal"`
+
+  Calls `run_meridian_once.py` as a subprocess and appends each run’s temporary CSV into a master
+  results file (resume-safe).
 
 - `src/experiment.py`  
   Centralizes experiment configuration and grid construction:
@@ -60,12 +66,25 @@ The model can include all channels, but we can choose to only run sensitivity fo
     - `["Normal", "LogNormal"]` by default
 
 - `src/run_meridian_once.py`  
-  Fits one Meridian model given:
-  - full channel list (for model media inputs)
-  - **Single-target mode:** one `target_channel` and ROI prior (`μ`, `σ`, `dist`)
-  - **Multi-prior mode:** a JSON dict of ROI prior overrides for multiple targets (linked multi-prior)  
-  Writes a run-level ROI summary to a temporary CSV that `main.py` appends to the master results file.
+  Fits **one** Meridian model for a single prior setting and writes a run-level ROI output CSV.
 
+  **Inputs / modes:**
+  - Uses the full `channels` list to build media inputs (`{channel}_impressions`, `{channel}_spend`) for the model.
+  - **Single-target mode:** called with `--target_channel --mu --sigma --dist` to modify the ROI prior for one target channel.
+  - **Multi-prior (linked) mode:** called with `--roi_prior_overrides_json`, a JSON dict mapping each target channel to a prior spec
+    (typically the same `{"mu": ..., "sigma": ..., "dist": ...}` applied to all targets in that run).
+
+  The resulting temporary CSV is later appended into the master results file by `main.py`.
+
+- `src/summarize_sensitivity.py`  
+  Produces a tornado-ready summary table from a results CSV:
+  - identifies baseline using `is_baseline == True`
+  - computes:
+    - `delta_abs = |roi_new - roi_baseline|`
+    - `delta_pct = |roi_new/roi_baseline - 1|`
+  - exports a tornado-ready CSV containing required columns:
+    `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
+  
 - `src/utils.py`  
   Model helpers:
   - `build_model_spec(...)` injects ROI priors for either:
@@ -79,7 +98,12 @@ The model can include all channels, but we can choose to only run sensitivity fo
   - `parse_channels_and_output(...)` parses:
     - `--channels` for single-target mode
     - `--targets` for linked multi-prior mode
-    and auto-creates the output filename
+    and auto-creates the sensitivity output filename
+  - `parse_targets_and_tornado_paths(...)` parses:
+    - `--targets` (multi-prior) or `--channels` (single-target)
+    and auto-creates both:
+    - the input results CSV path (to summarize)
+    - the tornado output filename (e.g., `data/output/tornado_<tag>.csv`)
   - `load_resume_state(...)` loads existing results and builds a resume-safe “already done” set
   - `append_tmp_to_output(...)` appends run-level temporary outputs into the master results CSV
 
@@ -125,22 +149,25 @@ Example channels:
 2. `main.py` chooses the run mode via CLI:
 
    **Single-target mode (Base):**
-   - example: `python -m src.main --channels tiktok`
+   - example usage: `python -m src.main --channels tiktok`
    - all channels: `python -m src.main --channels all`
 
    The model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target channel(s).
    The output file name is automatically generated based on `--channels`.
 
    **Multi-prior mode (Expanded, linked):**
-   - example: `python -m src.main --targets meta tiktok`
+   - example usage: `python -m src.main --targets meta tiktok`
 
    In this mode, the same `(μ, σ, dist)` setting is applied to all targets simultaneously (a “linked” scenario).
-   This satisfies “test multiple priors at once” while keeping compute manageable.
    The output file name is auto-generated based on `--targets`.
 
 3. For each scenario (single-target or multi-prior) and each `(μ, σ, dist)` combination:
+   - `main.py` runs `run_meridian_once.py` as a subprocess, writing a temporary CSV
+   - `main.py` appends the temporary output into the master results file and deletes the temp file
 
-4. `main.py` appends that temporary output into the master results file and deletes the temp file.
+4. Baseline tracking:
+   - `main.py` passes `baseline_mu`, `baseline_sigma`, `baseline_dist` into every subprocess call
+   - `run_meridian_once.py` marks `is_baseline=True` when the run’s `(roi_prior_mu, roi_prior_sigma, roi_prior_dist)` matches baseline
 
 5. Resume behavior:
    - If the master results CSV already exists, `main.py` loads it, normalizes column names, and skips combinations already completed.
@@ -183,37 +210,55 @@ Run all commands from the **repo root**.
 
 Run sensitivity for one or more target channels (the ROI prior is modified for each target channel **one at a time**):
 
-**Command Line Arguments:**
-```bash
-python -m src.main --channels tiktok
-python -m src.main --channels meta google
-python -m src.main --channels all
-```
+- `python -m src.main --channels tiktok`
+- `python -m src.main --channels meta google`
+- `python -m src.main --channels all`
 
 **Output:**
-- data/output/prior_sensitivity_results_tiktok.csv
-- data/output/prior_sensitivity_results_meta_google.csv
-- data/output/prior_sensitivity_results_all.csv
+- `data/output/prior_sensitivity_results_tiktok.csv`
+- `data/output/prior_sensitivity_results_meta_google.csv`
+- `data/output/prior_sensitivity_results_all_channels.csv`
 
 ### Multi-prior mode (Expanded, linked)
 
 Run sensitivity where multiple target channels are perturbed together using the same (μ, σ, dist) per iteration (“linked” scenario):
 
-**Command Line Arguments:**
-```bash
-python -m src.main --targets meta tiktok
-```
+- `python -m src.main --targets meta tiktok`
 
 **Output:**
-- data/output/prior_sensitivity_results_multi_meta_tiktok.csv
+- `data/output/prior_sensitivity_results_multi_meta_tiktok.csv`
+
+## Tornado Ready Summary Table
+
+After generating a sensitivity results CSV, export a tornado-ready summary table (baseline vs. new ROI + deltas) by running:
+
+- `python -m src.summarize_sensitivity --targets meta tiktok`
+- `python -m src.summarize_sensitivity --targets meta tiktok google`
+- `python -m src.summarize_sensitivity --channels tiktok`  (single-target results)
+
+### How input/output are chosen (no hard-coding)
+`summarize_sensitivity.py` uses `parse_targets_and_tornado_paths(...)` in `src/io_utils.py` to auto-select:
+- **Input results CSV**
+  - Multi-prior: `data/output/prior_sensitivity_results_multi_<tag>.csv`
+  - Single-target: `data/output/prior_sensitivity_results_<tag>.csv`
+- **Output tornado CSV**
+  - `data/output/tornado_<tag>.csv`
+
+Where `<tag>` is the underscore-joined channel list (e.g., `meta_tiktok`, `meta_tiktok_google`, `tiktok`).
+
+### Output columns
+- `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
+
+### Notes
+- Baseline is identified using `is_baseline == True` from the results CSV (set in `run_meridian_once.py` by comparing the run’s `roi_prior_mu/sigma/dist` to `baseline_mu/baseline_sigma/baseline_dist` passed from `main.py`).
+- `delta_abs = |roi_new - roi_baseline|`
+- `delta_pct = |roi_new/roi_baseline - 1|`
 
 ## Visualization
 
 After generating sensitivity CSVs, you can create summary plots (basic ROI plots + heatmap + ranking):
 
-```bash
-python -m src.viz.prior_viz
-```
+- `python -m src.viz.prior_viz`
 
 ---
 
