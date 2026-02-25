@@ -83,50 +83,6 @@ def parse_channels_and_output(
 
 AlreadyDone = Union[Set[str], Set[tuple]]
 
-def parse_targets_and_tornado_paths(
-    *,
-    output_dir: str,
-    default_targets: Optional[List[str]] = None,
-) -> Tuple[str, str, Optional[List[str]]]:
-    """
-    Parse CLI args and return:
-      - in_results_csv: absolute input results CSV path (must already exist)
-      - out_tornado_csv: absolute output tornado CSV path
-      - targets: optional list[str] (multi-prior targets if provided)
-    """
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--channels",
-        nargs="+",
-        default=None,
-        help='Single-target results to summarize. Example: --channels tiktok OR --channels meta google.',
-    )
-    parser.add_argument(
-        "--targets",
-        nargs="+",
-        default=default_targets,
-        help='Multi-prior (linked) results to summarize. Example: --targets meta tiktok (or add a third target).',
-    )
-    args = parser.parse_args()
-
-    # build multi filename
-    if args.targets is not None and len(args.targets) > 0:
-        targets = [str(x) for x in args.targets]
-        tag = "_".join(targets)
-        in_results_csv = os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv")
-        out_tornado_csv = os.path.join(output_dir, f"tornado_{tag}.csv")
-        return in_results_csv, out_tornado_csv, targets
-
-    # build single filename from channels tag
-    if args.channels is None or len(args.channels) == 0:
-        raise ValueError("Provide either --targets (multi-prior) or --channels (single-target) to summarize.")
-
-    tag = "_".join([str(x) for x in args.channels])
-    in_results_csv = os.path.join(output_dir, f"prior_sensitivity_results_{tag}.csv")
-    out_tornado_csv = os.path.join(output_dir, f"tornado_{tag}.csv")
-    return in_results_csv, out_tornado_csv, None
-
 def load_resume_state(output_file: str) -> AlreadyDone:
     """
     Load existing output CSV (if it exists) and return already_done.

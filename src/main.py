@@ -14,7 +14,7 @@ from src.io_utils import (
 
 def main():
     channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.7, 1.0, 1.4]
+    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
 
     cfg = build_experiment_config(
         channels=channels,

@@ -66,7 +66,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
     - `["Normal", "LogNormal"]` by default
 
 - `src/run_meridian_once.py`  
-  Fits **one** Meridian model for a single prior setting and writes a run-level ROI output CSV.
+  Fits one Meridian model for a single prior setting and writes a run-level ROI output CSV.
 
   **Inputs / modes:**
   - Uses the full `channels` list to build media inputs (`{channel}_impressions`, `{channel}_spend`) for the model.
@@ -77,14 +77,21 @@ The model can include all channels, but we can choose to only run sensitivity fo
   The resulting temporary CSV is later appended into the master results file by `main.py`.
 
 - `src/summarize_sensitivity.py`  
-  Produces a tornado-ready summary table from a results CSV:
+  Generates a tornado-ready summary table for a target set (pair / triple / etc.). It accepts targets as positional CLI args
+  (e.g., `python -m src.summarize_sensitivity meta tiktok`).
+
+  - automatically locates the input results CSV:
+    - `data/output/prior_sensitivity_results_multi_<tag>.csv`
+  - if the input file does not exist, it will first run:
+    - `python -m src.main --targets <targets...>`
+    to generate the results
   - identifies baseline using `is_baseline == True`
   - computes:
     - `delta_abs = |roi_new - roi_baseline|`
     - `delta_pct = |roi_new/roi_baseline - 1|`
-  - exports a tornado-ready CSV containing required columns:
+  - exports `data/output/tornado_<tag>.csv` with columns:
     `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
-  
+
 - `src/utils.py`  
   Model helpers:
   - `build_model_spec(...)` injects ROI priors for either:
@@ -99,11 +106,6 @@ The model can include all channels, but we can choose to only run sensitivity fo
     - `--channels` for single-target mode
     - `--targets` for linked multi-prior mode
     and auto-creates the sensitivity output filename
-  - `parse_targets_and_tornado_paths(...)` parses:
-    - `--targets` (multi-prior) or `--channels` (single-target)
-    and auto-creates both:
-    - the input results CSV path (to summarize)
-    - the tornado output filename (e.g., `data/output/tornado_<tag>.csv`)
   - `load_resume_state(...)` loads existing results and builds a resume-safe “already done” set
   - `append_tmp_to_output(...)` appends run-level temporary outputs into the master results CSV
 
@@ -232,19 +234,24 @@ Run sensitivity where multiple target channels are perturbed together using the 
 
 After generating a sensitivity results CSV, export a tornado-ready summary table (baseline vs. new ROI + deltas) by running:
 
-- `python -m src.summarize_sensitivity --targets meta tiktok`
-- `python -m src.summarize_sensitivity --targets meta tiktok google`
-- `python -m src.summarize_sensitivity --channels tiktok`  (single-target results)
+- `python -m src.summarize_sensitivity meta tiktok`
+- `python -m src.summarize_sensitivity meta tiktok google`
 
 ### How input/output are chosen (no hard-coding)
-`summarize_sensitivity.py` uses `parse_targets_and_tornado_paths(...)` in `src/io_utils.py` to auto-select:
-- **Input results CSV**
-  - Multi-prior: `data/output/prior_sensitivity_results_multi_<tag>.csv`
-  - Single-target: `data/output/prior_sensitivity_results_<tag>.csv`
-- **Output tornado CSV**
-  - `data/output/tornado_<tag>.csv`
 
-Where `<tag>` is the underscore-joined channel list (e.g., `meta_tiktok`, `meta_tiktok_google`, `tiktok`).
+`summarize_sensitivity.py` takes positional target channels (pairs, triples, etc.). It automatically:
+
+1. Builds the expected multi-prior results filename:
+   - **Input results CSV:** `data/output/prior_sensitivity_results_multi_<tag>.csv`
+
+2. If the input results CSV does not exist, it automatically runs:
+   - `python -m src.main --targets <targets...>`
+   to generate the results file first.
+
+3. Writes the tornado-ready output:
+   - **Output tornado CSV:** `data/output/tornado_ready_<tag>.csv`
+
+Where `<tag>` is the underscore-joined, sorted target list (e.g., `meta_tiktok`, `google_meta`, `google_meta_tiktok`).
 
 ### Output columns
 - `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
