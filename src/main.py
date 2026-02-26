@@ -14,7 +14,7 @@ from src.io_utils import (
 
 def main():
     channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
+    multipliers = [0.4, 1.0, 2.0]
 
     cfg = build_experiment_config(
         channels=channels,
@@ -42,7 +42,7 @@ def main():
     print("Output file:", output_file)
 
     baseline_mu = cfg.mu0
-    baseline_sigma = cfg.roi_sigma_values[0]
+    baseline_sigma = cfg.roi_sigma_values[1]
     baseline_dist = "LogNormal"
 
     # resume-safe load
@@ -98,7 +98,7 @@ def main():
                         "--baseline_mu", str(baseline_mu),
                         "--baseline_sigma", str(baseline_sigma),
                         "--baseline_dist", str(baseline_dist),
-                        "--n_chains", "1",
+                        "--n_chains", "2",
                         "--n_adapt", "100",
                         "--n_burnin", "50",
                         "--n_keep", "20",
