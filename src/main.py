@@ -43,8 +43,8 @@ def main():
 
     baseline_mu = cfg.mu0
     baseline_sigma = cfg.roi_sigma_values[1]
-    baseline_dist = "LogNormal"
-
+    baseline_dist = cfg.roi_dist_values[0]
+    
     # resume-safe load
     already_done = load_resume_state(output_file)
 
@@ -99,9 +99,9 @@ def main():
                         "--baseline_sigma", str(baseline_sigma),
                         "--baseline_dist", str(baseline_dist),
                         "--n_chains", "2",
-                        "--n_adapt", "100",
-                        "--n_burnin", "50",
-                        "--n_keep", "20",
+                        "--n_adapt", "300",
+                        "--n_burnin", "300",
+                        "--n_keep", "100",
                         "--seed", "0",
                     ]
 

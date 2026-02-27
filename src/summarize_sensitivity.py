@@ -5,6 +5,45 @@ import subprocess
 import pandas as pd
 import numpy as np
 
+def _pick_center(values):
+    vals = sorted(pd.Series(values).dropna().unique().tolist())
+    if not vals:
+        return None
+    return vals[len(vals) // 2]
+
+
+def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Fallback baseline inference when is_baseline flag is missing/empty.
+
+    Uses center-point prior values (middle mu, middle sigma, preferred dist) per targets group.
+    """
+    if df.empty:
+        return df.copy()
+
+    required = {"targets", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}
+    if not required.issubset(df.columns):
+        return df.iloc[0:0].copy()
+
+    picked = []
+    for t, g in df.groupby("targets", dropna=False):
+        mu0 = _pick_center(g["roi_prior_mu"])
+        sigma0 = _pick_center(g["roi_prior_sigma"])
+        dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
+        dist0 = "Normal" if "Normal" in dists else (_pick_center(dists) if dists else None)
+
+        mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
+        mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
+        if dist0 is not None:
+            mask &= g["roi_prior_dist"].astype(str).eq(str(dist0))
+
+        gg = g[mask].copy()
+        if not gg.empty:
+            picked.append(gg)
+
+    if not picked:
+        return df.iloc[0:0].copy()
+    return pd.concat(picked, ignore_index=True)
+
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     output_dir = os.path.join(project_root, "data", "output")
@@ -55,8 +94,13 @@ def main():
 
     baseline_df = df[df["is_baseline"] == True].copy()
     if baseline_df.empty:
-        raise ValueError("No baseline rows found (is_baseline==True). Check baseline settings in main.py.")
-
+        baseline_df = _infer_baseline_rows(df)
+        if baseline_df.empty:
+            raise ValueError(
+                "No baseline rows found (is_baseline==True), and fallback inference failed. "
+                "Check baseline settings in main.py or ensure baseline prior combo exists in the CSV."
+            )
+        print("[warn] No explicit baseline rows found; inferred baseline from center prior values.")
     baseline_summary = (
         baseline_df.groupby(["targets", "channel"])["estimated_roi"]
         .mean()

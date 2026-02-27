@@ -4,6 +4,7 @@ import json
 import gc
 import warnings
 import re
+from typing import Optional, Tuple
 
 import pandas as pd
 import tensorflow as tf
@@ -23,28 +24,104 @@ warnings.filterwarnings("ignore")
 tf.get_logger().setLevel("ERROR")
 
 
+def _normalize_status_token(raw_status) -> Optional[str]:
+    """Normalize Meridian status values (including enum reprs like `Status.PASS`)."""
+    if raw_status is None:
+        return None
+    if hasattr(raw_status, "name"):
+        return str(raw_status.name).strip().upper()
+
+    s = str(raw_status).strip().upper()
+    if "." in s:
+        s = s.split(".")[-1]
+
+    if "REVIEW" in s:
+        return "REVIEW"
+    if "FAIL" in s:
+        return "FAIL"
+    if "PASS" in s:
+        return "PASS"
+    return s or None
+
+
 def qc_to_pass_fail(qc_text: str, status) -> str:
-    """Return 'PASS'/'FAIL'/'UNKNOWN' using official status if available; otherwise parse text."""
-    if status is not None:
-        s = str(status).strip().upper()
-        if "PASS" in s:
-            return "PASS"
-        if "FAIL" in s:
-            return "FAIL"
+    """Return `PASS`/`FAIL`/`UNKNOWN` from status first, then text fallback."""
+    norm = _normalize_status_token(status)
+    if norm == "FAIL":
+        return "FAIL"
+    if norm == "PASS":
+        return "PASS"
 
     t = (qc_text or "").lower()
+    if "overall status: fail" in t or "failed" in t or "error" in t:
+        return "FAIL"
     if "overall status: pass" in t:
         return "PASS"
-    if "overall status: fail" in t:
-        return "FAIL"
-    if "failed" in t or "error" in t:
-        return "FAIL"
     return "UNKNOWN"
+
+
+def qc_needs_review(summary: Optional[str], qc_text: str = "") -> bool:
+    """Return True when reviewer indicates manual review is needed."""
+    s = (summary or "").lower()
+    t = (qc_text or "").lower()
+    review_tokens = ("review is needed", "passed with reviews")
+    return any(tok in s for tok in review_tokens) or any(tok in t for tok in review_tokens)
+
+
+def _extract_label_value(text: str, label: str):
+    """Extract a line value like `Overall Status: PASS` from review text."""
+    m = re.search(rf"\b{re.escape(label)}\s*:\s*(.+)", text or "", flags=re.IGNORECASE)
+    if not m:
+        return None
+    value = m.group(1).strip()
+    return value if value else None
+
+
+
+
+def normalize_qc_payload(qc) -> Tuple[str, Optional[str], Optional[str]]:
+    """Return `(qc_text, qc_status, qc_summary)` with robust fallbacks across Meridian versions."""
+    qc_text = str(qc or "")
+    qc_status = None
+    qc_summary = None
+
+    if isinstance(qc, dict):
+        qc_status = (
+            qc.get("overall_status")
+            or qc.get("Overall Status")
+            or qc.get("status")
+        )
+        qc_summary = (
+            qc.get("summary")
+            or qc.get("Summary")
+            or qc.get("summary_message")
+        )
+        if not qc_text.strip() or qc_text.strip().startswith("{"):
+            lines = []
+            if qc_status is not None:
+                lines.append(f"Overall Status: {qc_status}")
+            if qc_summary is not None:
+                lines.append(f"Summary: {qc_summary}")
+            qc_text = "\n".join(lines) if lines else json.dumps(qc, indent=2, sort_keys=True)
+    else:
+        qc_status = getattr(qc, "overall_status", None) or getattr(qc, "status", None)
+        qc_summary = getattr(qc, "summary", None) or getattr(qc, "summary_message", None)
+
+    qc_status = _normalize_status_token(qc_status) or _normalize_status_token(_extract_label_value(qc_text, "Overall Status"))
+    qc_summary = str(qc_summary).strip() if qc_summary is not None else _extract_label_value(qc_text, "Summary")
+
+    if qc_summary:
+        qc_text = qc_summary
+    elif qc_status:
+        qc_text = f"Overall Status: {qc_status}"
+    else:
+        qc_text = ""
+    return qc_text, qc_status, qc_summary
 
 
 def _parse_first_float(pattern: str, text: str):
     """Return first captured float for a regex like r'R-squared\\s*=\\s*([0-9.]+)'."""
-    m = re.search(pattern, text, flags=re.IGNORECASE)
+    m = re.search(pattern, text or "", flags=re.IGNORECASE | re.DOTALL)
     if not m:
         return None
     try:
@@ -59,11 +136,11 @@ def extract_qc_metrics_from_text(qc_text: str) -> dict:
     so we store values (not plots).
     """
     return {
-        "qc_r2": _parse_first_float(r"R-squared\s*=\s*([0-9.]+)", qc_text),
-        "qc_mape": _parse_first_float(r"\bMAPE\s*=\s*([0-9.]+)", qc_text),
-        "qc_wmape": _parse_first_float(r"\bwMAPE\s*=\s*([0-9.]+)", qc_text),
-        "qc_bayesian_ppp": _parse_first_float(r"posterior predictive p-value\s*is\s*([0-9.]+)", qc_text),
-        "qc_baseline_neg_prob": _parse_first_float(r"posterior probability.*baseline.*negative\s*is\s*([0-9.]+)", qc_text),
+        "qc_r2": _parse_first_float(r"R-squared\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", qc_text),
+        "qc_mape": _parse_first_float(r"\bMAPE\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", qc_text),
+        "qc_wmape": _parse_first_float(r"\bwMAPE\s*=\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", qc_text),
+        "qc_bayesian_ppp": _parse_first_float(r"posterior\s+predictive\s+p-value\s*(?:is|=)\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", qc_text),
+        "qc_baseline_neg_prob": _parse_first_float(r"posterior\s+probability.*?baseline.*?negative\s*(?:is|=)\s*([-+]?\d*\.?\d+(?:[eE][-+]?\d+)?)", qc_text),
     }
 
 
@@ -104,6 +181,7 @@ def extract_rhat_summary(mmm) -> dict:
         }
     except Exception:
         return {}
+
 
 
 def extract_fit_metrics_best_effort(mmm) -> dict:
@@ -245,19 +323,11 @@ def main():
 
     # ModelReviewer
     qc = reviewer.ModelReviewer(mmm).run()
-    qc_text = str(qc)
-
-    qc_status = None
-    qc_summary = None
-    if isinstance(qc, dict):
-        qc_status = qc.get("overall_status") or qc.get("Overall Status")
-        qc_summary = qc.get("summary") or qc.get("Summary")
-    else:
-        qc_status = getattr(qc, "overall_status", None)
-        qc_summary = getattr(qc, "summary", None)
+    qc_text, qc_status, qc_summary = normalize_qc_payload(qc)
 
     qc_pass_fail = qc_to_pass_fail(qc_text, qc_status)
-    qc_metrics = extract_qc_metrics_from_text(qc_text)
+    review_needed = qc_needs_review(qc_summary, qc_text)
+    qc_metrics = extract_qc_metrics_from_text(str(qc))
 
     # diagnostics values
     rhat_metrics = extract_rhat_summary(mmm)
@@ -293,6 +363,7 @@ def main():
     roi_df["qc_overall_status"] = qc_status
     roi_df["qc_summary"] = qc_summary
     roi_df["qc_pass_fail"] = qc_pass_fail
+    roi_df["qc_needs_review"] = review_needed
     roi_df["qc_text"] = qc_text
     for k, v in qc_metrics.items():
         roi_df[k] = v
