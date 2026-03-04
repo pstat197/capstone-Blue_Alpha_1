@@ -1,0 +1,559 @@
+run_id,prior_key,targets,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,is_baseline,qc_status_code,qc_severity_rank,qc_needs_review,qc_summary_short,qc_primary_review_check,qc_flagged_channels,qc_review_reason,qc_convergence_status,qc_baseline_status,qc_bayesianppp_status,qc_gof_status,qc_prior_posterior_shift_status,qc_roi_consistency_status,qc_r2,qc_mape,qc_wmape,qc_bayesian_ppp,qc_baseline_neg_prob,rhat_max,rhat_mean,rhat_p95,rhat_num_gt_1p2,rhat_extracted,fit_mae,fit_rmse,fit_mape,fit_n,fit_metrics_extracted,qc_report_full
+"multi|google,meta,moloco|0.020759|0.006689|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.020759,0.006689,Normal,False,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,moloco,We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.9095,0.0459,0.0452,0.96,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9095, MAPE = 0.0459, and wMAPE = 0.0452. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.020759|0.006689|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.020759,0.006689,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,REVIEW,REVIEW,-5070.3311,14.6202,14.3684,0.0,0.54,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -5070.3311, MAPE = 14.6202, and wMAPE = 14.3684. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.020759|0.016722|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.020759,0.016722,Normal,False,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,moloco,We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.9109,0.0457,0.0451,0.94,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9109, MAPE = 0.0457, and wMAPE = 0.0451. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.020759|0.016722|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.020759,0.016722,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-4800.7705,14.2275,13.9826,0.0,0.54,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -4800.7705, MAPE = 14.2275, and wMAPE = 13.9826. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.020759|0.033445|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.020759,0.033445,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9144,0.0445,0.0441,0.85,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.85. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9144, MAPE = 0.0445, and wMAPE = 0.0441. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.020759|0.033445|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.020759,0.033445,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.52. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-4108.6016,13.1429,12.9235,0.0,0.52,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.52. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -4108.6016, MAPE = 13.1429, and wMAPE = 12.9235. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.051898|0.006689|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.006689}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.051898,0.006689,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9084,0.0471,0.0462,0.92,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9084, MAPE = 0.0471, and wMAPE = 0.0462. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.051898|0.006689|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.006689}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.051898,0.006689,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.49. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,REVIEW,REVIEW,-5342.9941,15.0193,14.7567,0.0,0.49,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.49. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -5342.9941, MAPE = 15.0193, and wMAPE = 14.7567. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `meta`, `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.051898|0.016722|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.051898,0.016722,Normal,True,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9089,0.0464,0.0455,0.95,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9089, MAPE = 0.0464, and wMAPE = 0.0455. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.051898|0.016722|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.051898,0.016722,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-5111.7939,14.68,14.4263,0.0,0.54,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -5111.7939, MAPE = 14.6800, and wMAPE = 14.4263. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.051898|0.033445|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.051898,0.033445,Normal,False,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,moloco,We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.9128,0.0453,0.0447,0.94,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9128, MAPE = 0.0453, and wMAPE = 0.0447. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.051898|0.033445|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.033445}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.051898,0.033445,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.53. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-4337.0796,13.5043,13.2776,0.0,0.53,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.53. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -4337.0796, MAPE = 13.5043, and wMAPE = 13.2776. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.103795|0.006689|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.006689}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.103795,0.006689,Normal,False,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,moloco,We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.9008,0.0492,0.0477,0.92,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9008, MAPE = 0.0492, and wMAPE = 0.0477. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `moloco` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.103795|0.006689|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.006689}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.006689}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.006689}}","google,meta,moloco","google,meta,moloco",0.103795,0.006689,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.50. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,REVIEW,REVIEW,-5929.6494,15.8325,15.5479,0.0,0.5,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.50. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -5929.6494, MAPE = 15.8325, and wMAPE = 15.5479. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.103795|0.016722|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.103795,0.016722,Normal,False,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,mu_t","The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.55. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.",FAIL,PASS,PASS,PASS,PASS,PASS,0.9047,0.0481,0.0466,0.95,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Address failed checks before proceeding.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.55. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9047, MAPE = 0.0481, and wMAPE = 0.0466. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.103795|0.016722|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.016722}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.016722}}","google,meta,moloco","google,meta,moloco",0.103795,0.016722,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.49. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-5618.0273,15.4024,15.1298,0.0,0.49,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.49. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -5618.0273, MAPE = 15.4024, and wMAPE = 15.1298. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,moloco|0.103795|0.033445|Normal","{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.103795,0.033445,Normal,False,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,knot_values","The model hasn't fully converged, and the `max_r_hat` for parameter `knot_values` is 1.28. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.",FAIL,PASS,PASS,PASS,PASS,PASS,0.9095,0.0471,0.046,0.9,0.0,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Address failed checks before proceeding.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `knot_values` is 1.28. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.90. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9095, MAPE = 0.0471, and wMAPE = 0.0460. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,moloco|0.103795|0.033445|LogNormal","{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.033445}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.033445}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.033445}}","google,meta,moloco","google,meta,moloco",0.103795,0.033445,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-4780.7852,14.1816,13.94,0.0,0.54,,,,,False,,,,,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.54. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -4780.7852, MAPE = 14.1816, and wMAPE = 13.9400. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."

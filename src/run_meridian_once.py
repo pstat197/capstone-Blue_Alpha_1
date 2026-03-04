@@ -15,13 +15,21 @@ from meridian.data import data_frame_input_data_builder
 from meridian.model import model
 
 from meridian.analysis.review import reviewer
-from meridian.analysis import visualizer
 
 from src.utils import build_model_spec, extract_roi_mean
 
 faulthandler.enable()
 warnings.filterwarnings("ignore")
 tf.get_logger().setLevel("ERROR")
+
+CHECK_ORDER = [
+    ("Convergence", "qc_convergence_status"),
+    ("Baseline", "qc_baseline_status"),
+    ("BayesianPPP", "qc_bayesianppp_status"),
+    ("GoodnessOfFit", "qc_gof_status"),
+    ("PriorPosteriorShift", "qc_prior_posterior_shift_status"),
+    ("ROIConsistency", "qc_roi_consistency_status"),
+]
 
 
 def _normalize_status_token(raw_status) -> Optional[str]:
@@ -76,12 +84,9 @@ def _extract_label_value(text: str, label: str):
     value = m.group(1).strip()
     return value if value else None
 
-
-
-
 def normalize_qc_payload(qc) -> Tuple[str, Optional[str], Optional[str]]:
-    """Return `(qc_text, qc_status, qc_summary)` with robust fallbacks across Meridian versions."""
-    qc_text = str(qc or "")
+    """Return `(qc_report_full, qc_status, qc_summary)` with robust fallbacks across Meridian versions."""
+    qc_report_full = str(qc or "")
     qc_status = None
     qc_summary = None
 
@@ -96,27 +101,25 @@ def normalize_qc_payload(qc) -> Tuple[str, Optional[str], Optional[str]]:
             or qc.get("Summary")
             or qc.get("summary_message")
         )
-        if not qc_text.strip() or qc_text.strip().startswith("{"):
+        if not qc_report_full.strip() or qc_report_full.strip().startswith("{"):
             lines = []
             if qc_status is not None:
                 lines.append(f"Overall Status: {qc_status}")
             if qc_summary is not None:
                 lines.append(f"Summary: {qc_summary}")
-            qc_text = "\n".join(lines) if lines else json.dumps(qc, indent=2, sort_keys=True)
+            qc_report_full = "\n".join(lines) if lines else json.dumps(qc, indent=2, sort_keys=True)
     else:
         qc_status = getattr(qc, "overall_status", None) or getattr(qc, "status", None)
         qc_summary = getattr(qc, "summary", None) or getattr(qc, "summary_message", None)
 
-    qc_status = _normalize_status_token(qc_status) or _normalize_status_token(_extract_label_value(qc_text, "Overall Status"))
-    qc_summary = str(qc_summary).strip() if qc_summary is not None else _extract_label_value(qc_text, "Summary")
+    qc_status = _normalize_status_token(qc_status) or _normalize_status_token(_extract_label_value(qc_report_full, "Overall Status"))
+    qc_summary = str(qc_summary).strip() if qc_summary is not None else _extract_label_value(qc_report_full, "Summary")
 
-    if qc_summary:
-        qc_text = qc_summary
-    elif qc_status:
-        qc_text = f"Overall Status: {qc_status}"
-    else:
-        qc_text = ""
-    return qc_text, qc_status, qc_summary
+    if not qc_report_full and qc_summary:
+        qc_report_full = qc_summary
+    elif not qc_report_full and qc_status:
+        qc_report_full = f"Overall Status: {qc_status}"
+    return qc_report_full, qc_status, qc_summary
 
 
 def _parse_first_float(pattern: str, text: str):
@@ -144,84 +147,94 @@ def extract_qc_metrics_from_text(qc_text: str) -> dict:
     }
 
 
-def extract_rhat_summary(mmm) -> dict:
-    """
-    convergence numbers.
-    Best-effort: different Meridian versions expose R-hat differently.
-    Returns {} if not accessible.
-    """
-    try:
-        md = visualizer.ModelDiagnostics(mmm)
-
-        rhat_obj = None
-        for attr in ("rhat", "rhat_df", "rhat_values"):
-            if hasattr(md, attr):
-                rhat_obj = getattr(md, attr)
-                break
-        if rhat_obj is None and hasattr(md, "get_rhat"):
-            rhat_obj = md.get_rhat()
-
-        if rhat_obj is None:
-            return {}
-
-        if hasattr(rhat_obj, "values"):
-            arr = np.asarray(rhat_obj.values, dtype=float).ravel()
-        else:
-            arr = np.asarray(rhat_obj, dtype=float).ravel()
-
-        arr = arr[np.isfinite(arr)]
-        if arr.size == 0:
-            return {}
-
-        return {
-            "rhat_max": float(np.max(arr)),
-            "rhat_mean": float(np.mean(arr)),
-            "rhat_p95": float(np.quantile(arr, 0.95)),
-            "rhat_num_gt_1p2": int(np.sum(arr > 1.2)),
-        }
-    except Exception:
-        return {}
+def _extract_check_status(report_text: str, check_name: str) -> Optional[str]:
+    pattern = rf"{re.escape(check_name)}\s+Check:\s*Status:\s*([A-Za-z_.]+)"
+    m = re.search(pattern, report_text or "", flags=re.IGNORECASE | re.DOTALL)
+    if not m:
+        return None
+    return _normalize_status_token(m.group(1))
 
 
+def _extract_check_recommendation(report_text: str, check_name: str) -> Optional[str]:
+    pattern = (
+        rf"{re.escape(check_name)}\s+Check:\s*"
+        rf"Status:\s*[A-Za-z_.]+\s*"
+        rf"Recommendation:\s*(.+?)"
+        rf"(?=(?:-{{10,}})|(?:[A-Za-z]+\s+Check:)|\Z)"
+    )
+    m = re.search(pattern, report_text or "", flags=re.IGNORECASE | re.DOTALL)
+    if not m:
+        return None
+    value = " ".join(m.group(1).split())
+    return value or None
 
-def extract_fit_metrics_best_effort(mmm) -> dict:
-    """
-    fit numbers.
-    If ModelFit exposes a dataframe with actual/expected, compute MAE/RMSE/MAPE.
-    Returns {} if not accessible.
-    """
-    try:
-        mf = visualizer.ModelFit(mmm)
-        if not (hasattr(mf, "df") and mf.df is not None):
-            return {}
 
-        df_fit = mf.df
-        cols_lower = {c.lower(): c for c in df_fit.columns}
+def extract_check_details(report_text: str) -> dict:
+    details = {}
+    for check_name, status_col in CHECK_ORDER:
+        details[status_col] = _extract_check_status(report_text, check_name)
+    return details
 
-        a_col = cols_lower.get("actual")
-        e_col = cols_lower.get("expected") or cols_lower.get("predicted") or cols_lower.get("prediction")
-        if a_col is None or e_col is None:
-            return {}
 
-        actual = np.asarray(df_fit[a_col], dtype=float)
-        expected = np.asarray(df_fit[e_col], dtype=float)
+def _dedupe_preserve_order(values) -> list:
+    seen = set()
+    out = []
+    for value in values:
+        if value not in seen:
+            seen.add(value)
+            out.append(value)
+    return out
 
-        mask = np.isfinite(actual) & np.isfinite(expected)
-        actual = actual[mask]
-        expected = expected[mask]
-        if actual.size == 0:
-            return {}
 
-        resid = actual - expected
-        mae = float(np.mean(np.abs(resid)))
-        rmse = float(np.sqrt(np.mean(resid ** 2)))
+def extract_flagged_channels(text: Optional[str]) -> str:
+    matches = re.findall(r"`([^`]+)`", text or "")
+    channels = []
+    for match in matches:
+        for token in match.split(","):
+            token = token.strip()
+            if token:
+                channels.append(token)
+    return ",".join(_dedupe_preserve_order(channels))
 
-        denom = np.where(np.abs(actual) < 1e-12, np.nan, np.abs(actual))
-        mape = float(np.nanmean(np.abs(resid) / denom))
 
-        return {"fit_mae": mae, "fit_rmse": rmse, "fit_mape": mape, "fit_n": int(actual.size)}
-    except Exception:
-        return {}
+def derive_qc_rollup(qc_status: Optional[str], needs_review: bool, check_details: dict, report_text: str) -> dict:
+    overall = _normalize_status_token(qc_status)
+    if overall == "FAIL":
+        code = "FAIL"
+        severity = 2
+    elif needs_review:
+        code = "REVIEW"
+        severity = 1
+    elif overall == "PASS":
+        code = "PASS"
+        severity = 0
+    else:
+        code = overall or "UNKNOWN"
+        severity = 3
+
+    primary_check = None
+    for check_name, status_col in CHECK_ORDER:
+        status = _normalize_status_token(check_details.get(status_col))
+        if status and status != "PASS":
+            primary_check = check_name
+            break
+
+    summary_short = code
+    if primary_check:
+        summary_short = f"{code}:{primary_check}"
+
+    review_reason = _extract_check_recommendation(report_text, primary_check) if primary_check else None
+    flagged_channels = extract_flagged_channels(review_reason)
+
+    return {
+        "qc_status_code": code,
+        "qc_severity_rank": severity,
+        "qc_summary_short": summary_short,
+        "qc_primary_review_check": primary_check,
+        "qc_flagged_channels": flagged_channels,
+        "qc_review_reason": review_reason,
+    }
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -237,7 +250,9 @@ def main():
     parser.add_argument("--sigma", type=float, default=None)
     parser.add_argument("--dist", type=str, default=None)
 
-    parser.add_argument("--out_csv", required=True)
+    parser.add_argument("--out_run_csv", default=None)
+    parser.add_argument("--out_roi_csv", default=None)
+    parser.add_argument("--out_csv", default=None)
 
     parser.add_argument("--n_chains", type=int, default=1)
     parser.add_argument("--n_adapt", type=int, default=100)
@@ -250,6 +265,10 @@ def main():
     parser.add_argument("--baseline_dist", type=str, default=None)
 
     args = parser.parse_args()
+    if args.out_roi_csv is None:
+        if args.out_csv is None:
+            raise ValueError("Provide --out_roi_csv (preferred) or legacy --out_csv.")
+        args.out_roi_csv = args.out_csv
     channels = json.loads(args.channels_json)
 
     # determine mode
@@ -323,15 +342,13 @@ def main():
 
     # ModelReviewer
     qc = reviewer.ModelReviewer(mmm).run()
-    qc_text, qc_status, qc_summary = normalize_qc_payload(qc)
+    qc_report_full, qc_status, qc_summary = normalize_qc_payload(qc)
 
-    qc_pass_fail = qc_to_pass_fail(qc_text, qc_status)
-    review_needed = qc_needs_review(qc_summary, qc_text)
-    qc_metrics = extract_qc_metrics_from_text(str(qc))
-
-    # diagnostics values
-    rhat_metrics = extract_rhat_summary(mmm)
-    fit_metrics = extract_fit_metrics_best_effort(mmm)
+    qc_pass_fail = qc_to_pass_fail(qc_report_full, qc_status)
+    review_needed = qc_needs_review(qc_summary, qc_report_full)
+    qc_metrics = extract_qc_metrics_from_text(qc_report_full)
+    check_details = extract_check_details(qc_report_full)
+    qc_rollup = derive_qc_rollup(qc_status, review_needed, check_details, qc_report_full)
 
     # ROI extraction
     roi_df = extract_roi_mean(mmm, channels)
@@ -364,16 +381,54 @@ def main():
     roi_df["qc_summary"] = qc_summary
     roi_df["qc_pass_fail"] = qc_pass_fail
     roi_df["qc_needs_review"] = review_needed
-    roi_df["qc_text"] = qc_text
+    roi_df["qc_text"] = qc_report_full
     for k, v in qc_metrics.items():
         roi_df[k] = v
 
-    for k, v in rhat_metrics.items():
-        roi_df[k] = v
-    for k, v in fit_metrics.items():
-        roi_df[k] = v
+    roi_df.to_csv(args.out_roi_csv, index=False)
 
-    roi_df.to_csv(args.out_csv, index=False)
+    if args.baseline_mu is not None and args.baseline_sigma is not None and args.baseline_dist is not None:
+        is_baseline = (
+            np.isclose(float(shared_mu), float(args.baseline_mu))
+            and np.isclose(float(shared_sigma), float(args.baseline_sigma))
+            and str(shared_dist) == str(args.baseline_dist)
+        )
+    else:
+        is_baseline = False
+
+    run_row = {
+        "target_channel": targets_str,
+        "roi_prior_mu": round(float(shared_mu), 6) if shared_mu is not None else None,
+        "roi_prior_sigma": round(float(shared_sigma), 6) if shared_sigma is not None else None,
+        "roi_prior_dist": str(shared_dist) if shared_dist is not None else None,
+        "is_baseline": bool(is_baseline),
+        "qc_status_code": qc_rollup["qc_status_code"],
+        "qc_severity_rank": qc_rollup["qc_severity_rank"],
+        "qc_needs_review": bool(review_needed),
+        "qc_summary_short": qc_rollup["qc_summary_short"],
+        "qc_primary_review_check": qc_rollup["qc_primary_review_check"],
+        "qc_flagged_channels": qc_rollup["qc_flagged_channels"],
+        "qc_review_reason": qc_rollup["qc_review_reason"],
+        "qc_convergence_status": check_details.get("qc_convergence_status"),
+        "qc_baseline_status": check_details.get("qc_baseline_status"),
+        "qc_bayesianppp_status": check_details.get("qc_bayesianppp_status"),
+        "qc_gof_status": check_details.get("qc_gof_status"),
+        "qc_prior_posterior_shift_status": check_details.get("qc_prior_posterior_shift_status"),
+        "qc_roi_consistency_status": check_details.get("qc_roi_consistency_status"),
+        "qc_r2": qc_metrics.get("qc_r2"),
+        "qc_mape": qc_metrics.get("qc_mape"),
+        "qc_wmape": qc_metrics.get("qc_wmape"),
+        "qc_bayesian_ppp": qc_metrics.get("qc_bayesian_ppp"),
+        "qc_baseline_neg_prob": qc_metrics.get("qc_baseline_neg_prob"),
+        "qc_report_full": qc_report_full,
+    }
+    if multiprior:
+        run_row["targets"] = targets_str
+        run_row["prior_key"] = prior_key
+
+    run_df = pd.DataFrame([run_row])
+    if args.out_run_csv:
+        run_df.to_csv(args.out_run_csv, index=False)
 
     tf.keras.backend.clear_session()
     gc.collect()

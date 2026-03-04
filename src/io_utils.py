@@ -4,6 +4,43 @@ import os
 import pandas as pd
 from typing import List, Tuple, Optional, Set, Union
 
+RUN_OUTPUT_COLUMNS = [
+    "run_id",
+    "prior_key",
+    "targets",
+    "target_channel",
+    "roi_prior_mu",
+    "roi_prior_sigma",
+    "roi_prior_dist",
+    "is_baseline",
+    "qc_status_code",
+    "qc_severity_rank",
+    "qc_needs_review",
+    "qc_summary_short",
+    "qc_primary_review_check",
+    "qc_flagged_channels",
+    "qc_review_reason",
+    "qc_convergence_status",
+    "qc_baseline_status",
+    "qc_bayesianppp_status",
+    "qc_gof_status",
+    "qc_prior_posterior_shift_status",
+    "qc_roi_consistency_status",
+    "qc_r2",
+    "qc_mape",
+    "qc_wmape",
+    "qc_bayesian_ppp",
+    "qc_baseline_neg_prob",
+    "qc_report_full",
+]
+
+ROI_OUTPUT_COLUMNS = [
+    "run_id",
+    "prior_key",
+    "channel",
+    "estimated_roi",
+]
+
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:
     rename_map = {
         "prior_sigma": "roi_prior_sigma",
@@ -86,8 +123,8 @@ AlreadyDone = Union[Set[str], Set[tuple]]
 def load_resume_state(output_file: str) -> AlreadyDone:
     """
     Load existing output CSV (if it exists) and return already_done.
-    - If output contains 'prior_key' -> multiprior mode: already_done is Set[str]
-    - Else -> single-target mode: already_done is Set[(target_channel, mu, sigma, dist)]
+    - If output contains 'run_id' -> return Set[str] of completed run ids
+    - Else preserve legacy resume behavior for older combined output files
     """
 
     if not os.path.exists(output_file):
@@ -95,6 +132,10 @@ def load_resume_state(output_file: str) -> AlreadyDone:
 
     results_df = pd.read_csv(output_file)
     print("Existing results found. Loading...")
+
+    if "run_id" in results_df.columns:
+        results_df["run_id"] = results_df["run_id"].astype(str)
+        return set(results_df["run_id"].tolist())
 
     results_df = normalize_columns(results_df)
 
@@ -124,6 +165,8 @@ def append_tmp_to_output(
     output_file: str,
     ensure_cols: Optional[dict] = None,
     cast_single_target: bool = False,
+    expected_columns: Optional[List[str]] = None,
+    normalize_part: bool = True,
 ) -> pd.DataFrame:
     """
     Read tmp_out CSV, normalize columns, optionally ensure metadata columns,
@@ -137,7 +180,8 @@ def append_tmp_to_output(
         raise FileNotFoundError(f"Subprocess finished but output missing: {tmp_out}")
 
     part = pd.read_csv(tmp_out)
-    part = normalize_columns(part)
+    if normalize_part:
+        part = normalize_columns(part)
 
     if cast_single_target:
         part["roi_prior_mu"] = pd.to_numeric(part["roi_prior_mu"], errors="coerce").round(6)
@@ -148,6 +192,12 @@ def append_tmp_to_output(
         for k, v in ensure_cols.items():
             if k not in part.columns:
                 part[k] = v
+
+    if expected_columns:
+        for col in expected_columns:
+            if col not in part.columns:
+                part[col] = pd.NA
+        part = part.reindex(columns=expected_columns)
 
     write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
     part.to_csv(output_file, mode="a", header=write_header, index=False)

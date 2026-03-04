@@ -217,9 +217,12 @@ Run sensitivity for one or more target channels (the ROI prior is modified for e
 - `python -m src.main --channels all`
 
 **Output:**
-- `data/output/prior_sensitivity_results_tiktok.csv`
-- `data/output/prior_sensitivity_results_meta_google.csv`
-- `data/output/prior_sensitivity_results_all_channels.csv`
+- `data/output/prior_sensitivity_runs_tiktok.csv`
+- `data/output/prior_sensitivity_roi_tiktok.csv`
+- `data/output/prior_sensitivity_runs_meta_google.csv`
+- `data/output/prior_sensitivity_roi_meta_google.csv`
+- `data/output/prior_sensitivity_runs_all.csv`
+- `data/output/prior_sensitivity_roi_all.csv`
 
 ### Multi-prior mode (Expanded, linked)
 
@@ -228,11 +231,12 @@ Run sensitivity where multiple target channels are perturbed together using the 
 - `python -m src.main --targets meta tiktok`
 
 **Output:**
-- `data/output/prior_sensitivity_results_multi_meta_tiktok.csv`
+- `data/output/prior_sensitivity_runs_multi_meta_tiktok.csv`
+- `data/output/prior_sensitivity_roi_multi_meta_tiktok.csv`
 
 ## Tornado Ready Summary Table
 
-After generating a sensitivity results CSV, export a tornado-ready summary table (baseline vs. new ROI + deltas) by running:
+After generating the split sensitivity outputs, export a tornado-ready summary table (baseline vs. new ROI plus deltas) by running:
 
 - `python -m src.summarize_sensitivity meta tiktok`
 - `python -m src.summarize_sensitivity meta tiktok google`
@@ -241,15 +245,27 @@ After generating a sensitivity results CSV, export a tornado-ready summary table
 
 `summarize_sensitivity.py` takes positional target channels (pairs, triples, etc.). It automatically:
 
-1. Builds the expected multi-prior results filename:
-   - **Input results CSV:** `data/output/prior_sensitivity_results_multi_<tag>.csv`
+1. Looks for the current split files first:
+   - **Run CSV:** `data/output/prior_sensitivity_runs_multi_<tag>.csv`
+   - **ROI CSV:** `data/output/prior_sensitivity_roi_multi_<tag>.csv`
 
-2. If the input results CSV does not exist, it automatically runs:
+2. Merges the split files by `run_id`.
+
+3. If the split files do not exist, it automatically runs:
    - `python -m src.main --targets <targets...>`
-   to generate the results file first.
+   to generate them first.
 
-3. Writes the tornado-ready output:
-   - **Output tornado CSV:** `data/output/tornado_ready_<tag>.csv`
+4. If only an older combined file exists, it still falls back to:
+   - `data/output/prior_sensitivity_results_multi_<tag>.csv`
+
+5. Writes the tornado-ready output:
+   - **Output tornado CSV:** `data/output/tornado_<tag>.csv`
+
+If you want dollar-valued impact columns, pass the subscription value explicitly, for example:
+
+- default is `$100` per subscription, so the plain command already includes dollar-value columns
+- short override: `python -m src.summarize_sensitivity google meta moloco --dps 125`
+- long override: `python -m src.summarize_sensitivity google meta moloco --dollars_per_subscription 125`
 
 Where `<tag>` is the underscore-joined, sorted target list (e.g., `meta_tiktok`, `google_meta`, `google_meta_tiktok`).
 
@@ -260,6 +276,73 @@ Where `<tag>` is the underscore-joined, sorted target list (e.g., `meta_tiktok`,
 - Baseline is identified using `is_baseline == True` from the results CSV (set in `run_meridian_once.py` by comparing the run’s `roi_prior_mu/sigma/dist` to `baseline_mu/baseline_sigma/baseline_dist` passed from `main.py`).
 - `delta_abs = |roi_new - roi_baseline|`
 - `delta_pct = |roi_new/roi_baseline - 1|`
+
+## Diagnostic Guide
+
+The run-level diagnostics come from `reviewer.ModelReviewer(mmm).run()` in `src/run_meridian_once.py`.
+
+Each run stores:
+
+- the full reviewer text in `qc_report_full`
+- a compact rollup in `qc_status_code`, `qc_summary_short`, and `qc_primary_review_check`
+- the individual check statuses in:
+  - `qc_convergence_status`
+  - `qc_baseline_status`
+  - `qc_bayesianppp_status`
+  - `qc_gof_status`
+  - `qc_prior_posterior_shift_status`
+  - `qc_roi_consistency_status`
+
+### PASS
+
+This means the overall reviewer status passed and no manual review was flagged.
+
+Typical interpretation:
+
+- convergence looked acceptable
+- model fit looked acceptable
+- the posterior learned enough from the data
+
+### REVIEW:PriorPosteriorShift
+
+This means the run did not fail, but at least one channel's posterior did not move enough away from its prior.
+
+Typical interpretation:
+
+- the prior may be too strong for that channel
+- the channel signal may be weak
+- the run is usable, but it needs review
+
+Current example in `data/output/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
+
+- `qc_summary_short = REVIEW:PriorPosteriorShift`
+- `qc_primary_review_check = PriorPosteriorShift`
+- `qc_flagged_channels = moloco`
+
+This matches the reviewer message that `moloco` did not significantly shift from the prior.
+
+### FAIL:Baseline
+
+This means the run is rolled up as a failure and the first non-pass check is `Baseline`.
+
+Typical interpretation:
+
+- the posterior probability that the baseline is negative is too high
+- the model may have converged numerically, but the baseline decomposition is not reliable
+
+Current example in `data/output/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
+
+- `qc_summary_short = FAIL:Baseline`
+- `qc_primary_review_check = Baseline`
+- `qc_baseline_neg_prob = 0.54`
+
+### Convergence And Model-Fit Diagnostics
+
+The run CSV keeps the reviewer-level convergence and fit statuses:
+
+- `qc_convergence_status`
+- `qc_bayesianppp_status`
+- `qc_gof_status`
 
 ## Visualization
 

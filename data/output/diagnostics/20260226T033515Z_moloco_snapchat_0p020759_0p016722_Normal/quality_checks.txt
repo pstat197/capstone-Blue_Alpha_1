@@ -1,0 +1,31 @@
+========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Address failed checks before proceeding.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 3.90. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.80. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9192, MAPE = 0.0441, and wMAPE = 0.0438. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.
