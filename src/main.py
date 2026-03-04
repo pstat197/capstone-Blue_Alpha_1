@@ -110,10 +110,10 @@ def main():
                         "--baseline_mu", str(baseline_mu),
                         "--baseline_sigma", str(baseline_sigma),
                         "--baseline_dist", str(baseline_dist),
-                        "--n_chains", "2",
-                        "--n_adapt", "300",
-                        "--n_burnin", "300",
-                        "--n_keep", "100",
+                        "--n_chains", "4",
+                        "--n_adapt", "700",
+                        "--n_burnin", "500",
+                        "--n_keep", "300",
                         "--seed", "0",
                     ]
 
