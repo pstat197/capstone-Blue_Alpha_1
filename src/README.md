@@ -20,6 +20,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 - [ROI Prior Grids (μ and σ)](#roi-prior-grids-μ-and-σ)
 - [How to Run](#how-to-run)
 - [Tornado Ready Summary Table](#tornado-ready-summary-table)
+- [Recommendation Stage](#recommendation-stage)
 - [Visualization](#visualization)
 
 ## Overview
@@ -46,8 +47,8 @@ The model can include all channels, but we can choose to only run sensitivity fo
 
   **Baseline parameters (passed to every run):**
   - `baseline_mu = cfg.mu0`
-  - `baseline_sigma = cfg.roi_sigma_values[0]`
-  - `baseline_dist = "LogNormal"`
+  - `baseline_sigma = cfg.roi_sigma_values[1]`
+  - `baseline_dist = cfg.roi_dist_values[0]`
 
   Calls `run_meridian_once.py` as a subprocess and appends each run’s temporary CSV into a master
   results file (resume-safe).
@@ -80,17 +81,28 @@ The model can include all channels, but we can choose to only run sensitivity fo
   Generates a tornado-ready summary table for a target set (pair / triple / etc.). It accepts targets as positional CLI args
   (e.g., `python -m src.summarize_sensitivity meta tiktok`).
 
-  - automatically locates the input results CSV:
-    - `data/output/prior_sensitivity_results_multi_<tag>.csv`
-  - if the input file does not exist, it will first run:
+  - automatically locates split inputs:
+    - `data/output/prior_sensitivity_runs_multi_<tag>.csv`
+    - `data/output/prior_sensitivity_roi_multi_<tag>.csv`
+  - if the split inputs do not exist, it will first run:
     - `python -m src.main --targets <targets...>`
     to generate the results
+  - merges run and ROI rows by `run_id`
   - identifies baseline using `is_baseline == True`
   - computes:
     - `delta_abs = |roi_new - roi_baseline|`
     - `delta_pct = |roi_new/roi_baseline - 1|`
-  - exports `data/output/tornado_<tag>.csv` with columns:
-    `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
+  - exports `data/output/tornado_<tag>.csv` with QC and impact columns
+
+- `src/recommend_next_grid.py`
+  Reads a tornado CSV and prints a next-iteration recommendation summary for a target set.
+
+  - auto-runs `src.summarize_sensitivity` if the tornado file is missing
+  - excludes `FAIL` runs from recommendation candidates
+  - prints:
+    - best stable next test (`PASS` only)
+    - best aggressive next test (`PASS` + `REVIEW`)
+    - flagged channels frequency to consider removing in the next linked run
 
 - `src/utils.py`  
   Model helpers:
@@ -189,10 +201,10 @@ We compute a weakly-informative baseline centered on observed scale:
 
 This does not claim causality; it anchors priors to a realistic order of magnitude so sensitivity experiments are meaningful.
 
-### Multiplicative sensitivity (default 5 points)
+### Multiplicative sensitivity (current default 3 points)
 We vary both μ and σ by multiplicative factors:
 
-`multipliers = {0.4, 0.7, 1.0, 1.4, 2.0}`
+`multipliers = {0.4, 1.0, 2.0}`
 
 So:
 
@@ -270,12 +282,35 @@ If you want dollar-valued impact columns, pass the subscription value explicitly
 Where `<tag>` is the underscore-joined, sorted target list (e.g., `meta_tiktok`, `google_meta`, `google_meta_tiktok`).
 
 ### Output columns
-- `targets, prior_key, channel, roi_baseline, roi_new, delta_abs, delta_pct`
+- core:
+  - `run_id, targets, prior_key, channel, qc_status_code, qc_summary_short, qc_primary_review_check, qc_flagged_channels, roi_baseline, roi_new, delta_abs, delta_pct`
+- impact columns (when spend data is available):
+  - `channel_total_spend, incremental_outcome_baseline, incremental_outcome_new, delta_outcome, delta_outcome_abs`
+- value columns (present by default with `--dps 100`):
+  - `dollars_per_subscription, incremental_value_baseline, incremental_value_new, delta_value, delta_value_abs`
 
 ### Notes
-- Baseline is identified using `is_baseline == True` from the results CSV (set in `run_meridian_once.py` by comparing the run’s `roi_prior_mu/sigma/dist` to `baseline_mu/baseline_sigma/baseline_dist` passed from `main.py`).
+- Baseline is identified after run/ROI merge using `is_baseline == True` from the run CSV.
 - `delta_abs = |roi_new - roi_baseline|`
 - `delta_pct = |roi_new/roi_baseline - 1|`
+
+## Recommendation Stage
+
+After the tornado CSV is generated, produce a standardized recommendation summary by target set:
+
+- `python -m src.recommend_next_grid google meta moloco`
+- `python -m src.recommend_next_grid google meta tiktok`
+- `python -m src.recommend_next_grid beehiiv liveintent moloco`
+
+What this stage does:
+
+- reads `data/output/tornado_<tag>.csv`
+- uses `delta_value_abs` when available (falls back to `delta_outcome_abs`, then `delta_abs`)
+- excludes `FAIL` runs
+- reports best stable and aggressive next-grid candidates
+- reports flagged channels frequency in non-fail runs
+
+This stage is intended to support expanded-stage iteration planning and handoff reporting.
 
 ## Diagnostic Guide
 

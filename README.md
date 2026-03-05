@@ -1,109 +1,100 @@
-# Marketing Mix Modeling – Prior Sensitivity Analysis
+# Marketing Mix Modeling - Prior Sensitivity Analysis
 **BlueAlpha Capstone Project 1**
 
-A Bayesian prior sensitivity analysis framework for Marketing Mix Models (MMM) using **Google Meridian**.  
-This project perturbs prior specifications and measures how sensitive key MMM outputs—such as ROI estimates and channel contributions—are to prior assumptions. The goal is to help analysts understand which conclusions are robust and which depend heavily on modeling choices.
-
----
+Bayesian prior sensitivity analysis for Marketing Mix Models (MMM) using **Google Meridian**.
+This project perturbs ROI priors and measures how model conclusions move under different assumptions.
 
 ## Project Goal
 
-Build a reusable workflow to evaluate how sensitive Bayesian MMM results are to prior assumptions using **Google Meridian**.
+Build a reusable workflow to evaluate prior sensitivity in Meridian and produce stable expanded-stage outputs:
 
-**Current implementation** performs sensitivity analysis on the **ROI prior** for a chosen target channel:
-- ROI prior mean **μ**
-- ROI prior scale **σ**
-- ROI prior distribution family (**Normal** vs **LogNormal**)
+- split run diagnostics CSV
+- split per-channel ROI CSV
+- tornado-ready summary CSV
+- recommendation summary for next-grid testing
 
-The pipeline repeatedly fits Meridian under each prior setting and exports summary results for downstream analysis/plotting.
+## Current Workflow
 
-## Motivation
+The current pipeline supports:
 
-MMM is widely used to attribute outcomes (e.g., subscriptions or revenue) to marketing channels, but posterior conclusions can depend strongly on prior beliefs—especially when data are limited or channels are correlated.
+- single-target sensitivity (`--channels`)
+- linked multi-prior sensitivity (`--targets`)
+- post-fit quality checks (`PASS`, `REVIEW`, `FAIL`)
+- tornado output with QC and impact columns
+- recommendation stage (`src.recommend_next_grid`) for next-iteration planning
 
-This project quantifies how changes in priors affect key model outputs, helping teams:
-- assess robustness of ROI estimates and channel rankings,
-- identify priors that drive major conclusion changes,
-- communicate uncertainty and modeling assumptions clearly.
+Core scripts:
 
-## Current Scope (Base Deliverable)
+- `src/main.py`
+  - orchestrates sensitivity runs
+  - writes split outputs:
+    - `prior_sensitivity_runs_*.csv`
+    - `prior_sensitivity_roi_*.csv`
+- `src/run_meridian_once.py`
+  - fits one model
+  - runs model reviewer checks
+  - writes one run diagnostics row and per-channel ROI rows
+- `src/summarize_sensitivity.py`
+  - merges split run/ROI outputs by `run_id`
+  - writes `tornado_<tag>.csv`
+  - supports value columns with `--dps` / `--dollars_per_subscription` (default `100`)
+- `src/recommend_next_grid.py`
+  - reads tornado output
+  - excludes `FAIL` runs
+  - prints best stable and aggressive next tests
+  - summarizes flagged channel frequency
 
-- Vary one prior family at a time (ROI prior: **μ / σ / dist**)
-- Re-run Meridian for each prior setting:
-  - `target_channel × μ_grid × σ_grid × dist_grid`
-- Build grids around a data-calibrated baseline computed from the dataset
-- Export a single aggregated CSV for plotting/reporting
-- **Resume-safe**: previously completed runs are skipped automatically
+Detailed operating docs are in:
+
+- `src/README.md`
 
 ## Dataset
 
-- `data/raw/monthly_mocha.csv`: example monthly marketing dataset used for development and testing
+- `data/raw/monthly_mocha.csv`
 
 Expected columns:
-- KPI: `subscriptions`
-- Time: `date` (or `time`)
-- For each channel `c`:
-  - impressions: `{c}_impressions`
-  - spend: `{c}_spend`
 
-Example channels:
-`meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon`
+- KPI: `subscriptions`
+- time: `date` (or `time`)
+- for each channel `c`:
+  - `{c}_impressions`
+  - `{c}_spend`
+
+Default channel list:
+
+- `meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon`
+
+## Common Commands
+
+Run from repo root.
+
+Run expanded linked sensitivity:
+
+```powershell
+python -m src.main --targets google meta moloco
+```
+
+Generate tornado summary:
+
+```powershell
+python -m src.summarize_sensitivity google meta moloco
+```
+
+Generate recommendation summary:
+
+```powershell
+python -m src.recommend_next_grid google meta moloco
+```
 
 ## Repository Structure
 
-- `src/`  
-  Core Python code for Meridian model fitting and ROI prior sensitivity analysis.
-  - `main.py`: orchestrates sensitivity runs & aggregates outputs (resume-safe)
-  - `experiment.py`: computes μ0/σ0 and builds μ/σ grids
-  - `run_meridian_once.py`: runs one Meridian fit for one `(target_channel, μ, σ, dist)`
-  - `utils.py`: shared helpers (build model spec / priors, ROI extraction)
-  - `io_utils.py`: I/O helpers (e.g., `normalize_columns()` for backward-compatible results)
-  - `viz/`: visualization utilities for sensitivity results
-    - `viz/prior_viz.py`: merges per-channel result CSVs and generates summary plots (basic ROI plots + heatmap + ranking); outputs to `docs/figures/roi/`
+- `src/` core pipeline and analysis code
+- `data/raw/` source data
+- `data/output/` generated CSV outputs
+- `docs/` reports, slides, and generated artifacts
+- `notebooks/` exploratory notebooks
+- `requirements.txt` Python dependencies
 
-- `docs/`  
-  Project documentation and deliverables.
-  - `docs/reports/`: written reports (PDF)
-  - `docs/slides/`: presentation slides / handouts (PDF)
-  - `docs/theory/`: theory write-up (LaTeX source + PDF)
-  - `docs/figures/`: generated figures for reports/slides
-    - `docs/figures/roi/`: ROI prior sensitivity plots
-      - `docs/figures/roi/basic/`: histogram + scatter plots (μ/σ vs estimated ROI)
-      - `docs/figures/roi/heatmap/`: prior sensitivity heatmap
-      - `docs/figures/roi/sensitivity_ranking/`: sensitivity ranking bar chart
-
-- `data/`  
-  Data inputs and generated outputs.
-  - `data/raw/`: raw input dataset(s) (e.g., `monthly_mocha.csv`)
-  - `data/output/`: generated result tables (e.g., `prior_sensitivity_results_meta.csv`)
-
-- `notebooks/`  
-  Exploratory notebooks used for development and sanity checks.
-
-- `README.md`  
-  Repo-level documentation (this file).
-
-- `requirements.txt`  
-  Python dependencies.
-
-## Setup (VSCode + venv)
-
-### Windows
-
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-### MacOS/Linux
-
-```powershell
-python3 -m venv .venv 
-source .venv/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
 ## Contributors
 
 BlueAlpha Capstone Project 1 Group
