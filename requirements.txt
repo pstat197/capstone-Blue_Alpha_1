@@ -1,15 +1,12 @@
-# Core
+# Core runtime
 google-meridian[schema]
 pandas
 numpy
-matplotlib
 
 # TF stack (CPU)
 tensorflow
 tensorflow-probability
 
-# Visualization
+# Plotting (used by src/viz/prior_viz.py)
+matplotlib
 seaborn
-
-# Optional
-ipython

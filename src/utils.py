@@ -7,6 +7,18 @@ from meridian.model import prior_distribution, spec
 BASE_ROI_MU = 0.4
 BASE_ROI_SIGMA = 0.5
 
+
+def _natural_to_lognormal_params(mu_vec: np.ndarray, sigma_vec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Convert natural-scale mean/std into log-space loc/scale for LogNormal."""
+    mu_safe = np.maximum(mu_vec.astype(np.float32), np.float32(1e-8))
+    sigma_safe = np.maximum(sigma_vec.astype(np.float32), np.float32(1e-8))
+
+    variance_ratio = (sigma_safe ** 2) / (mu_safe ** 2)
+    log_scale_sq = np.log1p(variance_ratio).astype(np.float32)
+    log_scale = np.sqrt(log_scale_sq).astype(np.float32)
+    log_loc = (np.log(mu_safe) - 0.5 * log_scale_sq).astype(np.float32)
+    return log_loc, log_scale
+
 def build_model_spec(
     channels,
     target_channel=None,
@@ -55,9 +67,10 @@ def build_model_spec(
 
     # build distribution
     if roi_dist == "LogNormal":
+        log_loc, log_scale = _natural_to_lognormal_params(roi_mu_vec, roi_sigma_vec)
         roi_prior = tfp.distributions.LogNormal(
-            loc=roi_mu_vec,
-            scale=roi_sigma_vec,
+            loc=log_loc,
+            scale=log_scale,
             name="roi_m"
         )
     elif roi_dist == "Normal":

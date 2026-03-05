@@ -10,11 +10,17 @@ from src.io_utils import (
     parse_channels_and_output,
     load_resume_state,
     append_tmp_to_output,
+    RUN_OUTPUT_COLUMNS,
+    ROI_OUTPUT_COLUMNS,
 )
+
+
+def build_run_id(scope: str, mu: float, sigma: float, dist: str) -> str:
+    return f"{scope}|{float(mu):.6f}|{float(sigma):.6f}|{str(dist)}"
 
 def main():
     channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.4, 0.7, 1.0, 1.4, 2.0]
+    multipliers = [0.4, 1.0, 2.0]
 
     cfg = build_experiment_config(
         channels=channels,
@@ -33,20 +39,23 @@ def main():
         output_dir=output_dir,
         default_target="tiktok",
     )
+    run_output_file = output_file.replace("prior_sensitivity_results", "prior_sensitivity_runs", 1)
+    roi_output_file = output_file.replace("prior_sensitivity_results", "prior_sensitivity_roi", 1)
 
     channels_json = json.dumps(channels)
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
     print("Mu grid =", cfg.roi_mu_values)
-    print("Output file:", output_file)
+    print("Run output file:", run_output_file)
+    print("ROI output file:", roi_output_file)
 
     baseline_mu = cfg.mu0
-    baseline_sigma = cfg.roi_sigma_values[0]
-    baseline_dist = "LogNormal"
-
+    baseline_sigma = cfg.roi_sigma_values[1]
+    baseline_dist = cfg.roi_dist_values[0]
+    
     # resume-safe load
-    already_done = load_resume_state(output_file)
+    already_done = load_resume_state(run_output_file)
 
     env = os.environ.copy()
     env["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -62,7 +71,7 @@ def main():
         print("Targets to perturb together:", targets_str)
 
         total_runs = len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values)
-        run_id = 1
+        run_index = 1
 
         for mu in cfg.roi_mu_values:
             for sigma in cfg.roi_sigma_values:
@@ -74,34 +83,37 @@ def main():
 
                     overrides = {ch: {"mu": mu, "sigma": sigma, "dist": dist} for ch in targets}
                     prior_key = json.dumps(overrides, sort_keys=True)
+                    run_key = build_run_id(f"multi|{targets_str}", mu, sigma, dist)
 
-                    if prior_key in already_done:
+                    if run_key in already_done:
                         print(f"Skipping targets={targets_str}, mu={mu}, sigma={sigma}, dist={dist}")
-                        run_id += 1
+                        run_index += 1
                         continue
 
-                    print(f"\n===== Run {run_id}/{total_runs} =====")
+                    print(f"\n===== Run {run_index}/{total_runs} =====")
                     print(f"Targets: {targets_str}, Prior mu: {mu}, Prior sigma: {sigma}, Dist: {dist}")
 
                     t0 = time.time()
                     mu_tag = str(mu).replace(".", "p")
                     sigma_tag = str(sigma).replace(".", "p")
                     dist_tag = dist
-                    tmp_out = os.path.join(output_dir, f"_tmp_roi_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                    tmp_run_out = os.path.join(output_dir, f"_tmp_run_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                    tmp_roi_out = os.path.join(output_dir, f"_tmp_roi_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
 
                     cmd = [
                         sys.executable, "-m", "src.run_meridian_once",
                         "--csv", data_csv,
                         "--channels_json", channels_json,
                         "--roi_prior_overrides_json", prior_key,
-                        "--out_csv", tmp_out,
+                        "--out_run_csv", tmp_run_out,
+                        "--out_roi_csv", tmp_roi_out,
                         "--baseline_mu", str(baseline_mu),
                         "--baseline_sigma", str(baseline_sigma),
                         "--baseline_dist", str(baseline_dist),
-                        "--n_chains", "1",
-                        "--n_adapt", "100",
-                        "--n_burnin", "50",
-                        "--n_keep", "20",
+                        "--n_chains", "4",
+                        "--n_adapt", "700",
+                        "--n_burnin", "500",
+                        "--n_keep", "300",
                         "--seed", "0",
                     ]
 
@@ -112,25 +124,40 @@ def main():
                         raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
 
                     append_tmp_to_output(
-                        tmp_out=tmp_out,
-                        output_file=output_file,
+                        tmp_out=tmp_run_out,
+                        output_file=run_output_file,
                         ensure_cols={
+                            "run_id": run_key,
                             "prior_key": prior_key,
                             "targets": targets_str,
-                            "roi_prior_overrides_json": prior_key,
                             "target_channel": targets_str,
                         },
+                        expected_columns=RUN_OUTPUT_COLUMNS,
                         cast_single_target=False,
+                        normalize_part=True,
+                    )
+                    append_tmp_to_output(
+                        tmp_out=tmp_roi_out,
+                        output_file=roi_output_file,
+                        ensure_cols={
+                            "run_id": run_key,
+                            "prior_key": prior_key,
+                        },
+                        expected_columns=ROI_OUTPUT_COLUMNS,
+                        cast_single_target=False,
+                        normalize_part=False,
                     )
 
-                    already_done.add(prior_key)
-                    os.remove(tmp_out)
+                    already_done.add(run_key)
+                    os.remove(tmp_run_out)
+                    os.remove(tmp_roi_out)
 
                     print("Iteration time:", round(time.time() - t0, 2), "seconds")
-                    run_id += 1
+                    run_index += 1
 
         print("\nALL RUNS COMPLETED.")
-        print("Saved to:", output_file)
+        print("Saved run diagnostics to:", run_output_file)
+        print("Saved ROI results to:", roi_output_file)
         return
 
     # MODE B: single-target
@@ -138,7 +165,7 @@ def main():
     print("Target channels to run:", target_channels_to_run)
 
     total_runs = len(target_channels_to_run) * len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values)
-    run_id = 1
+    run_index = 1
 
     for target_channel in target_channels_to_run:
         for mu in cfg.roi_mu_values:
@@ -147,20 +174,22 @@ def main():
                     mu = round(float(mu), 6)
                     sigma = round(float(sigma), 6)
                     dist = str(dist)
+                    run_key = build_run_id(f"single|{target_channel}", mu, sigma, dist)
 
-                    if (target_channel, mu, sigma, dist) in already_done:
+                    if run_key in already_done:
                         print(f"Skipping {target_channel}, mu={mu}, sigma={sigma}, dist={dist}")
-                        run_id += 1
+                        run_index += 1
                         continue
 
-                    print(f"\n===== Run {run_id}/{total_runs} =====")
+                    print(f"\n===== Run {run_index}/{total_runs} =====")
                     print(f"Channel: {target_channel}, Prior mu: {mu}, Prior sigma: {sigma}, Dist: {dist}")
 
                     t0 = time.time()
                     mu_tag = str(mu).replace(".", "p")
                     sigma_tag = str(sigma).replace(".", "p")
                     dist_tag = dist
-                    tmp_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                    tmp_run_out = os.path.join(output_dir, f"_tmp_run_{target_channel}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                    tmp_roi_out = os.path.join(output_dir, f"_tmp_roi_{target_channel}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
                     
 
 
@@ -172,7 +201,8 @@ def main():
                         "--mu", str(mu),
                         "--sigma", str(sigma),
                         "--dist", dist,
-                        "--out_csv", tmp_out,
+                        "--out_run_csv", tmp_run_out,
+                        "--out_roi_csv", tmp_roi_out,
                         "--baseline_mu", str(baseline_mu),
                         "--baseline_sigma", str(baseline_sigma),
                         "--baseline_dist", baseline_dist,
@@ -190,20 +220,32 @@ def main():
                         raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
 
                     append_tmp_to_output(
-                        tmp_out=tmp_out,
-                        output_file=output_file,
-                        ensure_cols=None,
+                        tmp_out=tmp_run_out,
+                        output_file=run_output_file,
+                        ensure_cols={"run_id": run_key},
                         cast_single_target=True,
+                        expected_columns=RUN_OUTPUT_COLUMNS,
+                        normalize_part=True,
+                    )
+                    append_tmp_to_output(
+                        tmp_out=tmp_roi_out,
+                        output_file=roi_output_file,
+                        ensure_cols={"run_id": run_key},
+                        cast_single_target=False,
+                        expected_columns=ROI_OUTPUT_COLUMNS,
+                        normalize_part=False,
                     )
 
-                    already_done.add((target_channel, mu, sigma, dist))
-                    os.remove(tmp_out)
+                    already_done.add(run_key)
+                    os.remove(tmp_run_out)
+                    os.remove(tmp_roi_out)
 
                     print("Iteration time:", round(time.time() - t0, 2), "seconds")
-                    run_id += 1
+                    run_index += 1
 
     print("\nALL RUNS COMPLETED.")
-    print("Saved to:", output_file)
+    print("Saved run diagnostics to:", run_output_file)
+    print("Saved ROI results to:", roi_output_file)
 
 
 if __name__ == "__main__":

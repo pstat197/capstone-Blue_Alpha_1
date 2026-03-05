@@ -2,17 +2,141 @@
 import os
 import sys
 import subprocess
+import argparse
 import pandas as pd
 import numpy as np
 
+def _pick_center(values):
+    vals = sorted(pd.Series(values).dropna().unique().tolist())
+    if not vals:
+        return None
+    return vals[len(vals) // 2]
+
+
+def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """Fallback baseline inference when is_baseline flag is missing/empty.
+
+    Uses center-point prior values (middle mu, middle sigma, preferred dist) per targets group.
+    """
+    if df.empty:
+        return df.copy()
+
+    required = {"targets", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}
+    if not required.issubset(df.columns):
+        return df.iloc[0:0].copy()
+
+    picked = []
+    for t, g in df.groupby("targets", dropna=False):
+        mu0 = _pick_center(g["roi_prior_mu"])
+        sigma0 = _pick_center(g["roi_prior_sigma"])
+        dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
+        dist0 = "Normal" if "Normal" in dists else (_pick_center(dists) if dists else None)
+
+        mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
+        mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
+        if dist0 is not None:
+            mask &= g["roi_prior_dist"].astype(str).eq(str(dist0))
+
+        gg = g[mask].copy()
+        if not gg.empty:
+            picked.append(gg)
+
+    if not picked:
+        return df.iloc[0:0].copy()
+    return pd.concat(picked, ignore_index=True)
+
+
+def _paths_for_tag(output_dir: str, tag: str) -> dict:
+    return {
+        "run_csv": os.path.join(output_dir, f"prior_sensitivity_runs_multi_{tag}.csv"),
+        "roi_csv": os.path.join(output_dir, f"prior_sensitivity_roi_multi_{tag}.csv"),
+        "legacy_csv": os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv"),
+        "tornado_csv": os.path.join(output_dir, f"tornado_{tag}.csv"),
+    }
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser()
+    parser.set_defaults(dollars_per_subscription=100.0)
+    parser.add_argument("targets", nargs="+")
+    parser.add_argument(
+        "--dps",
+        dest="dollars_per_subscription",
+        type=float,
+        help="Dollar value for one subscription. Defaults to 100.",
+    )
+    parser.add_argument(
+        "--dollars_per_subscription",
+        type=float,
+        dest="dollars_per_subscription",
+        help=(
+            "Optional dollar value for one subscription. When provided, the tornado output "
+            "also includes dollar-value columns."
+        ),
+    )
+    parser.add_argument(
+        "--value_per_kpi",
+        dest="dollars_per_subscription",
+        type=float,
+        help=argparse.SUPPRESS,
+    )
+    return parser
+
+
+def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
+    data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+    raw_df = pd.read_csv(data_csv)
+
+    records = []
+    for channel in channels:
+        spend_col = f"{channel}_spend"
+        if spend_col in raw_df.columns:
+            spend_total = float(pd.to_numeric(raw_df[spend_col], errors="coerce").fillna(0).sum())
+            records.append({"channel": channel, "channel_total_spend": spend_total})
+
+    return pd.DataFrame(records)
+
+
+def _load_current_results(output_dir: str, tag: str) -> pd.DataFrame:
+    paths = _paths_for_tag(output_dir, tag)
+
+    if os.path.exists(paths["run_csv"]) and os.path.exists(paths["roi_csv"]):
+        run_df = pd.read_csv(paths["run_csv"])
+        roi_df = pd.read_csv(paths["roi_csv"])
+
+        if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
+            raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
+
+        run_cols = [
+            c for c in [
+                "run_id",
+                "prior_key",
+                "targets",
+                "is_baseline",
+                "qc_status_code",
+                "qc_summary_short",
+                "qc_primary_review_check",
+                "qc_flagged_channels",
+            ] if c in run_df.columns
+        ]
+        run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
+        return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
+
+    if os.path.exists(paths["legacy_csv"]):
+        return pd.read_csv(paths["legacy_csv"])
+
+    return pd.DataFrame()
+
 def main():
+    parser = _build_parser()
+    args = parser.parse_args()
+
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
 
-    # Positional targets only:
-    argv = [a for a in sys.argv[1:] if not a.startswith("-")]
-    if len(argv) < 2:
+    targets = args.targets
+    if len(targets) < 2:
         raise ValueError(
             "Usage:\n"
             "  python -m src.summarize_sensitivity <target1> <target2> [target3 ...]\n"
@@ -20,30 +144,33 @@ def main():
             "  python -m src.summarize_sensitivity meta google"
         )
 
-    targets = argv
     targets_sorted = sorted([str(t) for t in targets])
     tag = "_".join(targets_sorted)
 
-    in_csv = os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv")
-    out_csv = os.path.join(output_dir, f"tornado_{tag}.csv")
+    paths = _paths_for_tag(output_dir, tag)
+    out_csv = paths["tornado_csv"]
+
+    df = _load_current_results(output_dir, tag)
 
     # Auto-run src.main --targets ... if results missing
-    if not os.path.exists(in_csv):
+    if df.empty:
         cmd = [sys.executable, "-m", "src.main", "--targets"] + targets_sorted
 
-        print("Results CSV missing; generating it first via:")
+        print("Sensitivity outputs missing; generating them first via:")
         print(" ".join(cmd))
 
         proc = subprocess.run(cmd, cwd=project_root)
         if proc.returncode != 0:
             raise RuntimeError(f"Auto-run of src.main failed with exit code {proc.returncode}")
 
-        if not os.path.exists(in_csv):
-            raise FileNotFoundError(f"Expected results CSV still not found after auto-run: {in_csv}")
+        df = _load_current_results(output_dir, tag)
+        if df.empty:
+            raise FileNotFoundError(
+                "Expected split outputs (or legacy combined output) still not found after auto-run: "
+                f"{paths['run_csv']} / {paths['roi_csv']}"
+            )
 
     # Summarize
-    df = pd.read_csv(in_csv)
-
     # Match targets string inside file
     targets_str = ",".join(targets_sorted)
     if "targets" not in df.columns:
@@ -54,9 +181,17 @@ def main():
         raise ValueError("Missing column 'is_baseline' in results CSV. Cannot identify baseline reliably.")
 
     baseline_df = df[df["is_baseline"] == True].copy()
+    baseline_run_ids = None
     if baseline_df.empty:
-        raise ValueError("No baseline rows found (is_baseline==True). Check baseline settings in main.py.")
-
+        baseline_df = _infer_baseline_rows(df)
+        if baseline_df.empty:
+            raise ValueError(
+                "No baseline rows found (is_baseline==True), and fallback inference failed. "
+                "Check baseline settings in main.py or ensure baseline prior combo exists in the CSV."
+            )
+        if "run_id" in baseline_df.columns:
+            baseline_run_ids = set(baseline_df["run_id"].dropna().astype(str).tolist())
+        print("[warn] No explicit baseline rows found; inferred baseline from center prior values.")
     baseline_summary = (
         baseline_df.groupby(["targets", "channel"])["estimated_roi"]
         .mean()
@@ -73,15 +208,60 @@ def main():
         np.nan
     )
 
-    # remove baseline rows
-    df = df[df["is_baseline"] == False].copy()
+    spend_df = _load_channel_spend(project_root, sorted(df["channel"].dropna().astype(str).unique().tolist()))
+    if not spend_df.empty:
+        df = df.merge(spend_df, on="channel", how="left")
+        df["channel_total_spend"] = pd.to_numeric(df["channel_total_spend"], errors="coerce")
+        df["incremental_outcome_baseline"] = df["roi_baseline"] * df["channel_total_spend"]
+        df["incremental_outcome_new"] = df["roi_new"] * df["channel_total_spend"]
+        df["delta_outcome"] = df["incremental_outcome_new"] - df["incremental_outcome_baseline"]
+        df["delta_outcome_abs"] = df["delta_outcome"].abs()
 
-    required_cols = ["targets", "prior_key", "channel", "roi_baseline", "roi_new", "delta_abs", "delta_pct"]
+        dollars_per_subscription = float(args.dollars_per_subscription)
+        df["dollars_per_subscription"] = dollars_per_subscription
+        df["incremental_value_baseline"] = df["incremental_outcome_baseline"] * dollars_per_subscription
+        df["incremental_value_new"] = df["incremental_outcome_new"] * dollars_per_subscription
+        df["delta_value"] = df["incremental_value_new"] - df["incremental_value_baseline"]
+        df["delta_value_abs"] = df["delta_value"].abs()
+
+    # remove baseline rows
+    if baseline_run_ids is not None and "run_id" in df.columns:
+        df = df[~df["run_id"].astype(str).isin(baseline_run_ids)].copy()
+    else:
+        df = df[df["is_baseline"] == False].copy()
+
+    required_cols = [
+        "run_id",
+        "targets",
+        "prior_key",
+        "channel",
+        "qc_status_code",
+        "qc_summary_short",
+        "qc_primary_review_check",
+        "qc_flagged_channels",
+        "roi_baseline",
+        "roi_new",
+        "delta_abs",
+        "delta_pct",
+    ]
+    optional_cols = [
+        "channel_total_spend",
+        "incremental_outcome_baseline",
+        "incremental_outcome_new",
+        "delta_outcome",
+        "delta_outcome_abs",
+        "dollars_per_subscription",
+        "incremental_value_baseline",
+        "incremental_value_new",
+        "delta_value",
+        "delta_value_abs",
+    ]
     missing = [c for c in required_cols if c not in df.columns]
     if missing:
         raise ValueError(f"Missing required columns in results CSV: {missing}")
 
-    df[required_cols].to_csv(out_csv, index=False)
+    output_cols = required_cols + [c for c in optional_cols if c in df.columns]
+    df[output_cols].to_csv(out_csv, index=False)
     print("Saved tornado-ready summary to:")
     print(out_csv)
 
