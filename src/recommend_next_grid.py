@@ -119,8 +119,8 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    if len(args.targets) < 2:
-        raise ValueError("Provide at least two target channels.")
+    if len(args.targets) < 1:
+        raise ValueError("Provide at least one target channel.")
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     targets_sorted = sorted(str(t) for t in args.targets)

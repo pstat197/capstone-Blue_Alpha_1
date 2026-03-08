@@ -79,43 +79,43 @@ def parse_channels_and_output(
 ) -> Tuple[List[str], str, Optional[List[str]]]:
     """
     Parse CLI args and return:
-      - target_channels_to_run: list[str]  (single-target mode)
+      - target_channels_to_run: list[str]  (linked target-set mode)
       - output_file: absolute output CSV path
-      - targets: optional list[str]        (multi-prior mode if provided)
+      - targets: list[str]                 (same as target_channels_to_run)
     """
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--channels",
         nargs="+",
-        default=[default_target],
-        help='Single-target mode. Example: --channels tiktok OR --channels meta google. Use "all" for all.',
+        default=None,
+        help='Deprecated alias for --targets. Example: --channels tiktok OR --channels meta google. Use "all" for all.',
     )
     parser.add_argument(
         "--targets",
         nargs="+",
         default=None,
-        help='Multi-prior mode (linked). Example: --targets meta tiktok',
+        help='Target set for linked multi-prior mode. Example: --targets meta tiktok',
     )
     args = parser.parse_args()
 
-    # Multi-prior mode
-    if args.targets is not None and len(args.targets) > 0:
-        targets = [str(x) for x in args.targets]
-        tag = "_".join(targets)
-        output_file = os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv")
-        return args.channels, output_file, targets
+    if args.targets is not None and args.channels is not None:
+        raise ValueError("Use only one of --targets or --channels (deprecated alias), not both.")
 
-    # Single-target mode
-    if len(args.channels) == 1 and str(args.channels[0]).lower() == "all":
-        target_channels_to_run = full_channels
-        tag = "all"
-    else:
-        target_channels_to_run = args.channels
-        tag = "_".join(target_channels_to_run)
+    raw_targets = args.targets if args.targets is not None else args.channels
+    if raw_targets is None:
+        raw_targets = [default_target]
 
-    output_file = os.path.join(output_dir, f"prior_sensitivity_results_{tag}.csv")
-    return target_channels_to_run, output_file, None
+    targets = [str(x) for x in raw_targets]
+    if len(targets) == 1 and targets[0].lower() == "all":
+        targets = list(full_channels)
+    if len(targets) == 0:
+        raise ValueError("Provide at least one target channel.")
+
+    targets_sorted = sorted(targets)
+    tag = "_".join(targets_sorted)
+    output_file = os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv")
+    return targets_sorted, output_file, targets_sorted
 
 
 AlreadyDone = Union[Set[str], Set[tuple]]

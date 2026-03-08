@@ -34,14 +34,14 @@ The model can include all channels, but we can choose to only run sensitivity fo
 ## Repo Layout
 
 - `src/main.py`  
-  Orchestrates the sensitivity experiment and supports two run modes:
+  Orchestrates the sensitivity experiment in one linked target-set mode:
 
-  **Single-target mode (Base):**
-  - target channels provided via CLI: `--channels` (e.g., `tiktok`, `meta google`, or `all`)
-  - loops over `roi_mu_values`, `roi_sigma_values`, `roi_dist_values`
+  **Unified target-set mode:**
+  - target channels provided via CLI: `--targets` (e.g., `meta` or `meta tiktok`)
+  - `--channels` remains supported as a deprecated alias of `--targets`
 
-  **Multi-prior mode (Expanded, linked):**
-  - target channels provided via CLI: `--targets` (e.g., `meta tiktok`)
+  **Linked prior behavior:**
+
   - applies the same `(μ, σ, dist)` to *all targets simultaneously* by passing a JSON overrides dict
     via `--roi_prior_overrides_json` (linked scenario)
 
@@ -115,8 +115,8 @@ The model can include all channels, but we can choose to only run sensitivity fo
   I/O + CLI utilities:
   - `normalize_columns(df)` to make result CSVs backward compatible (e.g., `prior_sigma` → `roi_prior_sigma`)
   - `parse_channels_and_output(...)` parses:
-    - `--channels` for single-target mode
-    - `--targets` for linked multi-prior mode
+    - `--targets` for linked target-set mode
+    - `--channels` as a backward-compatible alias of `--targets`
     and auto-creates the sensitivity output filename
   - `load_resume_state(...)` loads existing results and builds a resume-safe “already done” set
   - `append_tmp_to_output(...)` appends run-level temporary outputs into the master results CSV
@@ -160,22 +160,17 @@ Example channels:
    - dists:
      - `dist_grid = ["Normal", "LogNormal"]`
 
-2. `main.py` chooses the run mode via CLI:
+2. `main.py` accepts a target set via CLI:
 
-   **Single-target mode (Base):**
-   - example usage: `python -m src.main --channels tiktok`
-   - all channels: `python -m src.main --channels all`
+   - preferred: `python -m src.main --targets meta`
+   - preferred: `python -m src.main --targets meta tiktok`
+   - alias: `python -m src.main --channels meta tiktok`
+   - alias with all channels: `python -m src.main --channels all`
 
-   The model still includes **all channels** as media inputs, but the ROI prior is modified only for the chosen target channel(s).
-   The output file name is automatically generated based on `--channels`.
+   The same `(μ, σ, dist)` setting is applied to all targets simultaneously (linked scenario),
+   and output file names are auto-generated as `*_multi_<sorted_targets>.csv`.
 
-   **Multi-prior mode (Expanded, linked):**
-   - example usage: `python -m src.main --targets meta tiktok`
-
-   In this mode, the same `(μ, σ, dist)` setting is applied to all targets simultaneously (a “linked” scenario).
-   The output file name is auto-generated based on `--targets`.
-
-3. For each scenario (single-target or multi-prior) and each `(μ, σ, dist)` combination:
+3. For each `(μ, σ, dist)` combination:
    - `main.py` runs `run_meridian_once.py` as a subprocess, writing a temporary CSV
    - `main.py` appends the temporary output into the master results file and deletes the temp file
 
@@ -220,36 +215,26 @@ We also test the ROI prior distribution family:
 
 Run all commands from the **repo root**.
 
-### Single-target mode (Base)
+### Unified target-set mode
 
-Run sensitivity for one or more target channels (the ROI prior is modified for each target channel **one at a time**):
+Run sensitivity for one or more target channels. In each run, the same prior tuple is applied to all targets in the set simultaneously.
 
-- `python -m src.main --channels tiktok`
-- `python -m src.main --channels meta google`
-- `python -m src.main --channels all`
-
-**Output:**
-- `data/output/prior_sensitivity_runs_tiktok.csv`
-- `data/output/prior_sensitivity_roi_tiktok.csv`
-- `data/output/prior_sensitivity_runs_meta_google.csv`
-- `data/output/prior_sensitivity_roi_meta_google.csv`
-- `data/output/prior_sensitivity_runs_all.csv`
-- `data/output/prior_sensitivity_roi_all.csv`
-
-### Multi-prior mode (Expanded, linked)
-
-Run sensitivity where multiple target channels are perturbed together using the same (μ, σ, dist) per iteration (“linked” scenario):
-
-- `python -m src.main --targets meta tiktok`
+- `python -m src.main --targets meta`
+- `python -m src.main --targets meta google`
+- `python -m src.main --channels meta google` (deprecated alias)
+- `python -m src.main --channels all` (alias that expands to all configured channels)
 
 **Output:**
-- `data/output/prior_sensitivity_runs_multi_meta_tiktok.csv`
-- `data/output/prior_sensitivity_roi_multi_meta_tiktok.csv`
+- `data/output/prior_sensitivity_runs_multi_meta.csv`
+- `data/output/prior_sensitivity_roi_multi_meta.csv`
+- `data/output/prior_sensitivity_runs_multi_google_meta.csv`
+- `data/output/prior_sensitivity_roi_multi_google_meta.csv`
 
 ## Tornado Ready Summary Table
 
 After generating the split sensitivity outputs, export a tornado-ready summary table (baseline vs. new ROI plus deltas) by running:
 
+- `python -m src.summarize_sensitivity meta`
 - `python -m src.summarize_sensitivity meta tiktok`
 - `python -m src.summarize_sensitivity meta tiktok google`
 

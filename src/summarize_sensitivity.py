@@ -136,11 +136,12 @@ def main():
     os.makedirs(output_dir, exist_ok=True)
 
     targets = args.targets
-    if len(targets) < 2:
+    if len(targets) < 1:
         raise ValueError(
             "Usage:\n"
-            "  python -m src.summarize_sensitivity <target1> <target2> [target3 ...]\n"
+            "  python -m src.summarize_sensitivity <target1> [target2 ...]\n"
             "Example:\n"
+            "  python -m src.summarize_sensitivity meta\n"
             "  python -m src.summarize_sensitivity meta google"
         )
 
