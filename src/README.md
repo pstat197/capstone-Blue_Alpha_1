@@ -215,6 +215,8 @@ We also test the ROI prior distribution family:
 
 Run all commands from the **repo root**.
 
+You can provide a YAML config file (default: `config/sensitivity.yaml`) to control channels, grids, sampler, and defaults.
+
 ### Unified target-set mode
 
 Run sensitivity for one or more target channels. In each run, the same prior tuple is applied to all targets in the set simultaneously.
@@ -223,6 +225,7 @@ Run sensitivity for one or more target channels. In each run, the same prior tup
 - `python -m src.main --targets meta google`
 - `python -m src.main --channels meta google` (deprecated alias)
 - `python -m src.main --channels all` (alias that expands to all configured channels)
+- `python -m src.main --config config/sensitivity.yaml --targets meta`
 
 **Output:**
 - `data/output/prior_sensitivity_runs_multi_meta.csv`
@@ -237,6 +240,24 @@ After generating the split sensitivity outputs, export a tornado-ready summary t
 - `python -m src.summarize_sensitivity meta`
 - `python -m src.summarize_sensitivity meta tiktok`
 - `python -m src.summarize_sensitivity meta tiktok google`
+
+## Next Grid Generator (YAML update)
+
+Generate a next-iteration config by reading QC outcomes from the latest run CSV:
+
+- `python -m src.next_grid_generator meta`
+- `python -m src.next_grid_generator meta --config-in config/sensitivity.yaml --config-out config/sensitivity_meta_next.yaml`
+- `python -m src.next_grid_generator google --config-in config/sensitivity.yaml --config-out config/sensitivity_google_next.yaml`
+
+The generator updates:
+- `defaults.targets`
+- `experiment.roi_mu_values`
+- `experiment.roi_sigma_values`
+- `experiment.roi_dist_values`
+
+Then run the next iteration directly:
+
+- `python -m src.main --config config/sensitivity_meta_next.yaml`
 
 ### How input/output are chosen (no hard-coding)
 

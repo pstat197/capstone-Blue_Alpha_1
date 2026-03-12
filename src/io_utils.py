@@ -75,7 +75,7 @@ def parse_channels_and_output(
     *,
     full_channels: List[str],
     output_dir: str,
-    default_target: str = "tiktok",
+    default_target: Union[str, List[str]] = "tiktok",
 ) -> Tuple[List[str], str, Optional[List[str]]]:
     """
     Parse CLI args and return:
@@ -85,6 +85,7 @@ def parse_channels_and_output(
     """
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--config", default=None, help=argparse.SUPPRESS)
     parser.add_argument(
         "--channels",
         nargs="+",
@@ -104,7 +105,7 @@ def parse_channels_and_output(
 
     raw_targets = args.targets if args.targets is not None else args.channels
     if raw_targets is None:
-        raw_targets = [default_target]
+        raw_targets = default_target if isinstance(default_target, list) else [default_target]
 
     targets = [str(x) for x in raw_targets]
     if len(targets) == 1 and targets[0].lower() == "all":
