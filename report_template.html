@@ -1,0 +1,135 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>{{ meta.title }}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 28px; line-height: 1.45; }
+    h1 { margin-bottom: 6px; }
+    h2 { margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    .sub { color: #444; margin-top: 0; }
+    .meta { font-size: 12px; color: #555; margin: 10px 0 18px; }
+    .authors { font-size: 13px; color: #333; margin: 8px 0 18px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e6e6e6; padding: 8px; font-size: 13px; }
+    th { background: #fafafa; text-align: left; }
+    .small { font-size: 12px; color: #555; }
+    img { max-width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 8px; margin: 8px 0; }
+    ul { margin-top: 6px; }
+    .quick-overview { margin: 10px 0 14px; }
+    .quick-title { font-style: italic; font-weight: 700; font-size: 18px; margin: 0 0 6px; }
+    .quick-list { margin: 0 0 0 18px; padding: 0; }
+    .quick-list li { font-style: italic; font-size: 16px; line-height: 1.35; margin: 2px 0; }
+    .method-paragraph { margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>{{ meta.title }}</h1>
+  <p class="sub">{{ meta.subtitle }}</p>
+
+  {% if meta.authors and meta.authors|length > 0 %}
+  <div class="authors">
+    <b>Group Members:</b> {{ meta.authors | join(", ") }}
+  </div>
+  {% endif %}
+
+  <div class="meta">
+    Generated: {{ meta.generated_at }}<br>
+    Input file: {{ meta.input_file }}<br>
+    Rows: {{ overview.n_rows }}, Targets: {{ overview.n_targets }}, Channels: {{ overview.n_channels }}, Dists: {{ overview.n_dists }}
+  </div>
+
+  <h2>Executive Summary</h2>
+  <div class="card">
+
+    {% if quick_overview_lines and quick_overview_lines|length > 0 %}
+    <div class="quick-overview">
+      <div class="quick-title">Most Sensitive Parameters:</div>
+      <ol class="quick-list">
+        {% for line in quick_overview_lines %}
+          <li>{{ line }}</li>
+        {% endfor %}
+      </ol>
+    </div>
+    {% endif %}
+
+    <p><b>Most sensitive targets (by max absolute % change):</b></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Target Channel</th>
+          <th>Distribution</th>
+          <th>Baseline ROI</th>
+          <th>Max |% Change|</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in rank_table %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ row.target_channel }}</td>
+          <td>{{ row.roi_prior_dist }}</td>
+          <td>{{ row.baseline_roi }}</td>
+          <td>{{ row.max_abs_pct_change }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <p><b>Recommendations:</b></p>
+    <ul>
+      {% for rec in recommendations %}
+        <li>{{ rec }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <h2>Methods</h2>
+  <div class="card">
+    <p class="method-paragraph"><b>Baseline definition.</b> {{ methods.baseline_description }}</p>
+    <p class="method-paragraph"><b>Sensitivity calculation.</b> {{ methods.sensitivity_description }}</p>
+    <p class="method-paragraph"><b>Visualization workflow.</b> {{ methods.visualization_description }}</p>
+  </div>
+
+  {% if figures.tornado %}
+  <h2>Tornado Diagram</h2>
+  <p class="small">Shows which target+prior settings produce the largest ROI movement relative to baseline.</p>
+  <img src="{{ figures.tornado }}" alt="Tornado diagram">
+  {% endif %}
+
+  <h2>Per-Target Detail</h2>
+  {% for section in per_target_sections %}
+    <div class="card">
+      <h3 style="margin:0 0 6px;">{{ section.title }}</h3>
+      <div class="small">
+        Baseline ROI: {{ section.baseline_roi }} |
+        Max |% change|: {{ section.max_abs_pct_change }}
+      </div>
+
+      {% if section.heatmaps %}
+        <p><b>Heatmaps (mu × sigma) by distribution</b></p>
+        {% for hm in section.heatmaps %}
+          <div style="margin:10px 0;">
+            <div class="small">{{ hm.caption }}</div>
+            <img src="{{ hm.path }}" alt="{{ hm.caption }}">
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+
+  <h2>Appendix</h2>
+  <div class="card">
+    <p class="small">Tables saved in <code>output/tables/</code> for reproducibility.</p>
+    <ul class="small">
+      {% for t in appendix_tables %}
+        <li>{{ t }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</body>
+</html>
