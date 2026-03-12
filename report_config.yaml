@@ -1,0 +1,33 @@
+project:
+  title: "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)"
+  subtitle: "Google Meridian MMM - Prior Robustness Diagnostics"
+  authors:
+    - "Aidan Frazier"
+    - "Quinlan Wilson"
+    - "Jimmy Wu"
+    - "Jasper Luo"
+    - "Coraline Zhu"
+
+baseline:
+  rule: "median"
+
+ranking:
+  top_n: 10
+  score: "max_abs_pct_change"
+
+thresholds:
+  high_sensitivity_pct: 15.0
+  medium_sensitivity_pct: 7.5
+
+figures:
+  dpi: 160
+  make_tornado: true
+  make_heatmaps: true
+
+methods:
+  baseline_description: "Baseline ROI is defined as the estimated ROI at the median prior mean (mu) and median prior standard deviation (sigma) within each target channel and distribution family."
+  sensitivity_description: "For each scenario, percent change is computed relative to the baseline ROI. Sensitivity is summarized as the maximum absolute percent change across tested prior settings."
+  visualization_description: "The report includes a tornado chart ranking the most sensitive target-distribution combinations and per-target heatmaps showing how estimated ROI changes across the prior grid."
+
+output:
+  report_filename: "report.html"
