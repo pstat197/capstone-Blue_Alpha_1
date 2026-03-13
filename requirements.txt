@@ -10,3 +10,7 @@ tensorflow-probability
 # Plotting (used by src/viz/prior_viz.py)
 matplotlib
 seaborn
+
+# Reporting
+jinja2
+pyyaml

@@ -44,6 +44,7 @@ def build_experiment_config(
     multipliers: List[float],
     kpi_col: str = "subscriptions",
     spend_suffix: str = "_spend",
+    mu_grid: list = None,
     sigma_grid: list = None,
     dist_grid: list = None,
     output_file: Optional[str] = None,  
@@ -75,7 +76,7 @@ def build_experiment_config(
         )
 
     mu0 = compute_mu0(df, kpi_col=kpi_col, spend_cols=spend_cols)
-    roi_mu_values = make_mu_grid(mu0, multipliers)
+    roi_mu_values = make_mu_grid(mu0, multipliers) if mu_grid is None else mu_grid
 
     sigma0 = compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_sigma_values = make_sigma_grid(sigma0, multipliers) if sigma_grid is None else sigma_grid

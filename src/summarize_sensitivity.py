@@ -3,8 +3,22 @@ import os
 import sys
 import subprocess
 import argparse
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
+
+from src.output_paths import (
+    TABLES_DIR,
+    LEGACY_OUTPUT_DIR,
+    candidate_roi_csv_paths,
+    candidate_run_csv_paths,
+    ensure_output_dirs,
+    first_existing,
+    legacy_combined_csv_path,
+    tornado_csv_path,
+)
+
 
 def _pick_center(values):
     vals = sorted(pd.Series(values).dropna().unique().tolist())
@@ -46,12 +60,12 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(picked, ignore_index=True)
 
 
-def _paths_for_tag(output_dir: str, tag: str) -> dict:
+def _paths_for_tag(tag: str) -> dict[str, Path | list[Path]]:
     return {
-        "run_csv": os.path.join(output_dir, f"prior_sensitivity_runs_multi_{tag}.csv"),
-        "roi_csv": os.path.join(output_dir, f"prior_sensitivity_roi_multi_{tag}.csv"),
-        "legacy_csv": os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv"),
-        "tornado_csv": os.path.join(output_dir, f"tornado_{tag}.csv"),
+        "run_csv_candidates": candidate_run_csv_paths(tag),
+        "roi_csv_candidates": candidate_roi_csv_paths(tag),
+        "legacy_csv": legacy_combined_csv_path(tag, LEGACY_OUTPUT_DIR),
+        "tornado_csv": tornado_csv_path(tag, TABLES_DIR),
     }
 
 
@@ -97,12 +111,25 @@ def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _load_current_results(output_dir: str, tag: str) -> pd.DataFrame:
-    paths = _paths_for_tag(output_dir, tag)
+def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
+    run_candidates = paths["run_csv_candidates"]
+    roi_candidates = paths["roi_csv_candidates"]
 
-    if os.path.exists(paths["run_csv"]) and os.path.exists(paths["roi_csv"]):
-        run_df = pd.read_csv(paths["run_csv"])
-        roi_df = pd.read_csv(paths["roi_csv"])
+    run_csv = None
+    roi_csv = None
+    if run_candidates[0].exists() and roi_candidates[0].exists():
+        run_csv = run_candidates[0]
+        roi_csv = roi_candidates[0]
+    elif run_candidates[1].exists() and roi_candidates[1].exists():
+        run_csv = run_candidates[1]
+        roi_csv = roi_candidates[1]
+    else:
+        run_csv = first_existing(run_candidates)
+        roi_csv = first_existing(roi_candidates)
+
+    if run_csv is not None and roi_csv is not None:
+        run_df = pd.read_csv(run_csv)
+        roi_df = pd.read_csv(roi_csv)
 
         if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
             raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
@@ -122,18 +149,19 @@ def _load_current_results(output_dir: str, tag: str) -> pd.DataFrame:
         run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
         return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
 
-    if os.path.exists(paths["legacy_csv"]):
-        return pd.read_csv(paths["legacy_csv"])
+    legacy_csv = paths["legacy_csv"]
+    if legacy_csv.exists():
+        return pd.read_csv(legacy_csv)
 
     return pd.DataFrame()
+
 
 def main():
     parser = _build_parser()
     args = parser.parse_args()
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    output_dir = os.path.join(project_root, "data", "output")
-    os.makedirs(output_dir, exist_ok=True)
+    ensure_output_dirs()
 
     targets = args.targets
     if len(targets) < 1:
@@ -148,10 +176,11 @@ def main():
     targets_sorted = sorted([str(t) for t in targets])
     tag = "_".join(targets_sorted)
 
-    paths = _paths_for_tag(output_dir, tag)
+    paths = _paths_for_tag(tag)
     out_csv = paths["tornado_csv"]
+    out_csv.parent.mkdir(parents=True, exist_ok=True)
 
-    df = _load_current_results(output_dir, tag)
+    df = _load_current_results(paths)
 
     # Auto-run src.main --targets ... if results missing
     if df.empty:
@@ -164,11 +193,13 @@ def main():
         if proc.returncode != 0:
             raise RuntimeError(f"Auto-run of src.main failed with exit code {proc.returncode}")
 
-        df = _load_current_results(output_dir, tag)
+        df = _load_current_results(paths)
         if df.empty:
+            run_candidates = ", ".join(str(p) for p in paths["run_csv_candidates"])
+            roi_candidates = ", ".join(str(p) for p in paths["roi_csv_candidates"])
             raise FileNotFoundError(
                 "Expected split outputs (or legacy combined output) still not found after auto-run: "
-                f"{paths['run_csv']} / {paths['roi_csv']}"
+                f"{run_candidates} / {roi_candidates}"
             )
 
     # Summarize
@@ -265,6 +296,7 @@ def main():
     df[output_cols].to_csv(out_csv, index=False)
     print("Saved tornado-ready summary to:")
     print(out_csv)
+
 
 if __name__ == "__main__":
     main()

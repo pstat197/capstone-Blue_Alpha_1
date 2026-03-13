@@ -6,6 +6,7 @@ import time
 import subprocess
 
 from src.experiment import build_experiment_config
+from src.run_config import load_run_config
 from src.io_utils import (
     parse_channels_and_output,
     load_resume_state,
@@ -13,60 +14,106 @@ from src.io_utils import (
     RUN_OUTPUT_COLUMNS,
     ROI_OUTPUT_COLUMNS,
 )
+from src.output_paths import (
+    RUNS_DIR,
+    candidate_run_csv_paths,
+    ensure_output_dirs,
+    roi_csv_path,
+    run_csv_path,
+)
 
 
 def build_run_id(scope: str, mu: float, sigma: float, dist: str) -> str:
     return f"{scope}|{float(mu):.6f}|{float(sigma):.6f}|{str(dist)}"
 
+
+def _extract_config_path(argv: list[str]) -> str | None:
+    for i, token in enumerate(argv):
+        if token == "--config" and i + 1 < len(argv):
+            return argv[i + 1]
+        if token.startswith("--config="):
+            return token.split("=", 1)[1]
+    return None
+
+
 def main():
-    channels = ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"]
-    multipliers = [0.4, 1.0, 2.0]
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    ensure_output_dirs()
+
+    config_path = _extract_config_path(sys.argv[1:])
+    if config_path and not os.path.isabs(config_path):
+        config_path = os.path.join(project_root, config_path)
+    run_cfg = load_run_config(config_path)
+    sampler = run_cfg["sampler"]
+
+    channels = [str(x) for x in run_cfg["model"]["channels"]]
+    multipliers = [float(x) for x in run_cfg["experiment"]["multipliers"]]
+    mu_grid = run_cfg["experiment"].get("roi_mu_values")
+    if mu_grid is not None:
+        mu_grid = [float(x) for x in mu_grid]
+    sigma_grid = run_cfg["experiment"].get("roi_sigma_values")
+    if sigma_grid is not None:
+        sigma_grid = [float(x) for x in sigma_grid]
+    dist_grid = [str(x) for x in run_cfg["experiment"].get("roi_dist_values", ["Normal", "LogNormal"])]
+    kpi_col = str(run_cfg["model"].get("kpi_col", "subscriptions"))
+    default_targets = [str(x) for x in run_cfg.get("defaults", {}).get("targets", ["tiktok"])]
 
     cfg = build_experiment_config(
         channels=channels,
         multipliers=multipliers,
-        kpi_col="subscriptions",
+        kpi_col=kpi_col,
+        mu_grid=mu_grid,
+        sigma_grid=sigma_grid,
+        dist_grid=dist_grid,
         output_file="prior_sensitivity_results.csv",
     )
 
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
-    output_dir = os.path.join(project_root, "data", "output")
+    output_dir = str(RUNS_DIR)
     os.makedirs(output_dir, exist_ok=True)
 
-    _, output_file, targets = parse_channels_and_output(
+    _, _, targets = parse_channels_and_output(
         full_channels=channels,
         output_dir=output_dir,
-        default_target="tiktok",
+        default_target=default_targets,
     )
     if targets is None or len(targets) == 0:
         raise ValueError("No targets provided. Pass --targets <channel...> or --channels <channel...>.")
 
-    run_output_file = output_file.replace("prior_sensitivity_results", "prior_sensitivity_runs", 1)
-    roi_output_file = output_file.replace("prior_sensitivity_results", "prior_sensitivity_roi", 1)
+    targets = sorted([str(x) for x in targets])
+    targets_tag = "_".join(targets)
+
+    run_output_file = str(run_csv_path(targets_tag, RUNS_DIR))
+    roi_output_file = str(roi_csv_path(targets_tag, RUNS_DIR))
+    tmp_dir = os.path.dirname(run_output_file)
+    os.makedirs(tmp_dir, exist_ok=True)
 
     channels_json = json.dumps(channels)
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
     print("Mu grid =", cfg.roi_mu_values)
+    print("Sigma grid =", cfg.roi_sigma_values)
+    print("Dist grid =", cfg.roi_dist_values)
     print("Run output file:", run_output_file)
     print("ROI output file:", roi_output_file)
 
     baseline_mu = cfg.mu0
-    baseline_sigma = cfg.roi_sigma_values[1]
+    baseline_sigma = cfg.roi_sigma_values[min(1, len(cfg.roi_sigma_values) - 1)]
     baseline_dist = cfg.roi_dist_values[0]
     
     # resume-safe load
     already_done = load_resume_state(run_output_file)
+    for legacy_path in candidate_run_csv_paths(targets_tag)[1:]:
+        legacy_run_output_file = str(legacy_path)
+        if legacy_run_output_file != run_output_file and os.path.exists(legacy_run_output_file):
+            already_done.update(load_resume_state(legacy_run_output_file))
 
     env = os.environ.copy()
     env["TF_CPP_MIN_LOG_LEVEL"] = "3"
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    targets = sorted([str(x) for x in targets])
     targets_str = ",".join(targets)
-    targets_tag = "_".join(targets)
 
     print("MODE: LINKED TARGET-SET (UNIFIED)")
     print("Targets to perturb together:", targets_str)
@@ -97,8 +144,8 @@ def main():
                 mu_tag = str(mu).replace(".", "p")
                 sigma_tag = str(sigma).replace(".", "p")
                 dist_tag = dist
-                tmp_run_out = os.path.join(output_dir, f"_tmp_run_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
-                tmp_roi_out = os.path.join(output_dir, f"_tmp_roi_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                tmp_run_out = os.path.join(tmp_dir, f"_tmp_run_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
+                tmp_roi_out = os.path.join(tmp_dir, f"_tmp_roi_{targets_tag}_{mu_tag}_{sigma_tag}_{dist_tag}.csv")
 
                 cmd = [
                     sys.executable, "-m", "src.run_meridian_once",
@@ -110,11 +157,11 @@ def main():
                     "--baseline_mu", str(baseline_mu),
                     "--baseline_sigma", str(baseline_sigma),
                     "--baseline_dist", str(baseline_dist),
-                    "--n_chains", "4",
-                    "--n_adapt", "700",
-                    "--n_burnin", "500",
-                    "--n_keep", "300",
-                    "--seed", "0",
+                    "--n_chains", str(int(sampler["n_chains"])),
+                    "--n_adapt", str(int(sampler["n_adapt"])),
+                    "--n_burnin", str(int(sampler["n_burnin"])),
+                    "--n_keep", str(int(sampler["n_keep"])),
+                    "--seed", str(int(sampler["seed"])),
                 ]
 
                 proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
@@ -142,6 +189,8 @@ def main():
                     ensure_cols={
                         "run_id": run_key,
                         "prior_key": prior_key,
+                        "targets": targets_str,
+                        "target_channel": targets_str,
                     },
                     expected_columns=ROI_OUTPUT_COLUMNS,
                     cast_single_target=False,

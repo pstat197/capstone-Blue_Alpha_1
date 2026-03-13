@@ -1,0 +1,1121 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ meta.title }}</title>
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [["\\(", "\\)"]],
+        displayMath: [["\\[", "\\]"]],
+      },
+      svg: {
+        fontCache: "global",
+      },
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;600;700&display=swap");
+    :root {
+      --ink: #0f1c2f;
+      --ink-soft: #20324a;
+      --muted: #4c627e;
+      --paper: #edf2f7;
+      --card: #ffffff;
+      --line: #d3dfed;
+      --brand-deep: #1f3f96;
+      --brand: #2f5dc6;
+      --brand-soft: #5f8fe8;
+      --brand-mist: #deebff;
+      --warn: #9f3b2f;
+      --ok: #1e7a57;
+      --hero-split: 47%;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Manrope", "Avenir Next", "Trebuchet MS", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 2% 0%, #d8e7ff 0, transparent 42%),
+        radial-gradient(circle at 100% 2%, #f0f6ff 0, transparent 36%),
+        linear-gradient(180deg, #f8fbff 0%, #edf3fb 100%),
+        var(--paper);
+      line-height: 1.5;
+    }
+    .page {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 28px 18px 40px;
+    }
+    .hero {
+      position: relative;
+      border: 1px solid #c9d8ef;
+      border-radius: 18px;
+      background: linear-gradient(111deg, #1f3f96 0 var(--hero-split), #f6f9ff var(--hero-split) 100%);
+      padding: 22px 22px;
+      box-shadow: 0 14px 28px rgba(20, 46, 96, 0.12);
+      overflow: hidden;
+      animation: riseIn .55s ease both;
+    }
+    .hero::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 160px;
+      height: 160px;
+      background: linear-gradient(135deg, rgba(95,143,232,0.95), rgba(47,93,198,0.82));
+      clip-path: polygon(100% 0, 0 0, 100% 100%);
+      z-index: 0;
+    }
+    .hero-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1.02fr 1fr;
+      gap: 12px;
+      align-items: stretch;
+    }
+    .hero-main {
+      color: #f5f8ff;
+      min-width: 0;
+      max-width: 580px;
+      padding-right: 10px;
+    }
+    h1 {
+      margin: 0 0 6px;
+      font-family: "Space Grotesk", "Avenir Next", sans-serif;
+      font-size: 2.15rem;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      max-width: 15ch;
+    }
+    .partner-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .brand-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid rgba(188, 208, 244, 0.85);
+      border-radius: 999px;
+      padding: 4px 10px;
+      min-height: 34px;
+    }
+    .brand-logo {
+      display: block;
+      object-fit: contain;
+      filter: drop-shadow(0 1px 0 rgba(0,0,0,0.08));
+    }
+    .brand-logo.ucsb { height: 30px; width: auto; }
+    .brand-logo.bluealpha { height: 24px; width: auto; }
+    .partner-x {
+      font-family: "Space Grotesk", "Avenir Next", sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: #d8e6ff;
+      line-height: 1;
+    }
+    .cobrand {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(193, 215, 248, 0.5);
+      border-radius: 999px;
+      padding: 4px 10px;
+      background: rgba(16, 42, 101, 0.3);
+      color: #e8f1ff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .sub {
+      margin: 0 0 12px;
+      color: #d8e6ff;
+      font-size: 1.1rem;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+      max-width: 31ch;
+      line-height: 1.24;
+    }
+    .meta {
+      color: #e4eeff;
+      font-size: 0.86rem;
+      margin-bottom: 4px;
+      line-height: 1.38;
+      max-width: 44ch;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+    .meta b { color: #f7fbff; }
+    .authors {
+      margin: 10px 0 0;
+      font-size: 0.93rem;
+      color: #f0f6ff;
+      max-width: 46ch;
+      line-height: 1.35;
+      overflow-wrap: break-word;
+      word-break: normal;
+    }
+    .path-cell {
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      font-size: 0.82rem;
+      color: #1c3658;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .hero-stats {
+      align-self: center;
+      background: linear-gradient(160deg, rgba(255,255,255,0.98), rgba(244,249,255,0.95));
+      border: 1px solid #d5e3f5;
+      border-radius: 14px;
+      padding: 12px;
+      backdrop-filter: blur(2px);
+      margin-left: -24px;
+      max-width: calc(100% + 24px);
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 9px;
+      margin-top: 0;
+    }
+    .stat {
+      background: linear-gradient(180deg, #ffffff 0%, #f2f7ff 100%);
+      border: 1px solid #d7e5f6;
+      border-radius: 11px;
+      padding: 10px 11px;
+    }
+    .stat .k {
+      font-size: 0.74rem;
+      color: #5a7397;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      font-weight: 700;
+    }
+    .stat .v {
+      font-family: "Space Grotesk", "Avenir Next", sans-serif;
+      font-size: 1.2rem;
+      color: #183a79;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    h2 {
+      margin: 24px 0 10px;
+      font-family: "Space Grotesk", "Avenir Next", sans-serif;
+      font-size: 1.15rem;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #163666;
+      position: relative;
+      padding-left: 12px;
+    }
+    h2::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 4px;
+      width: 4px;
+      height: 18px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, var(--brand-soft), var(--brand));
+    }
+    .card {
+      border: 1px solid #d6e3f1;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+      padding: 14px 15px;
+      box-shadow: 0 8px 16px rgba(24, 54, 102, 0.06);
+      margin-bottom: 10px;
+      animation: riseIn .55s ease both;
+    }
+
+    .scope-badges {
+      margin: 6px 0 9px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      background: var(--brand-mist);
+      color: #174583;
+      border: 1px solid #bfd6fb;
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+    .note {
+      margin: 8px 0 0;
+      padding: 9px 10px;
+      border-left: 4px solid var(--brand);
+      background: #edf4ff;
+      color: #24446f;
+      font-size: 0.9rem;
+    }
+    .scope-grid {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .scope-item {
+      background: #f5f9ff;
+      border: 1px solid #d9e6f7;
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+    .scope-item .k {
+      font-size: 0.74rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .scope-item .v {
+      margin-top: 2px;
+      font-size: 0.94rem;
+      font-weight: 700;
+      color: #173c49;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 0.88rem;
+    }
+    th, td {
+      border: 1px solid #d8e4f2;
+      padding: 7px 8px;
+      text-align: left;
+    }
+    th {
+      background: linear-gradient(180deg, #eef5ff 0%, #e7f0ff 100%);
+      color: #173866;
+      font-weight: 700;
+    }
+    tbody tr:nth-child(even) { background: #f9fcff; }
+
+    .quick-list {
+      margin: 6px 0 8px 18px;
+      padding: 0;
+      font-size: 0.95rem;
+    }
+
+    .method { margin: 6px 0; font-size: 0.92rem; }
+
+    .figure {
+      border: 1px solid #d6e3f3;
+      border-radius: 12px;
+      padding: 10px;
+      background: linear-gradient(180deg, #fcfdff 0%, #f5f9ff 100%);
+      margin-top: 9px;
+    }
+    .figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 10px;
+      border: 1px solid #e4eef0;
+    }
+    .figure .cap {
+      margin: 7px 0 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .warn { color: var(--warn); font-weight: 600; }
+    .ok { color: var(--ok); font-weight: 600; }
+
+    .small { font-size: 0.84rem; color: var(--muted); }
+    .scenario-picker {
+      margin: 10px 0 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .scenario-picker label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #264a7f;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .scenario-select {
+      min-width: 220px;
+      max-width: 100%;
+      border: 1px solid #b8cfee;
+      background: #eef5ff;
+      color: #1e447f;
+      border-radius: 10px;
+      padding: 7px 10px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .scenario-panel { display: none; }
+    .scenario-panel.active { display: block; }
+    .heatmap-switch {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .heatmap-mode-btn {
+      border: 1px solid #b8cfee;
+      background: #eef5ff;
+      color: #1e447f;
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .heatmap-mode-btn.active {
+      background: #2f5dc6;
+      border-color: #2f5dc6;
+      color: #ffffff;
+    }
+    .heatmap-panel.hidden { display: none; }
+
+    .theory-trigger-wrap {
+      margin-top: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .theory-open-btn {
+      border: 1px solid #2f5dc6;
+      background: linear-gradient(180deg, #2f5dc6 0%, #1f4395 100%);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 7px 14px;
+      font-size: 0.83rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      position: relative;
+    }
+    .theory-open-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(26, 62, 132, 0.24);
+    }
+    .theory-open-btn[data-tip]:hover::after {
+      content: attr(data-tip);
+      position: absolute;
+      left: 0;
+      top: calc(100% + 8px);
+      width: 260px;
+      padding: 8px 9px;
+      border-radius: 8px;
+      border: 1px solid #c8d9f3;
+      background: #ffffff;
+      color: #19375f;
+      font-size: 0.76rem;
+      font-weight: 600;
+      line-height: 1.35;
+      z-index: 80;
+      box-shadow: 0 10px 20px rgba(17, 49, 106, 0.18);
+    }
+    .theory-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 20, 45, 0.56);
+      backdrop-filter: blur(2px);
+      padding: 18px;
+      z-index: 200;
+    }
+    .theory-modal.open { display: flex; }
+    .theory-dialog {
+      width: min(980px, 98vw);
+      max-height: 90vh;
+      overflow: auto;
+      border-radius: 14px;
+      border: 1px solid #bfd3ef;
+      background: linear-gradient(180deg, #ffffff 0%, #f7fbff 100%);
+      box-shadow: 0 18px 32px rgba(14, 38, 82, 0.3);
+      padding: 14px 14px 16px;
+      position: relative;
+    }
+    .theory-close-btn {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      border: 1px solid #c3d8f3;
+      background: #ffffff;
+      color: #1f4585;
+      border-radius: 8px;
+      width: 32px;
+      height: 32px;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .theory-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .theory-panel {
+      border: 1px solid #d5e3f3;
+      border-radius: 10px;
+      padding: 10px;
+      background: #ffffff;
+    }
+    .theory-panel h3 {
+      margin: 0 0 6px;
+      font-family: "Space Grotesk", "Avenir Next", sans-serif;
+      font-size: 1rem;
+      color: #173d76;
+    }
+    .eq-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .eq-item {
+      border: 1px solid #d9e6f6;
+      border-radius: 9px;
+      padding: 8px;
+      background: #fbfdff;
+    }
+    .eq-label {
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: #244a86;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .eq-latex {
+      margin: 0;
+      min-height: 1.2rem;
+      color: #102c4e;
+      line-height: 1.35;
+      overflow-x: auto;
+      overflow-y: hidden;
+      white-space: nowrap;
+      padding-bottom: 2px;
+    }
+    .eq-latex .mjx-container {
+      font-size: 100% !important;
+    }
+
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 920px) {
+      .hero-grid { grid-template-columns: 1fr; }
+      .hero { background: linear-gradient(180deg, #1f3f96 0 54%, #f6f9ff 54% 100%); }
+      .hero-main { padding-right: 0; }
+      h1 { max-width: 100%; }
+      .sub, .meta, .authors { max-width: 100%; }
+      .hero-stats { margin-left: 0; max-width: 100%; }
+    }
+    @media (max-width: 560px) {
+      .cards { grid-template-columns: 1fr 1fr; }
+      .scope-grid { grid-template-columns: 1fr; }
+      .page { padding: 16px 12px 24px; }
+      h1 { font-size: 1.45rem; }
+      .partner-row { gap: 8px; }
+      .brand-logo.ucsb { height: 22px; }
+      .brand-logo.bluealpha { height: 18px; }
+      .brand-chip { min-height: 30px; padding: 3px 8px; }
+      .cobrand { font-size: 0.74rem; }
+      .theory-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div class="hero-grid">
+        <div class="hero-main">
+          {% if meta.branding %}
+          <div class="partner-row">
+            {% if meta.branding.logos and meta.branding.logos.ucsb %}
+            <span class="brand-chip">
+              <img class="brand-logo ucsb" src="{{ meta.branding.logos.ucsb }}" alt="UCSB logo">
+            </span>
+            {% endif %}
+            {% if meta.branding.logos and meta.branding.logos.ucsb and meta.branding.logos.bluealpha %}
+            <span class="partner-x">x</span>
+            {% endif %}
+            {% if meta.branding.logos and meta.branding.logos.bluealpha %}
+            <span class="brand-chip">
+              <img class="brand-logo bluealpha" src="{{ meta.branding.logos.bluealpha }}" alt="BlueAlpha logo">
+            </span>
+            {% endif %}
+            <span class="cobrand">{{ meta.branding.cobrand_label }}</span>
+          </div>
+          {% endif %}
+          <h1>{{ meta.title }}</h1>
+          <p class="sub">{{ meta.subtitle }}</p>
+          <div class="meta">Generated {{ meta.generated_at }}</div>
+          {% if meta.authors and meta.authors|length > 0 %}
+          <div class="authors">
+            <b>Team:</b>
+            {% if meta.authors|length > 2 %}
+              {{ meta.authors[:-2] | join(", ") }},<br>{{ meta.authors[-2:] | join(", ") }}
+            {% else %}
+              {{ meta.authors | join(", ") }}
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+
+        <aside class="hero-stats">
+          <div class="cards">
+            <div class="stat"><div class="k">Rows</div><div class="v">{{ overview.n_rows }}</div></div>
+            <div class="stat"><div class="k">Target Sets</div><div class="v">{{ overview.n_target_sets }}</div></div>
+            <div class="stat"><div class="k">Channels</div><div class="v">{{ overview.n_channels }}</div></div>
+            <div class="stat"><div class="k">Prior Dists</div><div class="v">{{ overview.n_dists }}</div></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <h2>Run Scope</h2>
+    <section class="card">
+      <div class="scope-grid">
+        <div class="scope-item">
+          <div class="k">Perturbation Mode</div>
+          <div class="v">{{ scope.mode_label }}</div>
+        </div>
+        <div class="scope-item">
+          <div class="k">Response Scope</div>
+          <div class="v">{{ scope.channel_scope_label }}</div>
+        </div>
+      </div>
+      {% if scope.linked_targets and scope.linked_targets|length > 0 %}
+      <div class="scope-badges">
+        {% for t in scope.linked_targets %}
+        <span class="badge">{{ t }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      <div class="small">Target-set entries in input: {{ scope.target_sets | join(" | ") }}</div>
+      {% if scope.n_channels_before is not none and scope.n_channels_after is not none %}
+      <div class="small">Channels shown in report: {{ scope.n_channels_after }} / {{ scope.n_channels_before }}</div>
+      {% endif %}
+      <p class="note">{{ scope.note }}</p>
+    </section>
+
+    <h2>Input Sources</h2>
+    <section class="card">
+      <p class="small">Exact files used to build this report.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Source</th>
+            <th>File</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Report Input</td>
+            <td class="path-cell">{{ meta.source_files.report_input if meta.source_files and meta.source_files.report_input else meta.input_file }}</td>
+          </tr>
+          {% if meta.source_files and meta.source_files.tornado_csv %}
+          <tr>
+            <td>Tornado CSV</td>
+            <td class="path-cell">{{ meta.source_files.tornado_csv }}</td>
+          </tr>
+          {% endif %}
+          {% if meta.source_files and meta.source_files.runs_csv %}
+          <tr>
+            <td>Runs CSV (Diagnostics)</td>
+            <td class="path-cell">{{ meta.source_files.runs_csv }}</td>
+          </tr>
+          {% endif %}
+          {% if meta.source_files and meta.source_files.roi_csv %}
+          <tr>
+            <td>ROI CSV</td>
+            <td class="path-cell">{{ meta.source_files.roi_csv }}</td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </section>
+
+    {% if introduction and introduction.paragraphs and introduction.paragraphs|length > 0 %}
+    <h2>{{ introduction.title }}</h2>
+    <section class="card">
+      {% for p in introduction.paragraphs %}
+      <p>{{ p }}</p>
+      {% endfor %}
+    </section>
+    {% endif %}
+
+    {% if theory and theory.available %}
+    <h2>{{ theory.title }}</h2>
+    <section class="card">
+      <p class="small">Source linked from <code>{{ theory.source_tex }}</code>. Hover the button for quick context, then click to open the full math linkage panel.</p>
+      {% if theory.highlights and theory.highlights|length > 0 %}
+      <ul>
+        {% for x in theory.highlights %}
+        <li>{{ x }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      <div class="theory-trigger-wrap">
+        <button
+          type="button"
+          id="theory-open-btn"
+          class="theory-open-btn"
+          data-tip="Open the theory window with assumptions, subsection map, and extracted equations."
+        >
+          View Math Theory
+        </button>
+        <span class="small">Preview formula is shown inside the popup (MathJax-rendered) to keep this section clean.</span>
+      </div>
+    </section>
+
+    <div id="theory-modal" class="theory-modal" aria-hidden="true">
+      <section class="theory-dialog">
+        <button id="theory-close-btn" type="button" class="theory-close-btn" aria-label="Close theory panel">x</button>
+        <h2 style="margin-top:0;">Math Theory Linkage</h2>
+        <p class="small">Pulled from <code>{{ theory.source_tex }}</code> to keep analysis interpretation tied to your written theory notes.</p>
+        <div class="theory-grid">
+          <section class="theory-panel">
+            <h3>Subsection Map</h3>
+            {% if theory.subsections and theory.subsections|length > 0 %}
+            <ul>
+              {% for s in theory.subsections %}
+              <li>{{ s }}</li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <p class="small">No subsection headers parsed from theory source.</p>
+            {% endif %}
+          </section>
+          <section class="theory-panel">
+            <h3>Key Equations</h3>
+            {% if theory.equations and theory.equations|length > 0 %}
+            <div class="eq-list">
+              {% for eq in theory.equations %}
+              <div class="eq-item">
+                <div class="eq-label">{{ eq.label }}</div>
+                <div class="eq-latex">\[{{ eq.latex }}\]</div>
+              </div>
+              {% endfor %}
+            </div>
+            {% else %}
+            <p class="small">No equations parsed from theory source.</p>
+            {% endif %}
+          </section>
+        </div>
+      </section>
+    </div>
+    {% endif %}
+
+    <h2>Executive Summary</h2>
+    <section class="card">
+      {% if quick_overview_lines and quick_overview_lines|length > 0 %}
+      <ol class="quick-list">
+        {% for line in quick_overview_lines %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Channel</th>
+            <th>Distribution</th>
+            <th>Baseline ROI</th>
+            <th>Max |% Change|</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in rank_table %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.channel }}</td>
+            <td>{{ row.roi_prior_dist }}</td>
+            <td>{{ row.baseline_roi }}</td>
+            <td>{{ row.max_abs_pct_change }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <p class="warn">Interpretation note: very small baseline ROI can inflate percent changes; use ranking as directional sensitivity signal.</p>
+      <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code> (source: {{ overview.pct_source }}).</p>
+
+      <ul>
+        {% for rec in recommendations %}
+        <li>{{ rec }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+
+    {% if figures.tornado %}
+    <h2>ROI Tornado Summary</h2>
+    <section class="card">
+      <section class="figure">
+        <img src="{{ figures.tornado }}" alt="ROI tornado sensitivity chart">
+        <div class="cap">Tornado interval style aligned with value tornado: one channel per row, downside-to-upside ROI % interval.</div>
+      </section>
+    </section>
+    {% endif %}
+
+    {% if dollar and dollar.available %}
+    <h2>Dollar Sensitivity Summary</h2>
+    <section class="card">
+      <p class="small">
+        Source: {{ dollar.source }} | Range mode: {{ dollar.range_mode }} | Dollars per subscription: {{ dollar.dollars_per_subscription_note }}
+      </p>
+
+      {% if figures.tornado_dollar %}
+      <section class="figure">
+        <img src="{{ figures.tornado_dollar }}" alt="Dollar tornado sensitivity chart">
+        <div class="cap">Same tornado style as <code>src.viz.tornado_plots</code>: one bar per channel with downside/upside dollar range.</div>
+      </section>
+      {% endif %}
+
+      {% if dollar.quick_lines and dollar.quick_lines|length > 0 %}
+      <ol class="quick-list">
+        {% for line in dollar.quick_lines %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Channel</th>
+            <th>Downside ($)</th>
+            <th>Upside ($)</th>
+            <th>Max |$ Change|</th>
+            <th>Median Delta ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in dollar.rank_rows %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row.channel }}</td>
+            <td>{{ row.left_dollar }}</td>
+            <td>{{ row.right_dollar }}</td>
+            <td>{{ row.max_abs_dollar_change }}</td>
+            <td>{{ row.median_dollar_change }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+    {% endif %}
+
+    {% if scenario_snapshot and scenario_snapshot.available %}
+    <h2>Single Scenario Snapshot</h2>
+    <section class="card">
+      <p class="small">{{ scenario_snapshot.selection_reason }}</p>
+
+      {% if scenario_snapshot.scenarios and scenario_snapshot.scenarios|length > 0 %}
+      <div class="small">Available runs: {{ scenario_snapshot.scenario_count }}. Select one run to switch snapshot.</div>
+      <div class="scenario-picker">
+        <label for="scenario-select">Run</label>
+        <select id="scenario-select" class="scenario-select">
+          {% for s in scenario_snapshot.scenarios %}
+          <option
+            value="scenario-{{ loop.index }}"
+            {% if s.run_id == scenario_snapshot.selected_run_id %}selected{% endif %}
+          >
+            Run {{ loop.index }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      {% for s in scenario_snapshot.scenarios %}
+      <div
+        id="scenario-{{ loop.index }}"
+        class="scenario-panel{% if s.run_id == scenario_snapshot.selected_run_id %} active{% endif %}"
+      >
+        <p class="small">
+          {% if s.meta.run_id is defined %}run_id={{ s.meta.run_id }} | {% endif %}
+          {% if s.meta.roi_prior_mu is defined %}mu={{ s.meta.roi_prior_mu }} | {% endif %}
+          {% if s.meta.roi_prior_sigma is defined %}sigma={{ s.meta.roi_prior_sigma }} | {% endif %}
+          {% if s.meta.roi_prior_dist is defined %}dist={{ s.meta.roi_prior_dist }} | {% endif %}
+          channels shown={{ s.n_channels }}
+        </p>
+
+        {% if s.figure %}
+        <section class="figure">
+          <img src="{{ s.figure }}" alt="Single scenario channel snapshot for {{ s.run_id }}">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        {% endif %}
+
+        {% if s.rows and s.rows|length > 0 %}
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in s.rows %}
+            <tr>
+              <td>{{ row.channel }}</td>
+              <td>{{ row.estimated_roi }}</td>
+              <td>{{ row.baseline_roi }}</td>
+              <td>{{ row.pct_change }}</td>
+              <td>{{ row.delta_value_used }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if diagnostics and diagnostics.available %}
+    <h2>Diagnostics Summary</h2>
+    <section class="card">
+      <div class="cards">
+        <div class="stat"><div class="k">Runs</div><div class="v">{{ diagnostics.overview.n_runs }}</div></div>
+        <div class="stat"><div class="k">PASS</div><div class="v">{{ diagnostics.overview.pass_runs }} ({{ "%.1f"|format(diagnostics.overview.pass_rate_pct) }}%)</div></div>
+        <div class="stat"><div class="k">REVIEW</div><div class="v">{{ diagnostics.overview.review_runs }} ({{ "%.1f"|format(diagnostics.overview.review_rate_pct) }}%)</div></div>
+        <div class="stat"><div class="k">FAIL</div><div class="v">{{ diagnostics.overview.fail_runs }} ({{ "%.1f"|format(diagnostics.overview.fail_rate_pct) }}%)</div></div>
+      </div>
+
+      {% if diagnostics.status_rows and diagnostics.status_rows|length > 0 %}
+      <h3>Status Breakdown</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>Runs</th>
+            <th>% of Runs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in diagnostics.status_rows %}
+          <tr>
+            <td>{{ row.status }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if diagnostics.primary_rows and diagnostics.primary_rows|length > 0 %}
+      <h3>Primary Review Checks</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>Runs</th>
+            <th>% of Runs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in diagnostics.primary_rows %}
+          <tr>
+            <td>{{ row.check }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if diagnostics.flagged_rows and diagnostics.flagged_rows|length > 0 %}
+      <h3>Most Frequent QC Flags</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Flag</th>
+            <th>Flag Count</th>
+            <th>% of Runs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in diagnostics.flagged_rows %}
+          <tr>
+            <td>{{ row.channel }}</td>
+            <td>{{ row.count }}</td>
+            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if diagnostics.check_rows and diagnostics.check_rows|length > 0 %}
+      <h3>Check-Level Matrix</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Check</th>
+            <th>PASS</th>
+            <th>REVIEW</th>
+            <th>FAIL</th>
+            <th>UNKNOWN</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in diagnostics.check_rows %}
+          <tr>
+            <td>{{ row.check }}</td>
+            <td>{{ row.pass_count }}</td>
+            <td>{{ row.review_count }}</td>
+            <td>{{ row.fail_count }}</td>
+            <td>{{ row.unknown_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      <p class="small">Diagnostics are summarized at run level (deduplicated by run id from the runs CSV).</p>
+    </section>
+    {% endif %}
+
+    <h2>Methods</h2>
+    <section class="card">
+      <p class="method"><b>Baseline:</b> {{ methods.baseline_description }}</p>
+      <p class="method"><b>Sensitivity:</b> {{ methods.sensitivity_description }}</p>
+      <p class="method"><b>Visualization:</b> {{ methods.visualization_description }}</p>
+    </section>
+
+    {% if heatmap_pages and heatmap_pages|length > 0 %}
+    <h2>Heatmap Boards (2x2)</h2>
+    {% if heatmap_modes and heatmap_modes|length > 1 %}
+    <section class="card">
+      <p class="small">Switch heatmap scaling mode for readability vs full-range stress view.</p>
+      <div class="heatmap-switch">
+        {% for m in heatmap_modes %}
+        <button
+          type="button"
+          class="heatmap-mode-btn{% if m.mode == default_heatmap_mode %} active{% endif %}"
+          data-heatmap-mode="{{ m.mode }}"
+        >
+          {{ m.label }}
+        </button>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% for hm in heatmap_pages %}
+    <section
+      class="card figure heatmap-panel{% if hm.scale_mode and default_heatmap_mode and hm.scale_mode != default_heatmap_mode %} hidden{% endif %}"
+      data-heatmap-mode="{{ hm.scale_mode if hm.scale_mode is defined else '' }}"
+      data-heatmap-board="{{ hm.board_num if hm.board_num is defined else loop.index }}"
+    >
+      <img src="{{ hm.path }}" alt="Heatmap board {{ loop.index }}">
+      <div class="cap">
+        {% if heatmap_modes and heatmap_modes|length > 1 and hm.scale_label %}<b>{{ hm.scale_label }}</b> - {% endif %}
+        {{ hm.caption }}
+      </div>
+    </section>
+    {% endfor %}
+    {% endif %}
+
+    <h2>Appendix</h2>
+    <section class="card">
+      <p class="small">Tables stored under <code>tables/</code> for reproducibility:</p>
+      <ul class="small">
+        {% for t in appendix_tables %}
+        <li>{{ t }}</li>
+        {% endfor %}
+      </ul>
+    </section>
+  </main>
+  <script>
+    (function () {
+      const scenarioSelect = document.getElementById("scenario-select");
+      if (scenarioSelect) {
+        const panels = Array.from(document.querySelectorAll(".scenario-panel"));
+        const activateScenarioPanel = (targetId) => {
+          panels.forEach((p) => p.classList.remove("active"));
+          const target = document.getElementById(targetId);
+          if (target) target.classList.add("active");
+        };
+        activateScenarioPanel(scenarioSelect.value);
+        scenarioSelect.addEventListener("change", () => {
+          activateScenarioPanel(scenarioSelect.value);
+        });
+      }
+
+      const theoryModal = document.getElementById("theory-modal");
+      const theoryOpen = document.getElementById("theory-open-btn");
+      const theoryClose = document.getElementById("theory-close-btn");
+      if (theoryModal && theoryOpen && theoryClose) {
+        let theoryTypesetDone = false;
+        const closeModal = () => {
+          theoryModal.classList.remove("open");
+          theoryModal.setAttribute("aria-hidden", "true");
+        };
+        theoryOpen.addEventListener("click", () => {
+          theoryModal.classList.add("open");
+          theoryModal.setAttribute("aria-hidden", "false");
+          if (window.MathJax && window.MathJax.typesetPromise && !theoryTypesetDone) {
+            window.MathJax.typesetPromise([theoryModal]).then(() => {
+              theoryTypesetDone = true;
+            }).catch(() => {});
+          }
+        });
+        theoryClose.addEventListener("click", closeModal);
+        theoryModal.addEventListener("click", (ev) => {
+          if (ev.target === theoryModal) closeModal();
+        });
+        document.addEventListener("keydown", (ev) => {
+          if (ev.key === "Escape") closeModal();
+        });
+      }
+
+      const heatmapModeBtns = Array.from(document.querySelectorAll(".heatmap-mode-btn"));
+      if (heatmapModeBtns.length) {
+        const heatmapPanels = Array.from(document.querySelectorAll(".heatmap-panel"));
+        heatmapModeBtns.forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const selectedMode = btn.getAttribute("data-heatmap-mode");
+            heatmapModeBtns.forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            heatmapPanels.forEach((panel) => {
+              const mode = panel.getAttribute("data-heatmap-mode");
+              panel.classList.toggle("hidden", mode !== selectedMode);
+            });
+          });
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

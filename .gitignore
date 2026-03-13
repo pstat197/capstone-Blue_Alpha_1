@@ -8,12 +8,31 @@
 # macOS
 .DS_Store
 
-# IDE
-.idea/
-.vscode/
-
-# python
+# Python
 __pycache__/
 *.pyc
 .venv/
 venv/
+
+# Local temporary references
+tmp_style_refs/
+.tmp_csv_backup/
+
+# Legacy output locations (pre 01/02/03 split)
+data/output/*.csv
+data/output/diagnostics/
+data/output/report/
+data/output/tornado_outputs/
+
+# Canonical generated outputs
+data/output/01_runs/**/*.csv
+data/output/01_runs/diagnostics/**
+data/output/02_tables/**/*.csv
+data/output/03_reports/report/**
+data/output/03_reports/tornado_outputs/**
+
+# Keep folder placeholders
+!data/output/.gitkeep
+!data/output/01_runs/.gitkeep
+!data/output/02_tables/.gitkeep
+!data/output/03_reports/.gitkeep
