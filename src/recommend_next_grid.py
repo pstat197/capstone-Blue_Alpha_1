@@ -6,6 +6,8 @@ from collections import Counter
 
 import pandas as pd
 
+from src.output_paths import candidate_tornado_csv_paths, first_existing
+
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
@@ -23,7 +25,12 @@ def _tag_for_targets(targets: list[str]) -> str:
 
 
 def _tornado_path(project_root: str, tag: str) -> str:
-    return os.path.join(project_root, "data", "output", f"tornado_{tag}.csv")
+    del project_root  # kept for backward signature compatibility
+    chosen = first_existing(candidate_tornado_csv_paths(tag))
+    if chosen is None:
+        # Default write location used by summarize script.
+        return str(candidate_tornado_csv_paths(tag)[0])
+    return str(chosen)
 
 
 def _ensure_tornado_exists(project_root: str, targets: list[str], path: str) -> None:

@@ -1,3 +1,4 @@
+import argparse
 import json
 from datetime import datetime
 from html import escape
@@ -8,11 +9,12 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
-CSV_NAME = "data/output/tornado_google_meta_tiktok.csv"
-CSV_GLOB = "data/output/tornado_*.csv"
+CSV_NAME = "data/output/02_tables/google_meta_tiktok/tornado_google_meta_tiktok.csv"
+CSV_GLOB = "data/output/02_tables/*/tornado_*.csv"
 INPUT_MODE = "all"  # "single" or "all"
-OUT_DIR = "data/output/tornado_outputs"
+OUT_DIR = "data/output/03_reports/tornado_outputs"
 
 RANGE_MODE = "p05p95"   # "minmax" or "p05p95"
 TOP_N = 20
@@ -44,12 +46,92 @@ WRITE_SUMMARY_DATASETS = False
 # HTML outputs for report integration.
 WRITE_HTML_REPORT = True
 WRITE_HTML_FRAGMENT = True
+WRITE_GLOBAL_REPORT = False
 
 # Objective for selecting the "best" overall prior distribution setup.
 # - "total_new_value": maximize total dollar incremental value under changed priors
 # - "total_delta_value": maximize dollar improvement vs baseline
 # - "overall_roi_new": maximize aggregate ROI
 BEST_CONFIG_OBJECTIVE = "total_new_value"
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Generate tornado sensitivity plots/reports from tornado CSV outputs.",
+    )
+    parser.add_argument(
+        "--input-mode",
+        choices=["single", "all"],
+        default=INPUT_MODE,
+        help="Use one CSV (--csv) or all matching CSVs (--glob).",
+    )
+    parser.add_argument(
+        "--csv",
+        default=CSV_NAME,
+        help="CSV path relative to repo root when --input-mode=single.",
+    )
+    parser.add_argument(
+        "--glob",
+        dest="csv_glob",
+        default=CSV_GLOB,
+        help="Glob pattern relative to repo root when --input-mode=all.",
+    )
+    parser.add_argument(
+        "--outdir",
+        default=OUT_DIR,
+        help="Output directory for plots/reports, relative to repo root.",
+    )
+    parser.add_argument(
+        "--range-mode",
+        choices=["minmax", "p05p95"],
+        default=RANGE_MODE,
+        help="Range used to build tornado bars.",
+    )
+    parser.add_argument(
+        "--top-n",
+        type=int,
+        default=TOP_N,
+        help="Maximum number of channels in each tornado chart.",
+    )
+    parser.add_argument(
+        "--subscription-scaling-mode",
+        choices=["dataset", "fixed"],
+        default=SUBSCRIPTION_SCALING_MODE,
+        help="Value scaling mode for outcome-to-dollar conversion.",
+    )
+    parser.add_argument(
+        "--fixed-subscription-amount",
+        type=float,
+        default=FIXED_SUBSCRIPTION_AMOUNT,
+        help="Fixed dollar amount when --subscription-scaling-mode=fixed.",
+    )
+    parser.add_argument(
+        "--best-config-objective",
+        choices=["total_new_value", "total_delta_value", "overall_roi_new"],
+        default=BEST_CONFIG_OBJECTIVE,
+        help="Objective used to choose the best prior setup in report tables.",
+    )
+    parser.add_argument(
+        "--write-summary-datasets",
+        action="store_true",
+        help="Write per-scenario summary CSV files in addition to plots/reports.",
+    )
+    parser.add_argument(
+        "--no-html",
+        action="store_true",
+        help="Disable HTML report outputs and generate PNG plots only.",
+    )
+    parser.add_argument(
+        "--no-html-fragment",
+        action="store_true",
+        help="Disable HTML fragment output files.",
+    )
+    parser.add_argument(
+        "--write-global-report",
+        action="store_true",
+        help="Write cross-scenario global sensitivity report (mainly for --input-mode all).",
+    )
+    return parser
 
 
 def _to_numeric(series: pd.Series) -> pd.Series:
@@ -171,18 +253,50 @@ def infer_changed_channels(df: pd.DataFrame) -> list[str]:
     return []
 
 
-def collect_input_csv_paths(script_dir: Path) -> list[Path]:
+def _legacy_single_csv_candidates(rel_path: str) -> list[str]:
+    normalized = rel_path.replace("\\", "/")
+    name = Path(normalized).name
+    candidates = [normalized]
+    if normalized != f"data/output/02_tables/{name}":
+        candidates.append(f"data/output/02_tables/{name}")
+    candidates.append(f"data/output/{name}")
+
+    out = []
+    seen = set()
+    for c in candidates:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
+def collect_input_csv_paths(repo_root: Path) -> list[Path]:
     if INPUT_MODE == "single":
-        p = script_dir / CSV_NAME
-        if not p.exists():
-            raise FileNotFoundError(f"CSV not found at: {p}")
-        return [p]
+        tried = []
+        for rel in _legacy_single_csv_candidates(CSV_NAME):
+            p = repo_root / rel
+            tried.append(str(p))
+            if p.exists():
+                return [p]
+
+        raise FileNotFoundError(f"CSV not found. Tried: {', '.join(tried)}")
 
     if INPUT_MODE == "all":
-        paths = sorted([p for p in script_dir.glob(CSV_GLOB) if p.is_file()])
+        patterns = [CSV_GLOB, "data/output/02_tables/tornado_*.csv", "data/output/tornado_*.csv"]
+
+        found: list[Path] = []
+        seen: set[Path] = set()
+        for pattern in patterns:
+            for p in sorted(repo_root.glob(pattern)):
+                if p.is_file():
+                    rp = p.resolve()
+                    if rp not in seen:
+                        seen.add(rp)
+                        found.append(p)
+        paths = found
         if not paths:
             raise FileNotFoundError(
-                f"No CSV files found in {script_dir} matching '{CSV_GLOB}'"
+                f"No CSV files found in {repo_root} matching '{CSV_GLOB}'"
             )
         return paths
 
@@ -652,9 +766,10 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
     plot_title = ", ".join(changed_channels) if changed_channels else csv_stem.upper()
 
     summ = compute_channel_sensitivity_summary(df)
-    plot_path = (
-        out_dir / f"{csv_stem}_channel_sensitivity_tornado_dollar_value_{RANGE_MODE}.png"
-    )
+    if INPUT_MODE == "single":
+        plot_path = out_dir / f"channel_sensitivity_tornado_dollar_value_{RANGE_MODE}.png"
+    else:
+        plot_path = out_dir / f"{csv_stem}_channel_sensitivity_tornado_dollar_value_{RANGE_MODE}.png"
     plot_interval_by_channel(
         summ.head(TOP_N),
         title=plot_title,
@@ -663,9 +778,10 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
     )
 
     if WRITE_SUMMARY_DATASETS:
-        summ_csv = out_dir / (
-            f"{csv_stem}_channel_sensitivity_summary_dollar_value_{RANGE_MODE}.csv"
-        )
+        if INPUT_MODE == "single":
+            summ_csv = out_dir / f"channel_sensitivity_summary_dollar_value_{RANGE_MODE}.csv"
+        else:
+            summ_csv = out_dir / f"{csv_stem}_channel_sensitivity_summary_dollar_value_{RANGE_MODE}.csv"
         summ.to_csv(summ_csv, index=False)
     else:
         summ_csv = None
@@ -716,12 +832,16 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
     )
     top_configs["delta_roi"] = top_configs["delta_roi"].map(_fmt_pct)
 
-    html_report_path = out_dir / f"{csv_stem}_tornado_dollar_report.html"
-    html_fragment_path = (
-        out_dir / f"{csv_stem}_tornado_dollar_report_fragment.html"
-        if WRITE_HTML_FRAGMENT
-        else None
-    )
+    if INPUT_MODE == "single":
+        html_report_path = out_dir / "tornado_dollar_report.html"
+        html_fragment_path = out_dir / "tornado_dollar_report_fragment.html" if WRITE_HTML_FRAGMENT else None
+    else:
+        html_report_path = out_dir / f"{csv_stem}_tornado_dollar_report.html"
+        html_fragment_path = (
+            out_dir / f"{csv_stem}_tornado_dollar_report_fragment.html"
+            if WRITE_HTML_FRAGMENT
+            else None
+        )
     if WRITE_HTML_REPORT:
         build_html_report(
             outpath=html_report_path,
@@ -754,11 +874,42 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
 
 
 def main():
-    script_dir = Path(__file__).resolve().parent
-    out_dir = script_dir / OUT_DIR
-    out_dir.mkdir(exist_ok=True)
+    global CSV_NAME
+    global CSV_GLOB
+    global INPUT_MODE
+    global OUT_DIR
+    global RANGE_MODE
+    global TOP_N
+    global SUBSCRIPTION_SCALING_MODE
+    global FIXED_SUBSCRIPTION_AMOUNT
+    global WRITE_SUMMARY_DATASETS
+    global WRITE_HTML_REPORT
+    global WRITE_HTML_FRAGMENT
+    global WRITE_GLOBAL_REPORT
+    global BEST_CONFIG_OBJECTIVE
 
-    csv_paths = collect_input_csv_paths(script_dir)
+    args = _build_parser().parse_args()
+    CSV_NAME = args.csv
+    CSV_GLOB = args.csv_glob
+    INPUT_MODE = args.input_mode
+    OUT_DIR = args.outdir
+    RANGE_MODE = args.range_mode
+    TOP_N = int(args.top_n)
+    SUBSCRIPTION_SCALING_MODE = args.subscription_scaling_mode
+    FIXED_SUBSCRIPTION_AMOUNT = float(args.fixed_subscription_amount)
+    WRITE_SUMMARY_DATASETS = bool(args.write_summary_datasets)
+    WRITE_HTML_REPORT = not bool(args.no_html)
+    WRITE_HTML_FRAGMENT = (not bool(args.no_html)) and (not bool(args.no_html_fragment))
+    WRITE_GLOBAL_REPORT = bool(args.write_global_report)
+    BEST_CONFIG_OBJECTIVE = args.best_config_objective
+
+    if TOP_N < 1:
+        raise ValueError("--top-n must be >= 1")
+
+    out_dir = REPO_ROOT / OUT_DIR
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    csv_paths = collect_input_csv_paths(REPO_ROOT)
 
     scenario_summaries = []
     failures = []
@@ -785,13 +936,13 @@ def main():
     all_summ = pd.concat(scenario_summaries, ignore_index=True)
     global_agg = aggregate_global_channel_sensitivity(all_summ)
 
-    global_html_report_path = out_dir / "tornado_global_sensitivity_report.html"
-    global_html_fragment_path = (
-        out_dir / "tornado_global_sensitivity_report_fragment.html"
-        if WRITE_HTML_FRAGMENT
-        else None
-    )
-    if WRITE_HTML_REPORT:
+    if WRITE_HTML_REPORT and WRITE_GLOBAL_REPORT and INPUT_MODE == "all":
+        global_html_report_path = out_dir / "tornado_global_sensitivity_report.html"
+        global_html_fragment_path = (
+            out_dir / "tornado_global_sensitivity_report_fragment.html"
+            if WRITE_HTML_FRAGMENT
+            else None
+        )
         build_global_sensitivity_report(
             outpath=global_html_report_path,
             fragment_path=global_html_fragment_path,
@@ -803,7 +954,7 @@ def main():
         if global_html_fragment_path is not None:
             print(" -", global_html_fragment_path)
 
-    if not global_agg.empty:
+    if WRITE_GLOBAL_REPORT and not global_agg.empty:
         top_channel = str(global_agg.iloc[0]["channel"]).upper()
         print(f"\nMost sensitive overall channel (mean impact): {top_channel}")
 

@@ -82,8 +82,8 @@ The model can include all channels, but we can choose to only run sensitivity fo
   (e.g., `python -m src.summarize_sensitivity meta tiktok`).
 
   - automatically locates split inputs:
-    - `data/output/prior_sensitivity_runs_multi_<tag>.csv`
-    - `data/output/prior_sensitivity_roi_multi_<tag>.csv`
+    - `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
+    - `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
   - if the split inputs do not exist, it will first run:
     - `python -m src.main --targets <targets...>`
     to generate the results
@@ -92,7 +92,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
   - computes:
     - `delta_abs = |roi_new - roi_baseline|`
     - `delta_pct = |roi_new/roi_baseline - 1|`
-  - exports `data/output/tornado_<tag>.csv` with QC and impact columns
+  - exports `data/output/02_tables/<tag>/tornado_<tag>.csv` with QC and impact columns
 
 - `src/recommend_next_grid.py`
   Reads a tornado CSV and prints a next-iteration recommendation summary for a target set.
@@ -127,7 +127,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
     - basic ROI plots (histogram + scatter vs μ/σ)
     - prior sensitivity heatmap
     - prior sensitivity ranking
-  - The merged CSV is saved to: `data/output/prior_sensitivity_results_all_channels.csv`
+  - The merged CSV is saved to: `data/output/02_tables/prior_sensitivity_results_all_channels.csv`
   - Figures are saved under `docs/figures/roi/` by default (`basic/`, `heatmap/`, `sensitivity_ranking/`).
 ---
 
@@ -217,6 +217,38 @@ Run all commands from the **repo root**.
 
 You can provide a YAML config file (default: `config/sensitivity.yaml`) to control channels, grids, sampler, and defaults.
 
+### One-command pipeline (recommended)
+
+Run the full chain in one command:
+
+- `python -m src.pipeline meta google`
+- `python -m src.pipeline google meta moloco --config config/sensitivity.yaml`
+- `python -m src.pipeline google meta tiktok --report-scenario-selection largest_total_abs_pct_non_fail`
+
+This executes:
+
+1. `src.main` (sensitivity runs)
+2. `src.summarize_sensitivity` (tornado CSV)
+3. `src.viz.tornado_plots` (PNG/HTML tornado outputs)
+4. `src.reporting.make_report` (integrated HTML report)
+   - report includes ROI tornado (% units) and dollar tornado ($ units)
+   - dollar tornado uses the same style/aggregation as `src.viz.tornado_plots` (channel-level interval bars)
+   - range rule is configurable in `config/report_config.yaml` via `figures.tornado_range_mode` (`p05p95` or `minmax`)
+   - branding/header logos and co-brand label are configurable under `branding` in `config/report_config.yaml`
+   - includes run-level diagnostics summary (PASS/REVIEW/FAIL and primary QC checks) when `qc_*` columns are present
+   - includes dollar sensitivity summary when report input has value delta columns (from `tornado_<tag>.csv`)
+- report header lists exact input files used (`report_input`, `tornado_<tag>.csv`, `runs_<tag>.csv`, `roi_<tag>.csv`)
+
+Report scope behavior:
+- Priors are perturbed for the provided target set (linked).
+- ROI is still estimated for all modeled channels.
+- Default report also includes a **Single Scenario Snapshot** (one selected run across channels).
+- Run selection is configurable via `analysis.scenario_selection` in `config/report_config.yaml`:
+  - `largest_total_abs_pct_non_fail` (recommended)
+  - `largest_total_abs_pct`
+  - `first_non_baseline`
+- You can also override from CLI with `--report-scenario-selection ...` in `src.pipeline`.
+
 ### Unified target-set mode
 
 Run sensitivity for one or more target channels. In each run, the same prior tuple is applied to all targets in the set simultaneously.
@@ -228,10 +260,10 @@ Run sensitivity for one or more target channels. In each run, the same prior tup
 - `python -m src.main --config config/sensitivity.yaml --targets meta`
 
 **Output:**
-- `data/output/prior_sensitivity_runs_multi_meta.csv`
-- `data/output/prior_sensitivity_roi_multi_meta.csv`
-- `data/output/prior_sensitivity_runs_multi_google_meta.csv`
-- `data/output/prior_sensitivity_roi_multi_google_meta.csv`
+- `data/output/01_runs/meta/prior_sensitivity_runs_multi_meta.csv`
+- `data/output/01_runs/meta/prior_sensitivity_roi_multi_meta.csv`
+- `data/output/01_runs/google_meta/prior_sensitivity_runs_multi_google_meta.csv`
+- `data/output/01_runs/google_meta/prior_sensitivity_roi_multi_google_meta.csv`
 
 ## Tornado Ready Summary Table
 
@@ -264,8 +296,8 @@ Then run the next iteration directly:
 `summarize_sensitivity.py` takes positional target channels (pairs, triples, etc.). It automatically:
 
 1. Looks for the current split files first:
-   - **Run CSV:** `data/output/prior_sensitivity_runs_multi_<tag>.csv`
-   - **ROI CSV:** `data/output/prior_sensitivity_roi_multi_<tag>.csv`
+   - **Run CSV:** `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
+   - **ROI CSV:** `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 
 2. Merges the split files by `run_id`.
 
@@ -274,10 +306,10 @@ Then run the next iteration directly:
    to generate them first.
 
 4. If only an older combined file exists, it still falls back to:
-   - `data/output/prior_sensitivity_results_multi_<tag>.csv`
+   - `data/output/prior_sensitivity_results_multi_<tag>.csv` (legacy)
 
 5. Writes the tornado-ready output:
-   - **Output tornado CSV:** `data/output/tornado_<tag>.csv`
+   - **Output tornado CSV:** `data/output/02_tables/<tag>/tornado_<tag>.csv`
 
 If you want dollar-valued impact columns, pass the subscription value explicitly, for example:
 
@@ -310,7 +342,7 @@ After the tornado CSV is generated, produce a standardized recommendation summar
 
 What this stage does:
 
-- reads `data/output/tornado_<tag>.csv`
+- reads `data/output/02_tables/<tag>/tornado_<tag>.csv`
 - uses `delta_value_abs` when available (falls back to `delta_outcome_abs`, then `delta_abs`)
 - excludes `FAIL` runs
 - reports best stable and aggressive next-grid candidates
@@ -354,7 +386,7 @@ Typical interpretation:
 - the channel signal may be weak
 - the run is usable, but it needs review
 
-Current example in `data/output/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
+Current example in `data/output/01_runs/google_meta_moloco/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
 
 - `qc_summary_short = REVIEW:PriorPosteriorShift`
 - `qc_primary_review_check = PriorPosteriorShift`
@@ -371,7 +403,7 @@ Typical interpretation:
 - the posterior probability that the baseline is negative is too high
 - the model may have converged numerically, but the baseline decomposition is not reliable
 
-Current example in `data/output/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
+Current example in `data/output/01_runs/google_meta_moloco/prior_sensitivity_runs_multi_google_meta_moloco.csv`:
 
 - `qc_summary_short = FAIL:Baseline`
 - `qc_primary_review_check = Baseline`
@@ -390,7 +422,15 @@ The run CSV keeps the reviewer-level convergence and fit statuses:
 After generating sensitivity CSVs, you can create summary plots (basic ROI plots + heatmap + ranking):
 
 - `python -m src.viz.prior_viz`
+- `python -m src.viz.tornado_plots --input-mode single --csv data/output/02_tables/google_meta_moloco/tornado_google_meta_moloco.csv --outdir data/output/03_reports/tornado_outputs/google_meta_moloco`
+
+Generate the integrated HTML auto-report:
+
+- `python -m src.reporting.make_report --input data/output/02_tables/google_meta_moloco/prior_sensitivity_report_input_google_meta_moloco.csv --outdir data/output/03_reports/report/google_meta_moloco --clean-output`
+- `python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output`
+- `python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --scenario-selection largest_total_abs_pct_non_fail --clean-output`
 
 ---
+
 
 

@@ -37,8 +37,24 @@ RUN_OUTPUT_COLUMNS = [
 ROI_OUTPUT_COLUMNS = [
     "run_id",
     "prior_key",
+    "targets",
+    "target_channel",
     "channel",
+    "roi_prior_mu",
+    "roi_prior_sigma",
+    "roi_prior_dist",
+    "is_baseline",
     "estimated_roi",
+    "qc_overall_status",
+    "qc_summary",
+    "qc_pass_fail",
+    "qc_needs_review",
+    "qc_text",
+    "qc_r2",
+    "qc_mape",
+    "qc_wmape",
+    "qc_bayesian_ppp",
+    "qc_baseline_neg_prob",
 ]
 
 def normalize_columns(df: pd.DataFrame) -> pd.DataFrame:

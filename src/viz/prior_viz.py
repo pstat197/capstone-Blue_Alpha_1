@@ -29,7 +29,7 @@ DEFAULT_CHANNEL_ORDER = [
 def merge_channel_results(
     channel_order: List[str] = DEFAULT_CHANNEL_ORDER,
     data_out_dir: Path = DATA_OUT,
-    output_name: str = "prior_sensitivity_results_all_channels.csv",
+    output_name: str = "02_tables/all_channels/prior_sensitivity_results_all_channels.csv",
     verbose: bool = True,
 ) -> Path:
     """
@@ -62,6 +62,7 @@ def merge_channel_results(
     merged_df = pd.concat(all_dfs, ignore_index=True)
 
     output_path = data_out_dir / output_name
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     merged_df.to_csv(output_path, index=False)
 
     if verbose:

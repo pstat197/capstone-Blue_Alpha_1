@@ -5,6 +5,7 @@ from typing import Any
 import pandas as pd
 
 from src.run_config import load_run_config, dump_run_config
+from src.output_paths import candidate_run_csv_paths, first_existing
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -20,7 +21,11 @@ def _tag_for_targets(targets: list[str]) -> str:
 
 
 def _run_csv_path(project_root: str, tag: str) -> str:
-    return os.path.join(project_root, "data", "output", f"prior_sensitivity_runs_multi_{tag}.csv")
+    del project_root  # kept for backward signature compatibility
+    chosen = first_existing(candidate_run_csv_paths(tag))
+    if chosen is None:
+        return str(candidate_run_csv_paths(tag)[0])
+    return str(chosen)
 
 
 def _pass_rate(s: pd.Series) -> float:
@@ -121,7 +126,9 @@ def main() -> None:
     run_cfg["experiment"]["roi_dist_values"] = dists
 
     run_cfg.setdefault("meta", {})
-    run_cfg["meta"]["generated_from"] = f"prior_sensitivity_runs_multi_{tag}.csv"
+    run_cfg["meta"]["generated_from"] = os.path.relpath(
+        run_csv, os.path.join(project_root, "data", "output")
+    ).replace("\\", "/")
     run_cfg["meta"]["recommended_target"] = tag
 
     dump_run_config(run_cfg, config_out)
