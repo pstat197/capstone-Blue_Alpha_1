@@ -16,6 +16,7 @@ venv/
 
 # Local temporary references
 tmp_style_refs/
+.tmp_csv_backup/
 
 # Legacy output locations (pre 01/02/03 split)
 data/output/*.csv
