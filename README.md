@@ -63,19 +63,29 @@ Detailed operating docs are in:
 
 ## Dataset
 
+The pipeline supports any tabular dataset (CSV) not just Mocha.
 - `data/raw/monthly_mocha.csv`
 
 Expected columns:
 
-- KPI: `subscriptions`
+- KPI column (e.g., `revenue`, `subscriptions`, `units_sold`)
 - time: `date` (or `time`)
 - for each channel `c`:
   - `{c}_impressions`
   - `{c}_spend`
 
-Default channel list:
+Flexible KPI Handling:
 
-- `meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon`
+- If a revenue-like column is detected(revenue, rev, total_revenue), it is used automatically.
+- Otherwise the user is prompted to:
+  - select a KPI column (e.g., `subscriptions`, `units_sold`)
+  - provide a multiplier to convert KPI to revenue
+  - a new revenue column is created for sensitivity analysis (e.g., `subscriptions_as_revenue`)
+
+Expected Channels:
+
+- Spend columns should be named `{channel}_spend` (e.g., `google_spend`, `meta_spend`, `moloco_spend`)
+- Impression columns should be named `{channel}_impressions` (e.g., `google_impressions`, `meta_impressions`, `moloco_impressions`)
 
 ## Common Commands
 
