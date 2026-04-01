@@ -6,6 +6,7 @@ from collections import Counter
 
 import pandas as pd
 
+from src.io_utils import STRUCTURAL_COLUMNS
 from src.output_paths import candidate_tornado_csv_paths, first_existing
 
 
@@ -58,9 +59,9 @@ def _pick_score_columns(df: pd.DataFrame) -> tuple[str, str | None]:
 
 def _parse_run_id(run_id: str) -> dict:
     parts = str(run_id).split("|")
-    if len(parts) != 5:
+    if len(parts) < 5:
         return {"run_id": run_id}
-    return {
+    parsed = {
         "run_id": run_id,
         "mode": parts[0],
         "scope": parts[1],
@@ -68,6 +69,12 @@ def _parse_run_id(run_id: str) -> dict:
         "roi_prior_sigma": parts[3],
         "roi_prior_dist": parts[4],
     }
+    # Optional structural suffix tokens from adstock/saturation runs.
+    for token in parts[5:]:
+        if "=" in token:
+            k, v = token.split("=", 1)
+            parsed[k] = v
+    return parsed
 
 
 def _split_flagged(raw_value) -> list[str]:
@@ -94,10 +101,20 @@ def _aggregate_runs(df: pd.DataFrame, score_abs_col: str, score_signed_col: str 
             "qc_flagged_channels": first.get("qc_flagged_channels"),
             "score_abs": pd.to_numeric(group[score_abs_col], errors="coerce").fillna(0).sum(),
         }
+        for col in STRUCTURAL_COLUMNS:
+            row[col] = first.get(col)
         if score_signed_col and score_signed_col in group.columns:
             row["score_signed"] = pd.to_numeric(group[score_signed_col], errors="coerce").fillna(0).sum()
         rows.append({**row, **_parse_run_id(run_id)})
     return pd.DataFrame(rows)
+
+
+def _print_empty_tornado_message(targets_sorted: list[str], tornado_csv: str, reason: str) -> None:
+    print(f"Target set: {','.join(targets_sorted)}")
+    print(f"Tornado CSV: {tornado_csv}")
+    print("No recommendation generated.")
+    print(f"Reason: {reason}")
+    print("Next step: run more than one comparable grid point (at least one non-baseline run).")
 
 
 def _print_recommendation(label: str, row: pd.Series | None, score_abs_col: str, score_signed_col: str | None) -> None:
@@ -112,6 +129,14 @@ def _print_recommendation(label: str, row: pd.Series | None, score_abs_col: str,
         f" mu={row.get('roi_prior_mu')},"
         f" sigma={row.get('roi_prior_sigma')},"
         f" dist={row.get('roi_prior_dist')}"
+    )
+    print(
+        "  structural:"
+        f" alpha={row.get('adstock_alpha_m')},"
+        f" ec={row.get('saturation_ec_m')},"
+        f" slope={row.get('saturation_slope_m')},"
+        f" max_lag={row.get('max_lag')},"
+        f" decay={row.get('adstock_decay_spec')}"
     )
     print(f"  qc: {row.get('qc_summary_short')}")
     print(f"  score ({score_abs_col}): {float(row['score_abs']):.4f}")
@@ -137,12 +162,22 @@ def main() -> None:
 
     df = pd.read_csv(tornado_csv)
     if df.empty:
-        raise ValueError(f"Tornado CSV is empty: {tornado_csv}")
+        _print_empty_tornado_message(
+            targets_sorted,
+            tornado_csv,
+            "Tornado CSV is empty.",
+        )
+        return
 
     if not args.include_all_channels:
         df = df[df["channel"].astype(str).isin(targets_sorted)].copy()
         if df.empty:
-            raise ValueError("No target-channel rows found after filtering.")
+            _print_empty_tornado_message(
+                targets_sorted,
+                tornado_csv,
+                "No target-channel rows found after filtering.",
+            )
+            return
 
     score_abs_col, score_signed_col = _pick_score_columns(df)
     run_df = _aggregate_runs(df, score_abs_col, score_signed_col)

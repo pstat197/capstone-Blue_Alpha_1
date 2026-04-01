@@ -114,6 +114,10 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
     out = {
         "tornado": None,
         "tornado_dollar": None,
+        "spend_effect": None,
+        "adstock_curves": None,
+        "saturation_curves": None,
+        "carryover_decomposition": None,
         "scenario_snapshot": None,
         "scenario_snapshots": [],
         "heatmap_pages": [],
@@ -122,6 +126,146 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
     }
 
     dpi = int(cfg["figures"].get("dpi", 160))
+
+    structural = metrics.get("structural", {"available": False})
+    if cfg["figures"].get("make_structural", True) and structural.get("available"):
+        profile_df = structural.get("profile_df", pd.DataFrame()).copy()
+        adstock_df = structural.get("adstock_curve_df", pd.DataFrame()).copy()
+        saturation_df = structural.get("saturation_curve_df", pd.DataFrame()).copy()
+        carryover_df = structural.get("carryover_df", pd.DataFrame()).copy()
+
+        top_profiles = int(cfg["figures"].get("structural_top_profiles", 4))
+        if not profile_df.empty and top_profiles > 0:
+            profile_df = profile_df.head(top_profiles).copy()
+
+        def _profile_label(r: pd.Series) -> str:
+            alpha = r.get("adstock_alpha_m")
+            slope = r.get("saturation_slope_m")
+            ec = r.get("saturation_ec_m")
+            lag = r.get("max_lag")
+            decay = r.get("adstock_decay_spec")
+            return f"a={alpha:.2f}, ec={ec:.2f}, s={slope:.2f}, L={int(lag)}, {decay}"
+
+        if not adstock_df.empty and not profile_df.empty:
+            keep_ids = set(profile_df["struct_profile_id"].astype(str).tolist())
+            curve = adstock_df[adstock_df["struct_profile_id"].astype(str).isin(keep_ids)].copy()
+            if not curve.empty:
+                fig, ax = plt.subplots(figsize=(10, 5.5))
+                for row in profile_df.itertuples(index=False):
+                    sid = str(row.struct_profile_id)
+                    g = curve[curve["struct_profile_id"].astype(str) == sid].sort_values("lag")
+                    if g.empty:
+                        continue
+                    label = _profile_label(pd.Series(row._asdict()))
+                    ax.plot(
+                        g["lag"].to_numpy(dtype=float),
+                        g["weight"].to_numpy(dtype=float),
+                        marker="o",
+                        linewidth=2,
+                        label=label,
+                    )
+                ax.set_xlabel("Lag (periods)")
+                ax.set_ylabel("Normalized adstock weight")
+                ax.set_title("Adstock Decay Curves by Structural Profile")
+                ax.grid(True, axis="both", alpha=0.25)
+                ax.legend(fontsize=8, loc="upper right")
+                fig.tight_layout()
+                path = fig_dir / "structural_adstock_curves.png"
+                fig.savefig(path, dpi=dpi, bbox_inches="tight")
+                plt.close(fig)
+                out["adstock_curves"] = path.name
+
+        if not saturation_df.empty and not profile_df.empty:
+            keep_ids = set(profile_df["struct_profile_id"].astype(str).tolist())
+            curve = saturation_df[saturation_df["struct_profile_id"].astype(str).isin(keep_ids)].copy()
+            if not curve.empty:
+                fig, ax = plt.subplots(figsize=(10, 5.5))
+                for row in profile_df.itertuples(index=False):
+                    sid = str(row.struct_profile_id)
+                    g = curve[curve["struct_profile_id"].astype(str) == sid].sort_values("spend_index")
+                    if g.empty:
+                        continue
+                    label = _profile_label(pd.Series(row._asdict()))
+                    ax.plot(
+                        g["spend_index"].to_numpy(dtype=float),
+                        g["response_index"].to_numpy(dtype=float),
+                        linewidth=2,
+                        label=label,
+                    )
+                ax.axvline(1.0, color="#1c3359", linestyle="--", linewidth=1.2, alpha=0.8)
+                ax.set_xlabel("Spend index (relative scale)")
+                ax.set_ylabel("Hill response index")
+                ax.set_title("Saturation (Hill) Response Curves")
+                ax.set_ylim(0, 1.02)
+                ax.grid(True, axis="both", alpha=0.25)
+                ax.legend(fontsize=8, loc="lower right")
+                fig.tight_layout()
+                path = fig_dir / "structural_saturation_curves.png"
+                fig.savefig(path, dpi=dpi, bbox_inches="tight")
+                plt.close(fig)
+                out["saturation_curves"] = path.name
+
+        if not carryover_df.empty:
+            top_channels = int(cfg["figures"].get("carryover_top_channels", 10))
+            show_df = carryover_df.head(top_channels).copy()
+            y = np.arange(len(show_df))
+            immediate = pd.to_numeric(show_df["immediate_component"], errors="coerce").fillna(0).to_numpy(dtype=float)
+            carryover = pd.to_numeric(show_df["carryover_component"], errors="coerce").fillna(0).to_numpy(dtype=float)
+            labels = show_df["channel"].astype(str).str.upper().tolist()
+
+            fig, ax = plt.subplots(figsize=(10.5, max(4.8, 0.5 * len(show_df) + 1.6)))
+            ax.barh(y, immediate, color="#3f73b7", label="Immediate")
+            ax.barh(y, carryover, left=immediate, color="#d88731", label="Carryover")
+            ax.set_yticks(y)
+            ax.set_yticklabels(labels)
+            ax.set_xlabel("Decomposed spend-reference units")
+            ax.set_title("Immediate vs Carryover Decomposition")
+            ax.grid(True, axis="x", alpha=0.22)
+            ax.legend(loc="lower right")
+            fig.tight_layout()
+            path = fig_dir / "structural_carryover_decomposition.png"
+            fig.savefig(path, dpi=dpi, bbox_inches="tight")
+            plt.close(fig)
+            out["carryover_decomposition"] = path.name
+
+
+    spend_effect = metrics.get("spend_effect", {"available": False})
+    if cfg["figures"].get("make_spend_effect", True) and spend_effect.get("available"):
+        table_df = spend_effect.get("table_df", pd.DataFrame()).copy()
+        top_n = int(cfg["figures"].get("spend_effect_top_n", 8))
+        show_df = table_df.head(top_n).copy()
+        if not show_df.empty:
+            show_df = show_df.sort_values("effect_share", ascending=True).reset_index(drop=True)
+            y = np.arange(len(show_df))
+            spend_pct = 100.0 * pd.to_numeric(show_df["spend_share"], errors="coerce").fillna(0).to_numpy(dtype=float)
+            effect_pct = 100.0 * pd.to_numeric(show_df["effect_share"], errors="coerce").fillna(0).to_numpy(dtype=float)
+            roi_vals = pd.to_numeric(show_df["estimated_roi"], errors="coerce").to_numpy(dtype=float)
+            labels = show_df["channel"].astype(str).str.upper().tolist()
+
+            fig, ax = plt.subplots(figsize=(11, max(5.2, 0.58 * len(show_df) + 2.4)))
+            h = 0.38
+            ax.barh(y + h / 2, spend_pct, height=h, color="#3f73b7", alpha=0.92, label="Spend share")
+            ax.barh(y - h / 2, effect_pct, height=h, color="#d88731", alpha=0.9, label="Effect share")
+            ax.set_yticks(y)
+            ax.set_yticklabels(labels)
+            ax.set_xlabel("Share (%)")
+            ax.set_title("Spend Share vs Effect Share (One-Pager View)")
+            ax.grid(True, axis="x", alpha=0.25)
+            xmax = float(np.nanmax(np.concatenate([spend_pct, effect_pct]))) if len(show_df) > 0 else 1.0
+            if not np.isfinite(xmax) or xmax <= 0:
+                xmax = 1.0
+            ax.set_xlim(0, xmax * 1.35)
+            ax.legend(loc="lower right")
+
+            for i, roi in enumerate(roi_vals):
+                if np.isfinite(roi):
+                    ax.text(xmax * 1.02, i, f"ROI={roi:.3f}", va="center", ha="left", fontsize=8, color="#173a66")
+
+            fig.tight_layout()
+            path = fig_dir / "spend_vs_effect_onepager.png"
+            fig.savefig(path, dpi=dpi, bbox_inches="tight")
+            plt.close(fig)
+            out["spend_effect"] = path.name
 
     if cfg["figures"].get("make_tornado", True):
         range_mode = str(cfg["figures"].get("tornado_range_mode", "p05p95")).strip().lower()
@@ -216,6 +360,9 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
         snap = metrics.get("scenario_snapshot", {})
         if snap.get("available"):
             scenarios = snap.get("scenarios", [])
+            max_runs = int(cfg["figures"].get("scenario_snapshot_max_runs", 6))
+            if max_runs > 0:
+                scenarios = scenarios[:max_runs]
             selected_run_id = str(snap.get("selected_run_id", ""))
             top_n = int(cfg["figures"].get("scenario_snapshot_top_n", 8))
 
@@ -439,3 +586,7 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
                 )
 
     return out
+
+
+
+

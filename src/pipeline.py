@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.io_utils import STRUCTURAL_COLUMNS
 from src.output_paths import (
     RUNS_DIR,
     candidate_roi_csv_paths,
@@ -25,7 +26,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("targets", nargs="+", help="Target channels to perturb together.")
     parser.add_argument(
         "--config",
-        default="config/sensitivity.yaml",
+        default="config/sensitivity_google_meta_tiktok_full18.yaml",
         help="Run config YAML passed to src.main.",
     )
     parser.add_argument(
@@ -36,7 +37,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--report-config",
-        default="config/report_config.yaml",
+        default="config/report_google_meta_tiktok.yaml",
         help="Config YAML for src.reporting.make_report.",
     )
     parser.add_argument(
@@ -157,7 +158,16 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
     missing_run = [c for c in run_base_cols if c not in run_df.columns]
     if missing_run:
         raise ValueError(f"Run CSV missing required report columns: {missing_run}")
-    run_extra_cols = [c for c in ["prior_key", "targets", "is_baseline"] if c in run_df.columns]
+    run_extra_cols = [
+        c
+        for c in [
+            "prior_key",
+            "targets",
+            "is_baseline",
+            *STRUCTURAL_COLUMNS,
+        ]
+        if c in run_df.columns
+    ]
     run_extra_cols.extend([c for c in run_df.columns if c.startswith("qc_")])
     run_cols = run_base_cols + run_extra_cols
 
@@ -166,6 +176,17 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
             raise ValueError(f"ROI CSV missing required report column: {col}")
 
     run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
+
+    # Avoid _x/_y collisions when ROI already carries base prior columns.
+    # Keep run-side columns only if they are missing on ROI, plus run_id/qc diagnostics.
+    run_merge_cols = ["run_id"]
+    for col in run_meta.columns:
+        if col == "run_id":
+            continue
+        if col.startswith("qc_") or (col not in roi_df.columns):
+            run_merge_cols.append(col)
+    run_meta = run_meta[run_merge_cols].copy()
+
     merged = roi_df.merge(run_meta, on="run_id", how="left")
 
     # Optionally enrich report input with tornado dollar/outcome deltas.

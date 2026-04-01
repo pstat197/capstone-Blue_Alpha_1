@@ -17,6 +17,8 @@ venv/
 # Local temporary references
 tmp_style_refs/
 .tmp_csv_backup/
+.tmp_arviz_cache/
+.cache/
 
 # Legacy output locations (pre 01/02/03 split)
 data/output/*.csv
@@ -36,3 +38,5 @@ data/output/03_reports/tornado_outputs/**
 !data/output/01_runs/.gitkeep
 !data/output/02_tables/.gitkeep
 !data/output/03_reports/.gitkeep
+.localappdata/
+tmp_patch_test.txt

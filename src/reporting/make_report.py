@@ -23,7 +23,7 @@ def main():
         default="data/output/02_tables/all_channels/prior_sensitivity_results_all_channels.csv",
     )
     parser.add_argument("--outdir", default="data/output/03_reports/report")
-    parser.add_argument("--config", default="config/report_config.yaml")
+    parser.add_argument("--config", default="config/report_google_meta_tiktok.yaml")
     parser.add_argument("--source-runs-csv", default=None, help="Runs CSV used for diagnostics.")
     parser.add_argument("--source-roi-csv", default=None, help="ROI CSV used for report-input merge.")
     parser.add_argument("--source-tornado-csv", default=None, help="Tornado CSV used for tornado/dollar inputs.")

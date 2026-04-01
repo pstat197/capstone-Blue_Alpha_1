@@ -6,6 +6,21 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+STRUCTURAL_COLS = [
+    "adstock_alpha_m",
+    "saturation_ec_m",
+    "saturation_slope_m",
+    "max_lag",
+    "adstock_decay_spec",
+]
+
+DEFAULT_STRUCTURAL = {
+    "adstock_alpha_m": np.nan,
+    "saturation_ec_m": np.nan,
+    "saturation_slope_m": 1.0,
+    "max_lag": 8,
+    "adstock_decay_spec": "geometric",
+}
 
 def _fmt_money_short(x: float) -> str:
     sign = "-" if x < 0 else ""
@@ -79,6 +94,89 @@ def _to_bool(value: object) -> bool:
     txt = str(value).strip().lower()
     return txt in {"1", "true", "t", "yes", "y"}
 
+
+
+def _safe_float(value: object) -> float | None:
+    try:
+        out = float(value)
+        if np.isnan(out):
+            return None
+        return out
+    except Exception:
+        return None
+
+
+def _struct_profile_id(alpha: object, ec: object, slope: object, max_lag: object, decay: object) -> str:
+    def _fmt(x: object, key: str) -> str:
+        if x is None or (isinstance(x, float) and np.isnan(x)):
+            return f"{key}=NA"
+        if isinstance(x, (int, float, np.number)):
+            return f"{key}={float(x):.4f}"
+        return f"{key}={str(x)}"
+
+    return "|".join(
+        [
+            _fmt(alpha, "alpha"),
+            _fmt(ec, "ec"),
+            _fmt(slope, "slope"),
+            _fmt(max_lag, "lag"),
+            _fmt(decay, "decay"),
+        ]
+    )
+
+
+def _compute_adstock_weights(alpha: float | None, max_lag: int, decay_spec: str) -> np.ndarray:
+    lags = np.arange(max(0, int(max_lag)) + 1, dtype=float)
+    if len(lags) == 0:
+        return np.array([1.0], dtype=float)
+
+    if alpha is None:
+        w = np.zeros_like(lags)
+        w[0] = 1.0
+        return w
+
+    a = max(0.0, min(0.999999, float(alpha)))
+    decay = str(decay_spec or "geometric").strip().lower()
+    if decay == "binomial":
+        # Matches Meridian mapping in adstock_hill.py:
+        # mapped_alpha = 1/alpha - 1, weights = (1 - lag/window_size)^mapped_alpha
+        window_size = float(len(lags))
+        if a <= 0.0:
+            raw = np.zeros_like(lags)
+            raw[0] = 1.0
+        else:
+            mapped = 1.0 / a - 1.0
+            raw = (1.0 - lags / window_size) ** mapped
+    else:
+        raw = a ** lags
+
+    s = float(np.sum(raw))
+    if not np.isfinite(s) or s <= 0:
+        out = np.zeros_like(lags)
+        out[0] = 1.0
+        return out
+    return raw / s
+
+
+def _half_life_from_weights(weights: np.ndarray) -> float | None:
+    if weights.size == 0:
+        return None
+    w0 = float(weights[0])
+    if not np.isfinite(w0) or w0 <= 0:
+        return None
+    threshold = 0.5 * w0
+    below = np.where(weights <= threshold)[0]
+    if len(below) == 0:
+        return None
+    idx = int(below[0])
+    if idx == 0:
+        return 0.0
+    w_prev = float(weights[idx - 1])
+    w_cur = float(weights[idx])
+    if np.isclose(w_prev, w_cur):
+        return float(idx)
+    frac = (threshold - w_prev) / (w_cur - w_prev)
+    return float((idx - 1) + frac)
 
 def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
     if run_level_df.empty:
@@ -491,6 +589,424 @@ def _compute_scenario_snapshot(merged: pd.DataFrame, cfg: dict, tables_dir: Path
     }
 
 
+
+
+def _compute_spend_effect_onepager(
+    merged: pd.DataFrame,
+    scenario_snapshot: dict,
+    tables_dir: Path,
+) -> dict:
+    if merged.empty or "channel" not in merged.columns:
+        return {"available": False, "reason": "Missing channel-level rows."}
+
+    selected_run_id = str(scenario_snapshot.get("selected_run_id", "") or "")
+    run_df = pd.DataFrame()
+    if selected_run_id and "run_id" in merged.columns:
+        run_df = merged[merged["run_id"].astype(str) == selected_run_id].copy()
+
+    if run_df.empty:
+        run_df = merged.copy()
+        if "is_baseline" in run_df.columns:
+            run_df = run_df.loc[~run_df["is_baseline"].map(_to_bool)].copy()
+        if "qc_status_code" in run_df.columns:
+            non_fail = run_df.loc[run_df["qc_status_code"].map(_status_bucket) != "FAIL"].copy()
+            if not non_fail.empty:
+                run_df = non_fail
+        if "run_id" in run_df.columns:
+            order = (
+                run_df.groupby("run_id", as_index=False)["abs_pct_change"]
+                .sum(min_count=1)
+                .sort_values("abs_pct_change", ascending=False)
+            )
+            if not order.empty:
+                selected_run_id = str(order.iloc[0]["run_id"])
+                run_df = run_df[run_df["run_id"].astype(str) == selected_run_id].copy()
+
+    if run_df.empty:
+        return {"available": False, "reason": "Could not identify a selected scenario run for one-pager table."}
+    if "run_id" in run_df.columns and not selected_run_id:
+        selected_run_id = str(run_df["run_id"].astype(str).iloc[0])
+
+    rows = run_df[["channel"]].drop_duplicates().copy()
+    rows["channel"] = rows["channel"].astype(str)
+
+    spend_source = "channel_total_spend"
+    if "channel_total_spend" in run_df.columns:
+        spend_df = (
+            run_df[["channel", "channel_total_spend"]]
+            .assign(channel_total_spend=pd.to_numeric(run_df["channel_total_spend"], errors="coerce"))
+            .dropna(subset=["channel_total_spend"])
+            .groupby("channel", as_index=False)["channel_total_spend"]
+            .median()
+        )
+        rows = rows.merge(spend_df, on="channel", how="left")
+    else:
+        rows["channel_total_spend"] = np.nan
+
+    if rows["channel_total_spend"].isna().any():
+        data_csv = Path("data/raw/monthly_mocha.csv")
+        if data_csv.exists():
+            raw = pd.read_csv(data_csv)
+            spend_fallback = {}
+            for ch in rows["channel"].tolist():
+                col = f"{ch}_spend"
+                if col in raw.columns:
+                    spend_fallback[ch] = float(pd.to_numeric(raw[col], errors="coerce").fillna(0).sum())
+            if spend_fallback:
+                rows["channel_total_spend"] = rows.apply(
+                    lambda r: spend_fallback.get(r["channel"], r["channel_total_spend"]),
+                    axis=1,
+                )
+                spend_source = "raw_monthly_mocha_total_spend"
+
+    effect_source = None
+    if "incremental_value_new" in run_df.columns:
+        eff_df = (
+            run_df[["channel", "incremental_value_new"]]
+            .assign(incremental_value_new=pd.to_numeric(run_df["incremental_value_new"], errors="coerce"))
+            .groupby("channel", as_index=False)["incremental_value_new"]
+            .median()
+        )
+        rows = rows.merge(eff_df, on="channel", how="left")
+        rows["effect_raw"] = rows["incremental_value_new"]
+        effect_source = "incremental_value_new"
+    elif "incremental_outcome_new" in run_df.columns:
+        eff_df = (
+            run_df[["channel", "incremental_outcome_new"]]
+            .assign(incremental_outcome_new=pd.to_numeric(run_df["incremental_outcome_new"], errors="coerce"))
+            .groupby("channel", as_index=False)["incremental_outcome_new"]
+            .median()
+        )
+        rows = rows.merge(eff_df, on="channel", how="left")
+        rows["effect_raw"] = rows["incremental_outcome_new"]
+        effect_source = "incremental_outcome_new"
+    elif {"estimated_roi", "channel_total_spend"}.issubset(run_df.columns):
+        tmp = run_df.copy()
+        tmp["estimated_roi"] = pd.to_numeric(tmp["estimated_roi"], errors="coerce")
+        tmp["channel_total_spend"] = pd.to_numeric(tmp["channel_total_spend"], errors="coerce")
+        tmp["effect_proxy"] = tmp["estimated_roi"] * tmp["channel_total_spend"]
+        eff_df = tmp.groupby("channel", as_index=False)["effect_proxy"].median()
+        rows = rows.merge(eff_df, on="channel", how="left")
+        rows["effect_raw"] = rows["effect_proxy"]
+        effect_source = "estimated_roi * channel_total_spend"
+    else:
+        return {"available": False, "reason": "No effect columns found for spend-vs-effect table."}
+
+    if "estimated_roi" in run_df.columns:
+        roi_df = (
+            run_df[["channel", "estimated_roi"]]
+            .assign(estimated_roi=pd.to_numeric(run_df["estimated_roi"], errors="coerce"))
+            .groupby("channel", as_index=False)["estimated_roi"]
+            .median()
+        )
+        rows = rows.merge(roi_df, on="channel", how="left")
+    else:
+        rows["estimated_roi"] = np.nan
+
+    rows["channel_total_spend"] = pd.to_numeric(rows["channel_total_spend"], errors="coerce")
+    rows["effect_raw"] = pd.to_numeric(rows["effect_raw"], errors="coerce")
+    rows["estimated_roi"] = pd.to_numeric(rows["estimated_roi"], errors="coerce")
+
+    spend_total = float(rows["channel_total_spend"].sum(skipna=True))
+    if not np.isfinite(spend_total) or spend_total <= 0:
+        return {"available": False, "reason": "Spend totals unavailable; cannot compute spend share."}
+
+    rows["spend_share"] = rows["channel_total_spend"] / spend_total
+    rows["effect_nonneg"] = rows["effect_raw"].clip(lower=0)
+    effect_total = float(rows["effect_nonneg"].sum(skipna=True))
+    rows["effect_share"] = rows["effect_nonneg"] / effect_total if effect_total > 0 else np.nan
+
+    rows["share_gap_pp"] = 100.0 * (rows["effect_share"] - rows["spend_share"])
+    rows["spend_share_pct"] = 100.0 * rows["spend_share"]
+    rows["effect_share_pct"] = 100.0 * rows["effect_share"]
+    rows["effect_negative"] = rows["effect_raw"] < 0
+
+    table_df = rows[
+        [
+            "channel",
+            "channel_total_spend",
+            "effect_raw",
+            "estimated_roi",
+            "spend_share",
+            "effect_share",
+            "spend_share_pct",
+            "effect_share_pct",
+            "share_gap_pp",
+            "effect_negative",
+        ]
+    ].copy()
+    table_df = table_df.sort_values("effect_share", ascending=False, na_position="last").reset_index(drop=True)
+    table_df.to_csv(tables_dir / "spend_vs_effect_table.csv", index=False)
+
+    max_gap_row = None
+    if not table_df["share_gap_pp"].dropna().empty:
+        idx = table_df["share_gap_pp"].abs().idxmax()
+        max_gap_row = table_df.loc[idx].to_dict()
+
+    return {
+        "available": True,
+        "selected_run_id": selected_run_id,
+        "spend_source": spend_source,
+        "effect_source": effect_source,
+        "n_channels": int(table_df["channel"].nunique()),
+        "n_negative_effect_channels": int(table_df["effect_negative"].sum()),
+        "max_gap_row": max_gap_row,
+        "table_df": table_df,
+    }
+
+
+def _compute_structural_block(
+    merged: pd.DataFrame,
+    scenario_snapshot: dict,
+    cfg: dict,
+    tables_dir: Path,
+) -> dict:
+    if "run_id" not in merged.columns:
+        return {"available": False, "reason": "Missing run_id in report input."}
+
+    run_cols = [
+        "run_id",
+        "target_channel",
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "roi_prior_dist",
+        "is_baseline",
+        "qc_status_code",
+        "qc_summary_short",
+        *STRUCTURAL_COLS,
+    ]
+    run_cols = [c for c in run_cols if c in merged.columns]
+    run_df = merged[run_cols].drop_duplicates(subset=["run_id"]).copy()
+    if run_df.empty:
+        return {"available": False, "reason": "No run-level rows available."}
+
+    for col, default in DEFAULT_STRUCTURAL.items():
+        if col not in run_df.columns:
+            run_df[col] = default
+
+    for col in ["roi_prior_mu", "roi_prior_sigma", "adstock_alpha_m", "saturation_ec_m", "saturation_slope_m"]:
+        if col in run_df.columns:
+            run_df[col] = pd.to_numeric(run_df[col], errors="coerce")
+    if "max_lag" in run_df.columns:
+        run_df["max_lag"] = pd.to_numeric(run_df["max_lag"], errors="coerce").round(0)
+    if "adstock_decay_spec" in run_df.columns:
+        run_df["adstock_decay_spec"] = run_df["adstock_decay_spec"].fillna("geometric").astype(str).str.lower()
+
+    grp = merged.groupby("run_id", dropna=False)
+    run_abs_pct = grp["abs_pct_change"].sum(min_count=1).rename("total_abs_pct_change")
+    run_n_channels = grp["channel"].nunique().rename("n_channels")
+    run_df = run_df.merge(run_abs_pct, on="run_id", how="left")
+    run_df = run_df.merge(run_n_channels, on="run_id", how="left")
+
+    if "delta_value" in merged.columns:
+        run_abs_value = grp["delta_value"].apply(lambda x: pd.to_numeric(x, errors="coerce").abs().sum()).rename(
+            "total_abs_value_change"
+        )
+        run_df = run_df.merge(run_abs_value, on="run_id", how="left")
+
+    run_df["is_baseline"] = run_df.get("is_baseline", False).map(_to_bool)
+    run_df["qc_status_code"] = run_df.get("qc_status_code", pd.Series(["UNKNOWN"] * len(run_df))).map(_status_bucket)
+    run_df["struct_profile_id"] = run_df.apply(
+        lambda r: _struct_profile_id(
+            r.get("adstock_alpha_m"),
+            r.get("saturation_ec_m"),
+            r.get("saturation_slope_m"),
+            r.get("max_lag"),
+            r.get("adstock_decay_spec"),
+        ),
+        axis=1,
+    )
+
+    profile_agg = (
+        run_df.groupby("struct_profile_id", as_index=False)
+        .agg(
+            adstock_alpha_m=("adstock_alpha_m", "first"),
+            saturation_ec_m=("saturation_ec_m", "first"),
+            saturation_slope_m=("saturation_slope_m", "first"),
+            max_lag=("max_lag", "first"),
+            adstock_decay_spec=("adstock_decay_spec", "first"),
+            n_runs=("run_id", "nunique"),
+            n_baseline_runs=("is_baseline", "sum"),
+            mean_total_abs_pct_change=("total_abs_pct_change", "mean"),
+            max_total_abs_pct_change=("total_abs_pct_change", "max"),
+        )
+        .sort_values("max_total_abs_pct_change", ascending=False, na_position="last")
+        .reset_index(drop=True)
+    )
+    if profile_agg.empty:
+        return {"available": False, "reason": "No structural profiles found."}
+
+    adstock_rows: list[dict] = []
+    profile_rows: list[dict] = []
+    for row in profile_agg.itertuples(index=False):
+        alpha = _safe_float(getattr(row, "adstock_alpha_m", None))
+        max_lag_val = int(_safe_float(getattr(row, "max_lag", 8)) or 8)
+        decay = str(getattr(row, "adstock_decay_spec", "geometric") or "geometric").lower()
+        weights = _compute_adstock_weights(alpha=alpha, max_lag=max_lag_val, decay_spec=decay)
+        immediate_share = float(weights[0]) if len(weights) else 1.0
+        carryover_share = float(1.0 - immediate_share)
+        avg_lag = float(np.sum(np.arange(len(weights), dtype=float) * weights))
+        half_life = _half_life_from_weights(weights)
+
+        profile_rows.append(
+            {
+                "struct_profile_id": row.struct_profile_id,
+                "adstock_alpha_m": alpha,
+                "saturation_ec_m": _safe_float(getattr(row, "saturation_ec_m", None)),
+                "saturation_slope_m": _safe_float(getattr(row, "saturation_slope_m", None)),
+                "max_lag": max_lag_val,
+                "adstock_decay_spec": decay,
+                "immediate_share": immediate_share,
+                "carryover_share": carryover_share,
+                "avg_lag": avg_lag,
+                "half_life_lag": half_life,
+                "n_runs": int(getattr(row, "n_runs", 0)),
+                "n_baseline_runs": int(getattr(row, "n_baseline_runs", 0)),
+                "mean_total_abs_pct_change": _safe_float(getattr(row, "mean_total_abs_pct_change", None)),
+                "max_total_abs_pct_change": _safe_float(getattr(row, "max_total_abs_pct_change", None)),
+            }
+        )
+        for lag, weight in enumerate(weights):
+            adstock_rows.append(
+                {
+                    "struct_profile_id": row.struct_profile_id,
+                    "lag": int(lag),
+                    "weight": float(weight),
+                    "adstock_alpha_m": alpha,
+                    "max_lag": max_lag_val,
+                    "adstock_decay_spec": decay,
+                }
+            )
+
+    profile_df = pd.DataFrame(profile_rows)
+    adstock_curve_df = pd.DataFrame(adstock_rows)
+
+    sat_rows: list[dict] = []
+    x_grid = np.linspace(0.0, 3.0, 121)
+    for row in profile_df.itertuples(index=False):
+        ec = _safe_float(row.saturation_ec_m)
+        slope = _safe_float(row.saturation_slope_m)
+        if ec is None or slope is None or ec <= 0 or slope <= 0:
+            continue
+        x = x_grid.copy()
+        y = (x**slope) / (x**slope + ec**slope)
+        dy = (slope * (ec**slope) * np.where(x > 0, x ** (slope - 1), 0.0)) / ((x**slope + ec**slope) ** 2)
+        for xi, yi, dyi in zip(x, y, dy):
+            sat_rows.append(
+                {
+                    "struct_profile_id": row.struct_profile_id,
+                    "spend_index": float(xi),
+                    "response_index": float(yi),
+                    "marginal_response": float(dyi),
+                    "saturation_ec_m": ec,
+                    "saturation_slope_m": slope,
+                }
+            )
+    saturation_curve_df = pd.DataFrame(sat_rows)
+
+    selected_run_id = str(scenario_snapshot.get("selected_run_id", "") or "")
+    selected_run_row = run_df[run_df["run_id"].astype(str) == selected_run_id].head(1).copy()
+    if selected_run_row.empty:
+        non_baseline = run_df.loc[~run_df["is_baseline"]].copy()
+        pass_non_baseline = non_baseline.loc[non_baseline["qc_status_code"] == "PASS"].copy()
+        pool = pass_non_baseline if not pass_non_baseline.empty else (non_baseline if not non_baseline.empty else run_df)
+        pool = pool.sort_values("total_abs_pct_change", ascending=False, na_position="last")
+        selected_run_row = pool.head(1).copy()
+        selected_run_id = str(selected_run_row.iloc[0]["run_id"]) if not selected_run_row.empty else ""
+
+    carryover_df = pd.DataFrame(columns=["channel", "spend_reference", "immediate_component", "carryover_component"])
+    selected_profile = None
+    if not selected_run_row.empty:
+        selected_profile_id = str(selected_run_row.iloc[0]["struct_profile_id"])
+        selected_profile_df = profile_df.loc[profile_df["struct_profile_id"] == selected_profile_id].head(1).copy()
+        if not selected_profile_df.empty:
+            selected_profile = selected_profile_df.iloc[0].to_dict()
+            immediate_share = float(selected_profile_df.iloc[0]["immediate_share"])
+            carryover_share = float(selected_profile_df.iloc[0]["carryover_share"])
+
+            run_rows = merged.loc[merged["run_id"].astype(str) == selected_run_id, ["channel"]].drop_duplicates().copy()
+            spend_map: dict[str, float] = {}
+            if "channel_total_spend" in merged.columns:
+                tmp = (
+                    merged[["channel", "channel_total_spend"]]
+                    .copy()
+                    .assign(channel_total_spend=pd.to_numeric(merged["channel_total_spend"], errors="coerce"))
+                    .dropna(subset=["channel_total_spend"])
+                )
+                if not tmp.empty:
+                    spend_map = tmp.groupby("channel", as_index=False)["channel_total_spend"].median().set_index("channel")[
+                        "channel_total_spend"
+                    ].to_dict()
+
+            if not spend_map:
+                data_csv = Path("data/raw/monthly_mocha.csv")
+                if data_csv.exists():
+                    raw = pd.read_csv(data_csv)
+                    for ch in run_rows["channel"].astype(str).tolist():
+                        col = f"{ch}_spend"
+                        if col in raw.columns:
+                            spend_map[ch] = float(pd.to_numeric(raw[col], errors="coerce").fillna(0).sum())
+
+            carry_rows = []
+            for ch in run_rows["channel"].astype(str).tolist():
+                spend_ref = float(spend_map.get(ch, 1.0))
+                carry_rows.append(
+                    {
+                        "channel": ch,
+                        "spend_reference": spend_ref,
+                        "immediate_component": spend_ref * immediate_share,
+                        "carryover_component": spend_ref * carryover_share,
+                        "immediate_share": immediate_share,
+                        "carryover_share": carryover_share,
+                        "struct_profile_id": selected_profile_id,
+                        "run_id": selected_run_id,
+                    }
+                )
+            carryover_df = pd.DataFrame(carry_rows).sort_values("spend_reference", ascending=False).reset_index(drop=True)
+
+    run_df.sort_values("total_abs_pct_change", ascending=False, na_position="last").to_csv(
+        tables_dir / "structural_run_table.csv",
+        index=False,
+    )
+    profile_df.to_csv(tables_dir / "structural_profile_table.csv", index=False)
+    adstock_curve_df.to_csv(tables_dir / "structural_adstock_curve_table.csv", index=False)
+    saturation_curve_df.to_csv(tables_dir / "structural_saturation_curve_table.csv", index=False)
+    carryover_df.to_csv(tables_dir / "structural_carryover_by_channel.csv", index=False)
+
+    top_runs = int(cfg.get("figures", {}).get("structural_top_runs", 12))
+    top_profiles = int(cfg.get("figures", {}).get("structural_top_profiles", 4))
+    run_display = (
+        run_df.sort_values("total_abs_pct_change", ascending=False, na_position="last")
+        .head(top_runs)
+        .copy()
+        .to_dict(orient="records")
+    )
+    profile_display = profile_df.head(top_profiles).copy().to_dict(orient="records")
+
+    notes = [
+        "Immediate vs carryover shares are derived from normalized adstock decay weights.",
+        "Saturation curves are Hill-response index curves over a spend-index range [0, 3].",
+    ]
+    if selected_profile is not None:
+        notes.append(
+            f"Carryover decomposition uses selected run {selected_run_id} "
+            f"with profile {selected_profile.get('struct_profile_id', 'NA')}."
+        )
+
+    return {
+        "available": True,
+        "run_table_df": run_df,
+        "profile_df": profile_df,
+        "adstock_curve_df": adstock_curve_df,
+        "saturation_curve_df": saturation_curve_df,
+        "carryover_df": carryover_df,
+        "run_rows": run_display,
+        "profile_rows": profile_display,
+        "selected_run_id": selected_run_id,
+        "selected_profile": selected_profile,
+        "notes": notes,
+    }
+
 def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     tables_dir.mkdir(parents=True, exist_ok=True)
     diagnostics = _compute_diagnostics(df, tables_dir)
@@ -574,6 +1090,8 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     merged["abs_pct_change"] = merged["pct_change"].abs()
     dollar = _compute_dollar_sensitivity(merged, cfg, tables_dir)
     scenario_snapshot = _compute_scenario_snapshot(merged, cfg, tables_dir)
+    spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
+    structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
 
     rank = (
         merged.groupby(["channel", "roi_prior_dist"], as_index=False)
@@ -635,6 +1153,8 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "diagnostics": diagnostics,
         "dollar": dollar,
         "scenario_snapshot": scenario_snapshot,
+        "spend_effect": spend_effect,
+        "structural": structural,
         "baseline_df": baseline_df,
         "rank_df": rank,
         "rank_top_df": rank_top,
@@ -642,3 +1162,9 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
     }
+
+
+
+
+
+
