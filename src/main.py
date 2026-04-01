@@ -145,7 +145,7 @@ def main():
     output_dir = str(RUNS_DIR)
     os.makedirs(output_dir, exist_ok=True)
 
-    _, _, targets = parse_channels_and_output(
+    _, _, targets, _ = parse_channels_and_output(
         full_channels=channels,
         output_dir=output_dir,
         default_target=default_targets,

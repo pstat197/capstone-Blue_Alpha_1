@@ -54,14 +54,18 @@ def build_experiment_config(
     sigma_grid: list = None,
     dist_grid: list = None,
     output_file: Optional[str] = None,
-    data_csv: Optional[str] = None,  
+    data_csv: Optional[str] = None,
 ) -> ExperimentConfig:
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    
+
+    # Backward compatibility: default to Mocha dataset when no CSV is passed.
+    if data_csv is None:
+        data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+
     if not os.path.exists(data_csv):
         raise FileNotFoundError(f"Data CSV not found at {data_csv}.")
-    
+
     src_dir = os.path.join(project_root, "src")
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
