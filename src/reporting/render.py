@@ -107,6 +107,8 @@ def render_html_report(
     diagnostics = metrics.get("diagnostics", {"available": False})
     dollar = metrics.get("dollar", {"available": False})
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
+    spend_effect = metrics.get("spend_effect", {"available": False})
+    structural = metrics.get("structural", {"available": False})
 
     linked_targets = scope.get("linked_targets", [])
     target_sets = scope.get("target_sets", [])
@@ -173,6 +175,18 @@ def render_html_report(
         appendix_tables.append("tables/dollar_sensitivity_rank.csv")
     if scenario_snapshot.get("available"):
         appendix_tables.append("tables/scenario_snapshot_rows.csv")
+    if spend_effect.get("available"):
+        appendix_tables.append("tables/spend_vs_effect_table.csv")
+    if structural.get("available"):
+        appendix_tables.extend(
+            [
+                "tables/structural_run_table.csv",
+                "tables/structural_profile_table.csv",
+                "tables/structural_adstock_curve_table.csv",
+                "tables/structural_saturation_curve_table.csv",
+                "tables/structural_carryover_by_channel.csv",
+            ]
+        )
 
     rank_table_df = metrics["rank_top_df"].copy()
     if "baseline_roi" in rank_table_df.columns:
@@ -202,6 +216,55 @@ def render_html_report(
             "rank_rows": dollar_top_df.to_dict(orient="records"),
         }
 
+    spend_effect_block = {"available": False}
+    if spend_effect.get("available"):
+        table_df = spend_effect.get("table_df", None)
+        rows = []
+        if table_df is not None and not table_df.empty:
+            for row in table_df.to_dict(orient="records"):
+                rows.append(
+                    {
+                        "channel": str(row.get("channel", "")),
+                        "spend_share_pct": (
+                            "NA"
+                            if row.get("spend_share_pct") is None
+                            else f"{float(row.get('spend_share_pct')):.1f}%"
+                        ),
+                        "effect_share_pct": (
+                            "NA"
+                            if row.get("effect_share_pct") is None
+                            else f"{float(row.get('effect_share_pct')):.1f}%"
+                        ),
+                        "share_gap_pp": (
+                            "NA"
+                            if row.get("share_gap_pp") is None
+                            else f"{float(row.get('share_gap_pp')):+.1f} pp"
+                        ),
+                        "estimated_roi": (
+                            "NA"
+                            if row.get("estimated_roi") is None
+                            else f"{float(row.get('estimated_roi')):.4f}"
+                        ),
+                        "effect_negative": bool(row.get("effect_negative", False)),
+                    }
+                )
+
+        max_gap = spend_effect.get("max_gap_row") or {}
+        spend_effect_block = {
+            "available": True,
+            "selected_run_id": spend_effect.get("selected_run_id", ""),
+            "spend_source": spend_effect.get("spend_source", ""),
+            "effect_source": spend_effect.get("effect_source", ""),
+            "n_negative_effect_channels": int(spend_effect.get("n_negative_effect_channels", 0) or 0),
+            "max_gap_channel": max_gap.get("channel"),
+            "max_gap_pp": (
+                None
+                if max_gap.get("share_gap_pp") is None
+                else float(max_gap.get("share_gap_pp"))
+            ),
+            "rows": rows,
+        }
+
     scenario_block = {"available": False}
     if scenario_snapshot.get("available"):
         snap_top_n = int(cfg.get("figures", {}).get("scenario_snapshot_top_n", 8))
@@ -209,7 +272,11 @@ def render_html_report(
         fig_by_run = {str(x.get("run_id")): f"figures/{x.get('path')}" for x in fig_items}
 
         scenario_items = []
-        for item in scenario_snapshot.get("scenarios", []):
+        max_runs = int(cfg.get("figures", {}).get("scenario_snapshot_max_runs", 6))
+        source_scenarios = scenario_snapshot.get("scenarios", [])
+        if max_runs > 0:
+            source_scenarios = source_scenarios[:max_runs]
+        for item in source_scenarios:
             run_id = str(item.get("run_id", ""))
             snap_df = item["rows_df"].copy()
             if snap_top_n > 0:
@@ -250,10 +317,58 @@ def render_html_report(
             "selected_run_id": str(scenario_snapshot.get("selected_run_id", "")),
             "selected_meta": scenario_snapshot.get("selected_meta", {}),
             "n_channels": scenario_snapshot.get("n_channels", 0),
-            "scenario_count": int(scenario_snapshot.get("scenario_count", len(scenario_items))),
+            "scenario_count": int(len(scenario_items)),
             "scenarios": scenario_items,
         }
 
+    structural_block = {"available": False}
+    if structural.get("available"):
+        profile_rows = []
+        for row in structural.get("profile_rows", []):
+            profile_rows.append(
+                {
+                    "struct_profile_id": row.get("struct_profile_id"),
+                    "adstock_alpha_m": ("NA" if row.get("adstock_alpha_m") is None else f"{float(row.get('adstock_alpha_m')):.3f}"),
+                    "saturation_ec_m": ("NA" if row.get("saturation_ec_m") is None else f"{float(row.get('saturation_ec_m')):.3f}"),
+                    "saturation_slope_m": ("NA" if row.get("saturation_slope_m") is None else f"{float(row.get('saturation_slope_m')):.3f}"),
+                    "max_lag": ("NA" if row.get("max_lag") is None else str(int(float(row.get("max_lag"))))),
+                    "adstock_decay_spec": row.get("adstock_decay_spec"),
+                    "immediate_share": ("NA" if row.get("immediate_share") is None else f"{100.0*float(row.get('immediate_share')):.1f}%"),
+                    "carryover_share": ("NA" if row.get("carryover_share") is None else f"{100.0*float(row.get('carryover_share')):.1f}%"),
+                    "avg_lag": ("NA" if row.get("avg_lag") is None else f"{float(row.get('avg_lag')):.2f}"),
+                    "half_life_lag": ("NA" if row.get("half_life_lag") is None else f"{float(row.get('half_life_lag')):.2f}"),
+                    "n_runs": int(row.get("n_runs", 0) or 0),
+                }
+            )
+
+        run_rows = []
+        for row in structural.get("run_rows", []):
+            run_rows.append(
+                {
+                    "run_id": row.get("run_id"),
+                    "roi_prior_mu": ("NA" if row.get("roi_prior_mu") is None else f"{float(row.get('roi_prior_mu')):.6f}"),
+                    "roi_prior_sigma": ("NA" if row.get("roi_prior_sigma") is None else f"{float(row.get('roi_prior_sigma')):.6f}"),
+                    "roi_prior_dist": row.get("roi_prior_dist"),
+                    "adstock_alpha_m": ("NA" if row.get("adstock_alpha_m") is None else f"{float(row.get('adstock_alpha_m')):.3f}"),
+                    "saturation_ec_m": ("NA" if row.get("saturation_ec_m") is None else f"{float(row.get('saturation_ec_m')):.3f}"),
+                    "saturation_slope_m": ("NA" if row.get("saturation_slope_m") is None else f"{float(row.get('saturation_slope_m')):.3f}"),
+                    "max_lag": ("NA" if row.get("max_lag") is None else str(int(float(row.get("max_lag"))))),
+                    "adstock_decay_spec": row.get("adstock_decay_spec"),
+                    "qc_status_code": row.get("qc_status_code"),
+                    "is_baseline": bool(row.get("is_baseline", False)),
+                    "total_abs_pct_change": ("NA" if row.get("total_abs_pct_change") is None else f"{float(row.get('total_abs_pct_change')):.2f}"),
+                }
+            )
+
+        selected_profile = structural.get("selected_profile") or {}
+        structural_block = {
+            "available": True,
+            "selected_run_id": structural.get("selected_run_id"),
+            "selected_profile_id": selected_profile.get("struct_profile_id"),
+            "notes": structural.get("notes", []),
+            "profile_rows": profile_rows,
+            "run_rows": run_rows,
+        }
     html = template.render(
         meta=meta,
         methods=methods,
@@ -264,6 +379,8 @@ def render_html_report(
         diagnostics=diagnostics,
         dollar=dollar_block,
         scenario_snapshot=scenario_block,
+        spend_effect=spend_effect_block,
+        structural=structural_block,
         quick_overview_lines=metrics.get("quick_overview_lines", []),
         rank_table=rank_table_df.to_dict(orient="records"),
         recommendations=metrics["recommendations"],
@@ -271,6 +388,18 @@ def render_html_report(
             "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
             "tornado_dollar": (
                 f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
+            ),
+            "spend_effect": (
+                f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
+            ),
+            "adstock_curves": (
+                f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
+            ),
+            "saturation_curves": (
+                f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
+            ),
+            "carryover_decomposition": (
+                f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
             ),
             "scenario_snapshot": (
                 f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
@@ -280,7 +409,16 @@ def render_html_report(
         heatmap_modes=fig_paths.get("heatmap_modes", []),
         default_heatmap_mode=fig_paths.get("default_heatmap_mode"),
         appendix_tables=appendix_tables,
+        show_appendix=bool(cfg.get("output", {}).get("show_appendix", False)),
     )
 
     out_path = outdir / cfg["output"]["report_filename"]
     out_path.write_text(html, encoding="utf-8")
+
+
+
+
+
+
+
+

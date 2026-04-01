@@ -215,14 +215,22 @@ We also test the ROI prior distribution family:
 
 Run all commands from the **repo root**.
 
-You can provide a YAML config file (default: `config/sensitivity.yaml`) to control channels, grids, sampler, and defaults.
+You can provide a YAML config file (default: `config/sensitivity_google_meta_tiktok_full18.yaml`) to control channels, grids, sampler, and defaults.
+
+For structural MMM sensitivity (MVP), you can also set:
+
+- `structural.alpha_m_values` (adstock memory)
+- `structural.ec_m_values` (saturation half-point)
+- `structural.slope_m_values` (Hill slope, default `1.0`)
+- `structural.max_lag_values`
+- `structural.adstock_decay_values` (`geometric` / `binomial`)
 
 ### One-command pipeline (recommended)
 
 Run the full chain in one command:
 
 - `python -m src.pipeline meta google`
-- `python -m src.pipeline google meta moloco --config config/sensitivity.yaml`
+- `python -m src.pipeline google meta moloco --config config/sensitivity_google_meta_tiktok_full18.yaml`
 - `python -m src.pipeline google meta tiktok --report-scenario-selection largest_total_abs_pct_non_fail`
 
 This executes:
@@ -233,8 +241,8 @@ This executes:
 4. `src.reporting.make_report` (integrated HTML report)
    - report includes ROI tornado (% units) and dollar tornado ($ units)
    - dollar tornado uses the same style/aggregation as `src.viz.tornado_plots` (channel-level interval bars)
-   - range rule is configurable in `config/report_config.yaml` via `figures.tornado_range_mode` (`p05p95` or `minmax`)
-   - branding/header logos and co-brand label are configurable under `branding` in `config/report_config.yaml`
+   - range rule is configurable in `config/report_google_meta_tiktok.yaml` via `figures.tornado_range_mode` (`p05p95` or `minmax`)
+   - branding/header logos and co-brand label are configurable under `branding` in `config/report_google_meta_tiktok.yaml`
    - includes run-level diagnostics summary (PASS/REVIEW/FAIL and primary QC checks) when `qc_*` columns are present
    - includes dollar sensitivity summary when report input has value delta columns (from `tornado_<tag>.csv`)
 - report header lists exact input files used (`report_input`, `tornado_<tag>.csv`, `runs_<tag>.csv`, `roi_<tag>.csv`)
@@ -243,7 +251,7 @@ Report scope behavior:
 - Priors are perturbed for the provided target set (linked).
 - ROI is still estimated for all modeled channels.
 - Default report also includes a **Single Scenario Snapshot** (one selected run across channels).
-- Run selection is configurable via `analysis.scenario_selection` in `config/report_config.yaml`:
+- Run selection is configurable via `analysis.scenario_selection` in `config/report_google_meta_tiktok.yaml`:
   - `largest_total_abs_pct_non_fail` (recommended)
   - `largest_total_abs_pct`
   - `first_non_baseline`
@@ -257,7 +265,7 @@ Run sensitivity for one or more target channels. In each run, the same prior tup
 - `python -m src.main --targets meta google`
 - `python -m src.main --channels meta google` (deprecated alias)
 - `python -m src.main --channels all` (alias that expands to all configured channels)
-- `python -m src.main --config config/sensitivity.yaml --targets meta`
+- `python -m src.main --config config/sensitivity_google_meta_tiktok_full18.yaml --targets meta`
 
 **Output:**
 - `data/output/01_runs/meta/prior_sensitivity_runs_multi_meta.csv`
@@ -278,8 +286,8 @@ After generating the split sensitivity outputs, export a tornado-ready summary t
 Generate a next-iteration config by reading QC outcomes from the latest run CSV:
 
 - `python -m src.next_grid_generator meta`
-- `python -m src.next_grid_generator meta --config-in config/sensitivity.yaml --config-out config/sensitivity_meta_next.yaml`
-- `python -m src.next_grid_generator google --config-in config/sensitivity.yaml --config-out config/sensitivity_google_next.yaml`
+- `python -m src.next_grid_generator meta --config-in config/sensitivity_google_meta_tiktok_full18.yaml --config-out config/sensitivity_google_meta_tiktok_next.yaml`
+- `python -m src.next_grid_generator google --config-in config/sensitivity_google_meta_tiktok_full18.yaml --config-out config/sensitivity_google_next.yaml`
 
 The generator updates:
 - `defaults.targets`
@@ -289,7 +297,7 @@ The generator updates:
 
 Then run the next iteration directly:
 
-- `python -m src.main --config config/sensitivity_meta_next.yaml`
+- `python -m src.main --config config/sensitivity_google_meta_tiktok_next.yaml`
 
 ### How input/output are chosen (no hard-coding)
 

@@ -3,6 +3,7 @@ import os
 import sys
 import subprocess
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
@@ -18,6 +19,7 @@ from src.output_paths import (
     legacy_combined_csv_path,
     tornado_csv_path,
 )
+from src.io_utils import STRUCTURAL_COLUMNS
 
 
 def _pick_center(values):
@@ -67,6 +69,20 @@ def _paths_for_tag(tag: str) -> dict[str, Path | list[Path]]:
         "legacy_csv": legacy_combined_csv_path(tag, LEGACY_OUTPUT_DIR),
         "tornado_csv": tornado_csv_path(tag, TABLES_DIR),
     }
+
+
+def _safe_read_csv_or_backup(path: Path) -> pd.DataFrame:
+    try:
+        return pd.read_csv(path)
+    except pd.errors.ParserError:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup = path.with_name(f"{path.name}.corrupt_backup_{stamp}.csv")
+        os.replace(path, backup)
+        print(
+            "[warn] Found malformed CSV (likely mixed schemas). "
+            f"Moved to backup: {backup}"
+        )
+        return pd.DataFrame()
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -128,8 +144,10 @@ def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
         roi_csv = first_existing(roi_candidates)
 
     if run_csv is not None and roi_csv is not None:
-        run_df = pd.read_csv(run_csv)
-        roi_df = pd.read_csv(roi_csv)
+        run_df = _safe_read_csv_or_backup(run_csv)
+        roi_df = _safe_read_csv_or_backup(roi_csv)
+        if run_df.empty or roi_df.empty:
+            return pd.DataFrame()
 
         if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
             raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
@@ -139,6 +157,7 @@ def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
                 "run_id",
                 "prior_key",
                 "targets",
+                *STRUCTURAL_COLUMNS,
                 "is_baseline",
                 "qc_status_code",
                 "qc_summary_short",
@@ -261,6 +280,11 @@ def main():
         df = df[~df["run_id"].astype(str).isin(baseline_run_ids)].copy()
     else:
         df = df[df["is_baseline"] == False].copy()
+    if df.empty:
+        print(
+            "[warn] No non-baseline rows available for tornado scoring. "
+            "Run at least one additional grid point beyond baseline."
+        )
 
     required_cols = [
         "run_id",
@@ -277,6 +301,7 @@ def main():
         "delta_pct",
     ]
     optional_cols = [
+        *STRUCTURAL_COLUMNS,
         "channel_total_spend",
         "incremental_outcome_baseline",
         "incremental_outcome_new",

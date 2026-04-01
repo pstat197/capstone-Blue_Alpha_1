@@ -1,8 +1,17 @@
 # src/io_utils.py
 import argparse
 import os
+from datetime import datetime
 import pandas as pd
 from typing import List, Tuple, Optional, Set, Union
+
+STRUCTURAL_COLUMNS = [
+    "adstock_alpha_m",
+    "saturation_ec_m",
+    "saturation_slope_m",
+    "max_lag",
+    "adstock_decay_spec",
+]
 
 RUN_OUTPUT_COLUMNS = [
     "run_id",
@@ -12,6 +21,7 @@ RUN_OUTPUT_COLUMNS = [
     "roi_prior_mu",
     "roi_prior_sigma",
     "roi_prior_dist",
+    *STRUCTURAL_COLUMNS,
     "is_baseline",
     "qc_status_code",
     "qc_severity_rank",
@@ -43,6 +53,7 @@ ROI_OUTPUT_COLUMNS = [
     "roi_prior_mu",
     "roi_prior_sigma",
     "roi_prior_dist",
+    *STRUCTURAL_COLUMNS,
     "is_baseline",
     "estimated_roi",
     "qc_overall_status",
@@ -144,6 +155,21 @@ def parse_channels_and_output(
 
 AlreadyDone = Union[Set[str], Set[tuple]]
 
+
+def _backup_file(path: str, suffix: str) -> str:
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    backup = f"{path}.{suffix}_{stamp}.csv"
+    os.replace(path, backup)
+    return backup
+
+
+def _read_header_columns(path: str) -> List[str]:
+    with open(path, "r", encoding="utf-8", newline="") as f:
+        header = f.readline().strip()
+    if not header:
+        return []
+    return [c.strip() for c in header.split(",")]
+
 def load_resume_state(output_file: str) -> AlreadyDone:
     """
     Load existing output CSV (if it exists) and return already_done.
@@ -154,7 +180,15 @@ def load_resume_state(output_file: str) -> AlreadyDone:
     if not os.path.exists(output_file):
         return set()
 
-    results_df = pd.read_csv(output_file)
+    try:
+        results_df = pd.read_csv(output_file)
+    except pd.errors.ParserError:
+        backup = _backup_file(output_file, "corrupt_backup")
+        print(
+            "[warn] Existing resume CSV could not be parsed (likely mixed schemas). "
+            f"Moved to backup: {backup}"
+        )
+        return set()
     print("Existing results found. Loading...")
 
     if "run_id" in results_df.columns:
@@ -222,6 +256,15 @@ def append_tmp_to_output(
             if col not in part.columns:
                 part[col] = pd.NA
         part = part.reindex(columns=expected_columns)
+
+    if expected_columns and os.path.exists(output_file) and os.path.getsize(output_file) > 0:
+        existing_columns = _read_header_columns(output_file)
+        if existing_columns != expected_columns:
+            backup = _backup_file(output_file, "schema_backup")
+            print(
+                "[warn] Existing output schema does not match current run schema. "
+                f"Moved old file to: {backup}"
+            )
 
     write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
     part.to_csv(output_file, mode="a", header=write_header, index=False)

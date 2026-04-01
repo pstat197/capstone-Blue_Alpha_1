@@ -16,6 +16,14 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "roi_sigma_values": None,
         "roi_dist_values": ["Normal", "LogNormal"],
     },
+    "structural": {
+        # MVP defaults keep legacy behavior unless explicitly overridden.
+        "alpha_m_values": [None],
+        "ec_m_values": [None],
+        "slope_m_values": [1.0],
+        "max_lag_values": [8],
+        "adstock_decay_values": ["geometric"],
+    },
     "defaults": {
         "targets": ["tiktok"],
     },

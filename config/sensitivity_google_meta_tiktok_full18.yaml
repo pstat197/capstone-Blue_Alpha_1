@@ -1,0 +1,20 @@
+experiment:
+  multipliers: [0.4, 1.0, 2.0]
+  roi_mu_values: null
+  roi_sigma_values: null
+  roi_dist_values: [Normal, LogNormal]
+
+structural:
+  # Fixed structural profile for full-grid prior sensitivity run.
+  alpha_m_values: [0.3]
+  ec_m_values: [0.5]
+  slope_m_values: [1.2]
+  max_lag_values: [4]
+  adstock_decay_values: [geometric]
+
+sampler:
+  n_chains: 4
+  n_adapt: 700
+  n_burnin: 500
+  n_keep: 300
+  seed: 0

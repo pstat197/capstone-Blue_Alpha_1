@@ -19,6 +19,12 @@ The current pipeline supports:
 
 - single-target sensitivity (`--channels`)
 - linked multi-prior sensitivity (`--targets`)
+- structural sensitivity MVP via YAML grids:
+  - `structural.alpha_m_values` (adstock memory)
+  - `structural.ec_m_values` (saturation half-point)
+  - `structural.slope_m_values` (Hill slope; default `1.0`)
+  - `structural.max_lag_values`
+  - `structural.adstock_decay_values` (`geometric` / `binomial`)
 - post-fit quality checks (`PASS`, `REVIEW`, `FAIL`)
 - tornado output with QC and impact columns
 - recommendation stage (`src.recommend_next_grid`) for next-iteration planning
@@ -50,10 +56,10 @@ Core scripts:
   - includes diagnostics summary if `qc_*` columns exist in report input
   - includes ROI tornado (% units) and dollar tornado ($ units)
   - dollar tornado matches `src.viz.tornado_plots` channel-level interval style
-  - supports co-branding logos/label from `config/report_config.yaml` `branding` section
+  - supports co-branding logos/label from `config/report_google_meta_tiktok.yaml` `branding` section
   - includes one selected-run channel snapshot (single scenario tornado) for side-by-side channel comparison
   - displays exact source files used in report header (report input / tornado / runs / roi)
-  - uses `config/report_config.yaml`
+  - uses `config/report_google_meta_tiktok.yaml`
 - `src/pipeline.py`
   - one-command orchestration for run -> summarize -> tornado plot -> auto report
 

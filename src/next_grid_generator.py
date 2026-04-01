@@ -11,7 +11,7 @@ from src.output_paths import candidate_run_csv_paths, first_existing
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("targets", nargs="+")
-    parser.add_argument("-c", "--config-in", default="config/sensitivity.yaml")
+    parser.add_argument("-c", "--config-in", default="config/sensitivity_google_meta_tiktok_full18.yaml")
     parser.add_argument("-o", "--config-out", default=None)
     return parser
 

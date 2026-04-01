@@ -770,6 +770,59 @@
       </ul>
     </section>
 
+
+    {% if spend_effect and spend_effect.available %}
+    <h2>Spend vs Effect Alignment</h2>
+    <section class="card">
+      <p class="small">
+        Selected run: {{ spend_effect.selected_run_id }} | spend source: {{ spend_effect.spend_source }} | effect source: {{ spend_effect.effect_source }}
+      </p>
+
+      {% if figures.spend_effect %}
+      <section class="figure">
+        <img src="{{ figures.spend_effect }}" alt="Spend share versus effect share one-pager view">
+        <div class="cap">Industry-style one-pager diagnostic: compare spend share and modeled effect share by channel.</div>
+      </section>
+      {% endif %}
+
+      {% if spend_effect.max_gap_channel and spend_effect.max_gap_pp is not none %}
+      <p class="note">
+        Largest allocation gap: <b>{{ spend_effect.max_gap_channel | upper }}</b>
+        (effect - spend = {{ "%.1f"|format(spend_effect.max_gap_pp) }} pp).
+      </p>
+      {% endif %}
+
+      <table>
+        <thead>
+          <tr>
+            <th>Channel</th>
+            <th>Spend Share</th>
+            <th>Effect Share</th>
+            <th>Gap (pp)</th>
+            <th>ROI</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in spend_effect.rows %}
+          <tr>
+            <td>{{ row.channel | upper }}</td>
+            <td>{{ row.spend_share_pct }}</td>
+            <td>{{ row.effect_share_pct }}</td>
+            <td>{{ row.share_gap_pp }}</td>
+            <td>{{ row.estimated_roi }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      {% if spend_effect.n_negative_effect_channels > 0 %}
+      <p class="small">
+        Note: {{ spend_effect.n_negative_effect_channels }} channel(s) had negative modeled effect in this run; effect-share uses non-negative contribution mass for comparability.
+      </p>
+      {% endif %}
+    </section>
+    {% endif %}
+
     {% if figures.tornado %}
     <h2>ROI Tornado Summary</h2>
     <section class="card">
@@ -777,6 +830,123 @@
         <img src="{{ figures.tornado }}" alt="ROI tornado sensitivity chart">
         <div class="cap">Tornado interval style aligned with value tornado: one channel per row, downside-to-upside ROI % interval.</div>
       </section>
+    </section>
+    {% endif %}
+
+    {% if structural and structural.available %}
+    <h2>Structural Sensitivity (Adstock + Saturation)</h2>
+    <section class="card">
+      <p class="small">
+        Selected reference run: {{ structural.selected_run_id }}
+        {% if structural.selected_profile_id %}| profile={{ structural.selected_profile_id }}{% endif %}
+      </p>
+
+      {% if figures.adstock_curves %}
+      <section class="figure">
+        <img src="{{ figures.adstock_curves }}" alt="Adstock decay curves">
+        <div class="cap">Normalized adstock decay weights by lag for top structural profiles.</div>
+      </section>
+      {% endif %}
+
+      {% if figures.saturation_curves %}
+      <section class="figure">
+        <img src="{{ figures.saturation_curves }}" alt="Saturation response curves">
+        <div class="cap">Hill saturation response curves over relative spend index [0, 3].</div>
+      </section>
+      {% endif %}
+
+      {% if figures.carryover_decomposition %}
+      <section class="figure">
+        <img src="{{ figures.carryover_decomposition }}" alt="Immediate versus carryover decomposition">
+        <div class="cap">Reference-channel decomposition into immediate and carryover components.</div>
+      </section>
+      {% endif %}
+
+      {% if structural.profile_rows and structural.profile_rows|length > 0 %}
+      <h3>Structural Profiles</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Profile</th>
+            <th>alpha</th>
+            <th>ec</th>
+            <th>slope</th>
+            <th>max_lag</th>
+            <th>decay</th>
+            <th>Immediate</th>
+            <th>Carryover</th>
+            <th>Avg Lag</th>
+            <th>Half-Life</th>
+            <th>Runs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in structural.profile_rows %}
+          <tr>
+            <td>{{ row.struct_profile_id }}</td>
+            <td>{{ row.adstock_alpha_m }}</td>
+            <td>{{ row.saturation_ec_m }}</td>
+            <td>{{ row.saturation_slope_m }}</td>
+            <td>{{ row.max_lag }}</td>
+            <td>{{ row.adstock_decay_spec }}</td>
+            <td>{{ row.immediate_share }}</td>
+            <td>{{ row.carryover_share }}</td>
+            <td>{{ row.avg_lag }}</td>
+            <td>{{ row.half_life_lag }}</td>
+            <td>{{ row.n_runs }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if structural.run_rows and structural.run_rows|length > 0 %}
+      <h3>Run-Level Structural Table</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Run ID</th>
+            <th>mu</th>
+            <th>sigma</th>
+            <th>dist</th>
+            <th>alpha</th>
+            <th>ec</th>
+            <th>slope</th>
+            <th>max_lag</th>
+            <th>decay</th>
+            <th>QC</th>
+            <th>Baseline</th>
+            <th>Total |%|</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in structural.run_rows %}
+          <tr>
+            <td class="path-cell">{{ row.run_id }}</td>
+            <td>{{ row.roi_prior_mu }}</td>
+            <td>{{ row.roi_prior_sigma }}</td>
+            <td>{{ row.roi_prior_dist }}</td>
+            <td>{{ row.adstock_alpha_m }}</td>
+            <td>{{ row.saturation_ec_m }}</td>
+            <td>{{ row.saturation_slope_m }}</td>
+            <td>{{ row.max_lag }}</td>
+            <td>{{ row.adstock_decay_spec }}</td>
+            <td>{{ row.qc_status_code }}</td>
+            <td>{{ row.is_baseline }}</td>
+            <td>{{ row.total_abs_pct_change }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      {% if structural.notes and structural.notes|length > 0 %}
+      <ul>
+        {% for note in structural.notes %}
+        <li>{{ note }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
     </section>
     {% endif %}
 
@@ -1047,6 +1217,7 @@
     {% endfor %}
     {% endif %}
 
+    {% if show_appendix %}
     <h2>Appendix</h2>
     <section class="card">
       <p class="small">Tables stored under <code>tables/</code> for reproducibility:</p>
@@ -1056,6 +1227,7 @@
         {% endfor %}
       </ul>
     </section>
+    {% endif %}
   </main>
   <script>
     (function () {
@@ -1119,3 +1291,4 @@
   </script>
 </body>
 </html>
+
