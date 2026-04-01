@@ -103,7 +103,7 @@ def parse_channels_and_output(
     full_channels: List[str],
     output_dir: str,
     default_target: Union[str, List[str]] = "tiktok",
-) -> Tuple[List[str], str, Optional[List[str]]]:
+) -> Tuple[List[str], str, Optional[List[str]], Optional[str]]:
     """
     Parse CLI args and return:
       - target_channels_to_run: list[str]  (linked target-set mode)
@@ -125,7 +125,14 @@ def parse_channels_and_output(
         default=None,
         help='Target set for linked multi-prior mode. Example: --targets meta tiktok',
     )
+    parser.add_argument(
+        "--csv",
+        default=None,
+        help="Path to the input CSV file.",
+    )
     args = parser.parse_args()
+
+    csv_path = args.csv
 
     if args.targets is not None and args.channels is not None:
         raise ValueError("Use only one of --targets or --channels (deprecated alias), not both.")
@@ -143,7 +150,7 @@ def parse_channels_and_output(
     targets_sorted = sorted(targets)
     tag = "_".join(targets_sorted)
     output_file = os.path.join(output_dir, f"prior_sensitivity_results_multi_{tag}.csv")
-    return targets_sorted, output_file, targets_sorted
+    return targets_sorted, output_file, targets_sorted, csv_path
 
 
 AlreadyDone = Union[Set[str], Set[tuple]]
@@ -262,3 +269,23 @@ def append_tmp_to_output(
     write_header = (not os.path.exists(output_file)) or (os.path.getsize(output_file) == 0)
     part.to_csv(output_file, mode="a", header=write_header, index=False)
     return part
+
+def select_csv(project_root: str, csv_path: Optional[str]) -> str:
+    print("\n===== DATA CONFIG =====")
+
+    if csv_path is None:
+        raise ValueError(
+            "No --csv argument provided.\n"
+            "Please provide a path to the input CSV file using --csv. Example:\n"
+            "  python -m src.main --targets your_target --csv data/raw/your_data.csv"
+        )
+    
+    if not os.path.isabs(csv_path):
+        csv_path = os.path.join(project_root, csv_path)
+
+    if not os.path.exists(csv_path):
+        raise FileNotFoundError(
+            f"CSV file not found at {csv_path}. Please check the path and try again.")
+    
+    print(f"Using data CSV: {csv_path}")
+    return csv_path

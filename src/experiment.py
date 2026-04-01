@@ -38,6 +38,12 @@ def make_mu_grid(mu0: float, multipliers: List[float], digits: int = 6) -> List[
 def make_sigma_grid(sigma0: float, multipliers: List[float], digits: int = 6) -> List[float]:
     return [round(sigma0 * m, digits) for m in multipliers]
 
+def detect_channels(df, spend_suffix: str = "_spend") -> List[str]:
+    channels = []
+    for col in df.columns:
+        if col.endswith(spend_suffix) and col != "total_spend":
+            channels.append(col[:-len(spend_suffix)])
+    return channels
 
 def build_experiment_config(
     channels: List[str],
@@ -47,11 +53,15 @@ def build_experiment_config(
     mu_grid: list = None,
     sigma_grid: list = None,
     dist_grid: list = None,
-    output_file: Optional[str] = None,  
+    output_file: Optional[str] = None,
+    data_csv: Optional[str] = None,  
 ) -> ExperimentConfig:
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+    
+    if not os.path.exists(data_csv):
+        raise FileNotFoundError(f"Data CSV not found at {data_csv}.")
+    
     src_dir = os.path.join(project_root, "src")
     output_dir = os.path.join(project_root, "data", "output")
     os.makedirs(output_dir, exist_ok=True)
