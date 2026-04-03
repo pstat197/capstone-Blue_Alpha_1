@@ -27,6 +27,12 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     "defaults": {
         "targets": ["tiktok"],
     },
+    "baseline": {
+        # Optional explicit baseline. When null, baseline is auto-picked from the active grid.
+        "roi_mu": None,
+        "roi_sigma": None,
+        "roi_dist": None,
+    },
     "sampler": {
         "n_chains": 4,
         "n_adapt": 700,
@@ -53,10 +59,101 @@ def _deep_merge_dict(base: dict[str, Any], override: dict[str, Any]) -> dict[str
     return out
 
 
+def _as_numeric_list(raw: Any, field_name: str) -> list[float]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        items = raw
+    else:
+        items = [raw]
+    out = []
+    for idx, v in enumerate(items):
+        try:
+            out.append(float(v))
+        except Exception as exc:
+            raise ValueError(f"Config field '{field_name}[{idx}]' must be numeric; got {v!r}.") from exc
+    return out
+
+
+def _as_string_list(raw: Any, field_name: str) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        items = raw
+    else:
+        items = [raw]
+    out = []
+    for idx, v in enumerate(items):
+        s = str(v).strip()
+        if not s:
+            raise ValueError(f"Config field '{field_name}[{idx}]' cannot be empty.")
+        out.append(s)
+    return out
+
+
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen = set()
+    out = []
+    for v in values:
+        if v not in seen:
+            seen.add(v)
+            out.append(v)
+    return out
+
+
+def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    exp = config.setdefault("experiment", {})
+
+    multipliers = _as_numeric_list(exp.get("multipliers"), "experiment.multipliers")
+    if not multipliers:
+        raise ValueError("Config field 'experiment.multipliers' must contain at least one value.")
+    if any(v <= 0 for v in multipliers):
+        raise ValueError("Config field 'experiment.multipliers' must be strictly positive.")
+    exp["multipliers"] = [float(v) for v in multipliers]
+
+    raw_mu = exp.get("roi_mu_values")
+    mu_values = _as_numeric_list(raw_mu, "experiment.roi_mu_values")
+    exp["roi_mu_values"] = [round(float(v), 6) for v in mu_values] if mu_values else None
+
+    raw_sigma = exp.get("roi_sigma_values")
+    sigma_values = _as_numeric_list(raw_sigma, "experiment.roi_sigma_values")
+    if any(v <= 0 for v in sigma_values):
+        raise ValueError("Config field 'experiment.roi_sigma_values' must be strictly positive.")
+    exp["roi_sigma_values"] = [round(float(v), 6) for v in sigma_values] if sigma_values else None
+
+    dist_values = _as_string_list(exp.get("roi_dist_values"), "experiment.roi_dist_values")
+    if not dist_values:
+        raise ValueError("Config field 'experiment.roi_dist_values' must contain at least one value.")
+    exp["roi_dist_values"] = _dedupe_preserve_order(dist_values)
+
+    baseline = config.setdefault("baseline", {})
+    for baseline_key in ["roi_mu", "roi_sigma"]:
+        raw = baseline.get(baseline_key)
+        if raw is None or str(raw).strip().lower() == "null":
+            baseline[baseline_key] = None
+            continue
+        try:
+            baseline[baseline_key] = round(float(raw), 6)
+        except Exception as exc:
+            raise ValueError(f"Config field 'baseline.{baseline_key}' must be numeric or null.") from exc
+    if baseline["roi_sigma"] is not None and baseline["roi_sigma"] <= 0:
+        raise ValueError("Config field 'baseline.roi_sigma' must be strictly positive when provided.")
+
+    raw_dist = baseline.get("roi_dist")
+    if raw_dist is None or str(raw_dist).strip().lower() == "null":
+        baseline["roi_dist"] = None
+    else:
+        baseline["roi_dist"] = str(raw_dist).strip()
+        if baseline["roi_dist"] == "":
+            raise ValueError("Config field 'baseline.roi_dist' cannot be empty.")
+
+    return config
+
+
 def load_run_config(config_path: str | None) -> dict[str, Any]:
     config = copy.deepcopy(DEFAULT_RUN_CONFIG)
     if not config_path:
-        return config
+        return _validate_and_normalize_config(config)
 
     if not os.path.exists(config_path):
         raise FileNotFoundError(f"Config YAML not found: {config_path}")
@@ -65,7 +162,8 @@ def load_run_config(config_path: str | None) -> dict[str, Any]:
         raw = yaml.safe_load(f) or {}
     if not isinstance(raw, dict):
         raise ValueError("Run config YAML must parse to a mapping/object at top-level.")
-    return _deep_merge_dict(config, raw)
+    merged = _deep_merge_dict(config, raw)
+    return _validate_and_normalize_config(merged)
 
 
 def dump_run_config(config: dict[str, Any], out_path: str) -> None:

@@ -72,6 +72,67 @@ def _is_default_structural(alpha_m, ec_m, slope_m, max_lag, adstock_decay) -> bo
     )
 
 
+def _contains_close(values: list[float], target: float, tol: float = 1e-9) -> bool:
+    return any(abs(float(v) - float(target)) <= tol for v in values)
+
+
+def _nearest_value(values: list[float], reference: float) -> float:
+    if not values:
+        raise ValueError("Cannot choose nearest value from an empty list.")
+    return float(min((float(v) for v in values), key=lambda x: (abs(x - float(reference)), x)))
+
+
+def _pick_preferred_dist(dist_values: list[str]) -> str:
+    if not dist_values:
+        raise ValueError("Distribution grid is empty.")
+    for d in dist_values:
+        if str(d).strip().lower() == "normal":
+            return str(d)
+    return str(dist_values[0])
+
+
+def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str]:
+    baseline_cfg = run_cfg.get("baseline", {}) or {}
+
+    baseline_mu_cfg = baseline_cfg.get("roi_mu")
+    if baseline_mu_cfg is None:
+        baseline_mu = _nearest_value(cfg.roi_mu_values, cfg.mu0)
+    else:
+        baseline_mu = round(float(baseline_mu_cfg), 6)
+        if not _contains_close(cfg.roi_mu_values, baseline_mu):
+            raise ValueError(
+                "Configured baseline.roi_mu is not in the active mu grid. "
+                f"baseline.roi_mu={baseline_mu}, active mu grid={cfg.roi_mu_values}"
+            )
+
+    baseline_sigma_cfg = baseline_cfg.get("roi_sigma")
+    if baseline_sigma_cfg is None:
+        baseline_sigma = _nearest_value(cfg.roi_sigma_values, cfg.sigma0)
+    else:
+        baseline_sigma = round(float(baseline_sigma_cfg), 6)
+        if not _contains_close(cfg.roi_sigma_values, baseline_sigma):
+            raise ValueError(
+                "Configured baseline.roi_sigma is not in the active sigma grid. "
+                f"baseline.roi_sigma={baseline_sigma}, active sigma grid={cfg.roi_sigma_values}"
+            )
+
+    dist_values = [str(x) for x in cfg.roi_dist_values]
+    baseline_dist_cfg = baseline_cfg.get("roi_dist")
+    if baseline_dist_cfg is None:
+        baseline_dist = _pick_preferred_dist(dist_values)
+    else:
+        wanted = str(baseline_dist_cfg).strip().lower()
+        mapped = {str(d).strip().lower(): str(d) for d in dist_values}
+        if wanted not in mapped:
+            raise ValueError(
+                "Configured baseline.roi_dist is not in the active dist grid. "
+                f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={dist_values}"
+            )
+        baseline_dist = mapped[wanted]
+
+    return round(float(baseline_mu), 6), round(float(baseline_sigma), 6), str(baseline_dist)
+
+
 def build_run_id(
     scope: str,
     mu: float,
@@ -166,6 +227,20 @@ def main():
 
     print("Spend cols used:", cfg.spend_cols)
     print("Computed mu0 =", round(cfg.mu0, 6))
+    print("Computed sigma0 =", round(cfg.sigma0, 6))
+    print(
+        "Mu grid source =",
+        "experiment.roi_mu_values (manual)" if mu_grid is not None else "mu0 * experiment.multipliers (auto)",
+    )
+    print(
+        "Sigma grid source =",
+        "experiment.roi_sigma_values (manual)" if sigma_grid is not None else "sigma0 * experiment.multipliers (auto)",
+    )
+    if mu_grid is not None or sigma_grid is not None:
+        print(
+            "Grid precedence note: explicit experiment.roi_mu_values / roi_sigma_values override multipliers "
+            "for those dimensions."
+        )
     print("Mu grid =", cfg.roi_mu_values)
     print("Sigma grid =", cfg.roi_sigma_values)
     print("Dist grid =", cfg.roi_dist_values)
@@ -177,9 +252,7 @@ def main():
     print("Run output file:", run_output_file)
     print("ROI output file:", roi_output_file)
 
-    baseline_mu = cfg.mu0
-    baseline_sigma = cfg.roi_sigma_values[min(1, len(cfg.roi_sigma_values) - 1)]
-    baseline_dist = cfg.roi_dist_values[0]
+    baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(cfg, run_cfg)
     baseline_structural = {
         "alpha_m": structural_grids["alpha_m"][0],
         "ec_m": structural_grids["ec_m"][0],
@@ -187,6 +260,10 @@ def main():
         "max_lag": structural_grids["max_lag"][0],
         "adstock_decay_spec": structural_grids["adstock_decay"][0],
     }
+    print(
+        "Baseline (effective) =",
+        {"mu": baseline_mu, "sigma": baseline_sigma, "dist": baseline_dist},
+    )
 
     already_done = load_resume_state(run_output_file)
     for legacy_path in candidate_run_csv_paths(targets_tag)[1:]:

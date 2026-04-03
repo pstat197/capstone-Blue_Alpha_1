@@ -15,6 +15,7 @@ class ExperimentConfig:
     channels: List[str]
     spend_cols: List[str]
     mu0: float
+    sigma0: float
     multipliers: List[float]
     roi_mu_values: List[float]
     roi_sigma_values: List[float]
@@ -106,6 +107,7 @@ def build_experiment_config(
         channels=channels,
         spend_cols=spend_cols,
         mu0=mu0,
+        sigma0=sigma0,
         multipliers=multipliers,
         roi_mu_values=roi_mu_values,
         roi_sigma_values=roi_sigma_values,

@@ -32,14 +32,38 @@ thresholds:
   high_sensitivity_pct: 15.0
   medium_sensitivity_pct: 7.5
 
+decision_policy:
+  name: "Traffic-Light Policy v1 (pre-robustness score)"
+  require_qc_gate_for_green: true
+  max_diag_fail_runs_for_green: 0
+  max_diag_review_runs_for_green: 5
+  red_on_qc_fail: true
+  red_on_no_qc_with_fail: true
+  yellow_on_sensitivity_ge_high: true
+
 analysis:
   # all: show all modeled channels in report
   channel_scope: "all"
+  qc_gate:
+    enabled: true
+    mu_values: [0.020759, 0.051898]
+    sigma_values: [0.006689, 0.033445]
+    dists: [Normal]
   # scenario_selection:
   # - largest_total_abs_pct_non_fail (recommended)
   # - largest_total_abs_pct
   # - first_non_baseline
   scenario_selection: "largest_total_abs_pct_non_fail"
+
+presentation:
+  # hide | concise | full
+  diagnostics_level: "hide"
+  # hide | concise | full
+  structural_level: "concise"
+  # concise | full
+  qc_gate_level: "concise"
+  # false for client-facing deck/report
+  show_sources: false
 
 figures:
   dpi: 160
@@ -83,5 +107,3 @@ methods:
 output:
   report_filename: "report.html"
   show_appendix: false
-
-
