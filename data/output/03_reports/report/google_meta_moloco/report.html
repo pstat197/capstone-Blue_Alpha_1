@@ -1,0 +1,169 @@
+﻿<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; margin: 28px; line-height: 1.45; }
+    h1 { margin-bottom: 6px; }
+    h2 { margin-top: 28px; border-bottom: 1px solid #ddd; padding-bottom: 6px; }
+    .sub { color: #444; margin-top: 0; }
+    .meta { font-size: 12px; color: #555; margin: 10px 0 18px; }
+    .authors { font-size: 13px; color: #333; margin: 8px 0 18px; }
+    .card { border: 1px solid #e5e5e5; border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+    table { border-collapse: collapse; width: 100%; margin: 10px 0; }
+    th, td { border: 1px solid #e6e6e6; padding: 8px; font-size: 13px; }
+    th { background: #fafafa; text-align: left; }
+    .small { font-size: 12px; color: #555; }
+    img { max-width: 100%; height: auto; display: block; border: 1px solid #eee; border-radius: 8px; margin: 8px 0; }
+    ul { margin-top: 6px; }
+    .quick-overview { margin: 10px 0 14px; }
+    .quick-title { font-style: italic; font-weight: 700; font-size: 18px; margin: 0 0 6px; }
+    .quick-list { margin: 0 0 0 18px; padding: 0; }
+    .quick-list li { font-style: italic; font-size: 16px; line-height: 1.35; margin: 2px 0; }
+    .method-paragraph { margin: 8px 0; }
+  </style>
+</head>
+<body>
+
+  <h1>Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)</h1>
+  <p class="sub">Google Meridian MMM - Prior Robustness Diagnostics</p>
+
+  
+  <div class="authors">
+    <b>Group Members:</b> Aidan Frazier, Quinlan Wilson, Jimmy Wu, Jasper Luo, Coraline Zhu
+  </div>
+  
+
+  <div class="meta">
+    Generated: 2026-03-12 12:59:36<br>
+    Input file: data\output\02_tables\prior_sensitivity_report_input_google_meta_moloco.csv<br>
+    Rows: 144, Targets: 1, Channels: 8, Dists: 2
+  </div>
+
+  <h2>Executive Summary</h2>
+  <div class="card">
+
+    
+    <div class="quick-overview">
+      <div class="quick-title">Most Sensitive Parameters:</div>
+      <ol class="quick-list">
+        
+          <li>1. google,meta,moloco ROI prior (Normal): max |% change| -> 241.49% change in estimated ROI</li>
+        
+          <li>2. google,meta,moloco ROI prior (LogNormal): max |% change| -> 88.47% change in estimated ROI</li>
+        
+      </ol>
+    </div>
+    
+
+    <p><b>Most sensitive targets (by max absolute % change):</b></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Target Channel</th>
+          <th>Distribution</th>
+          <th>Baseline ROI</th>
+          <th>Max |% Change|</th>
+        </tr>
+      </thead>
+      <tbody>
+      
+        <tr>
+          <td>1</td>
+          <td>google,meta,moloco</td>
+          <td>Normal</td>
+          <td>0.12061889</td>
+          <td>241.494387819354</td>
+        </tr>
+      
+        <tr>
+          <td>2</td>
+          <td>google,meta,moloco</td>
+          <td>LogNormal</td>
+          <td>1.4225322</td>
+          <td>88.46876928339479</td>
+        </tr>
+      
+      </tbody>
+    </table>
+
+    <p><b>Recommendations:</b></p>
+    <ul>
+      
+        <li>High sensitivity detected (>= 15.0%): prioritize better priors/experiments for google,meta,moloco (Normal).</li>
+      
+        <li>Multiple moderately sensitive targets (>= 7.5%): consider narrowing prior ranges or adding holdout validation.</li>
+      
+    </ul>
+  </div>
+
+  <h2>Methods</h2>
+  <div class="card">
+    <p class="method-paragraph"><b>Baseline definition.</b> Baseline ROI is defined as the estimated ROI at the median prior mean (mu) and median prior standard deviation (sigma) within each target channel and distribution family.</p>
+    <p class="method-paragraph"><b>Sensitivity calculation.</b> For each scenario, percent change is computed relative to the baseline ROI. Sensitivity is summarized as the maximum absolute percent change across tested prior settings.</p>
+    <p class="method-paragraph"><b>Visualization workflow.</b> The report includes a tornado chart ranking the most sensitive target-distribution combinations and per-target heatmaps showing how estimated ROI changes across the prior grid.</p>
+  </div>
+
+  
+  <h2>Tornado Diagram</h2>
+  <p class="small">Shows which target+prior settings produce the largest ROI movement relative to baseline.</p>
+  <img src="figures/tornado_top_sensitivity.png" alt="Tornado diagram">
+  
+
+  <h2>Per-Target Detail</h2>
+  
+    <div class="card">
+      <h3 style="margin:0 0 6px;">google,meta,moloco - Normal</h3>
+      <div class="small">
+        Baseline ROI: 0.1206 |
+        Max |% change|: 241.49%
+      </div>
+
+      
+        <p><b>Heatmaps (mu x sigma) by distribution</b></p>
+        
+          <div style="margin:10px 0;">
+            <div class="small">mu x sigma (% change)</div>
+            <img src="figures/heatmap_google,meta,moloco_Normal.png" alt="mu x sigma (% change)">
+          </div>
+        
+      
+    </div>
+  
+    <div class="card">
+      <h3 style="margin:0 0 6px;">google,meta,moloco - LogNormal</h3>
+      <div class="small">
+        Baseline ROI: 1.4225 |
+        Max |% change|: 88.47%
+      </div>
+
+      
+        <p><b>Heatmaps (mu x sigma) by distribution</b></p>
+        
+          <div style="margin:10px 0;">
+            <div class="small">mu x sigma (% change)</div>
+            <img src="figures/heatmap_google,meta,moloco_LogNormal.png" alt="mu x sigma (% change)">
+          </div>
+        
+      
+    </div>
+  
+
+  <h2>Appendix</h2>
+  <div class="card">
+    <p class="small">Tables saved in <code>tables/</code> for reproducibility.</p>
+    <ul class="small">
+      
+        <li>tables/baseline_table.csv</li>
+      
+        <li>tables/sensitivity_rank.csv</li>
+      
+        <li>tables/merged_with_pct_change.csv</li>
+      
+    </ul>
+  </div>
+
+</body>
+</html>
