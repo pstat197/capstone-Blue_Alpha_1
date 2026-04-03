@@ -816,7 +816,9 @@
       </table>
 
       <p class="warn">Interpretation note: very small baseline ROI can inflate percent changes; use ranking as directional sensitivity signal.</p>
+      {% if display.show_sources %}
       <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code>.</p>
+      {% endif %}
 
       <ul>
         {% for rec in recommendations %}
@@ -825,6 +827,59 @@
       </ul>
     </section>
 
+    {% if decision_card and decision_card.available %}
+    <h2>Decision Card</h2>
+    <section class="card">
+      <div class="cards">
+        <div class="stat"><div class="k">Decision Tier</div><div class="v"><span class="status-pill {{ decision_card.tier_class }}">{{ decision_card.tier }}</span></div></div>
+        <div class="stat"><div class="k">{{ decision_card.score_label }}</div><div class="v">{{ decision_card.score_value }}</div></div>
+      </div>
+
+      {% if decision_card.headline %}
+      <p class="note">{{ decision_card.headline }}</p>
+      {% endif %}
+
+      {% if decision_card.policy_name %}
+      <p class="small"><b>{{ decision_card.policy_name }}</b></p>
+      {% endif %}
+
+      {% if decision_card.triggered_rules and decision_card.triggered_rules|length > 0 %}
+      <h3>Triggered Rules</h3>
+      <ul>
+        {% for line in decision_card.triggered_rules %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if decision_card.reasons and decision_card.reasons|length > 0 %}
+      <h3>Why This Tier</h3>
+      <ul>
+        {% for line in decision_card.reasons %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if display.show_sources and decision_card.policy_rules and decision_card.policy_rules|length > 0 %}
+      <h3>Traffic-Light Policy</h3>
+      <ul class="small">
+        {% for line in decision_card.policy_rules %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+
+      {% if decision_card.actions and decision_card.actions|length > 0 %}
+      <h3>Next Actions</h3>
+      <ol class="quick-list">
+        {% for line in decision_card.actions %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ol>
+      {% endif %}
+    </section>
+    {% endif %}
 
     {% if spend_effect and spend_effect.available %}
     <h2>Spend vs Effect Alignment</h2>
@@ -1268,8 +1323,11 @@
       </div>
       <p class="small">QC window: mu in [{{ qc_gate.mu_values|join(", ") }}], sigma in [{{ qc_gate.sigma_values|join(", ") }}], dist in [{{ qc_gate.dists|join(", ") }}].</p>
       <p class="small">Outside QC window: PASS {{ qc_gate.overview.outside_counts.PASS }}, REVIEW {{ qc_gate.overview.outside_counts.REVIEW }}, FAIL {{ qc_gate.overview.outside_counts.FAIL }}.</p>
+      {% if display.qc_gate_level != "full" %}
+      <p class="small">Concise mode: detailed QC scenario tables are hidden. Use <code>qc_gate_level: "full"</code> for full scenario-level diagnostics.</p>
+      {% endif %}
 
-      {% if qc_gate.status_rows and qc_gate.status_rows|length > 0 %}
+      {% if display.qc_gate_level == "full" and qc_gate.status_rows and qc_gate.status_rows|length > 0 %}
       <h3>QC Window Status Breakdown</h3>
       <div class="table-scroll">
         <table>
@@ -1293,7 +1351,7 @@
       </div>
       {% endif %}
 
-      {% if qc_gate.run_rows and qc_gate.run_rows|length > 0 %}
+      {% if display.qc_gate_level == "full" and qc_gate.run_rows and qc_gate.run_rows|length > 0 %}
       <h3>QC Window Runs</h3>
       <p class="small">Each row is one predefined QC scenario (not random sampling).</p>
       <div class="table-scroll">

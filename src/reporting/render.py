@@ -138,6 +138,7 @@ def render_html_report(
     scope = metrics.get("scope", {})
     diagnostics = metrics.get("diagnostics", {"available": False})
     qc_gate = metrics.get("qc_gate", {"available": False})
+    decision_card = metrics.get("decision_card", {"available": False})
     dollar = metrics.get("dollar", {"available": False})
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
     spend_effect = metrics.get("spend_effect", {"available": False})
@@ -355,6 +356,28 @@ def render_html_report(
             "quick_lines": qc_gate.get("quick_lines", []),
         }
 
+    decision_card_block = {"available": False}
+    if decision_card.get("available"):
+        tier = str(decision_card.get("tier", "YELLOW")).upper()
+        tier_class = {
+            "GREEN": "pass",
+            "YELLOW": "review",
+            "RED": "fail",
+        }.get(tier, "review")
+        decision_card_block = {
+            "available": True,
+            "tier": tier,
+            "tier_class": tier_class,
+            "headline": _clean_text_safe(decision_card.get("headline"), ""),
+            "score_label": _clean_text_safe(decision_card.get("score_label"), ""),
+            "score_value": _clean_text_safe(decision_card.get("score_value"), ""),
+            "policy_name": _clean_text_safe(decision_card.get("policy_name"), ""),
+            "policy_rules": decision_card.get("policy_rules", []),
+            "triggered_rules": decision_card.get("triggered_rules", []),
+            "reasons": decision_card.get("reasons", []),
+            "actions": decision_card.get("actions", []),
+        }
+
     spend_effect_block = {"available": False}
     if spend_effect.get("available"):
         table_df = spend_effect.get("table_df", None)
@@ -540,6 +563,7 @@ def render_html_report(
         diagnostics=diagnostics,
         diagnostics_focus=diagnostics_focus,
         qc_gate=qc_gate_block,
+        decision_card=decision_card_block,
         dollar=dollar_block,
         scenario_snapshot=scenario_block,
         spend_effect=spend_effect_block,

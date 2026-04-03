@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
@@ -533,6 +533,160 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
         "rank_rows": rank_df.head(8).to_dict(orient="records") if not rank_df.empty else [],
         "quick_lines": quick_lines,
     }
+
+def _compute_decision_card(
+    diagnostics: dict,
+    qc_gate: dict,
+    rank_df: pd.DataFrame,
+    cfg: dict,
+) -> dict:
+    hi = float(cfg["thresholds"]["high_sensitivity_pct"])
+    med = float(cfg["thresholds"]["medium_sensitivity_pct"])
+    policy_cfg = cfg.get("decision_policy", {}) or {}
+
+    policy_name = str(
+        policy_cfg.get(
+            "name",
+            "Traffic-Light Policy v1 (pre-robustness score)",
+        )
+    )
+    require_qc_gate_for_green = bool(policy_cfg.get("require_qc_gate_for_green", True))
+    max_diag_fail_for_green = int(policy_cfg.get("max_diag_fail_runs_for_green", 0) or 0)
+    max_diag_review_for_green = int(policy_cfg.get("max_diag_review_runs_for_green", 5) or 0)
+    red_on_qc_fail = bool(policy_cfg.get("red_on_qc_fail", True))
+    red_on_no_qc_with_fail = bool(policy_cfg.get("red_on_no_qc_with_fail", True))
+    yellow_on_sensitivity_ge_high = bool(policy_cfg.get("yellow_on_sensitivity_ge_high", True))
+
+    top_channel = None
+    top_dist = None
+    top_max_abs = None
+    if rank_df is not None and not rank_df.empty:
+        r0 = rank_df.iloc[0]
+        top_channel = str(r0.get("channel")) if pd.notna(r0.get("channel")) else None
+        top_dist = str(r0.get("roi_prior_dist")) if pd.notna(r0.get("roi_prior_dist")) else None
+        try:
+            top_max_abs = float(r0.get("max_abs_pct_change"))
+        except Exception:
+            top_max_abs = None
+
+    diag_overview = diagnostics.get("overview", {}) if diagnostics else {}
+    diag_pass_rate = float(diag_overview.get("pass_rate_pct", 0.0) or 0.0)
+    diag_fail_runs = int(diag_overview.get("fail_runs", 0) or 0)
+    diag_review_runs = int(diag_overview.get("review_runs", 0) or 0)
+
+    gate_available = bool(qc_gate and qc_gate.get("available"))
+    gate_result = str(qc_gate.get("result", "REVIEW")).upper() if gate_available else "UNKNOWN"
+
+    sensitivity_level = "unknown"
+    if top_max_abs is not None:
+        if top_max_abs >= hi:
+            sensitivity_level = "high"
+        elif top_max_abs >= med:
+            sensitivity_level = "medium"
+        else:
+            sensitivity_level = "low"
+
+    triggered_rules: list[str] = []
+
+    if red_on_qc_fail and gate_available and gate_result == "FAIL":
+        tier = "RED"
+        headline = "Not decision-ready; QC gate failed."
+        triggered_rules.append("RED rule: QC gate result is FAIL.")
+    elif red_on_no_qc_with_fail and (not gate_available) and diag_fail_runs > 0:
+        tier = "RED"
+        headline = "Not decision-ready; diagnostics have failures and QC gate is missing."
+        triggered_rules.append("RED rule: QC gate missing while diagnostics include FAIL runs.")
+    else:
+        yellow_reasons: list[str] = []
+        if require_qc_gate_for_green and not gate_available:
+            yellow_reasons.append("QC gate is missing")
+        if gate_available and gate_result == "REVIEW":
+            yellow_reasons.append("QC gate result is REVIEW")
+        if diag_fail_runs > max_diag_fail_for_green:
+            yellow_reasons.append(
+                f"diagnostics FAIL runs ({diag_fail_runs}) exceed green limit ({max_diag_fail_for_green})"
+            )
+        if diag_review_runs > max_diag_review_for_green:
+            yellow_reasons.append(
+                f"diagnostics REVIEW runs ({diag_review_runs}) exceed green limit ({max_diag_review_for_green})"
+            )
+        if yellow_on_sensitivity_ge_high and top_max_abs is not None and top_max_abs >= hi:
+            yellow_reasons.append(
+                f"top sensitivity {top_max_abs:.1f}% reaches high threshold {hi:.1f}%"
+            )
+
+        if yellow_reasons:
+            tier = "YELLOW"
+            headline = "Directional only; resolve QC or stability risks before budget-level decisions."
+            for y in yellow_reasons:
+                triggered_rules.append(f"YELLOW rule: {y}.")
+        else:
+            tier = "GREEN"
+            headline = "Ready for decision use with the current QC window."
+            triggered_rules.append("GREEN rule: QC gate and diagnostics are within green limits.")
+
+    policy_rules = [
+        "RED: QC gate FAIL, or QC gate missing while diagnostics include FAIL runs.",
+        (
+            "YELLOW: QC gate REVIEW/missing, diagnostics beyond green limits, "
+            f"or top sensitivity >= {hi:.1f}%."
+        ),
+        (
+            "GREEN: QC gate PASS, diagnostics within limits "
+            f"(FAIL <= {max_diag_fail_for_green}, REVIEW <= {max_diag_review_for_green}), "
+            f"and top sensitivity < {hi:.1f}%."
+        ),
+    ]
+
+    reasons: list[str] = []
+    reasons.append(
+        f"Broad exploration diagnostics: PASS {diag_pass_rate:.1f}%, REVIEW {diag_review_runs}, FAIL {diag_fail_runs}."
+    )
+    if gate_available:
+        g = qc_gate.get("overview", {}) or {}
+        reasons.append(
+            "QC gate window: "
+            f"{int(g.get('n_qc_runs', 0) or 0)} run(s), "
+            f"PASS {int(g.get('pass_runs', 0) or 0)}, "
+            f"REVIEW {int(g.get('review_runs', 0) or 0)}, "
+            f"FAIL {int(g.get('fail_runs', 0) or 0)}."
+        )
+    else:
+        reasons.append("QC gate window has not been configured or did not match any run.")
+
+    if top_channel is not None and top_max_abs is not None:
+        reasons.append(
+            f"Most sensitive channel-prior pair: {top_channel} ({top_dist}), "
+            f"max |% change|={top_max_abs:.1f}% (medium>={med:.1f}%, high>={hi:.1f}%)."
+        )
+
+    actions: list[str] = []
+    if tier == "GREEN":
+        actions.append("Use the QC gate window as the default operating prior range.")
+        actions.append("Monitor drift each refresh by rerunning the same QC gate scenarios.")
+        actions.append("Escalate to 8-run/18-run only if gate status drops below PASS.")
+    elif tier == "YELLOW":
+        actions.append("Keep conclusions directional; avoid hard budget shifts from single-run snapshots.")
+        actions.append("Prioritize reruns around the most sensitive channel-prior combinations.")
+        actions.append("Require QC gate PASS plus robustness score before production decision workflow.")
+    else:
+        actions.append("Do not use this result set for budget decisions yet.")
+        actions.append("Run a broader prior sweep and recompute diagnostics/QC gate.")
+        actions.append("Re-baseline score after improving unstable channels and failing checks.")
+
+    return {
+        "available": True,
+        "tier": tier,
+        "headline": headline,
+        "score_label": "Pending Robustness Score",
+        "score_value": "N/A (awaiting score pipeline)",
+        "policy_name": policy_name,
+        "policy_rules": policy_rules,
+        "triggered_rules": triggered_rules,
+        "reasons": reasons,
+        "actions": actions,
+    }
+
 def _compute_dollar_sensitivity(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     source = None
     if "delta_value" in merged.columns:
@@ -1357,6 +1511,8 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
             f"or adding holdout validation."
         )
 
+    decision_card = _compute_decision_card(diagnostics, qc_gate, rank, cfg)
+
     overview = {
         "n_rows": int(df.shape[0]),
         "n_target_sets": int(df["target_channel"].nunique()),
@@ -1379,6 +1535,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "spend_effect": spend_effect,
         "structural": structural,
         "qc_gate": qc_gate,
+        "decision_card": decision_card,
         "baseline_df": baseline_df,
         "rank_df": rank,
         "rank_top_df": rank_top,
@@ -1386,15 +1543,3 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
     }
-
-
-
-
-
-
-
-
-
-
-
-
