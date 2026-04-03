@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
@@ -21,6 +21,10 @@ DEFAULT_STRUCTURAL = {
     "max_lag": 8,
     "adstock_decay_spec": "geometric",
 }
+
+DEFAULT_QC_GATE_MU = [0.020759, 0.051898]
+DEFAULT_QC_GATE_SIGMA = [0.006689, 0.033445]
+DEFAULT_QC_GATE_DISTS = ["Normal"]
 
 def _fmt_money_short(x: float) -> str:
     sign = "-" if x < 0 else ""
@@ -311,6 +315,224 @@ def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
     }
 
 
+
+def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
+    qc_cfg = cfg.get("analysis", {}).get("qc_gate", {}) or {}
+    enabled = bool(qc_cfg.get("enabled", False))
+    if not enabled:
+        return {"available": False, "enabled": False, "reason": "QC gate disabled in report config."}
+
+    if run_level_df.empty:
+        return {"available": False, "enabled": True, "reason": "No rows available."}
+
+    if "run_id" in run_level_df.columns:
+        run_rows = run_level_df.drop_duplicates(subset=["run_id"]).copy()
+    else:
+        key_cols = [
+            c
+            for c in ["target_channel", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"]
+            if c in run_level_df.columns
+        ]
+        run_rows = run_level_df.drop_duplicates(subset=key_cols).copy() if key_cols else run_level_df.copy()
+
+    required = {"roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}
+    if not required.issubset(run_rows.columns):
+        missing = sorted(required - set(run_rows.columns))
+        return {
+            "available": False,
+            "enabled": True,
+            "reason": f"Missing required columns for QC gate: {missing}",
+        }
+
+    def _to_float_list(raw_values, defaults: list[float]) -> list[float]:
+        vals = raw_values if isinstance(raw_values, list) and raw_values else defaults
+        out: list[float] = []
+        for v in vals:
+            try:
+                out.append(round(float(v), 6))
+            except Exception:
+                continue
+        return sorted(set(out))
+
+    def _to_str_list(raw_values, defaults: list[str]) -> list[str]:
+        vals = raw_values if isinstance(raw_values, list) and raw_values else defaults
+        out: list[str] = []
+        for v in vals:
+            s = str(v).strip()
+            if s:
+                out.append(s)
+        return sorted(set(out))
+
+    mu_values = _to_float_list(qc_cfg.get("mu_values"), DEFAULT_QC_GATE_MU)
+    sigma_values = _to_float_list(qc_cfg.get("sigma_values"), DEFAULT_QC_GATE_SIGMA)
+    dists = _to_str_list(qc_cfg.get("dists"), DEFAULT_QC_GATE_DISTS)
+
+    if not mu_values or not sigma_values or not dists:
+        return {
+            "available": False,
+            "enabled": True,
+            "reason": "QC gate config has empty mu/sigma/dist lists.",
+        }
+
+    if "qc_status_code" in run_rows.columns:
+        run_rows["qc_status_bucket"] = run_rows["qc_status_code"].map(_status_bucket)
+    elif "qc_summary_short" in run_rows.columns:
+        run_rows["qc_status_bucket"] = run_rows["qc_summary_short"].map(_status_bucket)
+    else:
+        run_rows["qc_status_bucket"] = "UNKNOWN"
+
+    run_rows["_mu"] = pd.to_numeric(run_rows["roi_prior_mu"], errors="coerce").round(6)
+    run_rows["_sigma"] = pd.to_numeric(run_rows["roi_prior_sigma"], errors="coerce").round(6)
+    run_rows["_dist"] = run_rows["roi_prior_dist"].astype(str).str.strip()
+
+    subset = run_rows[
+        run_rows["_mu"].isin(mu_values)
+        & run_rows["_sigma"].isin(sigma_values)
+        & run_rows["_dist"].isin(dists)
+    ].copy()
+
+    if subset.empty:
+        return {
+            "available": False,
+            "enabled": True,
+            "reason": "No runs matched configured QC gate window.",
+            "mu_values": mu_values,
+            "sigma_values": sigma_values,
+            "dists": dists,
+        }
+
+    subset_ids = set(subset["run_id"].astype(str).tolist()) if "run_id" in subset.columns else set()
+    outside = run_rows.copy()
+    if subset_ids and "run_id" in outside.columns:
+        outside = outside[~outside["run_id"].astype(str).isin(subset_ids)].copy()
+
+    n_total = int(run_rows.shape[0])
+    n_qc = int(subset.shape[0])
+    n_pass = int((subset["qc_status_bucket"] == "PASS").sum())
+    n_review = int((subset["qc_status_bucket"] == "REVIEW").sum())
+    n_fail = int((subset["qc_status_bucket"] == "FAIL").sum())
+    pass_rate_pct = 100.0 * n_pass / float(n_qc) if n_qc > 0 else 0.0
+    gate_result = "PASS" if (n_review == 0 and n_fail == 0 and n_qc > 0) else "REVIEW"
+
+    status_order = ["PASS", "REVIEW", "FAIL", "UNKNOWN"]
+    status_counts = subset["qc_status_bucket"].value_counts()
+    status_df = pd.DataFrame(
+        {
+            "status": status_order,
+            "count": [int(status_counts.get(s, 0)) for s in status_order],
+        }
+    )
+    status_df["pct_runs"] = np.where(n_qc > 0, 100.0 * status_df["count"] / float(n_qc), 0.0)
+    status_df = status_df[status_df["count"] > 0].reset_index(drop=True)
+
+    outside_counts_raw = outside["qc_status_bucket"].value_counts().to_dict()
+    outside_counts = {
+        "PASS": int(outside_counts_raw.get("PASS", 0)),
+        "REVIEW": int(outside_counts_raw.get("REVIEW", 0)),
+        "FAIL": int(outside_counts_raw.get("FAIL", 0)),
+        "UNKNOWN": int(outside_counts_raw.get("UNKNOWN", 0)),
+    }
+
+    mean_r2 = pd.to_numeric(subset.get("qc_r2", pd.Series(dtype=float)), errors="coerce").mean()
+    mean_mape = pd.to_numeric(subset.get("qc_mape", pd.Series(dtype=float)), errors="coerce").mean()
+    mean_wmape = pd.to_numeric(subset.get("qc_wmape", pd.Series(dtype=float)), errors="coerce").mean()
+    max_baseline_neg_prob = pd.to_numeric(
+        subset.get("qc_baseline_neg_prob", pd.Series(dtype=float)), errors="coerce"
+    ).max()
+
+    run_cols = [
+        c
+        for c in [
+            "run_id",
+            "roi_prior_mu",
+            "roi_prior_sigma",
+            "roi_prior_dist",
+            "qc_status_code",
+            "qc_primary_review_check",
+            "qc_flagged_channels",
+            "qc_baseline_neg_prob",
+            "qc_r2",
+            "qc_mape",
+            "qc_wmape",
+        ]
+        if c in subset.columns
+    ]
+    run_subset_df = subset[run_cols].copy().sort_values(
+        [c for c in ["roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"] if c in run_cols],
+        ascending=True,
+    )
+
+    run_subset_df.to_csv(tables_dir / "qc_gate_run_subset.csv", index=False)
+    status_df.to_csv(tables_dir / "qc_gate_status_breakdown.csv", index=False)
+
+    rank_metric = None
+    rank_df = pd.DataFrame()
+    if not merged_df.empty and {"run_id", "channel"}.issubset(merged_df.columns):
+        qmerged = merged_df.copy()
+        if subset_ids:
+            qmerged = qmerged[qmerged["run_id"].astype(str).isin(subset_ids)].copy()
+
+        metric_candidates = ["delta_value_abs", "delta_outcome_abs", "delta_abs", "abs_pct_change"]
+        for c in metric_candidates:
+            if c in qmerged.columns:
+                rank_metric = c
+                break
+
+        if rank_metric is not None and not qmerged.empty:
+            qmerged[rank_metric] = pd.to_numeric(qmerged[rank_metric], errors="coerce")
+            rank_df = (
+                qmerged.groupby("channel", as_index=False)[rank_metric]
+                .agg(["max", "median", "mean", "count"])
+                .reset_index()
+                .rename(
+                    columns={
+                        "max": "max_change",
+                        "median": "median_change",
+                        "mean": "mean_change",
+                        "count": "n",
+                    }
+                )
+                .sort_values("max_change", ascending=False, na_position="last")
+                .reset_index(drop=True)
+            )
+            rank_df.to_csv(tables_dir / "qc_gate_channel_sensitivity.csv", index=False)
+
+    quick_lines: list[str] = []
+    if not rank_df.empty and rank_metric is not None:
+        for row in rank_df.head(5).itertuples(index=False):
+            if rank_metric == "delta_value_abs":
+                quick_lines.append(f"{row.channel}: max={_fmt_money_short(row.max_change)} (n={int(row.n)})")
+            elif rank_metric == "abs_pct_change":
+                quick_lines.append(f"{row.channel}: max={float(row.max_change):.2f}% (n={int(row.n)})")
+            else:
+                quick_lines.append(f"{row.channel}: max={float(row.max_change):.4f} (n={int(row.n)})")
+
+    return {
+        "available": True,
+        "enabled": True,
+        "result": gate_result,
+        "mu_values": mu_values,
+        "sigma_values": sigma_values,
+        "dists": dists,
+        "overview": {
+            "n_total_runs": n_total,
+            "n_qc_runs": n_qc,
+            "pass_runs": n_pass,
+            "review_runs": n_review,
+            "fail_runs": n_fail,
+            "pass_rate_pct": pass_rate_pct,
+            "outside_counts": outside_counts,
+            "mean_r2": None if pd.isna(mean_r2) else float(mean_r2),
+            "mean_mape": None if pd.isna(mean_mape) else float(mean_mape),
+            "mean_wmape": None if pd.isna(mean_wmape) else float(mean_wmape),
+            "max_baseline_neg_prob": None if pd.isna(max_baseline_neg_prob) else float(max_baseline_neg_prob),
+        },
+        "status_rows": status_df.to_dict(orient="records"),
+        "run_rows": run_subset_df.to_dict(orient="records"),
+        "rank_metric": rank_metric,
+        "rank_rows": rank_df.head(8).to_dict(orient="records") if not rank_df.empty else [],
+        "quick_lines": quick_lines,
+    }
 def _compute_dollar_sensitivity(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     source = None
     if "delta_value" in merged.columns:
@@ -1092,6 +1314,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     scenario_snapshot = _compute_scenario_snapshot(merged, cfg, tables_dir)
     spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
     structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
+    qc_gate = _compute_qc_gate(df, merged, cfg, tables_dir)
 
     rank = (
         merged.groupby(["channel", "roi_prior_dist"], as_index=False)
@@ -1155,6 +1378,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "scenario_snapshot": scenario_snapshot,
         "spend_effect": spend_effect,
         "structural": structural,
+        "qc_gate": qc_gate,
         "baseline_df": baseline_df,
         "rank_df": rank,
         "rank_top_df": rank_top,
@@ -1162,6 +1386,12 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
     }
+
+
+
+
+
+
 
 
 

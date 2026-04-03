@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 
@@ -18,6 +19,37 @@ def _fmt_money(x: float) -> str:
         return f"{sign}${av/1_000:.1f}K"
     return f"{sign}${av:,.2f}"
 
+
+
+def _is_missing_value(x) -> bool:
+    if x is None:
+        return True
+    if isinstance(x, str):
+        s = x.strip().lower()
+        return s in {"", "nan", "na", "n/a", "none", "null"}
+    try:
+        return math.isnan(float(x))
+    except Exception:
+        return False
+
+
+def _fmt_float_safe(x, digits: int = 6, missing_label: str = "-") -> str:
+    if _is_missing_value(x):
+        return missing_label
+    return f"{float(x):.{digits}f}"
+
+
+def _clean_text_safe(x, missing_label: str = "-") -> str:
+    if _is_missing_value(x):
+        return missing_label
+    return str(x).strip()
+
+
+def _truncate_text(s: str, max_len: int = 58) -> str:
+    text = str(s)
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1] + "..."
 
 def _load_theory_block(cfg: dict) -> dict:
     theory_cfg = cfg.get("theory", {})
@@ -105,10 +137,28 @@ def render_html_report(
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
     diagnostics = metrics.get("diagnostics", {"available": False})
+    qc_gate = metrics.get("qc_gate", {"available": False})
     dollar = metrics.get("dollar", {"available": False})
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
     spend_effect = metrics.get("spend_effect", {"available": False})
     structural = metrics.get("structural", {"available": False})
+    presentation_cfg = cfg.get("presentation", {}) or {}
+    diagnostics_level = str(presentation_cfg.get("diagnostics_level", "concise")).strip().lower()
+    structural_level = str(presentation_cfg.get("structural_level", "concise")).strip().lower()
+    qc_gate_level = str(presentation_cfg.get("qc_gate_level", "concise")).strip().lower()
+    show_sources = bool(presentation_cfg.get("show_sources", False))
+    if diagnostics_level not in {"hide", "concise", "full"}:
+        diagnostics_level = "concise"
+    if structural_level not in {"hide", "concise", "full"}:
+        structural_level = "concise"
+    if qc_gate_level not in {"concise", "full"}:
+        qc_gate_level = "concise"
+    display_block = {
+        "diagnostics_level": diagnostics_level,
+        "structural_level": structural_level,
+        "qc_gate_level": qc_gate_level,
+        "show_sources": show_sources,
+    }
 
     linked_targets = scope.get("linked_targets", [])
     target_sets = scope.get("target_sets", [])
@@ -171,6 +221,15 @@ def render_html_report(
                 "tables/diagnostics_check_matrix.csv",
             ]
         )
+    if qc_gate.get("available"):
+        appendix_tables.extend(
+            [
+                "tables/qc_gate_run_subset.csv",
+                "tables/qc_gate_status_breakdown.csv",
+            ]
+        )
+        if qc_gate.get("rank_rows"):
+            appendix_tables.append("tables/qc_gate_channel_sensitivity.csv")
     if dollar.get("available"):
         appendix_tables.append("tables/dollar_sensitivity_rank.csv")
     if scenario_snapshot.get("available"):
@@ -214,6 +273,86 @@ def render_html_report(
             "dollars_per_subscription_note": dollar.get("dollars_per_subscription_note", "unknown"),
             "quick_lines": dollar.get("quick_lines", []),
             "rank_rows": dollar_top_df.to_dict(orient="records"),
+        }
+    qc_gate_block = {"available": False}
+    if qc_gate.get("available"):
+        run_rows = []
+        for idx, row in enumerate(qc_gate.get("run_rows", []), start=1):
+            status = _clean_text_safe(row.get("qc_status_code"), "UNKNOWN")
+            primary_check = _clean_text_safe(row.get("qc_primary_review_check"), "")
+            if primary_check == "-":
+                primary_check = ""
+            flagged_channels = _clean_text_safe(row.get("qc_flagged_channels"), "")
+            if flagged_channels == "-":
+                flagged_channels = ""
+            baseline_neg_prob = (
+                None
+                if _is_missing_value(row.get("qc_baseline_neg_prob"))
+                else f"{float(row.get('qc_baseline_neg_prob')):.2f}"
+            )
+
+            notes_parts = []
+            if primary_check:
+                notes_parts.append(f"check: {primary_check}")
+            if flagged_channels:
+                notes_parts.append(f"flags: {flagged_channels}")
+            if baseline_neg_prob is not None:
+                notes_parts.append(f"baseline neg prob: {baseline_neg_prob}")
+            review_notes = (
+                "; ".join(notes_parts)
+                if notes_parts
+                else ("all core checks pass" if status == "PASS" else "no additional notes")
+            )
+
+            run_id_text = _clean_text_safe(row.get("run_id"), "")
+            run_rows.append(
+                {
+                    "scenario_id": f"Q{idx}",
+                    "run_id": run_id_text,
+                    "run_id_short": _truncate_text(run_id_text, max_len=64) if run_id_text else "",
+                    "roi_prior_mu": _fmt_float_safe(row.get("roi_prior_mu"), digits=6),
+                    "roi_prior_sigma": _fmt_float_safe(row.get("roi_prior_sigma"), digits=6),
+                    "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), "-"),
+                    "qc_status_code": status,
+                    "review_notes": review_notes,
+                }
+            )
+
+        rank_rows = []
+        for row in qc_gate.get("rank_rows", []):
+            rank_rows.append(
+                {
+                    "channel": row.get("channel"),
+                    "max_change": (
+                        "NA"
+                        if row.get("max_change") is None
+                        else _fmt_money(float(row.get("max_change")))
+                        if qc_gate.get("rank_metric") == "delta_value_abs"
+                        else f"{float(row.get('max_change')):.4f}"
+                    ),
+                    "median_change": (
+                        "NA"
+                        if row.get("median_change") is None
+                        else _fmt_money(float(row.get("median_change")))
+                        if qc_gate.get("rank_metric") == "delta_value_abs"
+                        else f"{float(row.get('median_change')):.4f}"
+                    ),
+                    "n": int(row.get("n", 0) or 0),
+                }
+            )
+
+        qc_gate_block = {
+            "available": True,
+            "result": qc_gate.get("result", "REVIEW"),
+            "mu_values": [_fmt_float_safe(v, digits=6, missing_label="NA") for v in qc_gate.get("mu_values", [])],
+            "sigma_values": [_fmt_float_safe(v, digits=6, missing_label="NA") for v in qc_gate.get("sigma_values", [])],
+            "dists": qc_gate.get("dists", []),
+            "overview": qc_gate.get("overview", {}),
+            "status_rows": qc_gate.get("status_rows", []),
+            "run_rows": run_rows,
+            "rank_metric": qc_gate.get("rank_metric"),
+            "rank_rows": rank_rows,
+            "quick_lines": qc_gate.get("quick_lines", []),
         }
 
     spend_effect_block = {"available": False}
@@ -369,6 +508,28 @@ def render_html_report(
             "profile_rows": profile_rows,
             "run_rows": run_rows,
         }
+
+    diagnostics_focus = []
+    if diagnostics.get("available"):
+        overview_diag = diagnostics.get("overview", {}) or {}
+        n_fail = int(overview_diag.get("fail_runs", 0) or 0)
+        n_review = int(overview_diag.get("review_runs", 0) or 0)
+        if n_fail == 0 and n_review == 0:
+            diagnostics_focus.append("All explored runs passed diagnostics.")
+        else:
+            diagnostics_focus.append(
+                f"{n_fail} fail and {n_review} review run(s) were observed in broad exploration."
+            )
+            diagnostics_focus.append(
+                "These diagnostics are used to define safe default windows; out-of-window runs are not used as defaults."
+            )
+        primary_rows = diagnostics.get("primary_rows") or []
+        if primary_rows:
+            first = primary_rows[0]
+            diagnostics_focus.append(
+                f"Main issue driver: {first.get('check', 'unknown')} ({int(first.get('count', 0) or 0)} run(s))."
+            )
+
     html = template.render(
         meta=meta,
         methods=methods,
@@ -377,10 +538,13 @@ def render_html_report(
         scope=scope_block,
         overview=overview,
         diagnostics=diagnostics,
+        diagnostics_focus=diagnostics_focus,
+        qc_gate=qc_gate_block,
         dollar=dollar_block,
         scenario_snapshot=scenario_block,
         spend_effect=spend_effect_block,
         structural=structural_block,
+        display=display_block,
         quick_overview_lines=metrics.get("quick_overview_lines", []),
         rank_table=rank_table_df.to_dict(orient="records"),
         recommendations=metrics["recommendations"],
@@ -414,11 +578,3 @@ def render_html_report(
 
     out_path = outdir / cfg["output"]["report_filename"]
     out_path.write_text(html, encoding="utf-8")
-
-
-
-
-
-
-
-

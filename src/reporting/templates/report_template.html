@@ -305,6 +305,54 @@
       font-weight: 700;
     }
     tbody tr:nth-child(even) { background: #f9fcff; }
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      overflow-y: hidden;
+      margin-top: 8px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-scroll table {
+      min-width: 640px;
+      margin-top: 0;
+    }
+    .qc-run-meta {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.73rem;
+      color: #5b7090;
+      font-family: Consolas, "SFMono-Regular", Menlo, monospace;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      line-height: 1.2;
+    }
+    .status-pill {
+      display: inline-block;
+      border-radius: 999px;
+      border: 1px solid #c8d9ef;
+      padding: 1px 9px;
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      background: #edf4ff;
+      color: #264a7a;
+      text-transform: uppercase;
+    }
+    .status-pill.pass {
+      background: #e9f7f0;
+      border-color: #bde6d3;
+      color: #1f7254;
+    }
+    .status-pill.review {
+      background: #fff4e7;
+      border-color: #f1d9b8;
+      color: #8b5a1f;
+    }
+    .status-pill.fail {
+      background: #fdeaea;
+      border-color: #efc3c3;
+      color: #a13e3e;
+    }
 
     .quick-list {
       margin: 6px 0 8px 18px;
@@ -619,6 +667,7 @@
       <p class="note">{{ scope.note }}</p>
     </section>
 
+    {% if display.show_sources %}
     <h2>Input Sources</h2>
     <section class="card">
       <p class="small">Exact files used to build this report.</p>
@@ -655,6 +704,7 @@
         </tbody>
       </table>
     </section>
+    {% endif %}
 
     {% if introduction and introduction.paragraphs and introduction.paragraphs|length > 0 %}
     <h2>{{ introduction.title }}</h2>
@@ -668,7 +718,10 @@
     {% if theory and theory.available %}
     <h2>{{ theory.title }}</h2>
     <section class="card">
-      <p class="small">Source linked from <code>{{ theory.source_tex }}</code>. Hover the button for quick context, then click to open the full math linkage panel.</p>
+      <p class="small">Hover the button for quick context, then click to open the full math linkage panel.</p>
+      {% if display.show_sources %}
+      <p class="small">Theory file: <code>{{ theory.source_tex }}</code></p>
+      {% endif %}
       {% if theory.highlights and theory.highlights|length > 0 %}
       <ul>
         {% for x in theory.highlights %}
@@ -693,7 +746,9 @@
       <section class="theory-dialog">
         <button id="theory-close-btn" type="button" class="theory-close-btn" aria-label="Close theory panel">x</button>
         <h2 style="margin-top:0;">Math Theory Linkage</h2>
+        {% if display.show_sources %}
         <p class="small">Pulled from <code>{{ theory.source_tex }}</code> to keep analysis interpretation tied to your written theory notes.</p>
+        {% endif %}
         <div class="theory-grid">
           <section class="theory-panel">
             <h3>Subsection Map</h3>
@@ -761,7 +816,7 @@
       </table>
 
       <p class="warn">Interpretation note: very small baseline ROI can inflate percent changes; use ranking as directional sensitivity signal.</p>
-      <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code> (source: {{ overview.pct_source }}).</p>
+      <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code>.</p>
 
       <ul>
         {% for rec in recommendations %}
@@ -774,9 +829,10 @@
     {% if spend_effect and spend_effect.available %}
     <h2>Spend vs Effect Alignment</h2>
     <section class="card">
-      <p class="small">
-        Selected run: {{ spend_effect.selected_run_id }} | spend source: {{ spend_effect.spend_source }} | effect source: {{ spend_effect.effect_source }}
-      </p>
+      <p class="small">Selected run: {{ spend_effect.selected_run_id }}</p>
+      {% if display.show_sources %}
+      <p class="small">Spend source: {{ spend_effect.spend_source }} | Effect source: {{ spend_effect.effect_source }}</p>
+      {% endif %}
 
       {% if figures.spend_effect %}
       <section class="figure">
@@ -833,36 +889,49 @@
     </section>
     {% endif %}
 
-    {% if structural and structural.available %}
+    {% if structural and structural.available and display.structural_level != "hide" %}
     <h2>Structural Sensitivity (Adstock + Saturation)</h2>
     <section class="card">
       <p class="small">
-        Selected reference run: {{ structural.selected_run_id }}
-        {% if structural.selected_profile_id %}| profile={{ structural.selected_profile_id }}{% endif %}
+        Selected reference run:
+        {% if structural.selected_run_id and structural.selected_run_id|length > 96 %}
+        <span class="path-cell" title="{{ structural.selected_run_id }}">{{ structural.selected_run_id[:96] }}...</span>
+        {% else %}
+        <span class="path-cell">{{ structural.selected_run_id }}</span>
+        {% endif %}
+        {% if structural.selected_profile_id %}| profile=<span class="path-cell">{{ structural.selected_profile_id }}</span>{% endif %}
       </p>
 
-      {% if figures.adstock_curves %}
+      {% if display.structural_level != "full" %}
+      <p class="small">Structural parameters are fixed in this experiment; detailed structural tables are hidden in concise mode.</p>
+      {% if structural.profile_rows and structural.profile_rows|length > 0 %}
+      {% set p0 = structural.profile_rows[0] %}
+      <p class="small">Active profile: alpha={{ p0.adstock_alpha_m }}, ec={{ p0.saturation_ec_m }}, slope={{ p0.saturation_slope_m }}, lag={{ p0.max_lag }}, decay={{ p0.adstock_decay_spec }}.</p>
+      {% endif %}
+      {% endif %}
+
+      {% if display.structural_level != "hide" and figures.adstock_curves %}
       <section class="figure">
         <img src="{{ figures.adstock_curves }}" alt="Adstock decay curves">
         <div class="cap">Normalized adstock decay weights by lag for top structural profiles.</div>
       </section>
       {% endif %}
 
-      {% if figures.saturation_curves %}
+      {% if display.structural_level != "hide" and figures.saturation_curves %}
       <section class="figure">
         <img src="{{ figures.saturation_curves }}" alt="Saturation response curves">
         <div class="cap">Hill saturation response curves over relative spend index [0, 3].</div>
       </section>
       {% endif %}
 
-      {% if figures.carryover_decomposition %}
+      {% if display.structural_level != "hide" and figures.carryover_decomposition %}
       <section class="figure">
         <img src="{{ figures.carryover_decomposition }}" alt="Immediate versus carryover decomposition">
         <div class="cap">Reference-channel decomposition into immediate and carryover components.</div>
       </section>
       {% endif %}
 
-      {% if structural.profile_rows and structural.profile_rows|length > 0 %}
+      {% if display.structural_level == "full" and structural.profile_rows and structural.profile_rows|length > 0 %}
       <h3>Structural Profiles</h3>
       <table>
         <thead>
@@ -900,7 +969,7 @@
       </table>
       {% endif %}
 
-      {% if structural.run_rows and structural.run_rows|length > 0 %}
+      {% if display.structural_level == "full" and structural.run_rows and structural.run_rows|length > 0 %}
       <h3>Run-Level Structural Table</h3>
       <table>
         <thead>
@@ -940,7 +1009,7 @@
       </table>
       {% endif %}
 
-      {% if structural.notes and structural.notes|length > 0 %}
+      {% if display.structural_level == "full" and structural.notes and structural.notes|length > 0 %}
       <ul>
         {% for note in structural.notes %}
         <li>{{ note }}</li>
@@ -953,9 +1022,10 @@
     {% if dollar and dollar.available %}
     <h2>Dollar Sensitivity Summary</h2>
     <section class="card">
-      <p class="small">
-        Source: {{ dollar.source }} | Range mode: {{ dollar.range_mode }} | Dollars per subscription: {{ dollar.dollars_per_subscription_note }}
-      </p>
+      <p class="small">Range mode: {{ dollar.range_mode }} | Dollars per subscription: {{ dollar.dollars_per_subscription_note }}</p>
+      {% if display.show_sources %}
+      <p class="small">Computation source: {{ dollar.source }}</p>
+      {% endif %}
 
       {% if figures.tornado_dollar %}
       <section class="figure">
@@ -1070,7 +1140,7 @@
     </section>
     {% endif %}
 
-    {% if diagnostics and diagnostics.available %}
+    {% if diagnostics and diagnostics.available and display.diagnostics_level != "hide" %}
     <h2>Diagnostics Summary</h2>
     <section class="card">
       <div class="cards">
@@ -1080,7 +1150,18 @@
         <div class="stat"><div class="k">FAIL</div><div class="v">{{ diagnostics.overview.fail_runs }} ({{ "%.1f"|format(diagnostics.overview.fail_rate_pct) }}%)</div></div>
       </div>
 
-      {% if diagnostics.status_rows and diagnostics.status_rows|length > 0 %}
+      {% if diagnostics_focus and diagnostics_focus|length > 0 %}
+      <ul class="small">
+        {% for line in diagnostics_focus %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% if display.diagnostics_level != "full" %}
+      <p class="small">Detailed diagnostic matrices are hidden in concise mode to keep this client-facing report readable.</p>
+      {% endif %}
+
+      {% if display.diagnostics_level == "full" and diagnostics.status_rows and diagnostics.status_rows|length > 0 %}
       <h3>Status Breakdown</h3>
       <table>
         <thead>
@@ -1102,7 +1183,7 @@
       </table>
       {% endif %}
 
-      {% if diagnostics.primary_rows and diagnostics.primary_rows|length > 0 %}
+      {% if display.diagnostics_level == "full" and diagnostics.primary_rows and diagnostics.primary_rows|length > 0 %}
       <h3>Primary Review Checks</h3>
       <table>
         <thead>
@@ -1124,7 +1205,7 @@
       </table>
       {% endif %}
 
-      {% if diagnostics.flagged_rows and diagnostics.flagged_rows|length > 0 %}
+      {% if display.diagnostics_level == "full" and diagnostics.flagged_rows and diagnostics.flagged_rows|length > 0 %}
       <h3>Most Frequent QC Flags</h3>
       <table>
         <thead>
@@ -1146,7 +1227,7 @@
       </table>
       {% endif %}
 
-      {% if diagnostics.check_rows and diagnostics.check_rows|length > 0 %}
+      {% if display.diagnostics_level == "full" and diagnostics.check_rows and diagnostics.check_rows|length > 0 %}
       <h3>Check-Level Matrix</h3>
       <table>
         <thead>
@@ -1176,6 +1257,115 @@
     </section>
     {% endif %}
 
+    {% if qc_gate and qc_gate.available %}
+    <h2>QC Gate (Strict Window)</h2>
+    <section class="card">
+      <div class="cards">
+        <div class="stat"><div class="k">Gate Result</div><div class="v">{{ qc_gate.result }}</div></div>
+        <div class="stat"><div class="k">QC Runs</div><div class="v">{{ qc_gate.overview.n_qc_runs }} / {{ qc_gate.overview.n_total_runs }}</div></div>
+        <div class="stat"><div class="k">PASS Rate</div><div class="v">{{ "%.1f"|format(qc_gate.overview.pass_rate_pct) }}%</div></div>
+        <div class="stat"><div class="k">PASS/REVIEW/FAIL</div><div class="v">{{ qc_gate.overview.pass_runs }}/{{ qc_gate.overview.review_runs }}/{{ qc_gate.overview.fail_runs }}</div></div>
+      </div>
+      <p class="small">QC window: mu in [{{ qc_gate.mu_values|join(", ") }}], sigma in [{{ qc_gate.sigma_values|join(", ") }}], dist in [{{ qc_gate.dists|join(", ") }}].</p>
+      <p class="small">Outside QC window: PASS {{ qc_gate.overview.outside_counts.PASS }}, REVIEW {{ qc_gate.overview.outside_counts.REVIEW }}, FAIL {{ qc_gate.overview.outside_counts.FAIL }}.</p>
+
+      {% if qc_gate.status_rows and qc_gate.status_rows|length > 0 %}
+      <h3>QC Window Status Breakdown</h3>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Runs</th>
+              <th>% of QC Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in qc_gate.status_rows %}
+            <tr>
+              <td>{{ row.status }}</td>
+              <td>{{ row.count }}</td>
+              <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if qc_gate.run_rows and qc_gate.run_rows|length > 0 %}
+      <h3>QC Window Runs</h3>
+      <p class="small">Each row is one predefined QC scenario (not random sampling).</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Scenario</th>
+              <th>mu</th>
+              <th>sigma</th>
+              <th>dist</th>
+              <th>QC Status</th>
+              <th>Review Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in qc_gate.run_rows %}
+            <tr>
+              <td>
+                <b>{{ row.scenario_id }}</b>
+                {% if row.run_id_short %}
+                <span class="qc-run-meta" title="{{ row.run_id }}">id: {{ row.run_id_short }}</span>
+                {% endif %}
+              </td>
+              <td>{{ row.roi_prior_mu }}</td>
+              <td>{{ row.roi_prior_sigma }}</td>
+              <td>{{ row.roi_prior_dist }}</td>
+              <td><span class="status-pill {{ row.qc_status_code|lower }}">{{ row.qc_status_code }}</span></td>
+              <td>{{ row.review_notes }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if display.qc_gate_level == "full" and qc_gate.rank_rows and qc_gate.rank_rows|length > 0 %}
+      <h3>QC Window Channel Sensitivity</h3>
+      <p class="small">Ranking metric: {{ qc_gate.rank_metric }}</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>Max Change</th>
+              <th>Median Change</th>
+              <th>n</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in qc_gate.rank_rows %}
+            <tr>
+              <td>{{ row.channel }}</td>
+              <td>{{ row.max_change }}</td>
+              <td>{{ row.median_change }}</td>
+              <td>{{ row.n }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+
+      {% if display.qc_gate_level == "full" and qc_gate.quick_lines and qc_gate.quick_lines|length > 0 %}
+      <h3>Quick Readouts</h3>
+      <ul>
+        {% for line in qc_gate.quick_lines %}
+        <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </section>
+    {% endif %}
     <h2>Methods</h2>
     <section class="card">
       <p class="method"><b>Baseline:</b> {{ methods.baseline_description }}</p>
@@ -1291,4 +1481,3 @@
   </script>
 </body>
 </html>
-

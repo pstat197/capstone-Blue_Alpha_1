@@ -46,9 +46,13 @@ The model can include all channels, but we can choose to only run sensitivity fo
     via `--roi_prior_overrides_json` (linked scenario)
 
   **Baseline parameters (passed to every run):**
-  - `baseline_mu = cfg.mu0`
-  - `baseline_sigma = cfg.roi_sigma_values[1]`
-  - `baseline_dist = cfg.roi_dist_values[0]`
+  - default baseline is auto-selected from the active grid:
+    - `baseline_mu = nearest(mu_grid, mu0)`
+    - `baseline_sigma = nearest(sigma_grid, sigma0)`
+    - `baseline_dist = "Normal"` when present, else first dist in grid
+  - optional explicit override in YAML:
+    - `baseline.roi_mu`, `baseline.roi_sigma`, `baseline.roi_dist`
+  - explicit baseline values must exist in the active grid (validated at startup)
 
   Calls `run_meridian_once.py` as a subprocess and appends each run’s temporary CSV into a master
   results file (resume-safe).
@@ -60,11 +64,13 @@ The model can include all channels, but we can choose to only run sensitivity fo
   - computes baseline:
     - `μ0 = median(subscriptions / total_spend)`
     - `σ0 = std(subscriptions / total_spend)`
-  - builds sensitivity grids using multipliers:
-    - `μ_grid = μ0 × multipliers`
-    - `σ_grid = σ0 × multipliers`
+  - builds sensitivity grids:
+    - if `experiment.roi_mu_values` is provided, it is used directly
+    - otherwise `mu_grid = mu0 x multipliers`
+    - if `experiment.roi_sigma_values` is provided, it is used directly
+    - otherwise `sigma_grid = sigma0 x multipliers`
   - defines ROI prior distributions:
-    - `["Normal", "LogNormal"]` by default
+    - from `experiment.roi_dist_values`
 
 - `src/run_meridian_once.py`  
   Fits one Meridian model for a single prior setting and writes a run-level ROI output CSV.
@@ -155,8 +161,9 @@ Example channels:
      - `μ0 = median(roi_row)`
      - `σ0 = std(roi_row)`
    - grids:
-     - `μ_grid = μ0 × {0.4, 0.7, 1.0, 1.4, 2.0}`
-     - `σ_grid = σ0 × {0.4, 0.7, 1.0, 1.4, 2.0}`
+     - default multipliers in this repo: `{0.4, 1.0, 2.0}`
+     - `mu_grid = mu0 x multipliers` unless `experiment.roi_mu_values` is set
+     - `sigma_grid = sigma0 x multipliers` unless `experiment.roi_sigma_values` is set
    - dists:
      - `dist_grid = ["Normal", "LogNormal"]`
 
@@ -175,8 +182,9 @@ Example channels:
    - `main.py` appends the temporary output into the master results file and deletes the temp file
 
 4. Baseline tracking:
+   - `main.py` picks baseline from the active grid (or uses explicit `baseline.*` values from YAML)
    - `main.py` passes `baseline_mu`, `baseline_sigma`, `baseline_dist` into every subprocess call
-   - `run_meridian_once.py` marks `is_baseline=True` when the run’s `(roi_prior_mu, roi_prior_sigma, roi_prior_dist)` matches baseline
+   - `run_meridian_once.py` marks `is_baseline=True` when the run's `(roi_prior_mu, roi_prior_sigma, roi_prior_dist)` matches baseline
 
 5. Resume behavior:
    - If the master results CSV already exists, `main.py` loads it, normalizes column names, and skips combinations already completed.
@@ -205,6 +213,11 @@ So:
 
 - `μ ∈ μ0 × multipliers`
 - `σ ∈ σ0 × multipliers`
+
+
+### Manual grid override
+If you provide `experiment.roi_mu_values` and/or `experiment.roi_sigma_values` in YAML, those values are used directly for that dimension.
+This is how 18-run exploration (3x3x2) can become 8-run (2x2x2) or 4-run (2x2x1) QC windows.
 
 ### Distribution sensitivity
 We also test the ROI prior distribution family:
