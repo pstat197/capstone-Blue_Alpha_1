@@ -8,7 +8,12 @@ import yaml
 DEFAULT_RUN_CONFIG: dict[str, Any] = {
     "model": {
         "channels": ["meta", "google", "snapchat", "tiktok", "moloco", "liveintent", "beehiiv", "amazon"],
+        "data_csv": "data/raw/monthly_mocha.csv",
+        "data_tag": None,
         "kpi_col": "subscriptions",
+        "time_col": "date",
+        "geo_col": None,
+        "population_col": None,
     },
     "experiment": {
         "multipliers": [0.4, 1.0, 2.0],
@@ -102,6 +107,40 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
 
 
 def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
+    model = config.setdefault("model", {})
+    data_csv = model.get("data_csv")
+    if data_csv is None or str(data_csv).strip() == "":
+        raise ValueError("Config field 'model.data_csv' is required.")
+    model["data_csv"] = str(data_csv).strip()
+
+    data_tag = model.get("data_tag")
+    if data_tag is None or str(data_tag).strip().lower() in {"", "null", "none"}:
+        model["data_tag"] = None
+    else:
+        model["data_tag"] = str(data_tag).strip()
+
+    kpi_col = model.get("kpi_col", "subscriptions")
+    if kpi_col is None or str(kpi_col).strip() == "":
+        raise ValueError("Config field 'model.kpi_col' cannot be empty.")
+    model["kpi_col"] = str(kpi_col).strip()
+
+    time_col = model.get("time_col", "date")
+    if time_col is None or str(time_col).strip() == "":
+        raise ValueError("Config field 'model.time_col' cannot be empty.")
+    model["time_col"] = str(time_col).strip()
+
+    geo_col = model.get("geo_col")
+    if geo_col is None or str(geo_col).strip().lower() in {"", "null", "none"}:
+        model["geo_col"] = None
+    else:
+        model["geo_col"] = str(geo_col).strip()
+
+    population_col = model.get("population_col")
+    if population_col is None or str(population_col).strip().lower() in {"", "null", "none"}:
+        model["population_col"] = None
+    else:
+        model["population_col"] = str(population_col).strip()
+
     exp = config.setdefault("experiment", {})
 
     multipliers = _as_numeric_list(exp.get("multipliers"), "experiment.multipliers")

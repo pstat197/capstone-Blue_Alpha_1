@@ -664,6 +664,9 @@
       {% if scope.n_channels_before is not none and scope.n_channels_after is not none %}
       <div class="small">Channels shown in report: {{ scope.n_channels_after }} / {{ scope.n_channels_before }}</div>
       {% endif %}
+      {% if scope.data_profile_note %}
+      <div class="small">{{ scope.data_profile_note }}</div>
+      {% endif %}
       <p class="note">{{ scope.note }}</p>
     </section>
 
@@ -815,7 +818,41 @@
         </tbody>
       </table>
 
-      <p class="warn">Interpretation note: very small baseline ROI can inflate percent changes; use ranking as directional sensitivity signal.</p>
+      {% if exec_table_mode == "stable_only" and overview.n_unstable_pct_pairs is defined and overview.n_unstable_pct_pairs > 0 %}
+      <p class="small">Executive table shows only stable-baseline pairs. {{ overview.n_unstable_pct_pairs }} unstable pair(s) are tracked using |Delta ROI| in diagnostics/appendix.</p>
+      {% endif %}
+
+      {% if overview.ranking_qc_scope is defined and overview.ranking_qc_scope != "all" %}
+      <p class="small">Ranking scope: {{ overview.ranking_qc_scope }} (used {{ overview.ranking_rows_used }} of {{ overview.ranking_rows_total }} rows{% if overview.ranking_scope_fallback %}; fallback to all rows{% endif %}).</p>
+      {% endif %}
+
+      {% if rank_table_unstable and rank_table_unstable|length > 0 %}
+      <details>
+        <summary>Show unstable-baseline pairs (diagnostic only)</summary>
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>Distribution</th>
+              <th>Baseline ROI</th>
+              <th>Max |Delta ROI|</th>
+              <th>Raw Max |% Change|</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in rank_table_unstable %}
+            <tr>
+              <td>{{ row.channel }}</td>
+              <td>{{ row.roi_prior_dist }}</td>
+              <td>{{ row.baseline_roi }}</td>
+              <td>{{ row.max_abs_delta_roi }}</td>
+              <td>{{ row.max_abs_pct_change }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </details>
+      {% endif %}
       {% if display.show_sources %}
       <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code>.</p>
       {% endif %}

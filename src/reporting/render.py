@@ -139,6 +139,7 @@ def render_html_report(
     diagnostics = metrics.get("diagnostics", {"available": False})
     qc_gate = metrics.get("qc_gate", {"available": False})
     decision_card = metrics.get("decision_card", {"available": False})
+    prior_guardrail = metrics.get("prior_guardrail", {"available": False})
     dollar = metrics.get("dollar", {"available": False})
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
     spend_effect = metrics.get("spend_effect", {"available": False})
@@ -222,6 +223,11 @@ def render_html_report(
                 "tables/diagnostics_check_matrix.csv",
             ]
         )
+    if prior_guardrail.get("available"):
+        appendix_tables.append("tables/prior_guardrail_summary.csv")
+        appendix_tables.append("tables/prior_guardrail_by_channel.csv")
+        if prior_guardrail.get("top_fail_rows"):
+            appendix_tables.append("tables/prior_guardrail_top_fail_rows.csv")
     if qc_gate.get("available"):
         appendix_tables.extend(
             [
@@ -248,13 +254,58 @@ def render_html_report(
             ]
         )
 
-    rank_table_df = metrics["rank_top_df"].copy()
+    rank_table_df = metrics["rank_df"].copy()
     if "baseline_roi" in rank_table_df.columns:
         rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
     if "max_abs_pct_change" in rank_table_df.columns:
         rank_table_df["max_abs_pct_change"] = rank_table_df["max_abs_pct_change"].map(
             lambda x: f"{float(x):.2f}%"
         )
+    if "max_abs_delta_roi" in rank_table_df.columns:
+        rank_table_df["max_abs_delta_roi"] = rank_table_df["max_abs_delta_roi"].map(
+            lambda x: f"{float(x):.4f}"
+        )
+
+    if "primary_metric" in rank_table_df.columns:
+        rank_table_df["ranking_metric"] = rank_table_df["primary_metric"].map(
+            lambda m: "Max |% Change|" if str(m) == "pct_change" else "Max |Delta ROI|"
+        )
+        rank_table_df["max_change_display"] = rank_table_df.apply(
+            lambda r: (
+                f"{float(r.get('primary_value')):.2f}%"
+                if str(r.get("primary_metric")) == "pct_change"
+                else f"{float(r.get('primary_value')):.4f}"
+            ),
+            axis=1,
+        )
+    else:
+        rank_table_df["ranking_metric"] = "Max |% Change|"
+        rank_table_df["max_change_display"] = rank_table_df.get("max_abs_pct_change", "NA")
+
+    if "pct_metric_reliable" in rank_table_df.columns:
+        rank_table_df["baseline_stability"] = rank_table_df["pct_metric_reliable"].map(
+            lambda v: "Stable" if bool(v) else "Unstable"
+        )
+    else:
+        rank_table_df["baseline_stability"] = "NA"
+
+    top_n = int((cfg.get("ranking", {}) or {}).get("top_n", 10))
+    if "pct_metric_reliable" in rank_table_df.columns:
+        stable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] == True].copy()  # noqa: E712
+        unstable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] != True].copy()  # noqa: E712
+        rank_table_exec_df = stable_rank_df.head(top_n).copy()
+        if rank_table_exec_df.empty:
+            rank_table_exec_df = rank_table_df.head(top_n).copy()
+            exec_table_mode = "all_pairs_fallback"
+        else:
+            exec_table_mode = "stable_only"
+    else:
+        unstable_rank_df = rank_table_df.iloc[0:0].copy()
+        rank_table_exec_df = rank_table_df.head(top_n).copy()
+        exec_table_mode = "all_pairs"
+
+    unstable_preview_n = 5
+    rank_table_unstable_preview_df = unstable_rank_df.head(unstable_preview_n).copy()
 
     dollar_block = {"available": False}
     if dollar.get("available"):
@@ -570,7 +621,9 @@ def render_html_report(
         structural=structural_block,
         display=display_block,
         quick_overview_lines=metrics.get("quick_overview_lines", []),
-        rank_table=rank_table_df.to_dict(orient="records"),
+        rank_table=rank_table_exec_df.to_dict(orient="records"),
+        rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
+        exec_table_mode=exec_table_mode,
         recommendations=metrics["recommendations"],
         figures={
             "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,

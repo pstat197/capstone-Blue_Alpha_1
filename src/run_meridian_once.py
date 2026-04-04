@@ -11,6 +11,7 @@ from typing import Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import platformdirs
 import tensorflow as tf
 
 # Keep ArviZ cache in-project when user-level cache paths are not writable.
@@ -20,6 +21,24 @@ os.environ.setdefault("XDG_CACHE_HOME", str(_cache_root))
 os.environ.setdefault("ARVIZ_HOME", str(_cache_root / "arviz"))
 os.environ.setdefault("LOCALAPPDATA", str(_cache_root))
 os.environ.setdefault("APPDATA", str(_cache_root))
+
+
+def _workspace_user_cache_dir(
+    appname: Optional[str] = None,
+    appauthor: Optional[str] = None,
+    version: Optional[str] = None,
+    opinion: bool = True,
+    ensure_exists: bool = False,
+) -> str:
+    base = (_cache_root / "platformdirs").resolve()
+    parts = [p for p in [appauthor, appname, version] if p]
+    path = base.joinpath(*parts) if parts else base
+    if ensure_exists:
+        path.mkdir(parents=True, exist_ok=True)
+    return str(path)
+
+
+platformdirs.user_cache_dir = _workspace_user_cache_dir
 
 from meridian.analysis.review import reviewer
 from meridian.data import data_frame_input_data_builder
@@ -244,6 +263,10 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--csv", required=True)
+    parser.add_argument("--kpi_col", default="subscriptions")
+    parser.add_argument("--time_col", default="date")
+    parser.add_argument("--geo_col", default=None)
+    parser.add_argument("--population_col", default=None)
     parser.add_argument("--channels_json", required=True)
 
     for name in ["--roi_prior_overrides_json", "--structural_overrides_json", "--prior_key"]:
@@ -271,28 +294,95 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_input_data(csv_path: str, channels: list[str]):
+def _first_present_column(df: pd.DataFrame, candidates: list[str]) -> Optional[str]:
+    existing = {str(c).strip().lower(): c for c in df.columns}
+    for raw in candidates:
+        key = str(raw).strip().lower()
+        if key in existing:
+            return existing[key]
+    return None
+
+
+def _resolve_time_column(df: pd.DataFrame, requested_time_col: Optional[str]) -> str:
+    if requested_time_col and requested_time_col in df.columns:
+        return requested_time_col
+    fallback = _first_present_column(df, ["time", "date"])
+    if fallback is None:
+        raise ValueError(
+            "Input CSV is missing a valid time column. "
+            "Provide --time_col or include one of: time, date."
+        )
+    return fallback
+
+
+def _resolve_geo_column(df: pd.DataFrame, requested_geo_col: Optional[str]) -> Optional[str]:
+    if requested_geo_col:
+        if requested_geo_col not in df.columns:
+            raise ValueError(f"Configured geo column '{requested_geo_col}' not found in input CSV.")
+        return requested_geo_col
+    return _first_present_column(df, ["geo", "region", "state", "dma", "market", "country"])
+
+
+def _resolve_population_column(df: pd.DataFrame, requested_population_col: Optional[str]) -> Optional[str]:
+    if requested_population_col:
+        if requested_population_col not in df.columns:
+            raise ValueError(f"Configured population column '{requested_population_col}' not found in input CSV.")
+        return requested_population_col
+    return _first_present_column(df, ["population", "pop", "population_total"])
+
+
+def _load_input_data(
+    csv_path: str,
+    channels: list[str],
+    *,
+    kpi_col: str,
+    time_col: Optional[str],
+    geo_col: Optional[str],
+    population_col: Optional[str],
+):
     df = pd.read_csv(csv_path)
-    if "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
-        df = df.rename(columns={"date": "time"})
-    else:
-        df["time"] = pd.to_datetime(df["time"])
+    resolved_time_col = _resolve_time_column(df, time_col)
+    resolved_geo_col = _resolve_geo_column(df, geo_col)
+    resolved_population_col = _resolve_population_column(df, population_col)
+
+    df[resolved_time_col] = pd.to_datetime(df[resolved_time_col])
 
     builder = data_frame_input_data_builder.DataFrameInputDataBuilder(
         kpi_type="non_revenue",
-        default_kpi_column="subscriptions",
+        default_kpi_column=kpi_col,
+        default_time_column=resolved_time_col,
+        default_geo_column=(resolved_geo_col or "geo"),
     )
-    return (
-        builder.with_kpi(df)
-        .with_media(
+    builder = builder.with_kpi(
+        df,
+        kpi_col=kpi_col,
+        time_col=resolved_time_col,
+        geo_col=resolved_geo_col,
+    )
+    builder = builder.with_media(
+        df,
+        media_cols=[f"{c}_impressions" for c in channels],
+        media_spend_cols=[f"{c}_spend" for c in channels],
+        media_channels=channels,
+        time_col=resolved_time_col,
+        geo_col=resolved_geo_col,
+    )
+    if resolved_geo_col and resolved_population_col:
+        builder = builder.with_population(
             df,
-            media_cols=[f"{c}_impressions" for c in channels],
-            media_spend_cols=[f"{c}_spend" for c in channels],
-            media_channels=channels,
+            population_col=resolved_population_col,
+            geo_col=resolved_geo_col,
         )
-        .build()
-    )
+    data_profile = {
+        "data_granularity": "geo" if resolved_geo_col else "national",
+        "data_time_col": resolved_time_col,
+        "data_geo_col": resolved_geo_col,
+        "data_population_col": resolved_population_col,
+        "data_n_rows": int(len(df)),
+        "data_n_time_periods": int(df[resolved_time_col].nunique(dropna=True)),
+        "data_n_geos": int(df[resolved_geo_col].nunique(dropna=True)) if resolved_geo_col else 1,
+    }
+    return builder.build(), data_profile
 
 
 def _resolve_mode(args, channels: list[str], normalized_structural: dict) -> dict:
@@ -353,7 +443,14 @@ def main():
     normalized_structural = _normalize_structural_overrides(json.loads(args.structural_overrides_json) if args.structural_overrides_json else None)
     baseline_structural = _normalize_structural_overrides(json.loads(args.baseline_structural_overrides_json)) if args.baseline_structural_overrides_json else None
 
-    input_data = _load_input_data(args.csv, channels)
+    input_data, data_profile = _load_input_data(
+        args.csv,
+        channels,
+        kpi_col=str(args.kpi_col),
+        time_col=(None if args.time_col is None else str(args.time_col)),
+        geo_col=(None if args.geo_col is None else str(args.geo_col)),
+        population_col=(None if args.population_col is None else str(args.population_col)),
+    )
     mode = _resolve_mode(args, channels, normalized_structural)
 
     mmm = model.Meridian(input_data=input_data, model_spec=mode["model_spec"])
@@ -445,6 +542,13 @@ def main():
         "max_lag": shared_max_lag,
         "adstock_decay_spec": shared_decay,
         "is_baseline": is_baseline,
+        "data_granularity": data_profile.get("data_granularity"),
+        "data_time_col": data_profile.get("data_time_col"),
+        "data_geo_col": data_profile.get("data_geo_col"),
+        "data_population_col": data_profile.get("data_population_col"),
+        "data_n_rows": data_profile.get("data_n_rows"),
+        "data_n_time_periods": data_profile.get("data_n_time_periods"),
+        "data_n_geos": data_profile.get("data_n_geos"),
         "qc_status_code": qc_rollup["qc_status_code"],
         "qc_severity_rank": qc_rollup["qc_severity_rank"],
         "qc_needs_review": bool(review_needed),

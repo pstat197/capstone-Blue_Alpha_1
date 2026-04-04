@@ -26,7 +26,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 ## Overview
 
 - **Goal:** Evaluate how sensitive Meridian ROI estimates are to assumptions about the ROI prior (**μ**, **σ**, and distribution).
-- **Dataset:** `data/raw/monthly_mocha.csv` (subscriptions KPI + channel media variables).
+- **Dataset:** configurable via `model.data_csv` in YAML (default: `data/raw/monthly_mocha.csv`).
 - **Approach:** Construct data-calibrated baseline priors from the dataset, generate multiplicative grids, and run Meridian repeatedly while varying priors for a target channel.
 
 ---
@@ -59,7 +59,7 @@ The model can include all channels, but we can choose to only run sensitivity fo
 
 - `src/experiment.py`  
   Centralizes experiment configuration and grid construction:
-  - loads `data/raw/monthly_mocha.csv`
+  - loads `model.data_csv` (default: `data/raw/monthly_mocha.csv`)
   - validates spend columns exist: `{channel}_spend`
   - computes baseline:
     - `μ0 = median(subscriptions / total_spend)`
@@ -140,8 +140,10 @@ The model can include all channels, but we can choose to only run sensitivity fo
 ## Inputs and Naming Conventions
 
 The pipeline assumes the dataset includes:
-- KPI column: `subscriptions`
-- Time column: `date` (will be renamed to `time`) or `time`
+- KPI column: configured by `model.kpi_col` (default `subscriptions`)
+- Time column: configured by `model.time_col` (default `date`; falls back to `time` if needed)
+- Optional geo column for geo-level MMM: configured by `model.geo_col`
+- Optional population column (recommended for geo-level): configured by `model.population_col`
 - For each channel `c`:
   - impressions: `{c}_impressions`
   - spend: `{c}_spend`
@@ -153,7 +155,7 @@ Example channels:
 
 ## How the Pipeline Works
 
-1. `experiment.py` loads `data/raw/monthly_mocha.csv` and builds an `ExperimentConfig`:
+1. `experiment.py` loads `model.data_csv` and builds an `ExperimentConfig`:
    - spend columns: `{channel}_spend`
    - total spend per row: `total_spend = sum(spend_cols)`
    - baseline ROI ratio per row: `roi_row = subscriptions / total_spend`
@@ -245,6 +247,7 @@ Run the full chain in one command:
 - `python -m src.pipeline meta google`
 - `python -m src.pipeline google meta moloco --config config/sensitivity_google_meta_tiktok_full18.yaml`
 - `python -m src.pipeline google meta tiktok --report-scenario-selection largest_total_abs_pct_non_fail`
+- `python -m src.pipeline google meta tiktok --config config/sensitivity_geo_template.yaml` (geo-level template)
 
 This executes:
 

@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 from itertools import product
+from pathlib import Path
 
 from src.experiment import build_experiment_config
 from src.io_utils import (
@@ -133,6 +134,45 @@ def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str
     return round(float(baseline_mu), 6), round(float(baseline_sigma), 6), str(baseline_dist)
 
 
+def _sanitize_tag_token(raw: str) -> str:
+    s = str(raw).strip().lower()
+    out = []
+    for ch in s:
+        if ch.isalnum():
+            out.append(ch)
+        elif ch in {"-", "_"}:
+            out.append(ch)
+        else:
+            out.append("_")
+    token = "".join(out).strip("_")
+    while "__" in token:
+        token = token.replace("__", "_")
+    return token or "dataset"
+
+
+def _resolve_data_tag(*, data_csv: str, geo_col: str | None, explicit_data_tag: str | None) -> str | None:
+    if explicit_data_tag:
+        return _sanitize_tag_token(explicit_data_tag)
+    if geo_col:
+        return _sanitize_tag_token(Path(data_csv).stem)
+    return None
+
+
+def _resolve_runner_python(project_root: str) -> str:
+    forced = os.environ.get("BLUEALPHA_PYTHON")
+    if forced and os.path.exists(forced):
+        return forced
+
+    current = sys.executable
+
+    venv_py = os.path.join(project_root, ".venv", "Scripts", "python.exe")
+    if os.path.exists(venv_py):
+        print(f"[info] Using project virtualenv interpreter for Meridian runs: {venv_py}")
+        return venv_py
+
+    return current
+
+
 def build_run_id(
     scope: str,
     mu: float,
@@ -160,6 +200,7 @@ def build_run_id(
 
 def main():
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    runner_python = _resolve_runner_python(project_root)
     ensure_output_dirs()
 
     config_path = _extract_config_path(sys.argv[1:])
@@ -169,7 +210,8 @@ def main():
     run_cfg = load_run_config(config_path)
     sampler = run_cfg["sampler"]
 
-    channels = [str(x) for x in run_cfg["model"]["channels"]]
+    model_cfg = run_cfg.get("model", {})
+    channels = [str(x) for x in model_cfg["channels"]]
     multipliers = [float(x) for x in run_cfg["experiment"]["multipliers"]]
     mu_grid = run_cfg["experiment"].get("roi_mu_values")
     sigma_grid = run_cfg["experiment"].get("roi_sigma_values")
@@ -189,37 +231,61 @@ def main():
         "adstock_decay": _cast_list(structural_cfg.get("adstock_decay_values"), ["geometric"], lower=True),
     }
 
-    kpi_col = str(run_cfg["model"].get("kpi_col", "subscriptions"))
+    kpi_col = str(model_cfg.get("kpi_col", "subscriptions"))
+    time_col = str(model_cfg.get("time_col", "date"))
+    explicit_data_tag = model_cfg.get("data_tag")
+    if explicit_data_tag is not None:
+        explicit_data_tag = str(explicit_data_tag)
+    geo_col = model_cfg.get("geo_col")
+    if geo_col is not None:
+        geo_col = str(geo_col)
+    population_col = model_cfg.get("population_col")
+    if population_col is not None:
+        population_col = str(population_col)
     default_targets = [str(x) for x in run_cfg.get("defaults", {}).get("targets", ["tiktok"])]
 
+    data_csv_cfg = str(model_cfg.get("data_csv", "data/raw/monthly_mocha.csv"))
+    if os.path.isabs(data_csv_cfg):
+        data_csv = data_csv_cfg
+    else:
+        data_csv = os.path.join(project_root, data_csv_cfg)
+    if not os.path.exists(data_csv):
+        raise FileNotFoundError(f"Configured data CSV does not exist: {data_csv}")
+
+    output_dir = str(RUNS_DIR)
+    os.makedirs(output_dir, exist_ok=True)
+
+    _, _, targets, csv_override = parse_channels_and_output(
+        full_channels=channels,
+        output_dir=output_dir,
+        default_target=default_targets,
+    )
+    if csv_override:
+        data_csv_cli = str(csv_override)
+        data_csv = data_csv_cli if os.path.isabs(data_csv_cli) else os.path.join(project_root, data_csv_cli)
+        if not os.path.exists(data_csv):
+            raise FileNotFoundError(f"CLI --csv path does not exist: {data_csv}")
     cfg = build_experiment_config(
         channels=channels,
         multipliers=multipliers,
         kpi_col=kpi_col,
+        data_csv=data_csv,
         mu_grid=mu_grid,
         sigma_grid=sigma_grid,
         dist_grid=dist_grid,
         output_file="prior_sensitivity_results.csv",
-    )
-
-    data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
-    output_dir = str(RUNS_DIR)
-    os.makedirs(output_dir, exist_ok=True)
-
-    _, _, targets, _ = parse_channels_and_output(
-        full_channels=channels,
-        output_dir=output_dir,
-        default_target=default_targets,
     )
     if not targets:
         raise ValueError("No targets provided. Pass --targets <channel...> or --channels <channel...>.")
 
     targets = sorted(str(x) for x in targets)
     targets_tag = "_".join(targets)
+    data_tag = _resolve_data_tag(data_csv=data_csv, geo_col=geo_col, explicit_data_tag=explicit_data_tag)
+    output_tag = f"{targets_tag}__{data_tag}" if data_tag else targets_tag
     targets_str = ",".join(targets)
 
-    run_output_file = str(run_csv_path(targets_tag, RUNS_DIR))
-    roi_output_file = str(roi_csv_path(targets_tag, RUNS_DIR))
+    run_output_file = str(run_csv_path(output_tag, RUNS_DIR))
+    roi_output_file = str(roi_csv_path(output_tag, RUNS_DIR))
     tmp_dir = os.path.dirname(run_output_file)
     os.makedirs(tmp_dir, exist_ok=True)
 
@@ -249,6 +315,14 @@ def main():
     print("Slope_m grid =", structural_grids["slope_m"])
     print("Max lag grid =", structural_grids["max_lag"])
     print("Adstock decay grid =", structural_grids["adstock_decay"])
+    print("Input data CSV =", data_csv)
+    if data_tag:
+        print("Data tag =", data_tag)
+        print("Output tag =", output_tag)
+    print("KPI col =", kpi_col)
+    print("Time col =", time_col)
+    print("Geo col =", geo_col if geo_col is not None else "(auto/national)")
+    print("Population col =", population_col if population_col is not None else "(none/auto)")
     print("Run output file:", run_output_file)
     print("ROI output file:", roi_output_file)
 
@@ -266,7 +340,7 @@ def main():
     )
 
     already_done = load_resume_state(run_output_file)
-    for legacy_path in candidate_run_csv_paths(targets_tag)[1:]:
+    for legacy_path in candidate_run_csv_paths(output_tag)[1:]:
         legacy_run_output_file = str(legacy_path)
         if legacy_run_output_file != run_output_file and os.path.exists(legacy_run_output_file):
             already_done.update(load_resume_state(legacy_run_output_file))
@@ -326,8 +400,11 @@ def main():
             },
             sort_keys=True,
         )
+        scope_key = f"multi|{targets_str}"
+        if data_tag:
+            scope_key = f"{scope_key}|data={data_tag}"
         run_key = build_run_id(
-            f"multi|{targets_str}",
+            scope_key,
             mu,
             sigma,
             dist,
@@ -356,7 +433,7 @@ def main():
         t0 = time.time()
         run_suffix = "_".join(
             [
-                targets_tag,
+                output_tag,
                 str(mu).replace(".", "p"),
                 str(sigma).replace(".", "p"),
                 dist,
@@ -371,11 +448,15 @@ def main():
         tmp_roi_out = os.path.join(tmp_dir, f"_tmp_roi_{run_suffix}.csv")
 
         cmd = [
-            sys.executable,
+            runner_python,
             "-m",
             "src.run_meridian_once",
             "--csv",
             data_csv,
+            "--kpi_col",
+            kpi_col,
+            "--time_col",
+            time_col,
             "--channels_json",
             channels_json,
             "--roi_prior_overrides_json",
@@ -407,6 +488,10 @@ def main():
             "--seed",
             str(int(sampler["seed"])),
         ]
+        if geo_col:
+            cmd.extend(["--geo_col", geo_col])
+        if population_col:
+            cmd.extend(["--population_col", population_col])
 
         proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
         if proc.returncode != 0:
