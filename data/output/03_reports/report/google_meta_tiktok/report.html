@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{{ meta.title }}</title>
+  <title>Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)</title>
   <script>
     document.documentElement.classList.add("js");
   </script>
@@ -972,45 +972,43 @@
     <section class="hero">
       <div class="hero-grid">
         <div class="hero-main">
-          {% if meta.branding %}
+          
           <div class="partner-row">
-            {% if meta.branding.logos and meta.branding.logos.ucsb %}
+            
             <span class="brand-chip">
-              <img class="brand-logo ucsb" src="{{ meta.branding.logos.ucsb }}" alt="UCSB logo">
+              <img class="brand-logo ucsb" src="assets/ucsb_seal_gold.gif" alt="UCSB logo">
             </span>
-            {% endif %}
-            {% if meta.branding.logos and meta.branding.logos.ucsb and meta.branding.logos.bluealpha %}
+            
+            
             <span class="partner-x">x</span>
-            {% endif %}
-            {% if meta.branding.logos and meta.branding.logos.bluealpha %}
+            
+            
             <span class="brand-chip">
-              <img class="brand-logo bluealpha" src="{{ meta.branding.logos.bluealpha }}" alt="BlueAlpha logo">
+              <img class="brand-logo bluealpha" src="assets/bluealpha_mark_blue.png" alt="BlueAlpha logo">
             </span>
-            {% endif %}
-            <span class="cobrand">{{ meta.branding.cobrand_label }}</span>
+            
+            <span class="cobrand">UCSB x BlueAlpha AI</span>
           </div>
-          {% endif %}
-          <h1>{{ meta.title }}</h1>
-          <p class="sub">{{ meta.subtitle }}</p>
-          <div class="meta">Generated {{ meta.generated_at }}</div>
-          {% if meta.authors and meta.authors|length > 0 %}
+          
+          <h1>Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)</h1>
+          <p class="sub">Google Meridian MMM - Prior Robustness Diagnostics</p>
+          <div class="meta">Generated 2026-04-07 13:48:44</div>
+          
           <div class="authors">
             <b>Team:</b>
-            {% if meta.authors|length > 2 %}
-              {{ meta.authors[:-2] | join(", ") }},<br>{{ meta.authors[-2:] | join(", ") }}
-            {% else %}
-              {{ meta.authors | join(", ") }}
-            {% endif %}
+            
+              Aidan Frazier, Quinlan Wilson, Jimmy Wu,<br>Jasper Luo, Coraline Zhu
+            
           </div>
-          {% endif %}
+          
         </div>
 
         <aside class="hero-stats">
           <div class="cards">
-            <div class="stat"><div class="k">Rows</div><div class="v">{{ overview.n_rows }}</div></div>
-            <div class="stat"><div class="k">Target Sets</div><div class="v">{{ overview.n_target_sets }}</div></div>
-            <div class="stat"><div class="k">Channels</div><div class="v">{{ overview.n_channels }}</div></div>
-            <div class="stat"><div class="k">Prior Dists</div><div class="v">{{ overview.n_dists }}</div></div>
+            <div class="stat"><div class="k">Rows</div><div class="v">144</div></div>
+            <div class="stat"><div class="k">Target Sets</div><div class="v">1</div></div>
+            <div class="stat"><div class="k">Channels</div><div class="v">8</div></div>
+            <div class="stat"><div class="k">Prior Dists</div><div class="v">2</div></div>
           </div>
         </aside>
       </div>
@@ -1021,154 +1019,62 @@
       <div class="scope-grid">
         <div class="scope-item">
           <div class="k">Perturbation Mode</div>
-          <div class="v">{{ scope.mode_label }}</div>
+          <div class="v">Linked Targets</div>
         </div>
         <div class="scope-item">
           <div class="k">Response Scope</div>
-          <div class="v">{{ scope.channel_scope_label }}</div>
+          <div class="v">All Modeled Channels</div>
         </div>
       </div>
-      {% if scope.linked_targets and scope.linked_targets|length > 0 %}
+      
       <div class="scope-badges">
-        {% for t in scope.linked_targets %}
-        <span class="badge">{{ t }}</span>
-        {% endfor %}
+        
+        <span class="badge">google</span>
+        
+        <span class="badge">meta</span>
+        
+        <span class="badge">tiktok</span>
+        
       </div>
-      {% endif %}
-      <div class="small">Target-set entries in input: {{ scope.target_sets | join(" | ") }}</div>
-      {% if scope.n_channels_before is not none and scope.n_channels_after is not none %}
-      <div class="small">Channels shown in report: {{ scope.n_channels_after }} / {{ scope.n_channels_before }}</div>
-      {% endif %}
-      {% if scope.data_profile_note %}
-      <div class="small">{{ scope.data_profile_note }}</div>
-      {% endif %}
-      <p class="note">{{ scope.note }}</p>
+      
+      <div class="small">Target-set entries in input: google,meta,tiktok</div>
+      
+      <div class="small">Channels shown in report: 8 / 8</div>
+      
+      
+      <p class="note">The listed target channels were perturbed together in each run (linked prior changes). The report then measures ROI response for all modeled channels under those shared target priors.</p>
     </section>
 
-    {% if display.show_sources %}
-    <h2>Input Sources</h2>
+    
+
+    
+    <h2>Introduction</h2>
     <section class="card">
-      <p class="small">Exact files used to build this report.</p>
-      <table>
-        <thead>
-          <tr>
-            <th>Source</th>
-            <th>File</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Report Input</td>
-            <td class="path-cell">{{ meta.source_files.report_input if meta.source_files and meta.source_files.report_input else meta.input_file }}</td>
-          </tr>
-          {% if meta.source_files and meta.source_files.tornado_csv %}
-          <tr>
-            <td>Tornado CSV</td>
-            <td class="path-cell">{{ meta.source_files.tornado_csv }}</td>
-          </tr>
-          {% endif %}
-          {% if meta.source_files and meta.source_files.runs_csv %}
-          <tr>
-            <td>Runs CSV (Diagnostics)</td>
-            <td class="path-cell">{{ meta.source_files.runs_csv }}</td>
-          </tr>
-          {% endif %}
-          {% if meta.source_files and meta.source_files.roi_csv %}
-          <tr>
-            <td>ROI CSV</td>
-            <td class="path-cell">{{ meta.source_files.roi_csv }}</td>
-          </tr>
-          {% endif %}
-        </tbody>
-      </table>
+      
+      <p>Marketing Mix Models (MMM) are widely used by companies to evaluate the effectiveness of marketing channels and guide budget allocation decisions. Recent Bayesian MMM frameworks, such as Google Meridian, allow analysts to incorporate prior information into model estimation.</p>
+      
+      <p>However, Bayesian models can be sensitive to prior assumptions. Small changes in prior parameters may lead to large differences in estimated ROI for marketing channels. Understanding this sensitivity is critical for building reliable MMM models.</p>
+      
+      <p>This project proposes a systematic prior sensitivity analysis framework that evaluates how ROI estimates change across different prior configurations. The framework generates automated diagnostic reports that help analysts identify unstable parameters and improve model robustness.</p>
+      
     </section>
-    {% endif %}
+    
 
-    {% if introduction and introduction.paragraphs and introduction.paragraphs|length > 0 %}
-    <h2>{{ introduction.title }}</h2>
-    <section class="card">
-      {% for p in introduction.paragraphs %}
-      <p>{{ p }}</p>
-      {% endfor %}
-    </section>
-    {% endif %}
-
-    {% if theory and theory.available %}
-    <h2>{{ theory.title }}</h2>
-    <section class="card">
-      <p class="small">Hover the button for quick context, then click to open the full math linkage panel.</p>
-      {% if display.show_sources %}
-      <p class="small">Theory file: <code>{{ theory.source_tex }}</code></p>
-      {% endif %}
-      {% if theory.highlights and theory.highlights|length > 0 %}
-      <ul>
-        {% for x in theory.highlights %}
-        <li>{{ x }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      <div class="theory-trigger-wrap">
-        <button
-          type="button"
-          id="theory-open-btn"
-          class="theory-open-btn"
-          data-tip="Open the theory window with assumptions, subsection map, and extracted equations."
-        >
-          View Math Theory
-        </button>
-        <span class="small">Preview formula is shown inside the popup (MathJax-rendered) to keep this section clean.</span>
-      </div>
-    </section>
-
-    <div id="theory-modal" class="theory-modal" aria-hidden="true">
-      <section class="theory-dialog">
-        <button id="theory-close-btn" type="button" class="theory-close-btn" aria-label="Close theory panel">x</button>
-        <h2 style="margin-top:0;">Math Theory Linkage</h2>
-        {% if display.show_sources %}
-        <p class="small">Pulled from <code>{{ theory.source_tex }}</code> to keep analysis interpretation tied to your written theory notes.</p>
-        {% endif %}
-        <div class="theory-grid">
-          <section class="theory-panel">
-            <h3>Subsection Map</h3>
-            {% if theory.subsections and theory.subsections|length > 0 %}
-            <ul>
-              {% for s in theory.subsections %}
-              <li>{{ s }}</li>
-              {% endfor %}
-            </ul>
-            {% else %}
-            <p class="small">No subsection headers parsed from theory source.</p>
-            {% endif %}
-          </section>
-          <section class="theory-panel">
-            <h3>Key Equations</h3>
-            {% if theory.equations and theory.equations|length > 0 %}
-            <div class="eq-list">
-              {% for eq in theory.equations %}
-              <div class="eq-item">
-                <div class="eq-label">{{ eq.label }}</div>
-                <div class="eq-latex">\[{{ eq.latex }}\]</div>
-              </div>
-              {% endfor %}
-            </div>
-            {% else %}
-            <p class="small">No equations parsed from theory source.</p>
-            {% endif %}
-          </section>
-        </div>
-      </section>
-    </div>
-    {% endif %}
+    
 
     <h2>Executive Summary</h2>
     <section class="card">
-      {% if quick_overview_lines and quick_overview_lines|length > 0 %}
+      
       <ol class="quick-list">
-        {% for line in quick_overview_lines %}
-        <li>{{ line }}</li>
-        {% endfor %}
+        
+        <li>beehiiv ROI prior (Normal): max |% change| -> 91.72% change in estimated ROI</li>
+        
+        <li>liveintent ROI prior (LogNormal): max |% change| -> 25.24% change in estimated ROI</li>
+        
+        <li>beehiiv ROI prior (LogNormal): max |% change| -> 23.62% change in estimated ROI</li>
+        
       </ol>
-      {% endif %}
+      
 
       <table>
         <thead>
@@ -1181,27 +1087,59 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in rank_table %}
+          
           <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ row.channel }}</td>
-            <td>{{ row.roi_prior_dist }}</td>
-            <td>{{ row.baseline_roi }}</td>
-            <td>{{ row.max_abs_pct_change }}</td>
+            <td>1</td>
+            <td>beehiiv</td>
+            <td>Normal</td>
+            <td>0.2511</td>
+            <td>91.72%</td>
           </tr>
-          {% endfor %}
+          
+          <tr>
+            <td>2</td>
+            <td>liveintent</td>
+            <td>LogNormal</td>
+            <td>0.0922</td>
+            <td>25.24%</td>
+          </tr>
+          
+          <tr>
+            <td>3</td>
+            <td>beehiiv</td>
+            <td>LogNormal</td>
+            <td>0.1640</td>
+            <td>23.62%</td>
+          </tr>
+          
+          <tr>
+            <td>4</td>
+            <td>amazon</td>
+            <td>LogNormal</td>
+            <td>0.1322</td>
+            <td>17.77%</td>
+          </tr>
+          
+          <tr>
+            <td>5</td>
+            <td>moloco</td>
+            <td>LogNormal</td>
+            <td>0.0703</td>
+            <td>3.39%</td>
+          </tr>
+          
         </tbody>
       </table>
 
-      {% if exec_table_mode == "stable_only" and overview.n_unstable_pct_pairs is defined and overview.n_unstable_pct_pairs > 0 %}
-      <p class="small">Executive table shows only stable-baseline pairs. {{ overview.n_unstable_pct_pairs }} unstable pair(s) are tracked using |Delta ROI| in diagnostics/appendix.</p>
-      {% endif %}
+      
+      <p class="small">Executive table shows only stable-baseline pairs. 11 unstable pair(s) are tracked using |Delta ROI| in diagnostics/appendix.</p>
+      
 
-      {% if overview.ranking_qc_scope is defined and overview.ranking_qc_scope != "all" %}
-      <p class="small">Ranking scope: {{ overview.ranking_qc_scope }} (used {{ overview.ranking_rows_used }} of {{ overview.ranking_rows_total }} rows{% if overview.ranking_scope_fallback %}; fallback to all rows{% endif %}).</p>
-      {% endif %}
+      
+      <p class="small">Ranking scope: pass_only (used 88 of 144 rows).</p>
+      
 
-      {% if rank_table_unstable and rank_table_unstable|length > 0 %}
+      
       <details>
         <summary>Show unstable-baseline pairs (diagnostic only)</summary>
         <table>
@@ -1215,31 +1153,67 @@
             </tr>
           </thead>
           <tbody>
-            {% for row in rank_table_unstable %}
+            
             <tr>
-              <td>{{ row.channel }}</td>
-              <td>{{ row.roi_prior_dist }}</td>
-              <td>{{ row.baseline_roi }}</td>
-              <td>{{ row.max_abs_delta_roi }}</td>
-              <td>{{ row.max_abs_pct_change }}</td>
+              <td>liveintent</td>
+              <td>Normal</td>
+              <td>-0.0354</td>
+              <td>0.4833</td>
+              <td>1363.32%</td>
             </tr>
-            {% endfor %}
+            
+            <tr>
+              <td>amazon</td>
+              <td>Normal</td>
+              <td>0.0366</td>
+              <td>0.2706</td>
+              <td>738.85%</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>Normal</td>
+              <td>0.0122</td>
+              <td>0.0812</td>
+              <td>665.83%</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>Normal</td>
+              <td>0.0284</td>
+              <td>0.0704</td>
+              <td>247.74%</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>Normal</td>
+              <td>0.0319</td>
+              <td>0.0684</td>
+              <td>214.33%</td>
+            </tr>
+            
           </tbody>
         </table>
       </details>
-      {% endif %}
-      {% if display.show_sources %}
-      <p class="small">ROI % change formula: <code>100 * (estimated_roi - baseline_roi) / baseline_roi</code>.</p>
-      {% endif %}
+      
+      
 
       <ul>
-        {% for rec in recommendations %}
-        <li>{{ rec }}</li>
-        {% endfor %}
+        
+        <li>High sensitivity detected among stable-baseline pairs (>= 15.0%): prioritize better priors/experiments for beehiiv (Normal).</li>
+        
+        <li>Multiple moderately sensitive stable-baseline channels (>= 7.5%): consider narrowing prior ranges or adding holdout validation.</li>
+        
+        <li>11 channel-prior pair(s) had unstable baseline ROI for percent metrics; ranking switched to |Delta ROI| for those pairs.</li>
+        
+        <li>Sensitivity ranking scope: QC PASS runs only.</li>
+        
       </ul>
     </section>
 
-    {% if rank_table and rank_table|length > 0 %}
+    
     <h2>Sensitivity Explorer</h2>
     <section class="card story-explorer">
       <div class="story-grid">
@@ -1266,89 +1240,98 @@
           <p class="story-footnote small">Hover bars to inspect channel, prior distribution, baseline ROI, and max |% change|.</p>
         </div>
       </div>
-      <script id="story-rank-data" type="application/json">{{ rank_table | tojson }}</script>
+      <script id="story-rank-data" type="application/json">[{"baseline_mu": 0.051898, "baseline_roi": "0.2511", "baseline_sigma": 0.016722, "baseline_stability": "Stable", "channel": "beehiiv", "max_abs_delta_roi": "0.2303", "max_abs_pct_change": "91.72%", "max_change_display": "91.72%", "pct_metric_reliable": true, "primary_metric": "pct_change", "primary_value": 91.71946500691375, "ranking_metric": "Max |% Change|", "ranking_metric_label": "Max |% Change|", "roi_prior_dist": "Normal"}, {"baseline_mu": 0.051898, "baseline_roi": "0.0922", "baseline_sigma": 0.016722, "baseline_stability": "Stable", "channel": "liveintent", "max_abs_delta_roi": "0.0233", "max_abs_pct_change": "25.24%", "max_change_display": "25.24%", "pct_metric_reliable": true, "primary_metric": "pct_change", "primary_value": 25.2399688752355, "ranking_metric": "Max |% Change|", "ranking_metric_label": "Max |% Change|", "roi_prior_dist": "LogNormal"}, {"baseline_mu": 0.051898, "baseline_roi": "0.1640", "baseline_sigma": 0.016722, "baseline_stability": "Stable", "channel": "beehiiv", "max_abs_delta_roi": "0.0387", "max_abs_pct_change": "23.62%", "max_change_display": "23.62%", "pct_metric_reliable": true, "primary_metric": "pct_change", "primary_value": 23.61646124666865, "ranking_metric": "Max |% Change|", "ranking_metric_label": "Max |% Change|", "roi_prior_dist": "LogNormal"}, {"baseline_mu": 0.051898, "baseline_roi": "0.1322", "baseline_sigma": 0.016722, "baseline_stability": "Stable", "channel": "amazon", "max_abs_delta_roi": "0.0235", "max_abs_pct_change": "17.77%", "max_change_display": "17.77%", "pct_metric_reliable": true, "primary_metric": "pct_change", "primary_value": 17.76898497592567, "ranking_metric": "Max |% Change|", "ranking_metric_label": "Max |% Change|", "roi_prior_dist": "LogNormal"}, {"baseline_mu": 0.051898, "baseline_roi": "0.0703", "baseline_sigma": 0.016722, "baseline_stability": "Stable", "channel": "moloco", "max_abs_delta_roi": "0.0024", "max_abs_pct_change": "3.39%", "max_change_display": "3.39%", "pct_metric_reliable": true, "primary_metric": "pct_change", "primary_value": 3.3874986954643767, "ranking_metric": "Max |% Change|", "ranking_metric_label": "Max |% Change|", "roi_prior_dist": "LogNormal"}]</script>
     </section>
-    {% endif %}
+    
 
-    {% if decision_card and decision_card.available %}
+    
     <h2>Decision Card</h2>
     <section class="card">
       <div class="cards">
-        <div class="stat"><div class="k">Decision Tier</div><div class="v"><span class="status-pill {{ decision_card.tier_class }}">{{ decision_card.tier }}</span></div></div>
-        <div class="stat"><div class="k">{{ decision_card.score_label }}</div><div class="v">{{ decision_card.score_value }}</div></div>
+        <div class="stat"><div class="k">Decision Tier</div><div class="v"><span class="status-pill review">YELLOW</span></div></div>
+        <div class="stat"><div class="k">Pending Robustness Score</div><div class="v">N/A (awaiting score pipeline)</div></div>
       </div>
 
-      {% if decision_card.headline %}
-      <p class="note">{{ decision_card.headline }}</p>
-      {% endif %}
+      
+      <p class="note">Directional only; resolve QC or stability risks before budget-level decisions.</p>
+      
 
-      {% if decision_card.policy_name %}
-      <p class="small"><b>{{ decision_card.policy_name }}</b></p>
-      {% endif %}
+      
+      <p class="small"><b>Traffic-Light Policy v1 (pre-robustness score)</b></p>
+      
 
-      {% if decision_card.triggered_rules and decision_card.triggered_rules|length > 0 %}
+      
       <h3>Triggered Rules</h3>
       <ul>
-        {% for line in decision_card.triggered_rules %}
-        <li>{{ line }}</li>
-        {% endfor %}
+        
+        <li>YELLOW rule: diagnostics FAIL runs (2) exceed green limit (0).</li>
+        
+        <li>YELLOW rule: stable-baseline sensitivity 91.7% reaches high threshold 15.0%.</li>
+        
+        <li>YELLOW rule: prior guardrail violations in 1 run(s) and 8/144 row(s) exceed P(ROI<0)>0.20.</li>
+        
       </ul>
-      {% endif %}
+      
 
-      {% if decision_card.reasons and decision_card.reasons|length > 0 %}
+      
       <h3>Why This Tier</h3>
       <ul>
-        {% for line in decision_card.reasons %}
-        <li>{{ line }}</li>
-        {% endfor %}
+        
+        <li>Broad exploration diagnostics: PASS 61.1%, REVIEW 5, FAIL 2.</li>
+        
+        <li>QC gate window: 4 run(s), PASS 4, REVIEW 0, FAIL 0.</li>
+        
+        <li>Percent-change safeguard: 11/16 channel-prior pair(s) had unstable baseline ROI; those pairs are ranked by |Delta ROI| instead of % change.</li>
+        
+        <li>Prior guardrail: 1 run(s), 8/144 row(s) exceed threshold P(ROI<0)>0.20 (5.6%), max P(ROI<0)=0.27.</li>
+        
+        <li>PASS coverage (pass_only): 61.1% (88/144); green minimum is 60.0%.</li>
+        
+        <li>Most sensitive stable-baseline pair: beehiiv (Normal), max |% change|=91.7% (medium>=7.5%, high>=15.0%).</li>
+        
       </ul>
-      {% endif %}
+      
 
-      {% if display.show_sources and decision_card.policy_rules and decision_card.policy_rules|length > 0 %}
-      <h3>Traffic-Light Policy</h3>
-      <ul class="small">
-        {% for line in decision_card.policy_rules %}
-        <li>{{ line }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+      
 
-      {% if decision_card.actions and decision_card.actions|length > 0 %}
+      
       <h3>Next Actions</h3>
       <ol class="quick-list">
-        {% for line in decision_card.actions %}
-        <li>{{ line }}</li>
-        {% endfor %}
+        
+        <li>Keep conclusions directional; avoid hard budget shifts from single-run snapshots.</li>
+        
+        <li>Prioritize reruns around the most sensitive channel-prior combinations.</li>
+        
+        <li>Require QC gate PASS plus robustness score before production decision workflow.</li>
+        
       </ol>
-      {% endif %}
+      
     </section>
-    {% endif %}
+    
 
-    {% if spend_effect and spend_effect.available %}
+    
     <h2>Spend vs Effect Alignment</h2>
     <section class="card">
-      <p class="small">Selected run: {{ spend_effect.selected_run_id }}</p>
-      {% if display.show_sources %}
-      <p class="small">Spend source: {{ spend_effect.spend_source }} | Effect source: {{ spend_effect.effect_source }}</p>
-      {% endif %}
+      <p class="small">Selected run: multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric</p>
+      
 
-      {% if figures.spend_effect %}
+      
       <section class="figure">
-        <img src="{{ figures.spend_effect }}" alt="Spend share versus effect share one-pager view">
+        <img src="figures/spend_vs_effect_onepager.png" alt="Spend share versus effect share one-pager view">
         <div class="cap">Industry-style one-pager diagnostic: compare spend share and modeled effect share by channel.</div>
       </section>
-      {% endif %}
+      
 
-      {% if spend_effect.max_gap_channel and spend_effect.max_gap_pp is not none %}
+      
       <p class="note">
-        Largest allocation gap: <b>{{ spend_effect.max_gap_channel | upper }}</b>
-        (effect - spend = {{ "%.1f"|format(spend_effect.max_gap_pp) }} pp).
+        Largest allocation gap: <b>GOOGLE</b>
+        (effect - spend = 23.6 pp).
       </p>
-      {% endif %}
+      
 
       <div id="spend-effect-viz" class="story-viz spend-effect-viz" aria-label="Interactive spend versus effect dumbbell chart"></div>
       <p class="small">Interactive view: each line is one channel; left dot is spend share, right dot is modeled effect share.</p>
-      <script id="spend-effect-data" type="application/json">{{ spend_effect.rows | tojson }}</script>
+      <script id="spend-effect-data" type="application/json">[{"channel": "google", "effect_negative": false, "effect_share_pct": "77.2%", "estimated_roi": "0.0934", "share_gap_pp": "+23.6 pp", "spend_share_pct": "53.6%"}, {"channel": "tiktok", "effect_negative": false, "effect_share_pct": "14.1%", "estimated_roi": "0.1003", "share_gap_pp": "+5.0 pp", "spend_share_pct": "9.1%"}, {"channel": "meta", "effect_negative": false, "effect_share_pct": "6.7%", "estimated_roi": "0.0988", "share_gap_pp": "+2.3 pp", "spend_share_pct": "4.4%"}, {"channel": "moloco", "effect_negative": false, "effect_share_pct": "1.5%", "estimated_roi": "0.0218", "share_gap_pp": "-2.9 pp", "spend_share_pct": "4.4%"}, {"channel": "beehiiv", "effect_negative": false, "effect_share_pct": "0.5%", "estimated_roi": "0.0208", "share_gap_pp": "-1.2 pp", "spend_share_pct": "1.7%"}, {"channel": "snapchat", "effect_negative": true, "effect_share_pct": "0.0%", "estimated_roi": "-0.0601", "share_gap_pp": "-22.6 pp", "spend_share_pct": "22.6%"}, {"channel": "liveintent", "effect_negative": true, "effect_share_pct": "0.0%", "estimated_roi": "-0.5187", "share_gap_pp": "-4.2 pp", "spend_share_pct": "4.2%"}, {"channel": "amazon", "effect_negative": true, "effect_share_pct": "0.0%", "estimated_roi": "-0.2340", "share_gap_pp": "-0.1 pp", "spend_share_pct": "0.1%"}]</script>
 
       <table>
         <thead>
@@ -1361,188 +1344,164 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in spend_effect.rows %}
+          
           <tr>
-            <td>{{ row.channel | upper }}</td>
-            <td>{{ row.spend_share_pct }}</td>
-            <td>{{ row.effect_share_pct }}</td>
-            <td>{{ row.share_gap_pp }}</td>
-            <td>{{ row.estimated_roi }}</td>
+            <td>GOOGLE</td>
+            <td>53.6%</td>
+            <td>77.2%</td>
+            <td>+23.6 pp</td>
+            <td>0.0934</td>
           </tr>
-          {% endfor %}
+          
+          <tr>
+            <td>TIKTOK</td>
+            <td>9.1%</td>
+            <td>14.1%</td>
+            <td>+5.0 pp</td>
+            <td>0.1003</td>
+          </tr>
+          
+          <tr>
+            <td>META</td>
+            <td>4.4%</td>
+            <td>6.7%</td>
+            <td>+2.3 pp</td>
+            <td>0.0988</td>
+          </tr>
+          
+          <tr>
+            <td>MOLOCO</td>
+            <td>4.4%</td>
+            <td>1.5%</td>
+            <td>-2.9 pp</td>
+            <td>0.0218</td>
+          </tr>
+          
+          <tr>
+            <td>BEEHIIV</td>
+            <td>1.7%</td>
+            <td>0.5%</td>
+            <td>-1.2 pp</td>
+            <td>0.0208</td>
+          </tr>
+          
+          <tr>
+            <td>SNAPCHAT</td>
+            <td>22.6%</td>
+            <td>0.0%</td>
+            <td>-22.6 pp</td>
+            <td>-0.0601</td>
+          </tr>
+          
+          <tr>
+            <td>LIVEINTENT</td>
+            <td>4.2%</td>
+            <td>0.0%</td>
+            <td>-4.2 pp</td>
+            <td>-0.5187</td>
+          </tr>
+          
+          <tr>
+            <td>AMAZON</td>
+            <td>0.1%</td>
+            <td>0.0%</td>
+            <td>-0.1 pp</td>
+            <td>-0.2340</td>
+          </tr>
+          
         </tbody>
       </table>
 
-      {% if spend_effect.n_negative_effect_channels > 0 %}
+      
       <p class="small">
-        Note: {{ spend_effect.n_negative_effect_channels }} channel(s) had negative modeled effect in this run; effect-share uses non-negative contribution mass for comparability.
+        Note: 3 channel(s) had negative modeled effect in this run; effect-share uses non-negative contribution mass for comparability.
       </p>
-      {% endif %}
+      
     </section>
-    {% endif %}
+    
 
-    {% if figures.tornado %}
+    
     <h2>ROI Tornado Summary</h2>
     <section class="card">
       <section class="figure">
-        <img src="{{ figures.tornado }}" alt="ROI tornado sensitivity chart">
+        <img src="figures/tornado_top_sensitivity.png" alt="ROI tornado sensitivity chart">
         <div class="cap">Tornado interval style aligned with value tornado: one channel per row, downside-to-upside ROI % interval.</div>
       </section>
     </section>
-    {% endif %}
+    
 
-    {% if structural and structural.available and display.structural_level != "hide" %}
+    
     <h2>Structural Sensitivity (Adstock + Saturation)</h2>
     <section class="card">
       <p class="small">
         Selected reference run:
-        {% if structural.selected_run_id and structural.selected_run_id|length > 96 %}
-        <span class="path-cell" title="{{ structural.selected_run_id }}">{{ structural.selected_run_id[:96] }}...</span>
-        {% else %}
-        <span class="path-cell">{{ structural.selected_run_id }}</span>
-        {% endif %}
-        {% if structural.selected_profile_id %}| profile=<span class="path-cell">{{ structural.selected_profile_id }}</span>{% endif %}
+        
+        <span class="path-cell" title="multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometr...</span>
+        
+        | profile=<span class="path-cell">alpha=0.3000|ec=0.5000|slope=1.2000|lag=4.0000|decay=geometric</span>
       </p>
 
-      {% if display.structural_level != "full" %}
+      
       <p class="small">Structural parameters are fixed in this experiment; detailed structural tables are hidden in concise mode.</p>
-      {% if structural.profile_rows and structural.profile_rows|length > 0 %}
-      {% set p0 = structural.profile_rows[0] %}
-      <p class="small">Active profile: alpha={{ p0.adstock_alpha_m }}, ec={{ p0.saturation_ec_m }}, slope={{ p0.saturation_slope_m }}, lag={{ p0.max_lag }}, decay={{ p0.adstock_decay_spec }}.</p>
-      {% endif %}
-      {% endif %}
+      
+      
+      <p class="small">Active profile: alpha=0.300, ec=0.500, slope=1.200, lag=4, decay=geometric.</p>
+      
+      
 
-      {% if display.structural_level != "hide" and figures.adstock_curves %}
+      
       <section class="figure">
-        <img src="{{ figures.adstock_curves }}" alt="Adstock decay curves">
+        <img src="figures/structural_adstock_curves.png" alt="Adstock decay curves">
         <div class="cap">Normalized adstock decay weights by lag for top structural profiles.</div>
       </section>
-      {% endif %}
+      
 
-      {% if display.structural_level != "hide" and figures.saturation_curves %}
+      
       <section class="figure">
-        <img src="{{ figures.saturation_curves }}" alt="Saturation response curves">
+        <img src="figures/structural_saturation_curves.png" alt="Saturation response curves">
         <div class="cap">Hill saturation response curves over relative spend index [0, 3].</div>
       </section>
-      {% endif %}
+      
 
-      {% if display.structural_level != "hide" and figures.carryover_decomposition %}
+      
       <section class="figure">
-        <img src="{{ figures.carryover_decomposition }}" alt="Immediate versus carryover decomposition">
+        <img src="figures/structural_carryover_decomposition.png" alt="Immediate versus carryover decomposition">
         <div class="cap">Reference-channel decomposition into immediate and carryover components.</div>
       </section>
-      {% endif %}
+      
 
-      {% if display.structural_level == "full" and structural.profile_rows and structural.profile_rows|length > 0 %}
-      <h3>Structural Profiles</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Profile</th>
-            <th>alpha</th>
-            <th>ec</th>
-            <th>slope</th>
-            <th>max_lag</th>
-            <th>decay</th>
-            <th>Immediate</th>
-            <th>Carryover</th>
-            <th>Avg Lag</th>
-            <th>Half-Life</th>
-            <th>Runs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in structural.profile_rows %}
-          <tr>
-            <td>{{ row.struct_profile_id }}</td>
-            <td>{{ row.adstock_alpha_m }}</td>
-            <td>{{ row.saturation_ec_m }}</td>
-            <td>{{ row.saturation_slope_m }}</td>
-            <td>{{ row.max_lag }}</td>
-            <td>{{ row.adstock_decay_spec }}</td>
-            <td>{{ row.immediate_share }}</td>
-            <td>{{ row.carryover_share }}</td>
-            <td>{{ row.avg_lag }}</td>
-            <td>{{ row.half_life_lag }}</td>
-            <td>{{ row.n_runs }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
+      
 
-      {% if display.structural_level == "full" and structural.run_rows and structural.run_rows|length > 0 %}
-      <h3>Run-Level Structural Table</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Run ID</th>
-            <th>mu</th>
-            <th>sigma</th>
-            <th>dist</th>
-            <th>alpha</th>
-            <th>ec</th>
-            <th>slope</th>
-            <th>max_lag</th>
-            <th>decay</th>
-            <th>QC</th>
-            <th>Baseline</th>
-            <th>Total |%|</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in structural.run_rows %}
-          <tr>
-            <td class="path-cell">{{ row.run_id }}</td>
-            <td>{{ row.roi_prior_mu }}</td>
-            <td>{{ row.roi_prior_sigma }}</td>
-            <td>{{ row.roi_prior_dist }}</td>
-            <td>{{ row.adstock_alpha_m }}</td>
-            <td>{{ row.saturation_ec_m }}</td>
-            <td>{{ row.saturation_slope_m }}</td>
-            <td>{{ row.max_lag }}</td>
-            <td>{{ row.adstock_decay_spec }}</td>
-            <td>{{ row.qc_status_code }}</td>
-            <td>{{ row.is_baseline }}</td>
-            <td>{{ row.total_abs_pct_change }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
+      
 
-      {% if display.structural_level == "full" and structural.notes and structural.notes|length > 0 %}
-      <ul>
-        {% for note in structural.notes %}
-        <li>{{ note }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+      
     </section>
-    {% endif %}
+    
 
-    {% if dollar and dollar.available %}
+    
     <h2>Dollar Sensitivity Summary</h2>
     <section class="card">
-      <p class="small">Range mode: {{ dollar.range_mode }} | Dollars per subscription: {{ dollar.dollars_per_subscription_note }}</p>
-      {% if display.show_sources %}
-      <p class="small">Computation source: {{ dollar.source }}</p>
-      {% endif %}
+      <p class="small">Range mode: p05p95 | Dollars per subscription: 100.00</p>
+      
 
-      {% if figures.tornado_dollar %}
+      
       <section class="figure">
-        <img src="{{ figures.tornado_dollar }}" alt="Dollar tornado sensitivity chart">
+        <img src="figures/tornado_dollar_sensitivity.png" alt="Dollar tornado sensitivity chart">
         <div class="cap">Same tornado style as <code>src.viz.tornado_plots</code>: one bar per channel with downside/upside dollar range.</div>
       </section>
-      {% endif %}
+      
 
-      {% if dollar.quick_lines and dollar.quick_lines|length > 0 %}
+      
       <ol class="quick-list">
-        {% for line in dollar.quick_lines %}
-        <li>{{ line }}</li>
-        {% endfor %}
+        
+        <li>google: downside=-$24.68M, upside=$80.01M, max |$ change|=$80.01M</li>
+        
+        <li>liveintent: downside=-$22.80M, upside=$12.69M, max |$ change|=$22.80M</li>
+        
+        <li>snapchat: downside=-$12.22M, upside=$17.62M, max |$ change|=$17.62M</li>
+        
       </ol>
-      {% endif %}
+      
 
       <table>
         <thead>
@@ -1556,63 +1515,161 @@
           </tr>
         </thead>
         <tbody>
-          {% for row in dollar.rank_rows %}
+          
           <tr>
-            <td>{{ loop.index }}</td>
-            <td>{{ row.channel }}</td>
-            <td>{{ row.left_dollar }}</td>
-            <td>{{ row.right_dollar }}</td>
-            <td>{{ row.max_abs_dollar_change }}</td>
-            <td>{{ row.median_dollar_change }}</td>
+            <td>1</td>
+            <td>google</td>
+            <td>-$24.68M</td>
+            <td>$80.01M</td>
+            <td>$80.01M</td>
+            <td>$3.18M</td>
           </tr>
-          {% endfor %}
+          
+          <tr>
+            <td>2</td>
+            <td>liveintent</td>
+            <td>-$22.80M</td>
+            <td>$12.69M</td>
+            <td>$22.80M</td>
+            <td>$9.51M</td>
+          </tr>
+          
+          <tr>
+            <td>3</td>
+            <td>snapchat</td>
+            <td>-$12.22M</td>
+            <td>$17.62M</td>
+            <td>$17.62M</td>
+            <td>$13.76M</td>
+          </tr>
+          
+          <tr>
+            <td>4</td>
+            <td>tiktok</td>
+            <td>-$5.28M</td>
+            <td>$11.76M</td>
+            <td>$11.76M</td>
+            <td>-$151.2K</td>
+          </tr>
+          
+          <tr>
+            <td>5</td>
+            <td>meta</td>
+            <td>-$1.90M</td>
+            <td>$5.84M</td>
+            <td>$5.84M</td>
+            <td>-$505.3K</td>
+          </tr>
+          
+          <tr>
+            <td>6</td>
+            <td>beehiiv</td>
+            <td>-$5.41M</td>
+            <td>$2.94M</td>
+            <td>$5.41M</td>
+            <td>-$2.23M</td>
+          </tr>
+          
+          <tr>
+            <td>7</td>
+            <td>moloco</td>
+            <td>-$907.1K</td>
+            <td>$2.16M</td>
+            <td>$2.16M</td>
+            <td>$1.44M</td>
+          </tr>
+          
+          <tr>
+            <td>8</td>
+            <td>amazon</td>
+            <td>-$297.2K</td>
+            <td>$203.1K</td>
+            <td>$297.2K</td>
+            <td>$142.9K</td>
+          </tr>
+          
         </tbody>
       </table>
     </section>
-    {% endif %}
+    
 
-    {% if scenario_snapshot and scenario_snapshot.available %}
+    
     <h2>Single Scenario Snapshot</h2>
     <section class="card">
-      <p class="small">{{ scenario_snapshot.selection_reason }}</p>
+      <p class="small">Selected non-fail scenario with largest total absolute ROI % change across channels.</p>
 
-      {% if scenario_snapshot.scenarios and scenario_snapshot.scenarios|length > 0 %}
-      <div class="small">Available runs: {{ scenario_snapshot.scenario_count }}. Select one run to switch snapshot.</div>
+      
+      <div class="small">Available runs: 6. Select one run to switch snapshot.</div>
       <div class="scenario-picker">
         <label for="scenario-select">Run</label>
         <select id="scenario-select" class="scenario-select">
-          {% for s in scenario_snapshot.scenarios %}
+          
           <option
-            value="scenario-{{ loop.index }}"
-            {% if s.run_id == scenario_snapshot.selected_run_id %}selected{% endif %}
+            value="scenario-1"
+            selected
           >
-            Run {{ loop.index }}
+            Run 1
           </option>
-          {% endfor %}
+          
+          <option
+            value="scenario-2"
+            
+          >
+            Run 2
+          </option>
+          
+          <option
+            value="scenario-3"
+            
+          >
+            Run 3
+          </option>
+          
+          <option
+            value="scenario-4"
+            
+          >
+            Run 4
+          </option>
+          
+          <option
+            value="scenario-5"
+            
+          >
+            Run 5
+          </option>
+          
+          <option
+            value="scenario-6"
+            
+          >
+            Run 6
+          </option>
+          
         </select>
       </div>
 
-      {% for s in scenario_snapshot.scenarios %}
+      
       <div
-        id="scenario-{{ loop.index }}"
-        class="scenario-panel{% if s.run_id == scenario_snapshot.selected_run_id %} active{% endif %}"
+        id="scenario-1"
+        class="scenario-panel active"
       >
         <p class="small">
-          {% if s.meta.run_id is defined %}run_id={{ s.meta.run_id }} | {% endif %}
-          {% if s.meta.roi_prior_mu is defined %}mu={{ s.meta.roi_prior_mu }} | {% endif %}
-          {% if s.meta.roi_prior_sigma is defined %}sigma={{ s.meta.roi_prior_sigma }} | {% endif %}
-          {% if s.meta.roi_prior_dist is defined %}dist={{ s.meta.roi_prior_dist }} | {% endif %}
-          channels shown={{ s.n_channels }}
+          run_id=multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.103795 | 
+          sigma=0.006689 | 
+          dist=Normal | 
+          channels shown=8
         </p>
 
-        {% if s.figure %}
+        
         <section class="figure">
-          <img src="{{ s.figure }}" alt="Single scenario channel snapshot for {{ s.run_id }}">
+          <img src="figures/scenario_snapshot_01_multi-google-meta-tiktok-0-103795-0-006689-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
           <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
         </section>
-        {% endif %}
+        
 
-        {% if s.rows and s.rows|length > 0 %}
+        
         <table>
           <thead>
             <tr>
@@ -1624,305 +1681,638 @@
             </tr>
           </thead>
           <tbody>
-            {% for row in s.rows %}
+            
             <tr>
-              <td>{{ row.channel }}</td>
-              <td>{{ row.estimated_roi }}</td>
-              <td>{{ row.baseline_roi }}</td>
-              <td>{{ row.pct_change }}</td>
-              <td>{{ row.delta_value_used }}</td>
+              <td>liveintent</td>
+              <td>-0.5187</td>
+              <td>-0.0354</td>
+              <td>1363.32%</td>
+              <td>-$38.56M</td>
             </tr>
-            {% endfor %}
+            
+            <tr>
+              <td>amazon</td>
+              <td>-0.2340</td>
+              <td>0.0366</td>
+              <td>-738.85%</td>
+              <td>-$425.9K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>0.0934</td>
+              <td>0.0122</td>
+              <td>665.83%</td>
+              <td>$83.67M</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0601</td>
+              <td>-0.0085</td>
+              <td>608.71%</td>
+              <td>-$22.40M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>0.0988</td>
+              <td>0.0284</td>
+              <td>247.74%</td>
+              <td>$5.91M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>0.1003</td>
+              <td>0.0319</td>
+              <td>214.33%</td>
+              <td>$11.99M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.0208</td>
+              <td>0.2511</td>
+              <td>-91.72%</td>
+              <td>-$7.56M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0218</td>
+              <td>0.0469</td>
+              <td>-53.59%</td>
+              <td>-$2.12M</td>
+            </tr>
+            
           </tbody>
         </table>
-        {% endif %}
+        
       </div>
-      {% endfor %}
-      {% endif %}
-    </section>
-    {% endif %}
+      
+      <div
+        id="scenario-2"
+        class="scenario-panel"
+      >
+        <p class="small">
+          run_id=multi|google,meta,tiktok|0.103795|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.103795 | 
+          sigma=0.016722 | 
+          dist=Normal | 
+          channels shown=8
+        </p>
 
-    {% if diagnostics and diagnostics.available and display.diagnostics_level != "hide" %}
-    <h2>Diagnostics Summary</h2>
-    <section class="card">
-      <div class="cards">
-        <div class="stat"><div class="k">Runs</div><div class="v">{{ diagnostics.overview.n_runs }}</div></div>
-        <div class="stat"><div class="k">PASS</div><div class="v">{{ diagnostics.overview.pass_runs }} ({{ "%.1f"|format(diagnostics.overview.pass_rate_pct) }}%)</div></div>
-        <div class="stat"><div class="k">REVIEW</div><div class="v">{{ diagnostics.overview.review_runs }} ({{ "%.1f"|format(diagnostics.overview.review_rate_pct) }}%)</div></div>
-        <div class="stat"><div class="k">FAIL</div><div class="v">{{ diagnostics.overview.fail_runs }} ({{ "%.1f"|format(diagnostics.overview.fail_rate_pct) }}%)</div></div>
-      </div>
+        
+        <section class="figure">
+          <img src="figures/scenario_snapshot_02_multi-google-meta-tiktok-0-103795-0-016722-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.103795|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        
 
-      {% if diagnostics_focus and diagnostics_focus|length > 0 %}
-      <ul class="small">
-        {% for line in diagnostics_focus %}
-        <li>{{ line }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
-      {% if display.diagnostics_level != "full" %}
-      <p class="small">Detailed diagnostic matrices are hidden in concise mode to keep this client-facing report readable.</p>
-      {% endif %}
-
-      {% if display.diagnostics_level == "full" and diagnostics.status_rows and diagnostics.status_rows|length > 0 %}
-      <h3>Status Breakdown</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>Runs</th>
-            <th>% of Runs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in diagnostics.status_rows %}
-          <tr>
-            <td>{{ row.status }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-      {% if display.diagnostics_level == "full" and diagnostics.primary_rows and diagnostics.primary_rows|length > 0 %}
-      <h3>Primary Review Checks</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Check</th>
-            <th>Runs</th>
-            <th>% of Runs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in diagnostics.primary_rows %}
-          <tr>
-            <td>{{ row.check }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-      {% if display.diagnostics_level == "full" and diagnostics.flagged_rows and diagnostics.flagged_rows|length > 0 %}
-      <h3>Most Frequent QC Flags</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Flag</th>
-            <th>Flag Count</th>
-            <th>% of Runs</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in diagnostics.flagged_rows %}
-          <tr>
-            <td>{{ row.channel }}</td>
-            <td>{{ row.count }}</td>
-            <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-      {% if display.diagnostics_level == "full" and diagnostics.check_rows and diagnostics.check_rows|length > 0 %}
-      <h3>Check-Level Matrix</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Check</th>
-            <th>PASS</th>
-            <th>REVIEW</th>
-            <th>FAIL</th>
-            <th>UNKNOWN</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in diagnostics.check_rows %}
-          <tr>
-            <td>{{ row.check }}</td>
-            <td>{{ row.pass_count }}</td>
-            <td>{{ row.review_count }}</td>
-            <td>{{ row.fail_count }}</td>
-            <td>{{ row.unknown_count }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      {% endif %}
-
-      <p class="small">Diagnostics are summarized at run level (deduplicated by run id from the runs CSV).</p>
-    </section>
-    {% endif %}
-
-    {% if qc_gate and qc_gate.available %}
-    <h2>QC Gate (Strict Window)</h2>
-    <section class="card">
-      <div class="cards">
-        <div class="stat"><div class="k">Gate Result</div><div class="v">{{ qc_gate.result }}</div></div>
-        <div class="stat"><div class="k">QC Runs</div><div class="v">{{ qc_gate.overview.n_qc_runs }} / {{ qc_gate.overview.n_total_runs }}</div></div>
-        <div class="stat"><div class="k">PASS Rate</div><div class="v">{{ "%.1f"|format(qc_gate.overview.pass_rate_pct) }}%</div></div>
-        <div class="stat"><div class="k">PASS/REVIEW/FAIL</div><div class="v">{{ qc_gate.overview.pass_runs }}/{{ qc_gate.overview.review_runs }}/{{ qc_gate.overview.fail_runs }}</div></div>
-      </div>
-      <p class="small">QC window: mu in [{{ qc_gate.mu_values|join(", ") }}], sigma in [{{ qc_gate.sigma_values|join(", ") }}], dist in [{{ qc_gate.dists|join(", ") }}].</p>
-      <p class="small">Outside QC window: PASS {{ qc_gate.overview.outside_counts.PASS }}, REVIEW {{ qc_gate.overview.outside_counts.REVIEW }}, FAIL {{ qc_gate.overview.outside_counts.FAIL }}.</p>
-      {% if display.qc_gate_level != "full" %}
-      <p class="small">Concise mode: detailed QC scenario tables are hidden. Use <code>qc_gate_level: "full"</code> for full scenario-level diagnostics.</p>
-      {% endif %}
-
-      {% if display.qc_gate_level == "full" and qc_gate.status_rows and qc_gate.status_rows|length > 0 %}
-      <h3>QC Window Status Breakdown</h3>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Status</th>
-              <th>Runs</th>
-              <th>% of QC Window</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in qc_gate.status_rows %}
-            <tr>
-              <td>{{ row.status }}</td>
-              <td>{{ row.count }}</td>
-              <td>{{ "%.1f"|format(row.pct_runs) }}%</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      {% if display.qc_gate_level == "full" and qc_gate.run_rows and qc_gate.run_rows|length > 0 %}
-      <h3>QC Window Runs</h3>
-      <p class="small">Each row is one predefined QC scenario (not random sampling).</p>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Scenario</th>
-              <th>mu</th>
-              <th>sigma</th>
-              <th>dist</th>
-              <th>QC Status</th>
-              <th>Review Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in qc_gate.run_rows %}
-            <tr>
-              <td>
-                <b>{{ row.scenario_id }}</b>
-                {% if row.run_id_short %}
-                <span class="qc-run-meta" title="{{ row.run_id }}">id: {{ row.run_id_short }}</span>
-                {% endif %}
-              </td>
-              <td>{{ row.roi_prior_mu }}</td>
-              <td>{{ row.roi_prior_sigma }}</td>
-              <td>{{ row.roi_prior_dist }}</td>
-              <td><span class="status-pill {{ row.qc_status_code|lower }}">{{ row.qc_status_code }}</span></td>
-              <td>{{ row.review_notes }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      {% endif %}
-
-      {% if display.qc_gate_level == "full" and qc_gate.rank_rows and qc_gate.rank_rows|length > 0 %}
-      <h3>QC Window Channel Sensitivity</h3>
-      <p class="small">Ranking metric: {{ qc_gate.rank_metric }}</p>
-      <div class="table-scroll">
+        
         <table>
           <thead>
             <tr>
               <th>Channel</th>
-              <th>Max Change</th>
-              <th>Median Change</th>
-              <th>n</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
             </tr>
           </thead>
           <tbody>
-            {% for row in qc_gate.rank_rows %}
+            
             <tr>
-              <td>{{ row.channel }}</td>
-              <td>{{ row.max_change }}</td>
-              <td>{{ row.median_change }}</td>
-              <td>{{ row.n }}</td>
+              <td>liveintent</td>
+              <td>-0.2718</td>
+              <td>-0.0354</td>
+              <td>666.90%</td>
+              <td>-$18.86M</td>
             </tr>
-            {% endfor %}
+            
+            <tr>
+              <td>amazon</td>
+              <td>-0.1318</td>
+              <td>0.0366</td>
+              <td>-459.85%</td>
+              <td>-$265.1K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>0.0484</td>
+              <td>0.0122</td>
+              <td>296.62%</td>
+              <td>$37.27M</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0307</td>
+              <td>-0.0085</td>
+              <td>262.77%</td>
+              <td>-$9.67M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>0.0791</td>
+              <td>0.0319</td>
+              <td>147.89%</td>
+              <td>$8.27M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>0.0686</td>
+              <td>0.0284</td>
+              <td>141.44%</td>
+              <td>$3.38M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.1339</td>
+              <td>0.2511</td>
+              <td>-46.68%</td>
+              <td>-$3.85M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0416</td>
+              <td>0.0469</td>
+              <td>-11.23%</td>
+              <td>-$443.5K</td>
+            </tr>
+            
           </tbody>
         </table>
+        
       </div>
-      {% endif %}
+      
+      <div
+        id="scenario-3"
+        class="scenario-panel"
+      >
+        <p class="small">
+          run_id=multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.020759 | 
+          sigma=0.033445 | 
+          dist=Normal | 
+          channels shown=8
+        </p>
 
-      {% if display.qc_gate_level == "full" and qc_gate.quick_lines and qc_gate.quick_lines|length > 0 %}
-      <h3>Quick Readouts</h3>
-      <ul>
-        {% for line in qc_gate.quick_lines %}
-        <li>{{ line }}</li>
-        {% endfor %}
-      </ul>
-      {% endif %}
+        
+        <section class="figure">
+          <img src="figures/scenario_snapshot_03_multi-google-meta-tiktok-0-020759-0-033445-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        
+
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td>liveintent</td>
+              <td>0.1563</td>
+              <td>-0.0354</td>
+              <td>-540.88%</td>
+              <td>$15.30M</td>
+            </tr>
+            
+            <tr>
+              <td>amazon</td>
+              <td>0.2054</td>
+              <td>0.0366</td>
+              <td>460.85%</td>
+              <td>$265.6K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>-0.0151</td>
+              <td>0.0122</td>
+              <td>-224.01%</td>
+              <td>-$28.15M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>-0.0132</td>
+              <td>0.0319</td>
+              <td>-141.36%</td>
+              <td>-$7.91M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>-0.0009</td>
+              <td>0.0284</td>
+              <td>-103.24%</td>
+              <td>-$2.46M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.4041</td>
+              <td>0.2511</td>
+              <td>60.95%</td>
+              <td>$5.02M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0397</td>
+              <td>0.0469</td>
+              <td>-15.32%</td>
+              <td>-$604.8K</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0088</td>
+              <td>-0.0085</td>
+              <td>4.17%</td>
+              <td>-$153.4K</td>
+            </tr>
+            
+          </tbody>
+        </table>
+        
+      </div>
+      
+      <div
+        id="scenario-4"
+        class="scenario-panel"
+      >
+        <p class="small">
+          run_id=multi|google,meta,tiktok|0.051898|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.051898 | 
+          sigma=0.006689 | 
+          dist=Normal | 
+          channels shown=8
+        </p>
+
+        
+        <section class="figure">
+          <img src="figures/scenario_snapshot_04_multi-google-meta-tiktok-0-051898-0-006689-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.051898|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        
+
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td>liveintent</td>
+              <td>-0.1968</td>
+              <td>-0.0354</td>
+              <td>455.30%</td>
+              <td>-$12.88M</td>
+            </tr>
+            
+            <tr>
+              <td>amazon</td>
+              <td>-0.0705</td>
+              <td>0.0366</td>
+              <td>-292.56%</td>
+              <td>-$168.6K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>0.0426</td>
+              <td>0.0122</td>
+              <td>249.50%</td>
+              <td>$31.35M</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0188</td>
+              <td>-0.0085</td>
+              <td>121.31%</td>
+              <td>-$4.46M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>0.0472</td>
+              <td>0.0284</td>
+              <td>66.14%</td>
+              <td>$1.58M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>0.0482</td>
+              <td>0.0319</td>
+              <td>50.91%</td>
+              <td>$2.85M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.1779</td>
+              <td>0.2511</td>
+              <td>-29.14%</td>
+              <td>-$2.40M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0400</td>
+              <td>0.0469</td>
+              <td>-14.66%</td>
+              <td>-$579.0K</td>
+            </tr>
+            
+          </tbody>
+        </table>
+        
+      </div>
+      
+      <div
+        id="scenario-5"
+        class="scenario-panel"
+      >
+        <p class="small">
+          run_id=multi|google,meta,tiktok|0.051898|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.051898 | 
+          sigma=0.033445 | 
+          dist=Normal | 
+          channels shown=8
+        </p>
+
+        
+        <section class="figure">
+          <img src="figures/scenario_snapshot_05_multi-google-meta-tiktok-0-051898-0-033445-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.051898|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        
+
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td>liveintent</td>
+              <td>0.1020</td>
+              <td>-0.0354</td>
+              <td>-387.84%</td>
+              <td>$10.97M</td>
+            </tr>
+            
+            <tr>
+              <td>amazon</td>
+              <td>0.1522</td>
+              <td>0.0366</td>
+              <td>315.72%</td>
+              <td>$182.0K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>-0.0109</td>
+              <td>0.0122</td>
+              <td>-189.50%</td>
+              <td>-$23.81M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>0.0056</td>
+              <td>0.0319</td>
+              <td>-82.54%</td>
+              <td>-$4.62M</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0027</td>
+              <td>-0.0085</td>
+              <td>-68.66%</td>
+              <td>$2.53M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>0.0096</td>
+              <td>0.0284</td>
+              <td>-66.33%</td>
+              <td>-$1.58M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.3247</td>
+              <td>0.2511</td>
+              <td>29.32%</td>
+              <td>$2.42M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0473</td>
+              <td>0.0469</td>
+              <td>0.92%</td>
+              <td>$36.2K</td>
+            </tr>
+            
+          </tbody>
+        </table>
+        
+      </div>
+      
+      <div
+        id="scenario-6"
+        class="scenario-panel"
+      >
+        <p class="small">
+          run_id=multi|google,meta,tiktok|0.020759|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric | 
+          mu=0.020759 | 
+          sigma=0.016722 | 
+          dist=Normal | 
+          channels shown=8
+        </p>
+
+        
+        <section class="figure">
+          <img src="figures/scenario_snapshot_06_multi-google-meta-tiktok-0-020759-0-016722-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png" alt="Single scenario channel snapshot for multi|google,meta,tiktok|0.020759|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric">
+          <div class="cap">All channels under one selected prior setting; bars show ROI % change vs baseline for this run.</div>
+        </section>
+        
+
+        
+        <table>
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>ROI (Selected Run)</th>
+              <th>ROI (Baseline)</th>
+              <th>ROI % Change</th>
+              <th>Delta Value</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <tr>
+              <td>liveintent</td>
+              <td>0.0659</td>
+              <td>-0.0354</td>
+              <td>-285.91%</td>
+              <td>$8.09M</td>
+            </tr>
+            
+            <tr>
+              <td>amazon</td>
+              <td>0.1274</td>
+              <td>0.0366</td>
+              <td>247.98%</td>
+              <td>$142.9K</td>
+            </tr>
+            
+            <tr>
+              <td>google</td>
+              <td>-0.0036</td>
+              <td>0.0122</td>
+              <td>-129.48%</td>
+              <td>-$16.27M</td>
+            </tr>
+            
+            <tr>
+              <td>tiktok</td>
+              <td>0.0074</td>
+              <td>0.0319</td>
+              <td>-76.81%</td>
+              <td>-$4.30M</td>
+            </tr>
+            
+            <tr>
+              <td>snapchat</td>
+              <td>-0.0027</td>
+              <td>-0.0085</td>
+              <td>-68.61%</td>
+              <td>$2.53M</td>
+            </tr>
+            
+            <tr>
+              <td>meta</td>
+              <td>0.0104</td>
+              <td>0.0284</td>
+              <td>-63.22%</td>
+              <td>-$1.51M</td>
+            </tr>
+            
+            <tr>
+              <td>beehiiv</td>
+              <td>0.3112</td>
+              <td>0.2511</td>
+              <td>23.94%</td>
+              <td>$1.97M</td>
+            </tr>
+            
+            <tr>
+              <td>moloco</td>
+              <td>0.0468</td>
+              <td>0.0469</td>
+              <td>-0.09%</td>
+              <td>-$3.7K</td>
+            </tr>
+            
+          </tbody>
+        </table>
+        
+      </div>
+      
+      
     </section>
-    {% endif %}
+    
+
+    
+
+    
+    <h2>QC Gate (Strict Window)</h2>
+    <section class="card">
+      <div class="cards">
+        <div class="stat"><div class="k">Gate Result</div><div class="v">PASS</div></div>
+        <div class="stat"><div class="k">QC Runs</div><div class="v">4 / 18</div></div>
+        <div class="stat"><div class="k">PASS Rate</div><div class="v">100.0%</div></div>
+        <div class="stat"><div class="k">PASS/REVIEW/FAIL</div><div class="v">4/0/0</div></div>
+      </div>
+      <p class="small">QC window: mu in [0.020759, 0.051898], sigma in [0.006689, 0.033445], dist in [Normal].</p>
+      <p class="small">Outside QC window: PASS 7, REVIEW 5, FAIL 2.</p>
+      
+      <p class="small">Concise mode: detailed QC scenario tables are hidden. Use <code>qc_gate_level: "full"</code> for full scenario-level diagnostics.</p>
+      
+
+      
+
+      
+
+      
+
+      
+    </section>
+    
     <h2>Methods</h2>
     <section class="card">
-      <p class="method"><b>Baseline:</b> {{ methods.baseline_description }}</p>
-      <p class="method"><b>Sensitivity:</b> {{ methods.sensitivity_description }}</p>
-      <p class="method"><b>Visualization:</b> {{ methods.visualization_description }}</p>
+      <p class="method"><b>Baseline:</b> Baseline ROI is defined at the median prior mean (mu) and median prior standard deviation (sigma) within each channel and distribution family.</p>
+      <p class="method"><b>Sensitivity:</b> For each scenario, percent change is computed relative to that channel-specific baseline ROI. Sensitivity is summarized using maximum absolute percent change across tested prior settings.</p>
+      <p class="method"><b>Visualization:</b> The report includes spend-vs-effect one-pager alignment, ROI/value tornado views, structural adstock-saturation diagnostics (decay, carryover, saturation curves), a single-run channel snapshot, and 2x2 heatmap boards for sensitive channel-prior combinations.</p>
     </section>
 
-    {% if heatmap_pages and heatmap_pages|length > 0 %}
+    
     <h2>Heatmap Boards (2x2)</h2>
-    {% if heatmap_modes and heatmap_modes|length > 1 %}
-    <section class="card">
-      <p class="small">Switch heatmap scaling mode for readability vs full-range stress view.</p>
-      <div class="heatmap-switch">
-        {% for m in heatmap_modes %}
-        <button
-          type="button"
-          class="heatmap-mode-btn{% if m.mode == default_heatmap_mode %} active{% endif %}"
-          data-heatmap-mode="{{ m.mode }}"
-        >
-          {{ m.label }}
-        </button>
-        {% endfor %}
-      </div>
-    </section>
-    {% endif %}
+    
 
-    {% for hm in heatmap_pages %}
+    
     <section
-      class="card figure heatmap-panel{% if hm.scale_mode and default_heatmap_mode and hm.scale_mode != default_heatmap_mode %} hidden{% endif %}"
-      data-heatmap-mode="{{ hm.scale_mode if hm.scale_mode is defined else '' }}"
-      data-heatmap-board="{{ hm.board_num if hm.board_num is defined else loop.index }}"
+      class="card figure heatmap-panel"
+      data-heatmap-mode="robust_q95"
+      data-heatmap-board="1"
     >
-      <img src="{{ hm.path }}" alt="Heatmap board {{ loop.index }}">
+      <img src="figures/heatmap_board_01_robust_q95.png" alt="Heatmap board 1">
       <div class="cap">
-        {% if heatmap_modes and heatmap_modes|length > 1 and hm.scale_label %}<b>{{ hm.scale_label }}</b> - {% endif %}
-        {{ hm.caption }}
+        
+        Top sensitivity entries 1-4 in 2x2 layout, shared color scale around 0, with baseline grid cell outlined.
       </div>
     </section>
-    {% endfor %}
-    {% endif %}
+    
+    
 
-    {% if show_appendix %}
-    <h2>Appendix</h2>
-    <section class="card">
-      <p class="small">Tables stored under <code>tables/</code> for reproducibility:</p>
-      <ul class="small">
-        {% for t in appendix_tables %}
-        <li>{{ t }}</li>
-        {% endfor %}
-      </ul>
-    </section>
-    {% endif %}
+    
   </main>
   <script>
     (function () {

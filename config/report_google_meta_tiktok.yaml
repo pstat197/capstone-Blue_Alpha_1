@@ -37,13 +37,23 @@ decision_policy:
   require_qc_gate_for_green: true
   max_diag_fail_runs_for_green: 0
   max_diag_review_runs_for_green: 5
+  min_pass_coverage_pct_for_green: 60.0
   red_on_qc_fail: true
   red_on_no_qc_with_fail: true
   yellow_on_sensitivity_ge_high: true
+  yellow_on_prior_guardrail_fail: true
 
 analysis:
   # all: show all modeled channels in report
   channel_scope: "all"
+  # all | pass_only | non_fail
+  ranking_qc_scope: "pass_only"
+  prior_guardrail:
+    enabled: true
+    max_neg_prior_prob: 0.20
+  pct_change_guardrail:
+    min_abs_baseline_roi: 0.05
+    require_positive_baseline: true
   qc_gate:
     enabled: true
     mu_values: [0.020759, 0.051898]
@@ -106,4 +116,7 @@ methods:
 
 output:
   report_filename: "report.html"
+  write_dashboard: true
+  dashboard_filename: "dashboard.html"
+  dashboard_template: "dashboard_template.html"
   show_appendix: false

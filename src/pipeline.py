@@ -169,6 +169,7 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
         if c in run_df.columns
     ]
     run_extra_cols.extend([c for c in run_df.columns if c.startswith("qc_")])
+    run_extra_cols.extend([c for c in run_df.columns if c.startswith("data_")])
     run_cols = run_base_cols + run_extra_cols
 
     for col in ["channel", "estimated_roi"]:

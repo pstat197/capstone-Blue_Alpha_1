@@ -127,12 +127,18 @@ Generate tornado sensitivity visualization reports:
 python -m src.viz.tornado_plots --input-mode single --csv data/output/02_tables/google_meta_moloco/tornado_google_meta_moloco.csv --outdir data/output/03_reports/tornado_outputs/google_meta_moloco
 ```
 
-Generate auto HTML report:
+Generate auto HTML report and interactive dashboard:
 
 ```powershell
 python -m src.reporting.make_report --input data/output/02_tables/google_meta_moloco/prior_sensitivity_report_input_google_meta_moloco.csv --outdir data/output/03_reports/report/google_meta_moloco
 python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
+
+This command now writes:
+- `report.html` (narrative report)
+- `dashboard.html` (interactive product-style dashboard)
+- `tables/dashboard_payload.json` (UI data contract payload)
+- `docs/dashboard_productization_notes.md` (architecture and implementation notes)
 
 ## Repository Structure
 

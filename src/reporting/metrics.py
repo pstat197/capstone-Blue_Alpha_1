@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+import math
 
 import numpy as np
 import pandas as pd
@@ -74,12 +75,48 @@ def _build_scope_info(df: pd.DataFrame) -> dict:
             "ROI responses are still summarized across all modeled channels."
         )
 
-    return {
+    scope = {
         "mode": mode,
         "target_sets": raw_target_values,
         "linked_targets": linked_targets,
         "note": note,
     }
+
+    run_level = df.drop_duplicates(subset=["run_id"]).copy() if "run_id" in df.columns else df.copy()
+
+    granularity = None
+    if "data_granularity" in run_level.columns:
+        vals = run_level["data_granularity"].dropna().astype(str).str.strip()
+        if not vals.empty:
+            granularity = vals.value_counts().index[0]
+
+    n_geos = None
+    if "data_n_geos" in run_level.columns:
+        x = pd.to_numeric(run_level["data_n_geos"], errors="coerce").dropna()
+        if not x.empty:
+            n_geos = int(x.median())
+
+    n_periods = None
+    if "data_n_time_periods" in run_level.columns:
+        x = pd.to_numeric(run_level["data_n_time_periods"], errors="coerce").dropna()
+        if not x.empty:
+            n_periods = int(x.median())
+
+    scope["data_granularity"] = granularity
+    scope["data_n_geos"] = n_geos
+    scope["data_n_time_periods"] = n_periods
+
+    if granularity:
+        pieces = [f"Data granularity: {granularity}"]
+        if n_geos is not None:
+            pieces.append(f"geos={n_geos}")
+        if n_periods is not None:
+            pieces.append(f"time periods={n_periods}")
+        scope["data_profile_note"] = " | ".join(pieces)
+    else:
+        scope["data_profile_note"] = None
+
+    return scope
 
 
 def _status_bucket(value: object) -> str:
@@ -534,11 +571,150 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
         "quick_lines": quick_lines,
     }
 
+def _prior_negative_probability(mu: object, sigma: object, dist: object) -> float | None:
+    m = _safe_float(mu)
+    s = _safe_float(sigma)
+    if m is None or s is None:
+        return None
+
+    d = str(dist).strip().lower()
+    if "lognormal" in d:
+        return 0.0
+    if "normal" not in d:
+        return None
+
+    if s <= 0:
+        return 1.0 if m < 0 else 0.0
+
+    z = (0.0 - m) / (s * math.sqrt(2.0))
+    p = 0.5 * (1.0 + math.erf(z))
+    return float(min(max(p, 0.0), 1.0))
+
+
+def _compute_prior_guardrail(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
+    guard_cfg = (cfg.get("analysis", {}) or {}).get("prior_guardrail", {}) or {}
+    enabled = bool(guard_cfg.get("enabled", True))
+    threshold = float(guard_cfg.get("max_neg_prior_prob", 0.20))
+
+    merged["prior_neg_prob"] = np.nan
+    merged["prior_guardrail_pass"] = np.nan
+
+    if not enabled:
+        return {
+            "available": False,
+            "enabled": False,
+            "threshold": threshold,
+            "reason": "Prior guardrail disabled by config.",
+        }
+
+    required = {"roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}
+    if not required.issubset(set(merged.columns)):
+        return {
+            "available": False,
+            "enabled": True,
+            "threshold": threshold,
+            "reason": "Missing prior columns for guardrail computation.",
+        }
+
+    prior_neg = [
+        _prior_negative_probability(mu, sigma, dist)
+        for mu, sigma, dist in zip(
+            merged["roi_prior_mu"],
+            merged["roi_prior_sigma"],
+            merged["roi_prior_dist"],
+        )
+    ]
+    merged["prior_neg_prob"] = pd.to_numeric(pd.Series(prior_neg, index=merged.index), errors="coerce")
+
+    applicable = merged["prior_neg_prob"].notna()
+    fail_mask = applicable & (merged["prior_neg_prob"] > threshold)
+    merged["prior_guardrail_pass"] = np.where(applicable, ~fail_mask, np.nan)
+
+    n_total_rows = int(len(merged))
+    n_applicable_rows = int(applicable.sum())
+    n_fail_rows = int(fail_mask.sum())
+    fail_rate_pct = 100.0 * n_fail_rows / n_applicable_rows if n_applicable_rows > 0 else 0.0
+    max_prior_neg_prob = merged.loc[applicable, "prior_neg_prob"].max() if n_applicable_rows > 0 else np.nan
+
+    n_fail_runs = 0
+    if "run_id" in merged.columns and n_fail_rows > 0:
+        n_fail_runs = int(merged.loc[fail_mask, "run_id"].astype(str).nunique())
+
+    top_cols = [
+        c
+        for c in [
+            "run_id",
+            "channel",
+            "roi_prior_dist",
+            "roi_prior_mu",
+            "roi_prior_sigma",
+            "prior_neg_prob",
+            "qc_status_code",
+            "estimated_roi",
+            "baseline_roi",
+        ]
+        if c in merged.columns
+    ]
+    top_fail_df = merged.loc[fail_mask, top_cols].copy() if n_fail_rows > 0 else pd.DataFrame(columns=top_cols)
+    if not top_fail_df.empty:
+        top_fail_df = top_fail_df.sort_values("prior_neg_prob", ascending=False).head(12).reset_index(drop=True)
+
+    summary_df = pd.DataFrame(
+        [
+            {
+                "threshold": threshold,
+                "n_total_rows": n_total_rows,
+                "n_applicable_rows": n_applicable_rows,
+                "n_fail_rows": n_fail_rows,
+                "fail_rate_pct": fail_rate_pct,
+                "n_fail_runs": n_fail_runs,
+                "max_prior_neg_prob": None if pd.isna(max_prior_neg_prob) else float(max_prior_neg_prob),
+            }
+        ]
+    )
+    summary_df.to_csv(tables_dir / "prior_guardrail_summary.csv", index=False)
+    if not top_fail_df.empty:
+        top_fail_df.to_csv(tables_dir / "prior_guardrail_top_fail_rows.csv", index=False)
+
+    by_channel_df = (
+        merged.assign(_fail=fail_mask.astype(int), _app=applicable.astype(int))
+        .groupby("channel", as_index=False)
+        .agg(
+            n_rows=("channel", "size"),
+            n_applicable=("_app", "sum"),
+            n_fail=("_fail", "sum"),
+            max_prior_neg_prob=("prior_neg_prob", "max"),
+        )
+    )
+    if not by_channel_df.empty:
+        by_channel_df["fail_rate_pct"] = np.where(
+            by_channel_df["n_applicable"] > 0,
+            100.0 * by_channel_df["n_fail"] / by_channel_df["n_applicable"],
+            np.nan,
+        )
+        by_channel_df.to_csv(tables_dir / "prior_guardrail_by_channel.csv", index=False)
+
+    return {
+        "available": True,
+        "enabled": True,
+        "threshold": threshold,
+        "n_total_rows": n_total_rows,
+        "n_applicable_rows": n_applicable_rows,
+        "n_fail_rows": n_fail_rows,
+        "fail_rate_pct": fail_rate_pct,
+        "n_fail_runs": n_fail_runs,
+        "max_prior_neg_prob": None if pd.isna(max_prior_neg_prob) else float(max_prior_neg_prob),
+        "top_fail_rows": top_fail_df.to_dict(orient="records") if not top_fail_df.empty else [],
+    }
+
+
 def _compute_decision_card(
     diagnostics: dict,
     qc_gate: dict,
     rank_df: pd.DataFrame,
     cfg: dict,
+    prior_guardrail: dict | None = None,
+    pass_coverage: dict | None = None,
 ) -> dict:
     hi = float(cfg["thresholds"]["high_sensitivity_pct"])
     med = float(cfg["thresholds"]["medium_sensitivity_pct"])
@@ -556,18 +732,32 @@ def _compute_decision_card(
     red_on_qc_fail = bool(policy_cfg.get("red_on_qc_fail", True))
     red_on_no_qc_with_fail = bool(policy_cfg.get("red_on_no_qc_with_fail", True))
     yellow_on_sensitivity_ge_high = bool(policy_cfg.get("yellow_on_sensitivity_ge_high", True))
+    yellow_on_prior_guardrail_fail = bool(policy_cfg.get("yellow_on_prior_guardrail_fail", True))
+    min_pass_coverage_pct_for_green = float(policy_cfg.get("min_pass_coverage_pct_for_green", 60.0) or 60.0)
 
     top_channel = None
     top_dist = None
-    top_max_abs = None
+    top_primary_metric = None
+    top_primary_value = None
+    reliable_pct_max = None
+    n_total_pairs = 0
+    n_unstable_pairs = 0
+
     if rank_df is not None and not rank_df.empty:
+        n_total_pairs = int(len(rank_df))
         r0 = rank_df.iloc[0]
         top_channel = str(r0.get("channel")) if pd.notna(r0.get("channel")) else None
         top_dist = str(r0.get("roi_prior_dist")) if pd.notna(r0.get("roi_prior_dist")) else None
-        try:
-            top_max_abs = float(r0.get("max_abs_pct_change"))
-        except Exception:
-            top_max_abs = None
+        top_primary_metric = str(r0.get("primary_metric", "pct_change"))
+        top_primary_value = _safe_float(r0.get("primary_value"))
+
+        if "pct_metric_reliable" in rank_df.columns:
+            reliable_mask = rank_df["pct_metric_reliable"] == True  # noqa: E712
+            n_unstable_pairs = int((~reliable_mask).sum())
+            if reliable_mask.any() and "max_abs_pct_change" in rank_df.columns:
+                reliable_pct_max = _safe_float(rank_df.loc[reliable_mask, "max_abs_pct_change"].max())
+        elif "max_abs_pct_change" in rank_df.columns:
+            reliable_pct_max = _safe_float(rank_df["max_abs_pct_change"].max())
 
     diag_overview = diagnostics.get("overview", {}) if diagnostics else {}
     diag_pass_rate = float(diag_overview.get("pass_rate_pct", 0.0) or 0.0)
@@ -577,11 +767,27 @@ def _compute_decision_card(
     gate_available = bool(qc_gate and qc_gate.get("available"))
     gate_result = str(qc_gate.get("result", "REVIEW")).upper() if gate_available else "UNKNOWN"
 
+    guard = prior_guardrail or {}
+    guard_available = bool(guard.get("available"))
+    guard_threshold = float(guard.get("threshold", 0.20) or 0.20)
+    guard_n_fail_rows = int(guard.get("n_fail_rows", 0) or 0)
+    guard_n_app_rows = int(guard.get("n_applicable_rows", 0) or 0)
+    guard_n_fail_runs = int(guard.get("n_fail_runs", 0) or 0)
+    guard_fail_rate_pct = float(guard.get("fail_rate_pct", 0.0) or 0.0)
+    guard_max_prob = _safe_float(guard.get("max_prior_neg_prob"))
+
+    coverage = pass_coverage or {}
+    pass_coverage_pct = _safe_float(coverage.get("pass_coverage_pct"))
+    pass_coverage_num = int(coverage.get("pass_rows", 0) or 0)
+    pass_coverage_den = int(coverage.get("total_rows", 0) or 0)
+    pass_coverage_scope = str(coverage.get("scope", "all"))
+    pass_coverage_available = pass_coverage_pct is not None and pass_coverage_den > 0
+
     sensitivity_level = "unknown"
-    if top_max_abs is not None:
-        if top_max_abs >= hi:
+    if reliable_pct_max is not None:
+        if reliable_pct_max >= hi:
             sensitivity_level = "high"
-        elif top_max_abs >= med:
+        elif reliable_pct_max >= med:
             sensitivity_level = "medium"
         else:
             sensitivity_level = "low"
@@ -610,9 +816,17 @@ def _compute_decision_card(
             yellow_reasons.append(
                 f"diagnostics REVIEW runs ({diag_review_runs}) exceed green limit ({max_diag_review_for_green})"
             )
-        if yellow_on_sensitivity_ge_high and top_max_abs is not None and top_max_abs >= hi:
+        if yellow_on_sensitivity_ge_high and reliable_pct_max is not None and reliable_pct_max >= hi:
             yellow_reasons.append(
-                f"top sensitivity {top_max_abs:.1f}% reaches high threshold {hi:.1f}%"
+                f"stable-baseline sensitivity {reliable_pct_max:.1f}% reaches high threshold {hi:.1f}%"
+            )
+        if yellow_on_prior_guardrail_fail and guard_available and guard_n_fail_rows > 0:
+            yellow_reasons.append(
+                f"prior guardrail violations in {guard_n_fail_runs} run(s) and {guard_n_fail_rows}/{guard_n_app_rows} row(s) exceed P(ROI<0)>{guard_threshold:.2f}"
+            )
+        if pass_coverage_available and pass_coverage_pct < min_pass_coverage_pct_for_green:
+            yellow_reasons.append(
+                f"PASS coverage {pass_coverage_pct:.1f}% ({pass_coverage_num}/{pass_coverage_den}, scope={pass_coverage_scope}) is below green minimum {min_pass_coverage_pct_for_green:.1f}%"
             )
 
         if yellow_reasons:
@@ -629,14 +843,21 @@ def _compute_decision_card(
         "RED: QC gate FAIL, or QC gate missing while diagnostics include FAIL runs.",
         (
             "YELLOW: QC gate REVIEW/missing, diagnostics beyond green limits, "
-            f"or top sensitivity >= {hi:.1f}%."
+            f"or stable-baseline sensitivity >= {hi:.1f}%."
         ),
         (
             "GREEN: QC gate PASS, diagnostics within limits "
             f"(FAIL <= {max_diag_fail_for_green}, REVIEW <= {max_diag_review_for_green}), "
-            f"and top sensitivity < {hi:.1f}%."
+            f"and stable-baseline sensitivity < {hi:.1f}%."
         ),
     ]
+    if yellow_on_prior_guardrail_fail:
+        policy_rules.append(
+            f"Prior guardrail: YELLOW if any row has P(ROI<0) > {guard_threshold:.2f}."
+        )
+    policy_rules.append(
+        f"PASS coverage gate: GREEN requires PASS coverage >= {min_pass_coverage_pct_for_green:.1f}%."
+    )
 
     reasons: list[str] = []
     reasons.append(
@@ -654,11 +875,38 @@ def _compute_decision_card(
     else:
         reasons.append("QC gate window has not been configured or did not match any run.")
 
-    if top_channel is not None and top_max_abs is not None:
+    if n_unstable_pairs > 0 and n_total_pairs > 0:
         reasons.append(
-            f"Most sensitive channel-prior pair: {top_channel} ({top_dist}), "
-            f"max |% change|={top_max_abs:.1f}% (medium>={med:.1f}%, high>={hi:.1f}%)."
+            f"Percent-change safeguard: {n_unstable_pairs}/{n_total_pairs} channel-prior pair(s) had unstable baseline ROI; "
+            "those pairs are ranked by |Delta ROI| instead of % change."
         )
+
+    if guard_available:
+        extra = ""
+        if guard_max_prob is not None:
+            extra = f", max P(ROI<0)={guard_max_prob:.2f}"
+        reasons.append(
+            f"Prior guardrail: {guard_n_fail_runs} run(s), {guard_n_fail_rows}/{guard_n_app_rows} row(s) exceed threshold P(ROI<0)>{guard_threshold:.2f}"
+            f" ({guard_fail_rate_pct:.1f}%){extra}."
+        )
+
+    if pass_coverage_available:
+        reasons.append(
+            f"PASS coverage ({pass_coverage_scope}): {pass_coverage_pct:.1f}% ({pass_coverage_num}/{pass_coverage_den}); "
+            f"green minimum is {min_pass_coverage_pct_for_green:.1f}%."
+        )
+
+    if top_channel is not None and top_primary_value is not None:
+        if top_primary_metric == "delta_roi":
+            reasons.append(
+                f"Most sensitive channel-prior pair under safeguard: {top_channel} ({top_dist}), "
+                f"max |Delta ROI|={top_primary_value:.4f} (baseline unstable for % metric)."
+            )
+        else:
+            reasons.append(
+                f"Most sensitive stable-baseline pair: {top_channel} ({top_dist}), "
+                f"max |% change|={top_primary_value:.1f}% (medium>={med:.1f}%, high>={hi:.1f}%)."
+            )
 
     actions: list[str] = []
     if tier == "GREEN":
@@ -686,7 +934,6 @@ def _compute_decision_card(
         "reasons": reasons,
         "actions": actions,
     }
-
 def _compute_dollar_sensitivity(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     source = None
     if "delta_value" in merged.columns:
@@ -1450,37 +1697,114 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     )
     merged["baseline_roi_for_rank"] = fallback_baseline
 
-    # Prefer tornado ROI columns when available, but only row-wise where valid.
+    # Prefer tornado ROI columns only when they are compatible with the
+    # dist-specific fallback baseline. This avoids cross-dist baseline leakage
+    # (e.g., LogNormal rows accidentally carrying Normal baselines).
+    merged["pct_source_row"] = "fallback_baseline"
     if {"roi_baseline", "roi_new"}.issubset(merged.columns):
         tb = pd.to_numeric(merged["roi_baseline"], errors="coerce")
         tn = pd.to_numeric(merged["roi_new"], errors="coerce")
-        valid_tb = tb.notna()
-        valid_pct = valid_tb & tn.notna() & (tb.abs() >= 1e-9)
-        if valid_tb.any():
-            merged.loc[valid_tb, "baseline_roi_for_rank"] = tb.loc[valid_tb]
+        tol_abs = float(cfg.get("analysis", {}).get("tornado_baseline_abs_tol", 1e-8))
+        tol_rel = float(cfg.get("analysis", {}).get("tornado_baseline_rel_tol", 1e-3))
+
+        fallback_missing = fallback_baseline.isna()
+        compatible_tb = tb.notna() & (
+            fallback_missing
+            | ((tb - fallback_baseline).abs() <= (tol_abs + tol_rel * fallback_baseline.abs()))
+        )
+        valid_pct = compatible_tb & tn.notna() & (tb.abs() >= 1e-9)
+
+        if compatible_tb.any():
+            merged.loc[compatible_tb, "baseline_roi_for_rank"] = tb.loc[compatible_tb]
         if valid_pct.any():
             merged.loc[valid_pct, "pct_change"] = (
                 100.0 * (tn.loc[valid_pct] - tb.loc[valid_pct]) / tb.loc[valid_pct]
             )
-            pct_source = "tornado_roi_columns_with_fallback"
+            merged.loc[valid_pct, "pct_source_row"] = "tornado_compatible"
+
+        rejected_tb = tb.notna() & (~compatible_tb)
+        if rejected_tb.any():
+            merged.loc[rejected_tb, "pct_source_row"] = "tornado_rejected_incompatible_baseline"
+
+        if valid_pct.any() and rejected_tb.any():
+            pct_source = "mixed_tornado_compatible_with_fallback"
+        elif valid_pct.any():
+            pct_source = "tornado_compatible_only"
     merged["abs_pct_change"] = merged["pct_change"].abs()
+    prior_guardrail = _compute_prior_guardrail(merged, cfg, tables_dir)
     dollar = _compute_dollar_sensitivity(merged, cfg, tables_dir)
     scenario_snapshot = _compute_scenario_snapshot(merged, cfg, tables_dir)
     spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
     structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
     qc_gate = _compute_qc_gate(df, merged, cfg, tables_dir)
 
+    merged["abs_delta_roi"] = (fallback_estimated - fallback_baseline).abs()
+
+    analysis_cfg = (cfg.get("analysis", {}) or {})
+    ranking_qc_scope = str(analysis_cfg.get("ranking_qc_scope", "all")).strip().lower()
+    if ranking_qc_scope not in {"all", "pass_only", "non_fail"}:
+        ranking_qc_scope = "all"
+
+    rank_input = merged.copy()
+    rank_scope_fallback = False
+
+    status_col = None
+    if "qc_status_code" in merged.columns:
+        status_col = "qc_status_code"
+    elif "qc_summary_short" in merged.columns:
+        status_col = "qc_summary_short"
+
+    status_bucket = merged[status_col].map(_status_bucket) if status_col else None
+    pass_rows_for_coverage = int((status_bucket == "PASS").sum()) if status_bucket is not None else 0
+    total_rows_for_coverage = int(len(merged))
+    pass_coverage_pct = (
+        100.0 * pass_rows_for_coverage / total_rows_for_coverage
+        if total_rows_for_coverage > 0 and status_bucket is not None
+        else None
+    )
+
+    if ranking_qc_scope != "all" and status_bucket is not None:
+        if ranking_qc_scope == "pass_only":
+            rank_input = merged[status_bucket == "PASS"].copy()
+        else:
+            rank_input = merged[status_bucket != "FAIL"].copy()
+
+    if rank_input.empty:
+        rank_input = merged.copy()
+        rank_scope_fallback = True
+
     rank = (
-        merged.groupby(["channel", "roi_prior_dist"], as_index=False)
+        rank_input.groupby(["channel", "roi_prior_dist"], as_index=False)
         .agg(
             max_abs_pct_change=("abs_pct_change", "max"),
+            max_abs_delta_roi=("abs_delta_roi", "max"),
             baseline_roi=("baseline_roi_for_rank", "median"),
             baseline_mu=("baseline_mu", "first"),
             baseline_sigma=("baseline_sigma", "first"),
         )
-        .sort_values("max_abs_pct_change", ascending=False)
-        .reset_index(drop=True)
     )
+
+    pct_guard_cfg = (cfg.get("analysis", {}) or {}).get("pct_change_guardrail", {}) or {}
+    min_abs_baseline_for_pct = float(pct_guard_cfg.get("min_abs_baseline_roi", 0.05))
+    require_positive_baseline_for_pct = bool(pct_guard_cfg.get("require_positive_baseline", True))
+
+    rank["pct_metric_reliable"] = rank["baseline_roi"].abs() >= min_abs_baseline_for_pct
+    if require_positive_baseline_for_pct:
+        rank["pct_metric_reliable"] = rank["pct_metric_reliable"] & (rank["baseline_roi"] > 0)
+
+    rank["primary_metric"] = np.where(rank["pct_metric_reliable"], "pct_change", "delta_roi")
+    rank["primary_value"] = np.where(
+        rank["pct_metric_reliable"],
+        rank["max_abs_pct_change"],
+        rank["max_abs_delta_roi"],
+    )
+    rank["ranking_metric_label"] = np.where(
+        rank["pct_metric_reliable"],
+        "Max |% Change|",
+        "Max |Delta ROI|",
+    )
+
+    rank = rank.sort_values(["pct_metric_reliable", "primary_value"], ascending=[False, False]).reset_index(drop=True)
 
     top_n = int(cfg["ranking"]["top_n"])
     rank_top = rank.head(top_n).copy()
@@ -1489,29 +1813,74 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     quick = rank.head(quick_n).copy()
     quick_overview_lines: list[str] = []
     for r in quick.itertuples(index=False):
-        quick_overview_lines.append(
-            f"{r.channel} ROI prior ({r.roi_prior_dist}): "
-            f"max |% change| -> {r.max_abs_pct_change:.2f}% change in estimated ROI"
-        )
+        if str(getattr(r, "primary_metric", "pct_change")) == "delta_roi":
+            quick_overview_lines.append(
+                f"{r.channel} ROI prior ({r.roi_prior_dist}): baseline unstable; "
+                f"max |Delta ROI| -> {float(r.primary_value):.4f}"
+            )
+        else:
+            quick_overview_lines.append(
+                f"{r.channel} ROI prior ({r.roi_prior_dist}): "
+                f"max |% change| -> {float(r.primary_value):.2f}% change in estimated ROI"
+            )
 
     hi = float(cfg["thresholds"]["high_sensitivity_pct"])
     med = float(cfg["thresholds"]["medium_sensitivity_pct"])
     recs: list[str] = []
-    if (rank["max_abs_pct_change"] >= hi).any():
-        worst = rank.iloc[0]
+
+    reliable_rank = rank[rank["pct_metric_reliable"] == True].copy()  # noqa: E712
+    if not reliable_rank.empty and (reliable_rank["max_abs_pct_change"] >= hi).any():
+        worst = reliable_rank.sort_values("max_abs_pct_change", ascending=False).iloc[0]
         recs.append(
-            f"High sensitivity detected (>= {hi:.1f}%): prioritize better priors/experiments for "
+            f"High sensitivity detected among stable-baseline pairs (>= {hi:.1f}%): prioritize better priors/experiments for "
             f"{worst['channel']} ({worst['roi_prior_dist']})."
         )
     if not recs:
-        recs.append(f"Overall robust: no channel exceeded {hi:.1f}% max |% change| across tested priors.")
-    if (rank["max_abs_pct_change"] >= med).sum() > 1:
+        if reliable_rank.empty:
+            recs.append(
+                "No channel-prior pair met the baseline-stability rule for percent metrics; "
+                "use |Delta ROI| ranking and recalibrate priors before strong percent claims."
+            )
+        else:
+            recs.append(
+                f"Overall robust on stable-baseline pairs: no channel exceeded {hi:.1f}% max |% change|."
+            )
+    if not reliable_rank.empty and (reliable_rank["max_abs_pct_change"] >= med).sum() > 1:
         recs.append(
-            f"Multiple moderately sensitive channels (>= {med:.1f}%): consider narrowing prior ranges "
+            f"Multiple moderately sensitive stable-baseline channels (>= {med:.1f}%): consider narrowing prior ranges "
             f"or adding holdout validation."
         )
 
-    decision_card = _compute_decision_card(diagnostics, qc_gate, rank, cfg)
+    unstable_pairs = int((~rank["pct_metric_reliable"]).sum())
+    if unstable_pairs > 0:
+        recs.append(
+            f"{unstable_pairs} channel-prior pair(s) had unstable baseline ROI for percent metrics; "
+            "ranking switched to |Delta ROI| for those pairs."
+        )
+    if ranking_qc_scope != "all":
+        if rank_scope_fallback:
+            recs.append(
+                "Requested QC-filtered ranking had no eligible rows; sensitivity ranking fell back to all rows."
+            )
+        elif ranking_qc_scope == "pass_only":
+            recs.append("Sensitivity ranking scope: QC PASS runs only.")
+        else:
+            recs.append("Sensitivity ranking scope: QC non-FAIL runs (PASS + REVIEW).")
+    pass_coverage = {
+        "scope": ranking_qc_scope,
+        "pass_rows": pass_rows_for_coverage,
+        "total_rows": total_rows_for_coverage,
+        "pass_coverage_pct": pass_coverage_pct,
+    }
+
+    decision_card = _compute_decision_card(
+        diagnostics,
+        qc_gate,
+        rank,
+        cfg,
+        prior_guardrail=prior_guardrail,
+        pass_coverage=pass_coverage,
+    )
 
     overview = {
         "n_rows": int(df.shape[0]),
@@ -1519,6 +1888,16 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "n_channels": int(df["channel"].nunique()),
         "n_dists": int(df["roi_prior_dist"].nunique()),
         "pct_source": pct_source,
+        "pct_guardrail_min_abs_baseline_roi": min_abs_baseline_for_pct,
+        "pct_guardrail_require_positive_baseline": require_positive_baseline_for_pct,
+        "n_unstable_pct_pairs": unstable_pairs,
+        "ranking_qc_scope": ranking_qc_scope,
+        "ranking_rows_total": int(len(merged)),
+        "ranking_rows_used": int(len(rank_input)),
+        "ranking_scope_fallback": bool(rank_scope_fallback),
+        "pass_rows_for_coverage": pass_rows_for_coverage,
+        "total_rows_for_coverage": total_rows_for_coverage,
+        "pass_coverage_pct": pass_coverage_pct,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
 
@@ -1535,6 +1914,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "spend_effect": spend_effect,
         "structural": structural,
         "qc_gate": qc_gate,
+        "prior_guardrail": prior_guardrail,
         "decision_card": decision_card,
         "baseline_df": baseline_df,
         "rank_df": rank,

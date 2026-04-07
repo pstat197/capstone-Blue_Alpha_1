@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import math
 import re
 from pathlib import Path
@@ -37,6 +38,23 @@ def _fmt_float_safe(x, digits: int = 6, missing_label: str = "-") -> str:
     if _is_missing_value(x):
         return missing_label
     return f"{float(x):.{digits}f}"
+
+
+def _to_float_safe(x) -> float | None:
+    if _is_missing_value(x):
+        return None
+    if isinstance(x, str):
+        cleaned = re.sub(r"[^0-9eE+\-.]", "", x.strip())
+        if cleaned in {"", "-", "+", ".", "-.", "+."}:
+            return None
+        try:
+            return float(cleaned)
+        except Exception:
+            return None
+    try:
+        return float(x)
+    except Exception:
+        return None
 
 
 def _clean_text_safe(x, missing_label: str = "-") -> str:
@@ -139,6 +157,7 @@ def render_html_report(
     diagnostics = metrics.get("diagnostics", {"available": False})
     qc_gate = metrics.get("qc_gate", {"available": False})
     decision_card = metrics.get("decision_card", {"available": False})
+    prior_guardrail = metrics.get("prior_guardrail", {"available": False})
     dollar = metrics.get("dollar", {"available": False})
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
     spend_effect = metrics.get("spend_effect", {"available": False})
@@ -222,6 +241,11 @@ def render_html_report(
                 "tables/diagnostics_check_matrix.csv",
             ]
         )
+    if prior_guardrail.get("available"):
+        appendix_tables.append("tables/prior_guardrail_summary.csv")
+        appendix_tables.append("tables/prior_guardrail_by_channel.csv")
+        if prior_guardrail.get("top_fail_rows"):
+            appendix_tables.append("tables/prior_guardrail_top_fail_rows.csv")
     if qc_gate.get("available"):
         appendix_tables.extend(
             [
@@ -248,13 +272,59 @@ def render_html_report(
             ]
         )
 
-    rank_table_df = metrics["rank_top_df"].copy()
+    rank_table_raw_df = metrics["rank_df"].copy()
+    rank_table_df = rank_table_raw_df.copy()
     if "baseline_roi" in rank_table_df.columns:
         rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
     if "max_abs_pct_change" in rank_table_df.columns:
         rank_table_df["max_abs_pct_change"] = rank_table_df["max_abs_pct_change"].map(
             lambda x: f"{float(x):.2f}%"
         )
+    if "max_abs_delta_roi" in rank_table_df.columns:
+        rank_table_df["max_abs_delta_roi"] = rank_table_df["max_abs_delta_roi"].map(
+            lambda x: f"{float(x):.4f}"
+        )
+
+    if "primary_metric" in rank_table_df.columns:
+        rank_table_df["ranking_metric"] = rank_table_df["primary_metric"].map(
+            lambda m: "Max |% Change|" if str(m) == "pct_change" else "Max |Delta ROI|"
+        )
+        rank_table_df["max_change_display"] = rank_table_df.apply(
+            lambda r: (
+                f"{float(r.get('primary_value')):.2f}%"
+                if str(r.get("primary_metric")) == "pct_change"
+                else f"{float(r.get('primary_value')):.4f}"
+            ),
+            axis=1,
+        )
+    else:
+        rank_table_df["ranking_metric"] = "Max |% Change|"
+        rank_table_df["max_change_display"] = rank_table_df.get("max_abs_pct_change", "NA")
+
+    if "pct_metric_reliable" in rank_table_df.columns:
+        rank_table_df["baseline_stability"] = rank_table_df["pct_metric_reliable"].map(
+            lambda v: "Stable" if bool(v) else "Unstable"
+        )
+    else:
+        rank_table_df["baseline_stability"] = "NA"
+
+    top_n = int((cfg.get("ranking", {}) or {}).get("top_n", 10))
+    if "pct_metric_reliable" in rank_table_df.columns:
+        stable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] == True].copy()  # noqa: E712
+        unstable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] != True].copy()  # noqa: E712
+        rank_table_exec_df = stable_rank_df.head(top_n).copy()
+        if rank_table_exec_df.empty:
+            rank_table_exec_df = rank_table_df.head(top_n).copy()
+            exec_table_mode = "all_pairs_fallback"
+        else:
+            exec_table_mode = "stable_only"
+    else:
+        unstable_rank_df = rank_table_df.iloc[0:0].copy()
+        rank_table_exec_df = rank_table_df.head(top_n).copy()
+        exec_table_mode = "all_pairs"
+
+    unstable_preview_n = 5
+    rank_table_unstable_preview_df = unstable_rank_df.head(unstable_preview_n).copy()
 
     dollar_block = {"available": False}
     if dollar.get("available"):
@@ -553,6 +623,108 @@ def render_html_report(
                 f"Main issue driver: {first.get('check', 'unknown')} ({int(first.get('count', 0) or 0)} run(s))."
             )
 
+    rank_dashboard_rows = []
+    for row in rank_table_raw_df.to_dict(orient="records"):
+        primary_metric = str(row.get("primary_metric", "pct_change"))
+        primary_value = _to_float_safe(row.get("primary_value"))
+        if primary_value is None:
+            primary_value = _to_float_safe(row.get("max_abs_pct_change"))
+        rank_dashboard_rows.append(
+            {
+                "channel": _clean_text_safe(row.get("channel"), "unknown"),
+                "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), "Unknown"),
+                "baseline_roi": _to_float_safe(row.get("baseline_roi")),
+                "max_abs_pct_change": _to_float_safe(row.get("max_abs_pct_change")),
+                "max_abs_delta_roi": _to_float_safe(row.get("max_abs_delta_roi")),
+                "primary_metric": primary_metric,
+                "primary_value": primary_value,
+                "pct_metric_reliable": bool(row.get("pct_metric_reliable", True)),
+            }
+        )
+
+    spend_effect_dashboard_rows = []
+    table_df_dashboard = spend_effect.get("table_df", None)
+    if table_df_dashboard is not None and not table_df_dashboard.empty:
+        for row in table_df_dashboard.to_dict(orient="records"):
+            spend_effect_dashboard_rows.append(
+                {
+                    "channel": _clean_text_safe(row.get("channel"), "unknown"),
+                    "spend_share_pct": _to_float_safe(row.get("spend_share_pct")),
+                    "effect_share_pct": _to_float_safe(row.get("effect_share_pct")),
+                    "share_gap_pp": _to_float_safe(row.get("share_gap_pp")),
+                    "estimated_roi": _to_float_safe(row.get("estimated_roi")),
+                    "effect_negative": bool(row.get("effect_negative", False)),
+                }
+            )
+
+    scenario_dashboard_items = []
+    for item in scenario_block.get("scenarios", []):
+        rows = []
+        for row in item.get("rows", []):
+            rows.append(
+                {
+                    "channel": _clean_text_safe(row.get("channel"), "unknown"),
+                    "estimated_roi": _to_float_safe(row.get("estimated_roi")),
+                    "baseline_roi": _to_float_safe(row.get("baseline_roi")),
+                    "pct_change": _to_float_safe(row.get("pct_change")),
+                    "delta_value_used": _clean_text_safe(row.get("delta_value_used"), "NA"),
+                }
+            )
+        scenario_dashboard_items.append(
+            {
+                "run_id": _clean_text_safe(item.get("run_id"), ""),
+                "label": _clean_text_safe(item.get("label"), ""),
+                "n_channels": int(item.get("n_channels", 0) or 0),
+                "rows": rows,
+            }
+        )
+
+    dashboard_payload = {
+        "meta": {
+            "title": meta.get("title", "Report"),
+            "subtitle": meta.get("subtitle", ""),
+            "generated_at": meta.get("generated_at", ""),
+            "authors": meta.get("authors", []),
+        },
+        "overview": {
+            "n_rows": int(overview.get("n_rows", 0) or 0),
+            "n_channels": int(overview.get("n_channels", 0) or 0),
+            "n_dists": int(overview.get("n_dists", 0) or 0),
+            "n_target_sets": int(overview.get("n_target_sets", 0) or 0),
+        },
+        "thresholds": cfg.get("thresholds", {}),
+        "decision_card": decision_card_block,
+        "diagnostics_overview": diagnostics.get("overview", {}),
+        "rank_rows": rank_dashboard_rows,
+        "spend_effect_rows": spend_effect_dashboard_rows,
+        "scenario_items": scenario_dashboard_items,
+        "quick_overview_lines": metrics.get("quick_overview_lines", []),
+        "recommendations": metrics.get("recommendations", []),
+        "figures": {
+            "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
+            "tornado_dollar": (
+                f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
+            ),
+            "spend_effect": (
+                f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
+            ),
+            "adstock_curves": (
+                f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
+            ),
+            "saturation_curves": (
+                f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
+            ),
+            "carryover_decomposition": (
+                f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
+            ),
+            "scenario_snapshot": (
+                f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
+            ),
+        },
+        "heatmap_pages": [f"figures/{x}" for x in fig_paths.get("heatmap_pages", [])],
+        "heatmap_modes": fig_paths.get("heatmap_modes", []),
+        "default_heatmap_mode": fig_paths.get("default_heatmap_mode"),
+    }
     html = template.render(
         meta=meta,
         methods=methods,
@@ -570,7 +742,9 @@ def render_html_report(
         structural=structural_block,
         display=display_block,
         quick_overview_lines=metrics.get("quick_overview_lines", []),
-        rank_table=rank_table_df.to_dict(orient="records"),
+        rank_table=rank_table_exec_df.to_dict(orient="records"),
+        rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
+        exec_table_mode=exec_table_mode,
         recommendations=metrics["recommendations"],
         figures={
             "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
@@ -602,3 +776,50 @@ def render_html_report(
 
     out_path = outdir / cfg["output"]["report_filename"]
     out_path.write_text(html, encoding="utf-8")
+
+    payload_path = outdir / "tables" / "dashboard_payload.json"
+    payload_path.write_text(json.dumps(dashboard_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    output_cfg = cfg.get("output", {}) or {}
+    write_dashboard = bool(output_cfg.get("write_dashboard", True))
+    if write_dashboard:
+        dashboard_template_name = str(output_cfg.get("dashboard_template", "dashboard_template.html"))
+        dashboard_nav = {
+            "overview": str(output_cfg.get("dashboard_filename", "dashboard.html")),
+            "decision": str(output_cfg.get("dashboard_decision_filename", "dashboard_decision.html")),
+        }
+        try:
+            dashboard_template = env.get_template(dashboard_template_name)
+        except Exception:
+            dashboard_template = None
+        if dashboard_template is not None:
+            page_specs = [
+                ("overview", dashboard_nav["overview"]),
+                ("decision", dashboard_nav["decision"]),
+            ]
+            kept_files = set()
+            for page_key, page_filename in page_specs:
+                dashboard_html = dashboard_template.render(
+                    meta=meta,
+                    overview=overview,
+                    decision_card=decision_card_block,
+                    dashboard_payload=dashboard_payload,
+                    dashboard_page=page_key,
+                    dashboard_nav=dashboard_nav,
+                )
+                (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
+                kept_files.add(page_filename)
+
+            stale_candidates = [
+                str(output_cfg.get("dashboard_sensitivity_filename", "dashboard_sensitivity.html")),
+                str(output_cfg.get("dashboard_allocation_filename", "dashboard_allocation.html")),
+                str(output_cfg.get("dashboard_scenarios_filename", "dashboard_scenarios.html")),
+                str(output_cfg.get("dashboard_actions_filename", "dashboard_actions.html")),
+            ]
+            for stale_name in stale_candidates:
+                if stale_name in kept_files:
+                    continue
+                stale_path = outdir / stale_name
+                if stale_path.exists() and stale_path.is_file():
+                    stale_path.unlink()
+
