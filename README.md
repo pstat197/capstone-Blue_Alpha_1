@@ -16,7 +16,7 @@ If GitHub opens HTML as source text, download the folder and open `dashboard.htm
 - Client-facing interactive dashboard HTML output.
 - Next-grid recommendations for reruns.
 
-## 60-Second Quickstart
+## Quickstart
 
 From repo root:
 
