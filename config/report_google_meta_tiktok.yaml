@@ -116,4 +116,7 @@ methods:
 
 output:
   report_filename: "report.html"
+  write_dashboard: true
+  dashboard_filename: "dashboard.html"
+  dashboard_template: "dashboard_template.html"
   show_appendix: false

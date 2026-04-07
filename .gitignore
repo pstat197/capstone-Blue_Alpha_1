@@ -40,3 +40,4 @@ data/output/03_reports/tornado_outputs/**
 !data/output/03_reports/.gitkeep
 .localappdata/
 tmp_patch_test.txt
+temp/
