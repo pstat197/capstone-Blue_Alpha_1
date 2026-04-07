@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 import math
@@ -786,17 +786,13 @@ def render_html_report(
         dashboard_template_name = str(output_cfg.get("dashboard_template", "dashboard_template.html"))
         dashboard_nav = {
             "overview": str(output_cfg.get("dashboard_filename", "dashboard.html")),
-            "decision": str(output_cfg.get("dashboard_decision_filename", "dashboard_decision.html")),
         }
         try:
             dashboard_template = env.get_template(dashboard_template_name)
         except Exception:
             dashboard_template = None
         if dashboard_template is not None:
-            page_specs = [
-                ("overview", dashboard_nav["overview"]),
-                ("decision", dashboard_nav["decision"]),
-            ]
+            page_specs = [("overview", dashboard_nav["overview"])]
             kept_files = set()
             for page_key, page_filename in page_specs:
                 dashboard_html = dashboard_template.render(
@@ -815,6 +811,7 @@ def render_html_report(
                 str(output_cfg.get("dashboard_allocation_filename", "dashboard_allocation.html")),
                 str(output_cfg.get("dashboard_scenarios_filename", "dashboard_scenarios.html")),
                 str(output_cfg.get("dashboard_actions_filename", "dashboard_actions.html")),
+                str(output_cfg.get("dashboard_decision_filename", "dashboard_decision.html")),
             ]
             for stale_name in stale_candidates:
                 if stale_name in kept_files:
@@ -822,4 +819,6 @@ def render_html_report(
                 stale_path = outdir / stale_name
                 if stale_path.exists() and stale_path.is_file():
                     stale_path.unlink()
+
+
 

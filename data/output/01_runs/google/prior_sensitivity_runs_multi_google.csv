@@ -1,0 +1,559 @@
+run_id,prior_key,targets,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,is_baseline,qc_status_code,qc_severity_rank,qc_needs_review,qc_summary_short,qc_primary_review_check,qc_flagged_channels,qc_review_reason,qc_convergence_status,qc_baseline_status,qc_bayesianppp_status,qc_gof_status,qc_prior_posterior_shift_status,qc_roi_consistency_status,qc_r2,qc_mape,qc_wmape,qc_bayesian_ppp,qc_baseline_neg_prob,qc_report_full
+multi|google|0.020759|0.006689|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}}",google,google,0.020759,0.006689,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9168,0.0462,0.0453,0.94,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9168, MAPE = 0.0462, and wMAPE = 0.0453. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.020759|0.006689|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.006689}}",google,google,0.020759,0.006689,LogNormal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9051,0.0478,0.0476,0.93,0.02,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.02. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.93. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9051, MAPE = 0.0478, and wMAPE = 0.0476. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.020759|0.016722|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.016722}}",google,google,0.020759,0.016722,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9187,0.0453,0.0447,0.94,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9187, MAPE = 0.0453, and wMAPE = 0.0447. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.020759|0.016722|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.016722}}",google,google,0.020759,0.016722,LogNormal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.905,0.0477,0.0475,0.94,0.02,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.02. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9050, MAPE = 0.0477, and wMAPE = 0.0475. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.020759|0.033445|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}",google,google,0.020759,0.033445,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9218,0.0438,0.0433,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9218, MAPE = 0.0438, and wMAPE = 0.0433. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.020759|0.033445|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}}",google,google,0.020759,0.033445,LogNormal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9052,0.0475,0.0473,0.92,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9052, MAPE = 0.0475, and wMAPE = 0.0473. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.006689|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.006689}}",google,google,0.051898,0.006689,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9169,0.046,0.045,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9169, MAPE = 0.0460, and wMAPE = 0.0450. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.006689|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.006689}}",google,google,0.051898,0.006689,LogNormal,False,REVIEW,1,True,REVIEW:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.38. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,PASS,PASS,PASS,PASS,0.9063,0.0479,0.0477,0.91,0.38,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.38. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.91. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9063, MAPE = 0.0479, and wMAPE = 0.0477. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.016722|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}",google,google,0.051898,0.016722,Normal,True,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9173,0.0461,0.0451,0.92,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9173, MAPE = 0.0461, and wMAPE = 0.0451. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.016722|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}",google,google,0.051898,0.016722,LogNormal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9058,0.0478,0.0475,0.91,0.14,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.14. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.91. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9058, MAPE = 0.0478, and wMAPE = 0.0475. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.033445|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.033445}}",google,google,0.051898,0.033445,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9202,0.0447,0.0441,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9202, MAPE = 0.0447, and wMAPE = 0.0441. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.051898|0.033445|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.033445}}",google,google,0.051898,0.033445,LogNormal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9055,0.0477,0.0475,0.93,0.03,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.03. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.93. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9055, MAPE = 0.0477, and wMAPE = 0.0475. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.103795|0.006689|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.006689}}",google,google,0.103795,0.006689,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9191,0.0457,0.0443,0.94,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9191, MAPE = 0.0457, and wMAPE = 0.0443. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.103795|0.006689|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.006689}}",google,google,0.103795,0.006689,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.9067,0.0478,0.0475,0.88,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.88. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9067, MAPE = 0.0478, and wMAPE = 0.0475. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channel `snapchat`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|google|0.103795|0.016722|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.016722}}",google,google,0.103795,0.016722,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9184,0.0457,0.0444,0.97,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9184, MAPE = 0.0457, and wMAPE = 0.0444. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.103795|0.016722|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.016722}}",google,google,0.103795,0.016722,LogNormal,False,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.97. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.9069,0.0477,0.0474,0.86,0.97,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 0.97. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.86. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0477, and wMAPE = 0.0474. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `google`, `snapchat`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|google|0.103795|0.033445|Normal,"{""google"": {""dist"": ""Normal"", ""mu"": 0.103795, ""sigma"": 0.033445}}",google,google,0.103795,0.033445,Normal,False,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.9187,0.0455,0.0446,0.99,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9187, MAPE = 0.0455, and wMAPE = 0.0446. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+multi|google|0.103795|0.033445|LogNormal,"{""google"": {""dist"": ""LogNormal"", ""mu"": 0.103795, ""sigma"": 0.033445}}",google,google,0.103795,0.033445,LogNormal,False,REVIEW,1,True,REVIEW:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.42. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,PASS,PASS,PASS,REVIEW,0.9066,0.0478,0.0475,0.92,0.42,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.42. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9066, MAPE = 0.0478, and wMAPE = 0.0475. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
