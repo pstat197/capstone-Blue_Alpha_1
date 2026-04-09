@@ -45,6 +45,11 @@ def _pick_baseline(group: pd.DataFrame, rule: str) -> tuple[float, float]:
     raise ValueError(f"Unknown baseline rule: {rule}")
 
 
+def _merge_reason_tokens(tokens: list[str]) -> str:
+    clean = [str(t).strip() for t in tokens if str(t).strip()]
+    return "; ".join(clean)
+
+
 def _parse_linked_targets(raw_target_values: list[str]) -> list[str]:
     linked: list[str] = []
     seen: set[str] = set()
@@ -1054,14 +1059,22 @@ def _compute_scenario_snapshot(merged: pd.DataFrame, cfg: dict, tables_dir: Path
     else:
         work["_is_fail"] = False
 
+    work["_abs_metric_for_selection"] = pd.to_numeric(work.get("abs_pct_change", pd.Series(dtype=float)), errors="coerce")
+    if "abs_delta_roi" in work.columns:
+        fallback_abs = pd.to_numeric(work["abs_delta_roi"], errors="coerce")
+        work["_abs_metric_for_selection"] = work["_abs_metric_for_selection"].where(
+            work["_abs_metric_for_selection"].notna(),
+            fallback_abs,
+        )
+
     agg = (
         work.groupby(key_cols, dropna=False, as_index=False)
         .agg(
             n_rows=("channel", "size"),
             n_channels=("channel", "nunique"),
-            total_abs_pct=("abs_pct_change", "sum"),
-            max_abs_pct=("abs_pct_change", "max"),
-            median_abs_pct=("abs_pct_change", "median"),
+            total_abs_pct=("_abs_metric_for_selection", "sum"),
+            max_abs_pct=("_abs_metric_for_selection", "max"),
+            median_abs_pct=("_abs_metric_for_selection", "median"),
             any_baseline=("_is_baseline", "max"),
             any_fail=("_is_fail", "max"),
         )
@@ -1128,7 +1141,13 @@ def _compute_scenario_snapshot(merged: pd.DataFrame, cfg: dict, tables_dir: Path
         if rows_df.empty:
             continue
         rows_df = _attach_delta_value(rows_df)
-        rows_df = rows_df.sort_values("abs_pct_change", ascending=False).reset_index(drop=True)
+        rows_df["_sort_metric"] = pd.to_numeric(rows_df.get("abs_pct_change", pd.Series(dtype=float)), errors="coerce")
+        if "abs_delta_roi" in rows_df.columns:
+            rows_df["_sort_metric"] = rows_df["_sort_metric"].where(
+                rows_df["_sort_metric"].notna(),
+                pd.to_numeric(rows_df["abs_delta_roi"], errors="coerce"),
+            )
+        rows_df = rows_df.sort_values("_sort_metric", ascending=False).drop(columns=["_sort_metric"]).reset_index(drop=True)
 
         meta = {}
         for col in [
@@ -1663,13 +1682,83 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     baseline_rule = cfg["baseline"]["rule"]
 
+    pct_guard_cfg = (cfg.get("analysis", {}) or {}).get("pct_change_guardrail", {}) or {}
+    min_abs_baseline_for_pct = float(pct_guard_cfg.get("min_abs_baseline_roi", 0.05))
+    require_positive_baseline_for_pct = bool(pct_guard_cfg.get("require_positive_baseline", True))
+    require_qc_pass_baseline = bool(pct_guard_cfg.get("require_qc_pass_baseline", True))
+    avoid_sign_flip_zone = bool(pct_guard_cfg.get("avoid_sign_flip_zone", True))
+    local_neighbor_count = max(1, int(pct_guard_cfg.get("local_neighbor_count", 4) or 4))
+    raw_local_ratio_cap = pct_guard_cfg.get("max_local_sensitivity_ratio", 1.0)
+    max_local_sensitivity_ratio = None
+    if raw_local_ratio_cap not in {None, "", "none", "null", "nan"}:
+        max_local_sensitivity_ratio = float(raw_local_ratio_cap)
+    local_scale_floor = float(pct_guard_cfg.get("local_scale_floor", min_abs_baseline_for_pct))
+
     baselines = []
+    status_col_for_baseline = None
+    if "qc_status_code" in df.columns:
+        status_col_for_baseline = "qc_status_code"
+    elif "qc_summary_short" in df.columns:
+        status_col_for_baseline = "qc_summary_short"
+
     for (channel, dist), g in df.groupby(["channel", "roi_prior_dist"], as_index=False):
         mu0, s0 = _pick_baseline(g, baseline_rule)
 
         g2 = g.assign(d=(g["roi_prior_mu"] - mu0).abs() + (g["roi_prior_sigma"] - s0).abs()).sort_values("d")
+        baseline_row = g2.iloc[0]
+        baseline_roi = float(baseline_row["estimated_roi"])
 
-        baseline_roi = float(g2.iloc[0]["estimated_roi"])
+        baseline_run_id = baseline_row.get("run_id") if "run_id" in g2.columns else None
+        baseline_qc_status = baseline_row.get(status_col_for_baseline) if status_col_for_baseline else None
+        baseline_qc_bucket = _status_bucket(baseline_qc_status) if status_col_for_baseline else "UNKNOWN"
+        baseline_qc_pass = (baseline_qc_bucket == "PASS") if status_col_for_baseline else True
+
+        roi_series = pd.to_numeric(g["estimated_roi"], errors="coerce").dropna()
+        sign_flip_zone = bool((roi_series > 0).any() and (roi_series < 0).any())
+
+        local_neighbor_n = 0
+        local_volatility_ratio = np.nan
+        local_volatility_pass = True
+
+        neighbor_roi = pd.to_numeric(g2.iloc[1:]["estimated_roi"], errors="coerce").dropna().head(local_neighbor_count)
+        local_neighbor_n = int(neighbor_roi.shape[0])
+        if local_neighbor_n > 0:
+            denom = max(abs(baseline_roi), local_scale_floor, 1e-9)
+            local_volatility_ratio = float(((neighbor_roi - baseline_roi).abs() / denom).median())
+            if max_local_sensitivity_ratio is not None:
+                local_volatility_pass = bool(local_volatility_ratio <= max_local_sensitivity_ratio)
+
+        reasons = []
+        abs_pass = abs(baseline_roi) >= min_abs_baseline_for_pct
+        if not abs_pass:
+            reasons.append(
+                f"abs(baseline_roi)={abs(baseline_roi):.4f} < min_abs_baseline_roi={min_abs_baseline_for_pct:.4f}"
+            )
+
+        positive_pass = (baseline_roi > 0) if require_positive_baseline_for_pct else True
+        if require_positive_baseline_for_pct and not positive_pass:
+            reasons.append("baseline_roi <= 0")
+
+        qc_pass = baseline_qc_pass if require_qc_pass_baseline else True
+        if require_qc_pass_baseline and not qc_pass:
+            reasons.append(f"baseline_qc={baseline_qc_bucket}")
+
+        sign_pass = (not sign_flip_zone) if avoid_sign_flip_zone else True
+        if avoid_sign_flip_zone and not sign_pass:
+            reasons.append("sign_flip_zone")
+
+        if max_local_sensitivity_ratio is None:
+            local_pass = True
+        else:
+            local_pass = local_volatility_pass
+            if not local_pass and not np.isnan(local_volatility_ratio):
+                reasons.append(
+                    f"local_volatility_ratio={local_volatility_ratio:.3f} > max_local_sensitivity_ratio={max_local_sensitivity_ratio:.3f}"
+                )
+
+        pct_metric_reliable = bool(abs_pass and positive_pass and qc_pass and sign_pass and local_pass)
+        unstable_reason = "" if pct_metric_reliable else _merge_reason_tokens(reasons)
+
         baselines.append(
             {
                 "channel": channel,
@@ -1677,6 +1766,14 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
                 "baseline_mu": mu0,
                 "baseline_sigma": s0,
                 "baseline_roi": baseline_roi,
+                "baseline_run_id": baseline_run_id,
+                "baseline_qc_status": baseline_qc_status,
+                "baseline_qc_pass": baseline_qc_pass,
+                "baseline_sign_flip_zone": sign_flip_zone,
+                "baseline_local_neighbor_n": local_neighbor_n,
+                "baseline_local_volatility_ratio": local_volatility_ratio,
+                "pct_metric_reliable": pct_metric_reliable,
+                "pct_metric_unstable_reason": unstable_reason,
             }
         )
 
@@ -1690,7 +1787,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     fallback_baseline = pd.to_numeric(merged["baseline_roi"], errors="coerce")
     fallback_estimated = pd.to_numeric(merged["estimated_roi"], errors="coerce")
     fallback_safe = fallback_baseline.abs() >= 1e-9
-    merged["pct_change"] = np.where(
+    merged["pct_change_raw"] = np.where(
         fallback_safe,
         100.0 * (fallback_estimated - fallback_baseline) / fallback_baseline,
         np.nan,
@@ -1717,7 +1814,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         if compatible_tb.any():
             merged.loc[compatible_tb, "baseline_roi_for_rank"] = tb.loc[compatible_tb]
         if valid_pct.any():
-            merged.loc[valid_pct, "pct_change"] = (
+            merged.loc[valid_pct, "pct_change_raw"] = (
                 100.0 * (tn.loc[valid_pct] - tb.loc[valid_pct]) / tb.loc[valid_pct]
             )
             merged.loc[valid_pct, "pct_source_row"] = "tornado_compatible"
@@ -1730,15 +1827,24 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
             pct_source = "mixed_tornado_compatible_with_fallback"
         elif valid_pct.any():
             pct_source = "tornado_compatible_only"
+
+    merged["abs_pct_change_raw"] = merged["pct_change_raw"].abs()
+    merged["abs_delta_roi"] = (fallback_estimated - fallback_baseline).abs()
+
+    if "pct_metric_reliable" in merged.columns:
+        reliable_mask = merged["pct_metric_reliable"].fillna(False).map(bool)
+        merged["pct_change"] = merged["pct_change_raw"].where(reliable_mask, np.nan)
+    else:
+        merged["pct_change"] = merged["pct_change_raw"]
+
     merged["abs_pct_change"] = merged["pct_change"].abs()
+
     prior_guardrail = _compute_prior_guardrail(merged, cfg, tables_dir)
     dollar = _compute_dollar_sensitivity(merged, cfg, tables_dir)
     scenario_snapshot = _compute_scenario_snapshot(merged, cfg, tables_dir)
     spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
     structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
     qc_gate = _compute_qc_gate(df, merged, cfg, tables_dir)
-
-    merged["abs_delta_roi"] = (fallback_estimated - fallback_baseline).abs()
 
     analysis_cfg = (cfg.get("analysis", {}) or {})
     ranking_qc_scope = str(analysis_cfg.get("ranking_qc_scope", "all")).strip().lower()
@@ -1777,26 +1883,37 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         rank_input.groupby(["channel", "roi_prior_dist"], as_index=False)
         .agg(
             max_abs_pct_change=("abs_pct_change", "max"),
+            max_abs_pct_change_raw=("abs_pct_change_raw", "max"),
             max_abs_delta_roi=("abs_delta_roi", "max"),
             baseline_roi=("baseline_roi_for_rank", "median"),
             baseline_mu=("baseline_mu", "first"),
             baseline_sigma=("baseline_sigma", "first"),
+            pct_metric_reliable=("pct_metric_reliable", "max"),
+            pct_metric_unstable_reason=("pct_metric_unstable_reason", "first"),
+            baseline_qc_pass=("baseline_qc_pass", "first"),
+            baseline_sign_flip_zone=("baseline_sign_flip_zone", "first"),
+            baseline_local_neighbor_n=("baseline_local_neighbor_n", "first"),
+            baseline_local_volatility_ratio=("baseline_local_volatility_ratio", "first"),
         )
     )
 
-    pct_guard_cfg = (cfg.get("analysis", {}) or {}).get("pct_change_guardrail", {}) or {}
-    min_abs_baseline_for_pct = float(pct_guard_cfg.get("min_abs_baseline_roi", 0.05))
-    require_positive_baseline_for_pct = bool(pct_guard_cfg.get("require_positive_baseline", True))
-
-    rank["pct_metric_reliable"] = rank["baseline_roi"].abs() >= min_abs_baseline_for_pct
-    if require_positive_baseline_for_pct:
-        rank["pct_metric_reliable"] = rank["pct_metric_reliable"] & (rank["baseline_roi"] > 0)
+    if "pct_metric_reliable" not in rank.columns:
+        rank["pct_metric_reliable"] = rank["baseline_roi"].abs() >= min_abs_baseline_for_pct
+        if require_positive_baseline_for_pct:
+            rank["pct_metric_reliable"] = rank["pct_metric_reliable"] & (rank["baseline_roi"] > 0)
+    else:
+        rank["pct_metric_reliable"] = rank["pct_metric_reliable"].fillna(False).map(bool)
 
     rank["primary_metric"] = np.where(rank["pct_metric_reliable"], "pct_change", "delta_roi")
     rank["primary_value"] = np.where(
         rank["pct_metric_reliable"],
         rank["max_abs_pct_change"],
         rank["max_abs_delta_roi"],
+    )
+    rank["primary_value"] = pd.to_numeric(rank["primary_value"], errors="coerce")
+    rank["primary_value"] = rank["primary_value"].where(
+        rank["primary_value"].notna(),
+        pd.to_numeric(rank["max_abs_delta_roi"], errors="coerce"),
     )
     rank["ranking_metric_label"] = np.where(
         rank["pct_metric_reliable"],
@@ -1890,6 +2007,10 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "pct_source": pct_source,
         "pct_guardrail_min_abs_baseline_roi": min_abs_baseline_for_pct,
         "pct_guardrail_require_positive_baseline": require_positive_baseline_for_pct,
+        "pct_guardrail_require_qc_pass_baseline": require_qc_pass_baseline,
+        "pct_guardrail_avoid_sign_flip_zone": avoid_sign_flip_zone,
+        "pct_guardrail_local_neighbor_count": local_neighbor_count,
+        "pct_guardrail_max_local_sensitivity_ratio": max_local_sensitivity_ratio,
         "n_unstable_pct_pairs": unstable_pairs,
         "ranking_qc_scope": ranking_qc_scope,
         "ranking_rows_total": int(len(merged)),

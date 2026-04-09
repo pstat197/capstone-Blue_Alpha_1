@@ -54,6 +54,10 @@ analysis:
   pct_change_guardrail:
     min_abs_baseline_roi: 0.05
     require_positive_baseline: true
+    require_qc_pass_baseline: true
+    avoid_sign_flip_zone: true
+    local_neighbor_count: 4
+    max_local_sensitivity_ratio: 1.0
   qc_gate:
     enabled: true
     mu_values: [0.020759, 0.051898]
@@ -110,8 +114,8 @@ theory:
     - "Heatmap surfaces represent ROI response over the tested (mu, sigma) prior grid."
 
 methods:
-  baseline_description: "Baseline ROI is defined at the median prior mean (mu) and median prior standard deviation (sigma) within each channel and distribution family."
-  sensitivity_description: "For each scenario, percent change is computed relative to that channel-specific baseline ROI. Sensitivity is summarized using maximum absolute percent change across tested prior settings."
+  baseline_description: "Baseline ROI is selected from the median prior location within each channel/dist pair, then validated by stability filters (QC pass, denominator magnitude, sign-stability, and local smoothness)."
+  sensitivity_description: "Percent change is shown only for stable baselines; otherwise the report falls back to |Delta ROI| to avoid misleading denominator effects near unstable baselines."
   visualization_description: "The report includes spend-vs-effect one-pager alignment, ROI/value tornado views, structural adstock-saturation diagnostics (decay, carryover, saturation curves), a single-run channel snapshot, and 2x2 heatmap boards for sensitive channel-prior combinations."
 
 output:

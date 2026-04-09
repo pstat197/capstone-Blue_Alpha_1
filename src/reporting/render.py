@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import math
@@ -275,14 +275,20 @@ def render_html_report(
     rank_table_raw_df = metrics["rank_df"].copy()
     rank_table_df = rank_table_raw_df.copy()
     if "baseline_roi" in rank_table_df.columns:
-        rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
+        rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.4f}"
+        )
     if "max_abs_pct_change" in rank_table_df.columns:
         rank_table_df["max_abs_pct_change"] = rank_table_df["max_abs_pct_change"].map(
-            lambda x: f"{float(x):.2f}%"
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.2f}%"
+        )
+    if "max_abs_pct_change_raw" in rank_table_df.columns:
+        rank_table_df["max_abs_pct_change_raw"] = rank_table_df["max_abs_pct_change_raw"].map(
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.2f}%"
         )
     if "max_abs_delta_roi" in rank_table_df.columns:
         rank_table_df["max_abs_delta_roi"] = rank_table_df["max_abs_delta_roi"].map(
-            lambda x: f"{float(x):.4f}"
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.4f}"
         )
 
     if "primary_metric" in rank_table_df.columns:
@@ -291,9 +297,13 @@ def render_html_report(
         )
         rank_table_df["max_change_display"] = rank_table_df.apply(
             lambda r: (
-                f"{float(r.get('primary_value')):.2f}%"
-                if str(r.get("primary_metric")) == "pct_change"
-                else f"{float(r.get('primary_value')):.4f}"
+                "NA"
+                if _to_float_safe(r.get("primary_value")) is None
+                else (
+                    f"{float(_to_float_safe(r.get('primary_value'))):.2f}%"
+                    if str(r.get("primary_metric")) == "pct_change"
+                    else f"{float(_to_float_safe(r.get('primary_value'))):.4f}"
+                )
             ),
             axis=1,
         )
@@ -312,6 +322,8 @@ def render_html_report(
     if "pct_metric_reliable" in rank_table_df.columns:
         stable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] == True].copy()  # noqa: E712
         unstable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] != True].copy()  # noqa: E712
+        if "max_abs_pct_change_raw" in unstable_rank_df.columns:
+            unstable_rank_df["max_abs_pct_change"] = unstable_rank_df["max_abs_pct_change_raw"]
         rank_table_exec_df = stable_rank_df.head(top_n).copy()
         if rank_table_exec_df.empty:
             rank_table_exec_df = rank_table_df.head(top_n).copy()
@@ -515,15 +527,21 @@ def render_html_report(
                 snap_df = snap_df.head(snap_top_n)
 
             if "pct_change" in snap_df.columns:
-                snap_df["pct_change"] = snap_df["pct_change"].map(lambda x: f"{float(x):.2f}%")
+                snap_df["pct_change"] = snap_df["pct_change"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.2f}%"
+                )
             if "delta_value_used" in snap_df.columns:
                 snap_df["delta_value_used"] = snap_df["delta_value_used"].map(
                     lambda x: _fmt_money(float(x)) if str(x).strip().lower() not in {"nan", "none", ""} else "NA"
                 )
             if "estimated_roi" in snap_df.columns:
-                snap_df["estimated_roi"] = snap_df["estimated_roi"].map(lambda x: f"{float(x):.4f}")
+                snap_df["estimated_roi"] = snap_df["estimated_roi"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.4f}"
+                )
             if "baseline_roi" in snap_df.columns:
-                snap_df["baseline_roi"] = snap_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
+                snap_df["baseline_roi"] = snap_df["baseline_roi"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.4f}"
+                )
 
             keep_cols = [
                 c

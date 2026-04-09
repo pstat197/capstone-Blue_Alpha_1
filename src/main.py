@@ -87,7 +87,7 @@ def _pick_preferred_dist(dist_values: list[str]) -> str:
     if not dist_values:
         raise ValueError("Distribution grid is empty.")
     for d in dist_values:
-        if str(d).strip().lower() == "normal":
+        if str(d).strip().lower() == "lognormal":
             return str(d)
     return str(dist_values[0])
 
