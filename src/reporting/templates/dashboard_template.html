@@ -1611,11 +1611,15 @@
                 return `${lagLabels[i] || ""}<br>Adstock mass: <b>${Number.isFinite(v) ? v.toFixed(1) : "NA"}%</b>`;
               },
             },
-            grid: { left: 58, right: 16, top: 20, bottom: 34 },
+            grid: { left: 72, right: 16, top: 32, bottom: 36, containLabel: true },
             xAxis: { type: "category", data: lagLabels, axisLabel: { color: "#3d6089" } },
             yAxis: {
               type: "value",
               name: "Mass %",
+              nameLocation: "middle",
+              nameGap: 52,
+              nameRotate: 90,
+              nameTextStyle: { color: "#3d6089" },
               axisLabel: { color: "#3d6089", formatter: (v) => `${v}%` },
               splitLine: { lineStyle: { color: "rgba(33,81,146,0.12)", type: "dashed" } },
             },
@@ -1653,7 +1657,7 @@
                 return `Spend index: ${i >= 0 ? xVals[i].toFixed(2) : "NA"}<br>Response: <b>${i >= 0 ? yVals[i].toFixed(1) : "NA"}%</b>`;
               },
             },
-            grid: { left: 58, right: 16, top: 20, bottom: 34 },
+            grid: { left: 72, right: 16, top: 32, bottom: 36, containLabel: true },
             xAxis: {
               type: "value",
               name: "Spend Index",
@@ -1665,6 +1669,10 @@
             yAxis: {
               type: "value",
               name: "Response %",
+              nameLocation: "middle",
+              nameGap: 52,
+              nameRotate: 90,
+              nameTextStyle: { color: "#3d6089" },
               min: 0,
               max: 100,
               axisLabel: { color: "#3d6089", formatter: (v) => `${v}%` },
@@ -1700,11 +1708,15 @@
                 return `${lagLabels[i] || ""}<br>Contribution: <b>${Number.isFinite(v) ? v.toFixed(1) : "NA"}%</b>`;
               },
             },
-            grid: { left: 58, right: 16, top: 20, bottom: 34 },
+            grid: { left: 72, right: 16, top: 32, bottom: 36, containLabel: true },
             xAxis: { type: "category", data: lagLabels, axisLabel: { color: "#3d6089" } },
             yAxis: {
               type: "value",
               name: "Contribution %",
+              nameLocation: "middle",
+              nameGap: 52,
+              nameRotate: 90,
+              nameTextStyle: { color: "#3d6089" },
               axisLabel: { color: "#3d6089", formatter: (v) => `${v}%` },
               splitLine: { lineStyle: { color: "rgba(33,81,146,0.12)", type: "dashed" } },
             },

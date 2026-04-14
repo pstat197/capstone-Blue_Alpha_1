@@ -1,252 +1,4 @@
 run_id,prior_key,targets,target_channel,channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,adstock_alpha_m,saturation_ec_m,saturation_slope_m,max_lag,adstock_decay_spec,is_baseline,estimated_roi,qc_overall_status,qc_summary,qc_pass_fail,qc_needs_review,qc_text,qc_r2,qc_mape,qc_wmape,qc_bayesian_ppp,qc_baseline_neg_prob
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.00091986766,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.015132147,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.008828337,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.013203395,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.03970774,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.15628317,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.4040715,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.20538688,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed: No major quality issues were identified.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.9060, MAPE = 0.0463, and wMAPE = 0.0464. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: PASS
-  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.906,0.0463,0.0464,1.0,0.0
 "multi|google,meta,tiktok|0.020759|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.006689}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.020759,0.006689,Normal,0.3,0.5,1.2,4,geometric,False,0.018381821,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
@@ -1239,6 +991,254 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8952,0.0517,0.0514,0.93,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.0026250042,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.015775146,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.0007307489,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,-0.0077809026,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.04566986,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.1415942,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.34605098,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.020759,0.033445,Normal,0.3,0.5,1.2,4,geometric,False,0.19277081,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.9069, MAPE = 0.0465, and wMAPE = 0.0465. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.9069,0.0465,0.0465,0.98,0.0
 "multi|google,meta,tiktok|0.020759|0.033445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.020759, ""sigma"": 0.033445}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.020759,0.033445,LogNormal,0.3,0.5,1.2,4,geometric,False,0.007498505,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
@@ -1983,7 +1983,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8512,0.0633,0.0617,0.89,0.21
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.02840901,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.02840901,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2014,7 +2014,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.0122020915,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.0122020915,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2045,7 +2045,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,-0.008475163,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,-0.008475163,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2076,7 +2076,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.03192186,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.03192186,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2107,7 +2107,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.046888947,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.046888947,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2138,7 +2138,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,-0.03544803,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,-0.03544803,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2169,7 +2169,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.25105745,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.25105745,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2200,7 +2200,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,True,0.036620628,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""Normal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.051898,0.016722,Normal,0.3,0.5,1.2,4,geometric,False,0.036620628,PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2231,7 +2231,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",0.8872,0.0532,0.0522,0.93,0.0
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.033615954,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",meta,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.033615954,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2262,7 +2262,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.025752464,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",google,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.025752464,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2293,7 +2293,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.029342115,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",snapchat,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.029342115,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2324,7 +2324,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.03648551,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",tiktok,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.03648551,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2355,7 +2355,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.07033154,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",moloco,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.07033154,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2386,7 +2386,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.09218383,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",liveintent,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.09218383,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2417,7 +2417,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.163973,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",beehiiv,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.163973,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS
@@ -2448,7 +2448,7 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: PASS
   Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8738,0.0576,0.0565,0.92,0.01
-"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,False,0.13222179,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
+"multi|google,meta,tiktok|0.051898|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.051898, ""sigma"": 0.016722}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",amazon,0.051898,0.016722,LogNormal,0.3,0.5,1.2,4,geometric,True,0.13222179,PASS,Passed: No major quality issues were identified.,PASS,False,"========================================
 Model Quality Checks
 ========================================
 Overall Status: PASS

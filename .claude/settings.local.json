@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(echo \"---EXIT:$?\")",
+      "Bash(wc -l /d/Intern/BlueAlpha/notebooks/*.ipynb /d/Intern/BlueAlpha/scripts/*.ps1)",
+      "Bash(grep -i \"from src\\\\|import src\" /d/Intern/BlueAlpha/notebooks/*.ipynb)",
+      "Bash(python3 -c \"import json; nb = json.load\\(open\\('/d/Intern/BlueAlpha/notebooks/Visualization.ipynb'\\)\\); print\\('Total cells:', len\\(nb['cells']\\)\\); [print\\(f'Cell {i}: {c.get\\(\\\\\"cell_type\\\\\"\\)} - {c[\\\\\"source\\\\\"][:50] if c[\\\\\"source\\\\\"] else \\\\\"empty\\\\\"}'\\) for i, c in enumerate\\(nb['cells']\\)]\")",
+      "Bash(wc -l /d/Intern/BlueAlpha/temp/ui_preview_test/tables/*.csv)",
+      "Bash(python3)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" mv src/next_grid_generator.py experiments/next_grid_generator.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" mv src/prior_posterior_shift_analysis.py experiments/prior_posterior_shift_analysis.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" mv src/tester.ipynb notebooks/tester.ipynb)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" ls-files temp/)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" mv src/utils.py src/meridian_spec.py)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/formatting.py'\\).read\\(\\)\\); print\\('formatting.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/reporting/render.py'\\).read\\(\\)\\); print\\('render.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/reporting/metrics.py'\\).read\\(\\)\\); print\\('metrics.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/reporting/make_qc_gate.py'\\).read\\(\\)\\); print\\('make_qc_gate.py: OK'\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/viz/tornado_plots.py'\\).read\\(\\)\\); print\\('tornado_plots.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/run_meridian_once.py'\\).read\\(\\)\\); print\\('run_meridian_once.py: OK'\\)\")",
+      "Bash(python -c \"import ast; ast.parse\\(open\\('src/meridian_spec.py'\\).read\\(\\)\\); print\\('meridian_spec.py: OK'\\)\")",
+      "Bash(python -c \"from src.formatting import fmt_money, status_bucket, to_float_safe, to_bool, is_missing_value, fmt_float_safe; print\\('formatting imports: OK'\\)\")",
+      "Bash(python -c \"from src.formatting import fmt_money, status_bucket, to_float_safe, to_bool, is_missing_value, fmt_float_safe, fmt_money_short; print\\('OK'\\)\")",
+      "Bash(wc -l /d/Intern/BlueAlpha/src/**/*.py /d/Intern/BlueAlpha/src/*.py)",
+      "Bash(grep -l \"if __name__ == \\\\\"__main__\\\\\"\" /d/Intern/BlueAlpha/src/**/*.py /d/Intern/BlueAlpha/src/*.py)",
+      "Bash(grep -l \"argparse\" /d/Intern/BlueAlpha/src/**/*.py /d/Intern/BlueAlpha/src/*.py)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" rm src/reporting/io_load.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" rm src/meridian_spec.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" rm -f src/meridian_spec.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" rm src/experiment.py)",
+      "Bash(git -C \"d:/Intern/BlueAlpha\" mv src/viz/prior_viz.py experiments/prior_viz.py)",
+      "Bash(python -c \"from src.formatting import fmt_money, status_bucket, to_float_safe; print\\('formatting: OK'\\)\")",
+      "Bash(python -c \"from src.run_config import load_run_config; print\\('run_config: OK'\\)\")",
+      "Bash(python -c \"from src.io_utils import RUN_OUTPUT_COLUMNS; print\\('io_utils: OK'\\)\")",
+      "Bash(python -c \"from src.output_paths import RUNS_DIR; print\\('output_paths: OK'\\)\")",
+      "Bash(ls -d */)"
+    ]
+  }
+}

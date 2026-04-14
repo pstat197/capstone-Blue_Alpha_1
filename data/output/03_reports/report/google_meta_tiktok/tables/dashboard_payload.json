@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-04-07 14:54:04",
+    "generated_at": "2026-04-09 15:44:41",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -38,16 +38,16 @@
     ],
     "triggered_rules": [
       "YELLOW rule: diagnostics FAIL runs (2) exceed green limit (0).",
-      "YELLOW rule: stable-baseline sensitivity 91.7% reaches high threshold 15.0%.",
+      "YELLOW rule: stable-baseline sensitivity 25.2% reaches high threshold 15.0%.",
       "YELLOW rule: prior guardrail violations in 1 run(s) and 8/144 row(s) exceed P(ROI<0)>0.20."
     ],
     "reasons": [
       "Broad exploration diagnostics: PASS 61.1%, REVIEW 5, FAIL 2.",
       "QC gate window: 4 run(s), PASS 4, REVIEW 0, FAIL 0.",
-      "Percent-change safeguard: 11/16 channel-prior pair(s) had unstable baseline ROI; those pairs are ranked by |Delta ROI| instead of % change.",
+      "Percent-change safeguard: 12/16 channel-prior pair(s) had unstable baseline ROI; those pairs are ranked by |Delta ROI| instead of % change.",
       "Prior guardrail: 1 run(s), 8/144 row(s) exceed threshold P(ROI<0)>0.20 (5.6%), max P(ROI<0)=0.27.",
       "PASS coverage (pass_only): 61.1% (88/144); green minimum is 60.0%.",
-      "Most sensitive stable-baseline pair: beehiiv (Normal), max |% change|=91.7% (medium>=7.5%, high>=15.0%)."
+      "Most sensitive stable-baseline pair: liveintent (LogNormal), max |% change|=25.2% (medium>=7.5%, high>=15.0%)."
     ],
     "actions": [
       "Keep conclusions directional; avoid hard budget shifts from single-run snapshots.",
@@ -66,16 +66,6 @@
     "fail_rate_pct": 11.11111111111111
   },
   "rank_rows": [
-    {
-      "channel": "beehiiv",
-      "roi_prior_dist": "Normal",
-      "baseline_roi": 0.25105745,
-      "max_abs_pct_change": 91.71946500691375,
-      "max_abs_delta_roi": 0.23026855000000002,
-      "primary_metric": "pct_change",
-      "primary_value": 91.71946500691375,
-      "pct_metric_reliable": true
-    },
     {
       "channel": "liveintent",
       "roi_prior_dist": "LogNormal",
@@ -120,7 +110,7 @@
       "channel": "liveintent",
       "roi_prior_dist": "Normal",
       "baseline_roi": -0.03544803,
-      "max_abs_pct_change": 1363.3237164378386,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.48327139999999996,
       "primary_metric": "delta_roi",
       "primary_value": 0.48327139999999996,
@@ -130,17 +120,27 @@
       "channel": "amazon",
       "roi_prior_dist": "Normal",
       "baseline_roi": 0.036620628,
-      "max_abs_pct_change": 738.8479738796397,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.270570768,
       "primary_metric": "delta_roi",
       "primary_value": 0.270570768,
       "pct_metric_reliable": false
     },
     {
+      "channel": "beehiiv",
+      "roi_prior_dist": "Normal",
+      "baseline_roi": 0.25105745,
+      "max_abs_pct_change": null,
+      "max_abs_delta_roi": 0.23026855000000002,
+      "primary_metric": "delta_roi",
+      "primary_value": 0.23026855000000002,
+      "pct_metric_reliable": false
+    },
+    {
       "channel": "google",
       "roi_prior_dist": "Normal",
       "baseline_roi": 0.0122020915,
-      "max_abs_pct_change": 665.8310052829877,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.0812453085,
       "primary_metric": "delta_roi",
       "primary_value": 0.0812453085,
@@ -150,7 +150,7 @@
       "channel": "meta",
       "roi_prior_dist": "Normal",
       "baseline_roi": 0.02840901,
-      "max_abs_pct_change": 247.74180796866912,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.070380995,
       "primary_metric": "delta_roi",
       "primary_value": 0.070380995,
@@ -160,7 +160,7 @@
       "channel": "tiktok",
       "roi_prior_dist": "Normal",
       "baseline_roi": 0.03192186,
-      "max_abs_pct_change": 214.32848837755694,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.06841764,
       "primary_metric": "delta_roi",
       "primary_value": 0.06841764,
@@ -170,7 +170,7 @@
       "channel": "snapchat",
       "roi_prior_dist": "Normal",
       "baseline_roi": -0.008475163,
-      "max_abs_pct_change": 608.707702730909,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.05158897,
       "primary_metric": "delta_roi",
       "primary_value": 0.05158897,
@@ -180,7 +180,7 @@
       "channel": "tiktok",
       "roi_prior_dist": "LogNormal",
       "baseline_roi": 0.03648551,
-      "max_abs_pct_change": 78.62638181568518,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.0286872364,
       "primary_metric": "delta_roi",
       "primary_value": 0.0286872364,
@@ -190,7 +190,7 @@
       "channel": "meta",
       "roi_prior_dist": "LogNormal",
       "baseline_roi": 0.033615954,
-      "max_abs_pct_change": 77.69361238416737,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.026117449000000004,
       "primary_metric": "delta_roi",
       "primary_value": 0.026117449000000004,
@@ -200,7 +200,7 @@
       "channel": "moloco",
       "roi_prior_dist": "Normal",
       "baseline_roi": 0.046888947,
-      "max_abs_pct_change": 53.585931456298226,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.025125879,
       "primary_metric": "delta_roi",
       "primary_value": 0.025125879,
@@ -210,7 +210,7 @@
       "channel": "google",
       "roi_prior_dist": "LogNormal",
       "baseline_roi": 0.025752464,
-      "max_abs_pct_change": 80.68957750994234,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.020779554399999997,
       "primary_metric": "delta_roi",
       "primary_value": 0.020779554399999997,
@@ -220,7 +220,7 @@
       "channel": "snapchat",
       "roi_prior_dist": "LogNormal",
       "baseline_roi": 0.029342115,
-      "max_abs_pct_change": 10.447276891935022,
+      "max_abs_pct_change": null,
       "max_abs_delta_roi": 0.0030654519999999998,
       "primary_metric": "delta_roi",
       "primary_value": 0.0030654519999999998,
@@ -229,459 +229,459 @@
   ],
   "spend_effect_rows": [
     {
-      "channel": "google",
-      "spend_share_pct": 53.588127224741896,
-      "effect_share_pct": 77.21295691719851,
-      "share_gap_pp": 23.62482969245662,
-      "estimated_roi": 0.0934474,
+      "channel": "snapchat",
+      "spend_share_pct": 22.595724478125547,
+      "effect_share_pct": 32.05900491281258,
+      "share_gap_pp": 9.463280434687038,
+      "estimated_roi": 0.03182555,
       "effect_negative": false
     },
     {
-      "channel": "tiktok",
-      "spend_share_pct": 9.120037525761928,
-      "effect_share_pct": 14.10986764656205,
-      "share_gap_pp": 4.989830120800121,
-      "estimated_roi": 0.1003395,
-      "effect_negative": false
-    },
-    {
-      "channel": "meta",
-      "spend_share_pct": 4.371734568128638,
-      "effect_share_pct": 6.659186456025515,
-      "share_gap_pp": 2.2874518878968764,
-      "estimated_roi": 0.098790005,
-      "effect_negative": false
-    },
-    {
-      "channel": "moloco",
-      "spend_share_pct": 4.382539477961467,
-      "effect_share_pct": 1.470619560219618,
-      "share_gap_pp": -2.9119199177418493,
-      "estimated_roi": 0.021763068,
+      "channel": "liveintent",
+      "spend_share_pct": 4.1522994295305,
+      "effect_share_pct": 21.371460999562654,
+      "share_gap_pp": 17.219161570032153,
+      "estimated_roi": 0.115451,
       "effect_negative": false
     },
     {
       "channel": "beehiiv",
       "spend_share_pct": 1.707633391891276,
-      "effect_share_pct": 0.5473694199943133,
-      "share_gap_pp": -1.1602639718969627,
-      "estimated_roi": 0.0207889,
+      "effect_share_pct": 15.422791982225057,
+      "share_gap_pp": 13.71515859033378,
+      "estimated_roi": 0.20259117,
       "effect_negative": false
     },
     {
-      "channel": "snapchat",
-      "spend_share_pct": 22.595724478125547,
-      "effect_share_pct": 0.0,
-      "share_gap_pp": -22.595724478125547,
-      "estimated_roi": -0.060064133,
-      "effect_negative": true
+      "channel": "moloco",
+      "spend_share_pct": 4.382539477961467,
+      "effect_share_pct": 14.065845023499904,
+      "share_gap_pp": 9.683305545538436,
+      "estimated_roi": 0.07199331,
+      "effect_negative": false
     },
     {
-      "channel": "liveintent",
-      "spend_share_pct": 4.1522994295305,
-      "effect_share_pct": 0.0,
-      "share_gap_pp": -4.1522994295305,
-      "estimated_roi": -0.51871943,
-      "effect_negative": true
+      "channel": "google",
+      "spend_share_pct": 53.588127224741896,
+      "effect_share_pct": 11.880288689048932,
+      "share_gap_pp": -41.707838535692964,
+      "estimated_roi": 0.0049729096,
+      "effect_negative": false
+    },
+    {
+      "channel": "tiktok",
+      "spend_share_pct": 9.120037525761928,
+      "effect_share_pct": 3.1706108634504835,
+      "share_gap_pp": -5.949426662311446,
+      "estimated_roi": 0.0077982736,
+      "effect_negative": false
+    },
+    {
+      "channel": "meta",
+      "spend_share_pct": 4.371734568128638,
+      "effect_share_pct": 1.4614242883516744,
+      "share_gap_pp": -2.910310279776964,
+      "estimated_roi": 0.007498505,
+      "effect_negative": false
     },
     {
       "channel": "amazon",
       "spend_share_pct": 0.08190390385875117,
-      "effect_share_pct": 0.0,
-      "share_gap_pp": -0.08190390385875117,
-      "estimated_roi": -0.23395014,
-      "effect_negative": true
+      "effect_share_pct": 0.5685732410487065,
+      "share_gap_pp": 0.48666933718995536,
+      "estimated_roi": 0.15571626,
+      "effect_negative": false
     }
   ],
   "scenario_items": [
     {
-      "run_id": "multi|google,meta,tiktok|0.103795|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.103795, sigma=0.006689, dist=Normal",
+      "run_id": "multi|google,meta,tiktok|0.103795|0.006689|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.103795, sigma=0.006689, dist=LogNormal",
+      "n_channels": 8,
+      "rows": [
+        {
+          "channel": "beehiiv",
+          "estimated_roi": 0.1024,
+          "baseline_roi": 0.164,
+          "pct_change": -37.54,
+          "delta_value_used": "-$2.02M"
+        },
+        {
+          "channel": "liveintent",
+          "estimated_roi": 0.0664,
+          "baseline_roi": 0.0922,
+          "pct_change": -28.0,
+          "delta_value_used": "-$2.06M"
+        },
+        {
+          "channel": "moloco",
+          "estimated_roi": 0.064,
+          "baseline_roi": 0.0703,
+          "pct_change": -9.04,
+          "delta_value_used": "-$535.5K"
+        },
+        {
+          "channel": "meta",
+          "estimated_roi": 0.0977,
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "$5.39M"
+        },
+        {
+          "channel": "google",
+          "estimated_roi": 0.089,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "$65.14M"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0987,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "$10.91M"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.1321,
+          "baseline_roi": 0.1322,
+          "pct_change": -0.06,
+          "delta_value_used": "-$124.19"
+        },
+        {
+          "channel": "snapchat",
+          "estimated_roi": 0.0232,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "-$2.66M"
+        }
+      ]
+    },
+    {
+      "run_id": "multi|google,meta,tiktok|0.020759|0.033445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.020759, sigma=0.033445, dist=LogNormal",
       "n_channels": 8,
       "rows": [
         {
           "channel": "liveintent",
-          "estimated_roi": -0.5187,
-          "baseline_roi": -0.0354,
-          "pct_change": 1363.32,
-          "delta_value_used": "-$38.56M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": -0.234,
-          "baseline_roi": 0.0366,
-          "pct_change": -738.85,
-          "delta_value_used": "-$425.9K"
-        },
-        {
-          "channel": "google",
-          "estimated_roi": 0.0934,
-          "baseline_roi": 0.0122,
-          "pct_change": 665.83,
-          "delta_value_used": "$83.67M"
-        },
-        {
-          "channel": "snapchat",
-          "estimated_roi": -0.0601,
-          "baseline_roi": -0.0085,
-          "pct_change": 608.71,
-          "delta_value_used": "-$22.40M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": 0.0988,
-          "baseline_roi": 0.0284,
-          "pct_change": 247.74,
-          "delta_value_used": "$5.91M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": 0.1003,
-          "baseline_roi": 0.0319,
-          "pct_change": 214.33,
-          "delta_value_used": "$11.99M"
+          "estimated_roi": 0.1155,
+          "baseline_roi": 0.0922,
+          "pct_change": 25.24,
+          "delta_value_used": "$1.86M"
         },
         {
           "channel": "beehiiv",
-          "estimated_roi": 0.0208,
-          "baseline_roi": 0.2511,
-          "pct_change": -91.72,
-          "delta_value_used": "-$7.56M"
+          "estimated_roi": 0.2026,
+          "baseline_roi": 0.164,
+          "pct_change": 23.55,
+          "delta_value_used": "$1.27M"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.1557,
+          "baseline_roi": 0.1322,
+          "pct_change": 17.77,
+          "delta_value_used": "$37.0K"
         },
         {
           "channel": "moloco",
+          "estimated_roi": 0.072,
+          "baseline_roi": 0.0703,
+          "pct_change": 2.36,
+          "delta_value_used": "$140.0K"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0078,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "-$5.03M"
+        },
+        {
+          "channel": "meta",
+          "estimated_roi": 0.0075,
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "-$2.19M"
+        },
+        {
+          "channel": "google",
+          "estimated_roi": 0.005,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "-$21.40M"
+        },
+        {
+          "channel": "snapchat",
+          "estimated_roi": 0.0318,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "$1.08M"
+        }
+      ]
+    },
+    {
+      "run_id": "multi|google,meta,tiktok|0.020759|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.020759, sigma=0.016722, dist=LogNormal",
+      "n_channels": 8,
+      "rows": [
+        {
+          "channel": "beehiiv",
+          "estimated_roi": 0.2027,
+          "baseline_roi": 0.164,
+          "pct_change": 23.62,
+          "delta_value_used": "$1.27M"
+        },
+        {
+          "channel": "liveintent",
+          "estimated_roi": 0.1136,
+          "baseline_roi": 0.0922,
+          "pct_change": 23.23,
+          "delta_value_used": "$1.71M"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.1505,
+          "baseline_roi": 0.1322,
+          "pct_change": 13.81,
+          "delta_value_used": "$28.7K"
+        },
+        {
+          "channel": "moloco",
+          "estimated_roi": 0.0727,
+          "baseline_roi": 0.0703,
+          "pct_change": 3.39,
+          "delta_value_used": "$200.7K"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0127,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "-$4.16M"
+        },
+        {
+          "channel": "meta",
+          "estimated_roi": 0.0119,
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "-$1.82M"
+        },
+        {
+          "channel": "google",
+          "estimated_roi": 0.0087,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "-$17.61M"
+        },
+        {
+          "channel": "snapchat",
+          "estimated_roi": 0.0324,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "$1.33M"
+        }
+      ]
+    },
+    {
+      "run_id": "multi|google,meta,tiktok|0.103795|0.016722|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.103795, sigma=0.016722, dist=LogNormal",
+      "n_channels": 8,
+      "rows": [
+        {
+          "channel": "beehiiv",
+          "estimated_roi": 0.124,
+          "baseline_roi": 0.164,
+          "pct_change": -24.36,
+          "delta_value_used": "-$1.31M"
+        },
+        {
+          "channel": "liveintent",
+          "estimated_roi": 0.0744,
+          "baseline_roi": 0.0922,
+          "pct_change": -19.27,
+          "delta_value_used": "-$1.42M"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.1251,
+          "baseline_roi": 0.1322,
+          "pct_change": -5.37,
+          "delta_value_used": "-$11.2K"
+        },
+        {
+          "channel": "moloco",
+          "estimated_roi": 0.068,
+          "baseline_roi": 0.0703,
+          "pct_change": -3.3,
+          "delta_value_used": "-$195.8K"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0809,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "$7.79M"
+        },
+        {
+          "channel": "meta",
+          "estimated_roi": 0.0756,
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "$3.53M"
+        },
+        {
+          "channel": "google",
+          "estimated_roi": 0.0601,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "$35.32M"
+        },
+        {
+          "channel": "snapchat",
+          "estimated_roi": 0.026,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "-$1.44M"
+        }
+      ]
+    },
+    {
+      "run_id": "multi|google,meta,tiktok|0.020759|0.006689|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.020759, sigma=0.006689, dist=LogNormal",
+      "n_channels": 8,
+      "rows": [
+        {
+          "channel": "beehiiv",
+          "estimated_roi": 0.1918,
+          "baseline_roi": 0.164,
+          "pct_change": 16.98,
+          "delta_value_used": "$913.5K"
+        },
+        {
+          "channel": "liveintent",
+          "estimated_roi": 0.1038,
+          "baseline_roi": 0.0922,
+          "pct_change": 12.59,
+          "delta_value_used": "$926.0K"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.1445,
+          "baseline_roi": 0.1322,
+          "pct_change": 9.32,
+          "delta_value_used": "$19.4K"
+        },
+        {
+          "channel": "moloco",
+          "estimated_roi": 0.0701,
+          "baseline_roi": 0.0703,
+          "pct_change": -0.26,
+          "delta_value_used": "-$15.6K"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0182,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "-$3.20M"
+        },
+        {
+          "channel": "meta",
+          "estimated_roi": 0.0178,
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "-$1.33M"
+        },
+        {
+          "channel": "google",
+          "estimated_roi": 0.0148,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "-$11.28M"
+        },
+        {
+          "channel": "snapchat",
+          "estimated_roi": 0.0317,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "$1.03M"
+        }
+      ]
+    },
+    {
+      "run_id": "multi|google,meta,tiktok|0.051898|0.033445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
+      "label": "mu=0.051898, sigma=0.033445, dist=LogNormal",
+      "n_channels": 8,
+      "rows": [
+        {
+          "channel": "liveintent",
+          "estimated_roi": 0.1042,
+          "baseline_roi": 0.0922,
+          "pct_change": 13.07,
+          "delta_value_used": "$961.7K"
+        },
+        {
+          "channel": "beehiiv",
+          "estimated_roi": 0.1831,
+          "baseline_roi": 0.164,
+          "pct_change": 11.66,
+          "delta_value_used": "$627.4K"
+        },
+        {
+          "channel": "amazon",
+          "estimated_roi": 0.145,
+          "baseline_roi": 0.1322,
+          "pct_change": 9.63,
+          "delta_value_used": "$20.0K"
+        },
+        {
+          "channel": "moloco",
+          "estimated_roi": 0.0724,
+          "baseline_roi": 0.0703,
+          "pct_change": 2.98,
+          "delta_value_used": "$176.6K"
+        },
+        {
+          "channel": "tiktok",
+          "estimated_roi": 0.0243,
+          "baseline_roi": 0.0365,
+          "pct_change": null,
+          "delta_value_used": "-$2.14M"
+        },
+        {
+          "channel": "meta",
           "estimated_roi": 0.0218,
-          "baseline_roi": 0.0469,
-          "pct_change": -53.59,
-          "delta_value_used": "-$2.12M"
-        }
-      ]
-    },
-    {
-      "run_id": "multi|google,meta,tiktok|0.103795|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.103795, sigma=0.016722, dist=Normal",
-      "n_channels": 8,
-      "rows": [
-        {
-          "channel": "liveintent",
-          "estimated_roi": -0.2718,
-          "baseline_roi": -0.0354,
-          "pct_change": 666.9,
-          "delta_value_used": "-$18.86M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": -0.1318,
-          "baseline_roi": 0.0366,
-          "pct_change": -459.85,
-          "delta_value_used": "-$265.1K"
+          "baseline_roi": 0.0336,
+          "pct_change": null,
+          "delta_value_used": "-$991.8K"
         },
         {
           "channel": "google",
-          "estimated_roi": 0.0484,
-          "baseline_roi": 0.0122,
-          "pct_change": 296.62,
-          "delta_value_used": "$37.27M"
+          "estimated_roi": 0.0153,
+          "baseline_roi": 0.0258,
+          "pct_change": null,
+          "delta_value_used": "-$10.78M"
         },
         {
           "channel": "snapchat",
-          "estimated_roi": -0.0307,
-          "baseline_roi": -0.0085,
-          "pct_change": 262.77,
-          "delta_value_used": "-$9.67M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": 0.0791,
-          "baseline_roi": 0.0319,
-          "pct_change": 147.89,
-          "delta_value_used": "$8.27M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": 0.0686,
-          "baseline_roi": 0.0284,
-          "pct_change": 141.44,
-          "delta_value_used": "$3.38M"
-        },
-        {
-          "channel": "beehiiv",
-          "estimated_roi": 0.1339,
-          "baseline_roi": 0.2511,
-          "pct_change": -46.68,
-          "delta_value_used": "-$3.85M"
-        },
-        {
-          "channel": "moloco",
-          "estimated_roi": 0.0416,
-          "baseline_roi": 0.0469,
-          "pct_change": -11.23,
-          "delta_value_used": "-$443.5K"
-        }
-      ]
-    },
-    {
-      "run_id": "multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.020759, sigma=0.033445, dist=Normal",
-      "n_channels": 8,
-      "rows": [
-        {
-          "channel": "liveintent",
-          "estimated_roi": 0.1563,
-          "baseline_roi": -0.0354,
-          "pct_change": -540.88,
-          "delta_value_used": "$15.30M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": 0.2054,
-          "baseline_roi": 0.0366,
-          "pct_change": 460.85,
-          "delta_value_used": "$265.6K"
-        },
-        {
-          "channel": "google",
-          "estimated_roi": -0.0151,
-          "baseline_roi": 0.0122,
-          "pct_change": -224.01,
-          "delta_value_used": "-$28.15M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": -0.0132,
-          "baseline_roi": 0.0319,
-          "pct_change": -141.36,
-          "delta_value_used": "-$7.91M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": -0.0009,
-          "baseline_roi": 0.0284,
-          "pct_change": -103.24,
-          "delta_value_used": "-$2.46M"
-        },
-        {
-          "channel": "beehiiv",
-          "estimated_roi": 0.4041,
-          "baseline_roi": 0.2511,
-          "pct_change": 60.95,
-          "delta_value_used": "$5.02M"
-        },
-        {
-          "channel": "moloco",
-          "estimated_roi": 0.0397,
-          "baseline_roi": 0.0469,
-          "pct_change": -15.32,
-          "delta_value_used": "-$604.8K"
-        },
-        {
-          "channel": "snapchat",
-          "estimated_roi": -0.0088,
-          "baseline_roi": -0.0085,
-          "pct_change": 4.17,
-          "delta_value_used": "-$153.4K"
-        }
-      ]
-    },
-    {
-      "run_id": "multi|google,meta,tiktok|0.051898|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.051898, sigma=0.006689, dist=Normal",
-      "n_channels": 8,
-      "rows": [
-        {
-          "channel": "liveintent",
-          "estimated_roi": -0.1968,
-          "baseline_roi": -0.0354,
-          "pct_change": 455.3,
-          "delta_value_used": "-$12.88M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": -0.0705,
-          "baseline_roi": 0.0366,
-          "pct_change": -292.56,
-          "delta_value_used": "-$168.6K"
-        },
-        {
-          "channel": "google",
-          "estimated_roi": 0.0426,
-          "baseline_roi": 0.0122,
-          "pct_change": 249.5,
-          "delta_value_used": "$31.35M"
-        },
-        {
-          "channel": "snapchat",
-          "estimated_roi": -0.0188,
-          "baseline_roi": -0.0085,
-          "pct_change": 121.31,
-          "delta_value_used": "-$4.46M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": 0.0472,
-          "baseline_roi": 0.0284,
-          "pct_change": 66.14,
-          "delta_value_used": "$1.58M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": 0.0482,
-          "baseline_roi": 0.0319,
-          "pct_change": 50.91,
-          "delta_value_used": "$2.85M"
-        },
-        {
-          "channel": "beehiiv",
-          "estimated_roi": 0.1779,
-          "baseline_roi": 0.2511,
-          "pct_change": -29.14,
-          "delta_value_used": "-$2.40M"
-        },
-        {
-          "channel": "moloco",
-          "estimated_roi": 0.04,
-          "baseline_roi": 0.0469,
-          "pct_change": -14.66,
-          "delta_value_used": "-$579.0K"
-        }
-      ]
-    },
-    {
-      "run_id": "multi|google,meta,tiktok|0.051898|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.051898, sigma=0.033445, dist=Normal",
-      "n_channels": 8,
-      "rows": [
-        {
-          "channel": "liveintent",
-          "estimated_roi": 0.102,
-          "baseline_roi": -0.0354,
-          "pct_change": -387.84,
-          "delta_value_used": "$10.97M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": 0.1522,
-          "baseline_roi": 0.0366,
-          "pct_change": 315.72,
-          "delta_value_used": "$182.0K"
-        },
-        {
-          "channel": "google",
-          "estimated_roi": -0.0109,
-          "baseline_roi": 0.0122,
-          "pct_change": -189.5,
-          "delta_value_used": "-$23.81M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": 0.0056,
-          "baseline_roi": 0.0319,
-          "pct_change": -82.54,
-          "delta_value_used": "-$4.62M"
-        },
-        {
-          "channel": "snapchat",
-          "estimated_roi": -0.0027,
-          "baseline_roi": -0.0085,
-          "pct_change": -68.66,
-          "delta_value_used": "$2.53M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": 0.0096,
-          "baseline_roi": 0.0284,
-          "pct_change": -66.33,
-          "delta_value_used": "-$1.58M"
-        },
-        {
-          "channel": "beehiiv",
-          "estimated_roi": 0.3247,
-          "baseline_roi": 0.2511,
-          "pct_change": 29.32,
-          "delta_value_used": "$2.42M"
-        },
-        {
-          "channel": "moloco",
-          "estimated_roi": 0.0473,
-          "baseline_roi": 0.0469,
-          "pct_change": 0.92,
-          "delta_value_used": "$36.2K"
-        }
-      ]
-    },
-    {
-      "run_id": "multi|google,meta,tiktok|0.020759|0.016722|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",
-      "label": "mu=0.020759, sigma=0.016722, dist=Normal",
-      "n_channels": 8,
-      "rows": [
-        {
-          "channel": "liveintent",
-          "estimated_roi": 0.0659,
-          "baseline_roi": -0.0354,
-          "pct_change": -285.91,
-          "delta_value_used": "$8.09M"
-        },
-        {
-          "channel": "amazon",
-          "estimated_roi": 0.1274,
-          "baseline_roi": 0.0366,
-          "pct_change": 247.98,
-          "delta_value_used": "$142.9K"
-        },
-        {
-          "channel": "google",
-          "estimated_roi": -0.0036,
-          "baseline_roi": 0.0122,
-          "pct_change": -129.48,
-          "delta_value_used": "-$16.27M"
-        },
-        {
-          "channel": "tiktok",
-          "estimated_roi": 0.0074,
-          "baseline_roi": 0.0319,
-          "pct_change": -76.81,
-          "delta_value_used": "-$4.30M"
-        },
-        {
-          "channel": "snapchat",
-          "estimated_roi": -0.0027,
-          "baseline_roi": -0.0085,
-          "pct_change": -68.61,
-          "delta_value_used": "$2.53M"
-        },
-        {
-          "channel": "meta",
-          "estimated_roi": 0.0104,
-          "baseline_roi": 0.0284,
-          "pct_change": -63.22,
-          "delta_value_used": "-$1.51M"
-        },
-        {
-          "channel": "beehiiv",
-          "estimated_roi": 0.3112,
-          "baseline_roi": 0.2511,
-          "pct_change": 23.94,
-          "delta_value_used": "$1.97M"
-        },
-        {
-          "channel": "moloco",
-          "estimated_roi": 0.0468,
-          "baseline_roi": 0.0469,
-          "pct_change": -0.09,
-          "delta_value_used": "-$3.7K"
+          "estimated_roi": 0.032,
+          "baseline_roi": 0.0293,
+          "pct_change": null,
+          "delta_value_used": "$1.17M"
         }
       ]
     }
   ],
   "quick_overview_lines": [
-    "beehiiv ROI prior (Normal): max |% change| -> 91.72% change in estimated ROI",
     "liveintent ROI prior (LogNormal): max |% change| -> 25.24% change in estimated ROI",
-    "beehiiv ROI prior (LogNormal): max |% change| -> 23.62% change in estimated ROI"
+    "beehiiv ROI prior (LogNormal): max |% change| -> 23.62% change in estimated ROI",
+    "amazon ROI prior (LogNormal): max |% change| -> 17.77% change in estimated ROI"
   ],
   "recommendations": [
-    "High sensitivity detected among stable-baseline pairs (>= 15.0%): prioritize better priors/experiments for beehiiv (Normal).",
+    "High sensitivity detected among stable-baseline pairs (>= 15.0%): prioritize better priors/experiments for liveintent (LogNormal).",
     "Multiple moderately sensitive stable-baseline channels (>= 7.5%): consider narrowing prior ranges or adding holdout validation.",
-    "11 channel-prior pair(s) had unstable baseline ROI for percent metrics; ranking switched to |Delta ROI| for those pairs.",
+    "12 channel-prior pair(s) had unstable baseline ROI for percent metrics; ranking switched to |Delta ROI| for those pairs.",
     "Sensitivity ranking scope: QC PASS runs only."
   ],
   "figures": {
@@ -691,7 +691,7 @@
     "adstock_curves": "figures/structural_adstock_curves.png",
     "saturation_curves": "figures/structural_saturation_curves.png",
     "carryover_decomposition": "figures/structural_carryover_decomposition.png",
-    "scenario_snapshot": "figures/scenario_snapshot_01_multi-google-meta-tiktok-0-103795-0-006689-normal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png"
+    "scenario_snapshot": "figures/scenario_snapshot_02_multi-google-meta-tiktok-0-020759-0-033445-lognormal-alpha-0p3-ec-0p5-slope-1p2-lag-4-decay-geometric.png"
   },
   "heatmap_pages": [
     "figures/{'path': 'figures/heatmap_board_01_robust_q95.png', 'caption': 'Top sensitivity entries 1-4 in 2x2 layout, shared color scale around 0, with baseline grid cell outlined.', 'board_num': 1, 'scale_mode': 'robust_q95', 'scale_label': 'Robust Q95 Scale', 'is_default': True}"

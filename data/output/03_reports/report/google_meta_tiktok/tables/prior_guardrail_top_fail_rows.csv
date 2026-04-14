@@ -1,9 +1,9 @@
 run_id,channel,roi_prior_dist,roi_prior_mu,roi_prior_sigma,prior_neg_prob,qc_status_code,estimated_roi,baseline_roi
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",meta,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.00091986766,0.02840901
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",google,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.015132147,0.0122020915
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",snapchat,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.008828337,-0.008475163
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",tiktok,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.013203395,0.03192186
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",moloco,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.03970774,0.046888947
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",liveintent,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.15628317,-0.03544803
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",beehiiv,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.4040715,0.25105745
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",amazon,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.20538688,0.036620628
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",meta,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.0026250042,0.02840901
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",google,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.015775146,0.0122020915
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",snapchat,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.0007307489,-0.008475163
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",tiktok,Normal,0.020759,0.033445,0.26740157934200925,PASS,-0.0077809026,0.03192186
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",moloco,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.04566986,0.046888947
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",liveintent,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.1415942,-0.03544803
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",beehiiv,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.34605098,0.25105745
+"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",amazon,Normal,0.020759,0.033445,0.26740157934200925,PASS,0.19277081,0.036620628

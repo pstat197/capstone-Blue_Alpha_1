@@ -7,7 +7,7 @@ numpy
 tensorflow
 tensorflow-probability
 
-# Plotting (used by src/viz/prior_viz.py)
+# Plotting
 matplotlib
 seaborn
 

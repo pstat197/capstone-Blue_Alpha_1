@@ -1,4 +1,4 @@
-﻿# src/ Technical Guide
+﻿# Technical Guide
 
 This folder contains the runnable MMM prior-sensitivity code.
 
@@ -17,13 +17,16 @@ python -m src.reporting.make_report --input data/output/02_tables/google_meta_ti
 
 ## Core Modules
 
-- `main.py`: runs experiment grid and writes split run outputs.
-- `run_meridian_once.py`: one model fit + diagnostics row + ROI rows.
+- `main.py`: runs experiment grid (includes experiment config + baseline stats).
+- `run_meridian_once.py`: one model fit + diagnostics + ROI extraction (includes ModelSpec building).
 - `summarize_sensitivity.py`: merges split outputs, writes tornado table.
 - `recommend_next_grid.py`: suggests next tests from sensitivity + QC.
-- `next_grid_generator.py`: writes next-iteration YAML automatically.
 - `pipeline.py`: one-command orchestrator.
-- `reporting/make_report.py`: builds dashboard/report artifacts.
+- `formatting.py`: shared formatting, value-safety, and QC status helpers.
+- `reporting/make_report.py`: builds dashboard/report artifacts (includes CSV loading).
+- `viz/tornado_plots.py`: tornado sensitivity visualizations.
+
+Experimental/legacy scripts are in `experiments/`.
 
 ## Input Contract (minimum)
 

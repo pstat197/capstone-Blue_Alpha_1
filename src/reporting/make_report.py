@@ -2,18 +2,41 @@ from __future__ import annotations
 import argparse
 import shutil
 from pathlib import Path
+
+import pandas as pd
 import yaml
 
 try:
-    from .io_load import load_results
     from .metrics import compute_all_metrics
     from .figures import make_all_figures
     from .render import render_html_report
 except ImportError:  # Allow direct script execution.
-    from io_load import load_results
     from metrics import compute_all_metrics
     from figures import make_all_figures
     from render import render_html_report
+
+# ---------------------------------------------------------------------------
+# Input loading (inlined from former io_load.py)
+# ---------------------------------------------------------------------------
+
+_REQUIRED_COLS = {
+    "channel", "target_channel", "roi_prior_mu", "roi_prior_sigma",
+    "roi_prior_dist", "estimated_roi",
+}
+
+
+def load_results(csv_path: Path) -> pd.DataFrame:
+    df = pd.read_csv(csv_path)
+    missing = _REQUIRED_COLS - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns: {sorted(missing)}")
+    df["roi_prior_mu"] = df["roi_prior_mu"].astype(float)
+    df["roi_prior_sigma"] = df["roi_prior_sigma"].astype(float)
+    df["estimated_roi"] = df["estimated_roi"].astype(float)
+    df["channel"] = df["channel"].astype(str)
+    df["target_channel"] = df["target_channel"].astype(str)
+    df["roi_prior_dist"] = df["roi_prior_dist"].astype(str)
+    return df
 
 
 def main():

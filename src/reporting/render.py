@@ -7,54 +7,12 @@ from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-
-def _fmt_money(x: float) -> str:
-    v = float(x)
-    sign = "-" if v < 0 else ""
-    av = abs(v)
-    if av >= 1_000_000_000:
-        return f"{sign}${av/1_000_000_000:.2f}B"
-    if av >= 1_000_000:
-        return f"{sign}${av/1_000_000:.2f}M"
-    if av >= 1_000:
-        return f"{sign}${av/1_000:.1f}K"
-    return f"{sign}${av:,.2f}"
-
-
-
-def _is_missing_value(x) -> bool:
-    if x is None:
-        return True
-    if isinstance(x, str):
-        s = x.strip().lower()
-        return s in {"", "nan", "na", "n/a", "none", "null"}
-    try:
-        return math.isnan(float(x))
-    except Exception:
-        return False
-
-
-def _fmt_float_safe(x, digits: int = 6, missing_label: str = "-") -> str:
-    if _is_missing_value(x):
-        return missing_label
-    return f"{float(x):.{digits}f}"
-
-
-def _to_float_safe(x) -> float | None:
-    if _is_missing_value(x):
-        return None
-    if isinstance(x, str):
-        cleaned = re.sub(r"[^0-9eE+\-.]", "", x.strip())
-        if cleaned in {"", "-", "+", ".", "-.", "+."}:
-            return None
-        try:
-            return float(cleaned)
-        except Exception:
-            return None
-    try:
-        return float(x)
-    except Exception:
-        return None
+from src.formatting import (
+    fmt_money as _fmt_money,
+    is_missing_value as _is_missing_value,
+    fmt_float_safe as _fmt_float_safe,
+    to_float_safe as _to_float_safe,
+)
 
 
 def _clean_text_safe(x, missing_label: str = "-") -> str:

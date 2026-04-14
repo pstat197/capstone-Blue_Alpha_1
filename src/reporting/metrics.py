@@ -7,6 +7,13 @@ import math
 import numpy as np
 import pandas as pd
 
+from src.formatting import (
+    fmt_money as _fmt_money_short,
+    status_bucket as _status_bucket,
+    to_float_safe as _safe_float,
+    to_bool as _to_bool,
+)
+
 STRUCTURAL_COLS = [
     "adstock_alpha_m",
     "saturation_ec_m",
@@ -26,17 +33,6 @@ DEFAULT_STRUCTURAL = {
 DEFAULT_QC_GATE_MU = [0.020759, 0.051898]
 DEFAULT_QC_GATE_SIGMA = [0.006689, 0.033445]
 DEFAULT_QC_GATE_DISTS = ["Normal"]
-
-def _fmt_money_short(x: float) -> str:
-    sign = "-" if x < 0 else ""
-    ax = abs(float(x))
-    if ax >= 1_000_000_000:
-        return f"{sign}${ax/1_000_000_000:.2f}B"
-    if ax >= 1_000_000:
-        return f"{sign}${ax/1_000_000:.2f}M"
-    if ax >= 1_000:
-        return f"{sign}${ax/1_000:.1f}K"
-    return f"{sign}${ax:,.2f}"
 
 
 def _pick_baseline(group: pd.DataFrame, rule: str) -> tuple[float, float]:
@@ -124,32 +120,8 @@ def _build_scope_info(df: pd.DataFrame) -> dict:
     return scope
 
 
-def _status_bucket(value: object) -> str:
-    txt = str(value).strip()
-    if not txt or txt.lower() in {"nan", "none", "na", "n/a"}:
-        return "UNKNOWN"
-    head = txt.split(":", 1)[0].strip().upper()
-    if head in {"PASS", "REVIEW", "FAIL"}:
-        return head
-    return "UNKNOWN"
 
-
-def _to_bool(value: object) -> bool:
-    if isinstance(value, bool):
-        return value
-    txt = str(value).strip().lower()
-    return txt in {"1", "true", "t", "yes", "y"}
-
-
-
-def _safe_float(value: object) -> float | None:
-    try:
-        out = float(value)
-        if np.isnan(out):
-            return None
-        return out
-    except Exception:
-        return None
+# _status_bucket, _to_bool, _safe_float are now imported from src.formatting
 
 
 def _struct_profile_id(alpha: object, ec: object, slope: object, max_lag: object, decay: object) -> str:
