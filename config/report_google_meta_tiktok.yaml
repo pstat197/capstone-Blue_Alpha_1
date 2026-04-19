@@ -33,7 +33,7 @@ thresholds:
   medium_sensitivity_pct: 7.5
 
 decision_policy:
-  name: "Traffic-Light Policy v1 (pre-robustness score)"
+  name: "Traffic-Light Policy v2 (LogNormal-first robustness)"
   require_qc_gate_for_green: true
   max_diag_fail_runs_for_green: 0
   max_diag_review_runs_for_green: 5
@@ -62,7 +62,11 @@ analysis:
     enabled: true
     mu_values: [0.020759, 0.051898]
     sigma_values: [0.006689, 0.033445]
-    dists: [Normal]
+    dists: [LogNormal]
+  workbench:
+    primary_dist: LogNormal
+    allow_legacy_distribution_debug: false
+    default_channel: meta
   # scenario_selection:
   # - largest_total_abs_pct_non_fail (recommended)
   # - largest_total_abs_pct
@@ -115,12 +119,14 @@ theory:
 
 methods:
   baseline_description: "Baseline ROI is selected from the median prior location within each channel/dist pair, then validated by stability filters (QC pass, denominator magnitude, sign-stability, and local smoothness)."
-  sensitivity_description: "Percent change is shown only for stable baselines; otherwise the report falls back to |Delta ROI| to avoid misleading denominator effects near unstable baselines."
-  visualization_description: "The report includes spend-vs-effect one-pager alignment, ROI/value tornado views, structural adstock-saturation diagnostics (decay, carryover, saturation curves), a single-run channel snapshot, and 2x2 heatmap boards for sensitive channel-prior combinations."
+  sensitivity_description: "LogNormal prior sensitivity is the primary analysis surface; percent change is shown only for stable baselines, with |Delta ROI| fallback when denominator stability is weak."
+  visualization_description: "The dashboard emphasizes LogNormal grid exploration with channel-level drill-down, mu/sigma split diagnostics, box-and-whisker distributions, and ROI/contribution response surfaces."
 
 output:
+  write_report: false
   report_filename: "report.html"
   write_dashboard: true
   dashboard_filename: "dashboard.html"
   dashboard_template: "dashboard_template.html"
+  cleanup_report_outputs: true
   show_appendix: false

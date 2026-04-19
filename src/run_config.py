@@ -16,10 +16,12 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "population_col": None,
     },
     "experiment": {
-        "multipliers": [0.4, 1.0, 2.0],
+        # Product-default grid: 5x5x1 (LogNormal-first).
+        # This can still be overridden by config YAML.
+        "multipliers": [0.4, 0.7, 1.0, 1.4, 2.0],
         "roi_mu_values": None,
         "roi_sigma_values": None,
-        "roi_dist_values": ["Normal", "LogNormal"],
+        "roi_dist_values": ["LogNormal"],
     },
     "structural": {
         # MVP defaults keep legacy behavior unless explicitly overridden.

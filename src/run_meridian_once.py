@@ -143,8 +143,28 @@ def build_model_spec(
 
 
 def extract_roi_mean(mmm, channels):
-    mean_roi = mmm.inference_data.posterior["roi_m"].mean(dim=["chain", "draw"]).values
-    return pd.DataFrame({"channel": channels, "estimated_roi": mean_roi})
+    """Return per-channel posterior ROI summaries on the natural scale."""
+    roi_values = np.asarray(mmm.inference_data.posterior["roi_m"].values, dtype=np.float64)
+    if roi_values.ndim < 2:
+        raise ValueError("Unexpected ROI posterior shape; expected at least 2 dimensions.")
+
+    roi_flat = roi_values.reshape(-1, roi_values.shape[-1])
+    mean_roi = np.nanmean(roi_flat, axis=0)
+    sd_roi = np.nanstd(roi_flat, axis=0, ddof=0)
+    p05_roi = np.nanpercentile(roi_flat, 5, axis=0)
+    p50_roi = np.nanpercentile(roi_flat, 50, axis=0)
+    p95_roi = np.nanpercentile(roi_flat, 95, axis=0)
+
+    return pd.DataFrame(
+        {
+            "channel": channels,
+            "estimated_roi": mean_roi,
+            "posterior_roi_sd": sd_roi,
+            "posterior_roi_p05": p05_roi,
+            "posterior_roi_p50": p50_roi,
+            "posterior_roi_p95": p95_roi,
+        }
+    )
 
 faulthandler.enable()
 warnings.filterwarnings("ignore")
@@ -328,6 +348,76 @@ def derive_qc_rollup(qc_status: Optional[str], needs_review: bool, check_details
         "qc_flagged_channels": extract_flagged_channels(review_reason),
         "qc_review_reason": review_reason,
     }
+
+
+def _natural_to_lognormal_params_scalar(mu: float, sigma: float) -> tuple[float, float]:
+    mu_safe = max(float(mu), 1e-8)
+    sigma_safe = max(float(sigma), 1e-8)
+    variance_ratio = (sigma_safe ** 2) / (mu_safe ** 2)
+    log_scale_sq = float(np.log1p(variance_ratio))
+    log_scale = float(np.sqrt(log_scale_sq))
+    log_loc = float(np.log(mu_safe) - 0.5 * log_scale_sq)
+    return log_loc, log_scale
+
+
+def _build_channel_prior_params(
+    channels: list[str],
+    *,
+    multiprior: bool,
+    overrides: Optional[dict],
+    target_channel: Optional[str],
+    target_mu: Optional[float],
+    target_sigma: Optional[float],
+    shared_dist: Optional[str],
+) -> pd.DataFrame:
+    rows = []
+    shared_dist = str(shared_dist) if shared_dist is not None else "LogNormal"
+    overrides = overrides or {}
+    for ch in channels:
+        if multiprior and ch in overrides:
+            mu = float(overrides[ch]["mu"])
+            sigma = float(overrides[ch]["sigma"])
+        elif (not multiprior) and target_channel is not None and ch == target_channel:
+            mu = float(target_mu)
+            sigma = float(target_sigma)
+        else:
+            mu = float(BASE_ROI_MU)
+            sigma = float(BASE_ROI_SIGMA)
+        rows.append(
+            {
+                "channel": ch,
+                "prior_roi_mu_channel": mu,
+                "prior_roi_sigma_channel": sigma,
+                "prior_roi_dist_channel": shared_dist,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _kl_gaussian_from_moments(
+    post_mean: pd.Series,
+    post_sd: pd.Series,
+    prior_mean: pd.Series,
+    prior_sd: pd.Series,
+) -> pd.Series:
+    eps = 1e-8
+    s1 = pd.to_numeric(post_sd, errors="coerce").clip(lower=eps)
+    s0 = pd.to_numeric(prior_sd, errors="coerce").clip(lower=eps)
+    m1 = pd.to_numeric(post_mean, errors="coerce")
+    m0 = pd.to_numeric(prior_mean, errors="coerce")
+    return np.log(s0 / s1) + ((s1 ** 2) + ((m1 - m0) ** 2)) / (2.0 * (s0 ** 2)) - 0.5
+
+
+def _wasserstein_1d_from_samples(sample_a: np.ndarray, sample_b: np.ndarray) -> float:
+    a = np.asarray(sample_a, dtype=np.float64)
+    b = np.asarray(sample_b, dtype=np.float64)
+    if a.size == 0 or b.size == 0:
+        return float("nan")
+
+    q = np.linspace(0.001, 0.999, 400)
+    a_q = np.quantile(a, q)
+    b_q = np.quantile(b, q)
+    return float(np.mean(np.abs(a_q - b_q)))
 
 
 def _normalize_structural_overrides(overrides: Optional[dict]) -> dict:
@@ -578,6 +668,16 @@ def main():
     shared_max_lag = normalized_structural["max_lag"]
     shared_decay = normalized_structural["adstock_decay_spec"]
 
+    channel_prior_df = _build_channel_prior_params(
+        channels=channels,
+        multiprior=bool(mode["multiprior"]),
+        overrides=mode.get("overrides"),
+        target_channel=args.target_channel,
+        target_mu=args.mu,
+        target_sigma=args.sigma,
+        shared_dist=shared_dist,
+    )
+
     roi_df = extract_roi_mean(mmm, channels).assign(
         target_channel=mode["targets_str"],
         roi_prior_mu=(args.mu if not mode["multiprior"] else shared_mu),
@@ -589,6 +689,37 @@ def main():
         max_lag=shared_max_lag,
         adstock_decay_spec=shared_decay,
     )
+    roi_df = roi_df.merge(channel_prior_df, on="channel", how="left")
+
+    roi_df["prior_posterior_kl_gaussian"] = _kl_gaussian_from_moments(
+        post_mean=roi_df["estimated_roi"],
+        post_sd=roi_df["posterior_roi_sd"],
+        prior_mean=roi_df["prior_roi_mu_channel"],
+        prior_sd=roi_df["prior_roi_sigma_channel"],
+    )
+
+    roi_samples = np.asarray(mmm.inference_data.posterior["roi_m"].values, dtype=np.float64)
+    roi_samples_flat = roi_samples.reshape(-1, roi_samples.shape[-1])
+    rng = np.random.default_rng(int(args.seed))
+    n_draws = int(roi_samples_flat.shape[0])
+    w1_by_channel = {}
+    for channel_idx, channel_name in enumerate(channels):
+        posterior_draws = roi_samples_flat[:, channel_idx]
+        ch_row = channel_prior_df[channel_prior_df["channel"] == channel_name].iloc[0]
+        prior_mu = float(ch_row["prior_roi_mu_channel"])
+        prior_sigma = max(float(ch_row["prior_roi_sigma_channel"]), 1e-8)
+        prior_dist = str(ch_row["prior_roi_dist_channel"])
+
+        if prior_dist == "Normal":
+            prior_draws = rng.normal(loc=prior_mu, scale=prior_sigma, size=n_draws)
+        elif prior_dist == "LogNormal":
+            log_loc, log_scale = _natural_to_lognormal_params_scalar(prior_mu, prior_sigma)
+            prior_draws = rng.lognormal(mean=log_loc, sigma=log_scale, size=n_draws)
+        else:
+            prior_draws = np.array([], dtype=np.float64)
+        w1_by_channel[channel_name] = _wasserstein_1d_from_samples(posterior_draws, prior_draws)
+
+    roi_df["prior_posterior_wasserstein"] = roi_df["channel"].map(w1_by_channel)
 
     for col in ["roi_prior_mu", "roi_prior_sigma", "adstock_alpha_m", "saturation_ec_m", "saturation_slope_m", "max_lag"]:
         roi_df[col] = pd.to_numeric(roi_df[col], errors="coerce").round(6)

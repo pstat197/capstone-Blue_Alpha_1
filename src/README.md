@@ -12,7 +12,7 @@ python -m src.main --targets google meta tiktok --config config/sensitivity_goog
 python -m src.summarize_sensitivity google meta tiktok
 
 # 3) Build dashboard package
-python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
 
 ## Core Modules
@@ -23,10 +23,8 @@ python -m src.reporting.make_report --input data/output/02_tables/google_meta_ti
 - `recommend_next_grid.py`: suggests next tests from sensitivity + QC.
 - `pipeline.py`: one-command orchestrator.
 - `formatting.py`: shared formatting, value-safety, and QC status helpers.
-- `reporting/make_report.py`: builds dashboard/report artifacts (includes CSV loading).
+- `reporting/make_dashboard.py`: builds dashboard artifacts (includes CSV loading).
 - `viz/tornado_plots.py`: tornado sensitivity visualizations.
-
-Experimental/legacy scripts are in `experiments/`.
 
 ## Input Contract (minimum)
 

@@ -26,7 +26,7 @@ From repo root:
 python -m src.pipeline google meta tiktok --config config/sensitivity_google_meta_tiktok_full18.yaml
 
 # 2) Build dashboard package
-python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
 
 Open:
@@ -69,14 +69,14 @@ python -m src.summarize_sensitivity google meta tiktok
 python -m src.recommend_next_grid google meta tiktok
 
 # Build dashboard
-python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
 
 ## Repo Map
 
 ```
 BLUEALPHA/
-  config/          experiment + report YAML configs
+  config/          sensitivity + report YAML configs
   data/
     raw/           input CSVs (mocha, geo, test)
     output/
@@ -84,7 +84,6 @@ BLUEALPHA/
       02_tables/   merged sensitivity tables, tornado CSVs
       03_reports/  client-facing HTML dashboards, figures, tables
   docs/            theory, slides, interim reports, project management
-  experiments/     archived experimental scripts (not part of pipeline)
   notebooks/       Jupyter notebooks (Colab prior-sensitivity, visualization)
   scripts/         utility scripts (demo launcher)
   src/
@@ -99,7 +98,6 @@ BLUEALPHA/
     recommend_next_grid.py  data-driven next-grid recommendations
     reporting/           dashboard + report generation (metrics, figures, render)
     viz/                 tornado plots
-  temp/            local scratch / UI previews (gitignored)
 ```
 
 ### Pipeline flow
@@ -111,7 +109,7 @@ config/*.yaml  -->  src/main.py  --(subprocess)-->  src/run_meridian_once.py
                                 |
                 +---------------+---------------+
                 |                               |
-        src/viz/tornado_plots.py    src/reporting/make_report.py
+        src/viz/tornado_plots.py    src/reporting/make_dashboard.py
                                         |-- metrics.py
                                         |-- figures.py
                                         +-- render.py --> HTML dashboard

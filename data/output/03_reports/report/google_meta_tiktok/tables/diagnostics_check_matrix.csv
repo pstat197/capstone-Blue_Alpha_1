@@ -1,7 +1,7 @@
 check,pass_count,review_count,fail_count,unknown_count,coverage_pct
-convergence,18,0,0,0,100.0
-baseline,15,1,2,0,100.0
-bayesianppp,18,0,0,0,100.0
-gof,18,0,0,0,100.0
-prior_posterior_shift,18,0,0,0,100.0
-roi_consistency,12,6,0,0,100.0
+convergence,9,0,0,0,100.0
+baseline,6,1,2,0,100.0
+bayesianppp,9,0,0,0,100.0
+gof,9,0,0,0,100.0
+prior_posterior_shift,9,0,0,0,100.0
+roi_consistency,6,3,0,0,100.0

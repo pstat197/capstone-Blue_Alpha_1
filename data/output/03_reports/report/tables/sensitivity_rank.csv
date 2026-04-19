@@ -1,11 +1,6 @@
-channel,roi_prior_dist,max_abs_pct_change,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,primary_metric,primary_value,ranking_metric_label
-amazon,LogNormal,1044.3184264905517,0.93222066,0.08926594,0.020759,0.006689,True,pct_change,1044.3184264905517,Max |% Change|
-tiktok,LogNormal,900.671949842319,0.98880252,0.10978498,0.051898,0.016722,True,pct_change,900.671949842319,Max |% Change|
-snapchat,LogNormal,398.6458456654221,1.3691364799999999,0.34344682,0.051898,0.016722,True,pct_change,398.6458456654221,Max |% Change|
-google,LogNormal,274.7008487223317,1.2252785499999999,0.44604105,0.051898,0.016722,True,pct_change,274.7008487223317,Max |% Change|
-meta,LogNormal,96.86499549590377,0.9949740829999999,1.0271761,0.051898,0.016722,True,pct_change,96.86499549590377,Max |% Change|
-snapchat,Normal,891.1251960762884,0.572728525,-0.064270265,0.051898,0.016722,False,delta_roi,0.572728525,Max |Delta ROI|
-tiktok,Normal,2616.0108524422308,0.530653485,-0.020284835,0.051898,0.016722,False,delta_roi,0.530653485,Max |Delta ROI|
-amazon,Normal,8153.414366639018,0.518518425,-0.006359525,0.020759,0.006689,False,delta_roi,0.518518425,Max |Delta ROI|
-google,Normal,3171.5335938298495,0.513247442,-0.016182942,0.051898,0.016722,False,delta_roi,0.513247442,Max |Delta ROI|
-meta,Normal,1193.7208462214885,0.412327964,0.034541406,0.051898,0.016722,False,delta_roi,0.412327964,Max |Delta ROI|
+channel,roi_prior_dist,max_abs_pct_change,max_abs_pct_change_raw,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,pct_metric_unstable_reason,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,primary_metric,primary_value,ranking_metric_label
+amazon,LogNormal,1044.3184264905517,1044.3184264905517,0.93222066,0.08926594,0.020759,0.006689,True,,True,False,4,0.4973547581529978,pct_change,1044.3184264905517,Max |% Change|
+snapchat,LogNormal,398.6458456654221,398.6458456654221,1.3691364799999999,0.34344682,0.051898,0.016722,True,,True,False,4,0.5585700866294234,pct_change,398.6458456654221,Max |% Change|
+google,LogNormal,274.7008487223317,274.7008487223317,1.2252785499999999,0.44604105,0.051898,0.016722,True,,True,False,4,0.45868772616332065,pct_change,274.7008487223317,Max |% Change|
+meta,LogNormal,96.86499549590377,96.86499549590377,0.9949740829999999,1.0271761,0.051898,0.016722,True,,True,False,4,0.9007452470905427,pct_change,96.86499549590377,Max |% Change|
+tiktok,LogNormal,,900.671949842319,0.98880252,0.10978498,0.051898,0.016722,False,local_volatility_ratio=1.048 > max_local_sensitivity_ratio=1.000,True,False,4,1.0484358516073875,delta_roi,0.98880252,Max |Delta ROI|

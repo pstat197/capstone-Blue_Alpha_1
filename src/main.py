@@ -111,7 +111,7 @@ def build_experiment_config(
     sigma0 = _compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
     roi_sigma_values = _make_sigma_grid(sigma0, multipliers) if sigma_grid is None else sigma_grid
 
-    roi_dist_values = ["Normal", "LogNormal"] if dist_grid is None else dist_grid
+    roi_dist_values = ["LogNormal"] if dist_grid is None else dist_grid
 
     return ExperimentConfig(
         project_root=project_root,
@@ -322,7 +322,7 @@ def main():
     multipliers = [float(x) for x in run_cfg["experiment"]["multipliers"]]
     mu_grid = run_cfg["experiment"].get("roi_mu_values")
     sigma_grid = run_cfg["experiment"].get("roi_sigma_values")
-    dist_grid = [str(x) for x in run_cfg["experiment"].get("roi_dist_values", ["Normal", "LogNormal"])]
+    dist_grid = [str(x) for x in run_cfg["experiment"].get("roi_dist_values", ["LogNormal"])]
 
     if mu_grid is not None:
         mu_grid = [float(x) for x in mu_grid]

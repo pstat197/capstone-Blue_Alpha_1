@@ -21,7 +21,7 @@ from src.output_paths import (
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, build report.",
+        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, build dashboard.",
     )
     parser.add_argument("targets", nargs="+", help="Target channels to perturb together.")
     parser.add_argument(
@@ -36,26 +36,34 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Dollar value used by src.summarize_sensitivity.",
     )
     parser.add_argument(
+        "--dashboard-config",
         "--report-config",
+        dest="dashboard_config",
         default="config/report_google_meta_tiktok.yaml",
-        help="Config YAML for src.reporting.make_report.",
+        help="Config YAML for src.reporting.make_dashboard.",
     )
     parser.add_argument(
+        "--dashboard-outdir",
         "--report-outdir",
+        dest="dashboard_outdir",
         default="data/output/03_reports/report",
-        help="Base output directory for HTML report; target tag subfolder is appended automatically.",
+        help="Base output directory for dashboard HTML; target tag subfolder is appended automatically.",
     )
     parser.add_argument(
+        "--dashboard-channel-scope",
         "--report-channel-scope",
+        dest="dashboard_channel_scope",
         choices=["all"],
         default="all",
-        help="Channel scope in report (currently fixed to all modeled channels).",
+        help="Channel scope in dashboard (currently fixed to all modeled channels).",
     )
     parser.add_argument(
+        "--dashboard-scenario-selection",
         "--report-scenario-selection",
+        dest="dashboard_scenario_selection",
         choices=["largest_total_abs_pct_non_fail", "largest_total_abs_pct", "first_non_baseline"],
         default=None,
-        help="Override auto-selection rule for single-scenario snapshot in report.",
+        help="Override auto-selection rule for single-scenario snapshot in dashboard.",
     )
     parser.add_argument(
         "--tornado-outdir",
@@ -90,9 +98,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Skip src.viz.tornado_plots.",
     )
     parser.add_argument(
+        "--skip-dashboard",
         "--skip-report",
+        dest="skip_dashboard",
         action="store_true",
-        help="Skip src.reporting.make_report.",
+        help="Skip src.reporting.make_dashboard.",
     )
     return parser
 
@@ -112,7 +122,7 @@ def _to_project_rel_or_abs(path_str: str, project_root: Path) -> str:
         return str(p)
 
 
-def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
+def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
     run_candidates = candidate_run_csv_paths(tag)
     roi_candidates = candidate_roi_csv_paths(tag)
 
@@ -130,10 +140,10 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
 
     if run_csv is None:
         candidates = ", ".join(str(p) for p in run_candidates)
-        raise FileNotFoundError(f"Missing run CSV for report. Tried: {candidates}")
+        raise FileNotFoundError(f"Missing run CSV for dashboard. Tried: {candidates}")
     if roi_csv is None:
         candidates = ", ".join(str(p) for p in roi_candidates)
-        raise FileNotFoundError(f"Missing ROI CSV for report. Tried: {candidates}")
+        raise FileNotFoundError(f"Missing ROI CSV for dashboard. Tried: {candidates}")
 
     out_csv = report_input_csv_path(tag)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
@@ -157,7 +167,7 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
     ]
     missing_run = [c for c in run_base_cols if c not in run_df.columns]
     if missing_run:
-        raise ValueError(f"Run CSV missing required report columns: {missing_run}")
+        raise ValueError(f"Run CSV missing required dashboard columns: {missing_run}")
     run_extra_cols = [
         c
         for c in [
@@ -174,7 +184,7 @@ def _build_report_input_csv(tag: str) -> tuple[Path, dict]:
 
     for col in ["channel", "estimated_roi"]:
         if col not in roi_df.columns:
-            raise ValueError(f"ROI CSV missing required report column: {col}")
+            raise ValueError(f"ROI CSV missing required dashboard column: {col}")
 
     run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
 
@@ -275,7 +285,7 @@ def main() -> None:
         tornado_csv = first_existing(tornado_candidates) or tornado_candidates[0]
     else:
         tornado_csv = tornado_candidates[0]
-    report_outdir = Path(args.report_outdir) / tag
+    dashboard_outdir = Path(args.dashboard_outdir) / tag
     tornado_outdir = Path(args.tornado_outdir) / tag
 
     if not args.skip_main:
@@ -314,32 +324,32 @@ def main() -> None:
         ]
         _run_step(cmd, project_root)
 
-    report_input_path = None
-    report_source_files: dict | None = None
-    if not args.skip_report:
-        report_input_path, report_source_files = _build_report_input_csv(tag)
+    dashboard_input_path = None
+    dashboard_source_files: dict | None = None
+    if not args.skip_dashboard:
+        dashboard_input_path, dashboard_source_files = _build_dashboard_input_csv(tag)
         cmd = [
             sys.executable,
             "-m",
-            "src.reporting.make_report",
+            "src.reporting.make_dashboard",
             "--input",
-            str(report_input_path.relative_to(project_root)),
+            str(dashboard_input_path.relative_to(project_root)),
             "--outdir",
-            str(report_outdir),
+            str(dashboard_outdir),
             "--config",
-            args.report_config,
+            args.dashboard_config,
             "--clean-output",
         ]
-        if report_source_files is not None:
-            if report_source_files.get("runs_csv"):
-                cmd.extend(["--source-runs-csv", _to_project_rel_or_abs(report_source_files["runs_csv"], project_root)])
-            if report_source_files.get("roi_csv"):
-                cmd.extend(["--source-roi-csv", _to_project_rel_or_abs(report_source_files["roi_csv"], project_root)])
-            if report_source_files.get("tornado_csv"):
-                cmd.extend(["--source-tornado-csv", _to_project_rel_or_abs(report_source_files["tornado_csv"], project_root)])
-        cmd.extend(["--channel-scope", args.report_channel_scope])
-        if args.report_scenario_selection:
-            cmd.extend(["--scenario-selection", args.report_scenario_selection])
+        if dashboard_source_files is not None:
+            if dashboard_source_files.get("runs_csv"):
+                cmd.extend(["--source-runs-csv", _to_project_rel_or_abs(dashboard_source_files["runs_csv"], project_root)])
+            if dashboard_source_files.get("roi_csv"):
+                cmd.extend(["--source-roi-csv", _to_project_rel_or_abs(dashboard_source_files["roi_csv"], project_root)])
+            if dashboard_source_files.get("tornado_csv"):
+                cmd.extend(["--source-tornado-csv", _to_project_rel_or_abs(dashboard_source_files["tornado_csv"], project_root)])
+        cmd.extend(["--channel-scope", args.dashboard_channel_scope])
+        if args.dashboard_scenario_selection:
+            cmd.extend(["--scenario-selection", args.dashboard_scenario_selection])
         _run_step(cmd, project_root)
 
     print("\nPipeline finished.")
@@ -347,9 +357,9 @@ def main() -> None:
     print("Run outputs dir:", RUNS_DIR)
     print("Tornado CSV:", tornado_csv)
     print("Tornado outputs:", tornado_outdir)
-    if report_input_path is not None:
-        print("Report input table:", report_input_path)
-    print("Report output:", project_root / report_outdir)
+    if dashboard_input_path is not None:
+        print("Dashboard input table:", dashboard_input_path)
+    print("Dashboard output:", project_root / dashboard_outdir)
 
 
 if __name__ == "__main__":

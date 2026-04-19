@@ -1,5 +1,5 @@
 run_id,roi_prior_mu,roi_prior_sigma,roi_prior_dist,qc_status_code,qc_primary_review_check,qc_flagged_channels
-"multi|google,meta,tiktok|0.020759|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.020759,0.006689,Normal,PASS,,
-"multi|google,meta,tiktok|0.020759|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.020759,0.033445,Normal,PASS,,
-"multi|google,meta,tiktok|0.051898|0.006689|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.051898,0.006689,Normal,PASS,,
-"multi|google,meta,tiktok|0.051898|0.033445|Normal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.051898,0.033445,Normal,PASS,,
+"multi|google,meta,tiktok|0.020759|0.006689|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.020759,0.006689,LogNormal,PASS,,
+"multi|google,meta,tiktok|0.020759|0.033445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.020759,0.033445,LogNormal,PASS,,
+"multi|google,meta,tiktok|0.051898|0.006689|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.051898,0.006689,LogNormal,REVIEW,Baseline,
+"multi|google,meta,tiktok|0.051898|0.033445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",0.051898,0.033445,LogNormal,PASS,,

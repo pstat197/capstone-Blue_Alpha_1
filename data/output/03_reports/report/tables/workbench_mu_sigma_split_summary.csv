@@ -1,0 +1,6 @@
+channel,mu_slice_count,mu_sensitivity_roi_median,mu_sensitivity_roi_max,mu_sensitivity_contribution_median,mu_sensitivity_contribution_max,sigma_slice_count,sigma_sensitivity_roi_median,sigma_sensitivity_roi_max,sigma_sensitivity_contribution_median,sigma_sensitivity_contribution_max,mu_vs_sigma_roi_ratio,dominant_driver
+amazon,1,0.97894218,0.97894218,,,1,0.97894218,0.97894218,,,1.0,balanced
+google,5,1.3532079600000002,1.5337823099999999,,,5,1.35253163,1.5350969799999998,,,1.0005000474554522,balanced
+meta,5,1.072225483,1.107584737,,,5,1.0704456800000002,1.108306883,,,1.0016626747468398,balanced
+snapchat,5,1.4471495,1.64916161,,,5,1.4471495,1.64916161,,,1.0,balanced
+tiktok,5,1.025281309,1.071547391,,,5,1.014410236,1.070524877,,,1.0107166436360762,balanced

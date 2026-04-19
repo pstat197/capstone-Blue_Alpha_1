@@ -12,7 +12,7 @@ $dashboardPath = Join-Path $demoDir "dashboard.html"
 if (-not (Test-Path $dashboardPath)) {
     Write-Host "Dashboard not found: $dashboardPath" -ForegroundColor Red
     Write-Host "Generate it first:" -ForegroundColor Yellow
-    Write-Host "python -m src.reporting.make_report --input data/output/02_tables/$Tag/prior_sensitivity_report_input_$Tag.csv --outdir data/output/03_reports/report/$Tag --clean-output"
+    Write-Host "python -m src.reporting.make_dashboard --input data/output/02_tables/$Tag/prior_sensitivity_report_input_$Tag.csv --outdir data/output/03_reports/report/$Tag --clean-output"
     exit 1
 }
 
@@ -31,4 +31,3 @@ if (Get-Command python -ErrorAction SilentlyContinue) {
     Write-Host "Python launcher not found. Open file directly: $dashboardPath" -ForegroundColor Yellow
     exit 1
 }
-

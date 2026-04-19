@@ -13,6 +13,8 @@ from src.formatting import (
     to_float_safe as _safe_float,
     to_bool as _to_bool,
 )
+from src.output_paths import OUTPUT_ROOT
+from src.reporting.workbench import build_workbench_artifacts
 
 STRUCTURAL_COLS = [
     "adstock_alpha_m",
@@ -32,7 +34,7 @@ DEFAULT_STRUCTURAL = {
 
 DEFAULT_QC_GATE_MU = [0.020759, 0.051898]
 DEFAULT_QC_GATE_SIGMA = [0.006689, 0.033445]
-DEFAULT_QC_GATE_DISTS = ["Normal"]
+DEFAULT_QC_GATE_DISTS = ["LogNormal"]
 
 
 def _pick_baseline(group: pd.DataFrame, rule: str) -> tuple[float, float]:
@@ -685,6 +687,131 @@ def _compute_prior_guardrail(merged: pd.DataFrame, cfg: dict, tables_dir: Path) 
     }
 
 
+def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
+    policy_cfg = cfg.get("decision_policy", {}) or {}
+    explicit_tag = str(policy_cfg.get("robustness_tag", "") or "").strip()
+    if explicit_tag:
+        return explicit_tag
+
+    linked_targets = [str(x).strip() for x in (scope.get("linked_targets") or []) if str(x).strip()]
+    if linked_targets:
+        return "_".join(sorted(linked_targets))
+
+    target_sets = [str(x) for x in (scope.get("target_sets") or []) if str(x).strip()]
+    if len(target_sets) == 1:
+        parsed = [str(x).strip() for x in _parse_linked_targets(target_sets) if str(x).strip()]
+        if parsed:
+            return "_".join(sorted(parsed))
+
+    parsed = [str(x).strip() for x in _parse_linked_targets(target_sets) if str(x).strip()]
+    if parsed:
+        return "_".join(sorted(parsed))
+    return None
+
+
+def _resolve_robustness_dir(cfg: dict) -> Path:
+    policy_cfg = cfg.get("decision_policy", {}) or {}
+    raw_dir = str(policy_cfg.get("robustness_dir", "") or "").strip()
+    if not raw_dir:
+        return OUTPUT_ROOT / "robustness"
+
+    out_dir = Path(raw_dir)
+    if out_dir.is_absolute():
+        return out_dir
+    project_root = Path(__file__).resolve().parents[2]
+    return project_root / out_dir
+
+
+def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
+    policy_cfg = cfg.get("decision_policy", {}) or {}
+    enabled = bool(policy_cfg.get("use_robustness_score", True))
+    if not enabled:
+        return {
+            "enabled": False,
+            "available": False,
+            "reason": "robustness score integration disabled by config",
+        }
+
+    tag = _resolve_robustness_tag(scope, cfg)
+    if not tag:
+        return {
+            "enabled": True,
+            "available": False,
+            "reason": "could not infer robustness tag from report scope",
+        }
+
+    out_dir = _resolve_robustness_dir(cfg)
+    model_csv = out_dir / f"robustness_model_{tag}.csv"
+    if not model_csv.exists():
+        return {
+            "enabled": True,
+            "available": False,
+            "tag": tag,
+            "model_csv": str(model_csv),
+            "reason": "robustness model CSV not found",
+        }
+
+    try:
+        model_df = pd.read_csv(model_csv)
+    except Exception as exc:
+        return {
+            "enabled": True,
+            "available": False,
+            "tag": tag,
+            "model_csv": str(model_csv),
+            "reason": f"failed to read robustness model CSV: {exc}",
+        }
+    if model_df.empty:
+        return {
+            "enabled": True,
+            "available": False,
+            "tag": tag,
+            "model_csv": str(model_csv),
+            "reason": "robustness model CSV is empty",
+        }
+
+    row = model_df.iloc[-1]
+    score = _safe_float(row.get("overall_model_robustness_score"))
+    band = str(row.get("overall_model_robustness_band", "") or "").strip().upper()
+    if band not in {"LOW", "MEDIUM", "HIGH"}:
+        band = ""
+        q33 = _safe_float(row.get("empirical_low_cutoff_q33"))
+        q67 = _safe_float(row.get("empirical_high_cutoff_q67"))
+        if score is not None and q33 is not None and q67 is not None:
+            if score < q33:
+                band = "LOW"
+            elif score >= q67:
+                band = "HIGH"
+            else:
+                band = "MEDIUM"
+
+    if score is None:
+        return {
+            "enabled": True,
+            "available": False,
+            "tag": tag,
+            "model_csv": str(model_csv),
+            "reason": "overall_model_robustness_score missing in robustness model CSV",
+        }
+
+    return {
+        "enabled": True,
+        "available": True,
+        "tag": tag,
+        "model_csv": str(model_csv),
+        "reason": "",
+        "overall_model_robustness_score": score,
+        "overall_model_robustness_band": band,
+        "overall_weighting": str(row.get("overall_weighting", "") or "").strip(),
+        "n_runs_used": int(_safe_float(row.get("n_runs_used")) or 0),
+        "target_subset_robustness_score": _safe_float(row.get("target_subset_robustness_score")),
+        "overall_prior_sensitivity_subscore": _safe_float(row.get("overall_prior_sensitivity_subscore")),
+        "overall_data_influence_subscore": _safe_float(row.get("overall_data_influence_subscore")),
+        "overall_cross_channel_subscore": _safe_float(row.get("overall_cross_channel_subscore")),
+        "overall_adstock_proxy_subscore": _safe_float(row.get("overall_adstock_proxy_subscore")),
+    }
+
+
 def _compute_decision_card(
     diagnostics: dict,
     qc_gate: dict,
@@ -692,6 +819,7 @@ def _compute_decision_card(
     cfg: dict,
     prior_guardrail: dict | None = None,
     pass_coverage: dict | None = None,
+    robustness_score: dict | None = None,
 ) -> dict:
     hi = float(cfg["thresholds"]["high_sensitivity_pct"])
     med = float(cfg["thresholds"]["medium_sensitivity_pct"])
@@ -711,6 +839,18 @@ def _compute_decision_card(
     yellow_on_sensitivity_ge_high = bool(policy_cfg.get("yellow_on_sensitivity_ge_high", True))
     yellow_on_prior_guardrail_fail = bool(policy_cfg.get("yellow_on_prior_guardrail_fail", True))
     min_pass_coverage_pct_for_green = float(policy_cfg.get("min_pass_coverage_pct_for_green", 60.0) or 60.0)
+    require_robustness_score_for_green = bool(policy_cfg.get("require_robustness_score_for_green", False))
+    require_robustness_high_for_green = bool(policy_cfg.get("require_robustness_high_for_green", True))
+    red_on_robustness_low = bool(policy_cfg.get("red_on_robustness_low", False))
+
+    robust = robustness_score or {}
+    robust_enabled = bool(robust.get("enabled", False))
+    robust_available = bool(robust.get("available", False))
+    robust_reason = str(robust.get("reason", "") or "").strip()
+    robust_score_value = _safe_float(robust.get("overall_model_robustness_score"))
+    robust_band = str(robust.get("overall_model_robustness_band", "") or "").strip().upper()
+    if robust_band not in {"LOW", "MEDIUM", "HIGH"}:
+        robust_band = "UNKNOWN"
 
     top_channel = None
     top_dist = None
@@ -816,6 +956,26 @@ def _compute_decision_card(
             headline = "Ready for decision use with the current QC window."
             triggered_rules.append("GREEN rule: QC gate and diagnostics are within green limits.")
 
+    if red_on_robustness_low and robust_available and robust_band == "LOW" and tier != "RED":
+        tier = "RED"
+        headline = "Not decision-ready; robustness score is in the low band."
+        triggered_rules.append("RED rule: robustness score band is LOW.")
+    elif tier == "GREEN":
+        if require_robustness_score_for_green and (not robust_available):
+            tier = "YELLOW"
+            headline = "Directional only; robustness score is required before green-light decisions."
+            triggered_rules.append("YELLOW rule: robustness score is missing, so GREEN is blocked.")
+        elif (
+            robust_available
+            and require_robustness_high_for_green
+            and robust_band in {"LOW", "MEDIUM"}
+        ):
+            tier = "YELLOW"
+            headline = "Directional only; robustness score is not yet in the high band."
+            triggered_rules.append(
+                f"YELLOW rule: robustness score band is {robust_band}; GREEN requires HIGH."
+            )
+
     policy_rules = [
         "RED: QC gate FAIL, or QC gate missing while diagnostics include FAIL runs.",
         (
@@ -835,6 +995,12 @@ def _compute_decision_card(
     policy_rules.append(
         f"PASS coverage gate: GREEN requires PASS coverage >= {min_pass_coverage_pct_for_green:.1f}%."
     )
+    if require_robustness_score_for_green:
+        policy_rules.append("Robustness score gate: GREEN requires a valid robustness score.")
+    if require_robustness_high_for_green:
+        policy_rules.append("Robustness band gate: GREEN requires robustness band HIGH.")
+    if red_on_robustness_low:
+        policy_rules.append("Robustness escalation: LOW robustness band forces RED.")
 
     reasons: list[str] = []
     reasons.append(
@@ -851,6 +1017,24 @@ def _compute_decision_card(
         )
     else:
         reasons.append("QC gate window has not been configured or did not match any run.")
+
+    if robust_available and robust_score_value is not None:
+        robust_weighting = str(robust.get("overall_weighting", "") or "").strip() or "unknown"
+        robust_runs = int(robust.get("n_runs_used", 0) or 0)
+        robust_tag = str(robust.get("tag", "") or "").strip()
+        robust_target_subset = _safe_float(robust.get("target_subset_robustness_score"))
+        robust_line = (
+            f"Robustness score: {robust_score_value:.2f}/100 "
+            f"({robust_band.title() if robust_band != 'UNKNOWN' else 'Unknown'}), "
+            f"weighting={robust_weighting}, runs={robust_runs}, tag={robust_tag or 'NA'}."
+        )
+        if robust_target_subset is not None:
+            robust_line += f" Target-subset score={robust_target_subset:.2f}/100."
+        reasons.append(robust_line)
+    elif robust_enabled:
+        reasons.append(
+            f"Robustness score unavailable for this report scope ({robust_reason or 'missing robustness output'})."
+        )
 
     if n_unstable_pairs > 0 and n_total_pairs > 0:
         reasons.append(
@@ -899,17 +1083,67 @@ def _compute_decision_card(
         actions.append("Run a broader prior sweep and recompute diagnostics/QC gate.")
         actions.append("Re-baseline score after improving unstable channels and failing checks.")
 
+    if robust_available and robust_band == "LOW":
+        actions.append("Prioritize the lowest-scoring channels in robustness_channel_<tag>.csv for targeted reruns.")
+
+    score_label = "Pending Robustness Score"
+    score_value = "N/A (awaiting score pipeline)"
+    score_note = "Placeholder: robustness score pipeline not integrated yet."
+    if robust_available and robust_score_value is not None:
+        score_label = "Robustness Score (Model)"
+        band_text = robust_band.title() if robust_band != "UNKNOWN" else "Unknown"
+        score_value = f"{robust_score_value:.2f} / 100 ({band_text})"
+        robust_weighting = str(robust.get("overall_weighting", "") or "").strip() or "unknown"
+        robust_runs = int(robust.get("n_runs_used", 0) or 0)
+        source_name = Path(str(robust.get("model_csv", "") or "")).name
+        score_note = f"src={source_name} | w={robust_weighting} | n={robust_runs}"
+    elif robust_enabled and robust_reason:
+        score_note = f"Robustness score unavailable: {robust_reason}."
+
+    score_subscores: list[dict] = []
+    if robust_available:
+        score_subscores = [
+            {
+                "id": "prior",
+                "label": "Prior Sensitivity",
+                "value": _safe_float(robust.get("overall_prior_sensitivity_subscore")),
+            },
+            {
+                "id": "data",
+                "label": "Data Influence",
+                "value": _safe_float(robust.get("overall_data_influence_subscore")),
+            },
+            {
+                "id": "cross",
+                "label": "Cross-Channel",
+                "value": _safe_float(robust.get("overall_cross_channel_subscore")),
+            },
+            {
+                "id": "adstock",
+                "label": "Adstock Proxy",
+                "value": _safe_float(robust.get("overall_adstock_proxy_subscore")),
+            },
+            {
+                "id": "target_subset",
+                "label": "Target Subset",
+                "value": _safe_float(robust.get("target_subset_robustness_score")),
+            },
+        ]
+        score_subscores = [x for x in score_subscores if x.get("value") is not None]
+
     return {
         "available": True,
         "tier": tier,
         "headline": headline,
-        "score_label": "Pending Robustness Score",
-        "score_value": "N/A (awaiting score pipeline)",
+        "score_label": score_label,
+        "score_value": score_value,
+        "score_note": score_note,
         "policy_name": policy_name,
         "policy_rules": policy_rules,
         "triggered_rules": triggered_rules,
         "reasons": reasons,
         "actions": actions,
+        "score_subscores": score_subscores,
     }
 def _compute_dollar_sensitivity(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     source = None
@@ -1623,6 +1857,17 @@ def _compute_structural_block(
 
 def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     tables_dir.mkdir(parents=True, exist_ok=True)
+
+    wb_cfg = (cfg.get("analysis", {}) or {}).get("workbench", {}) or {}
+    primary_dist_cfg = str(wb_cfg.get("primary_dist", "") or "").strip()
+    scope_to_primary = bool(wb_cfg.get("scope_report_to_primary_dist", True))
+    n_dists_total = int(df.get("roi_prior_dist", pd.Series(dtype=object)).astype(str).str.strip().str.lower().nunique())
+    if scope_to_primary and primary_dist_cfg and "roi_prior_dist" in df.columns and n_dists_total > 1:
+        target_norm = primary_dist_cfg.strip().lower()
+        mask = df["roi_prior_dist"].astype(str).str.strip().str.lower() == target_norm
+        if mask.any():
+            df = df.loc[mask].copy()
+
     diagnostics = _compute_diagnostics(df, tables_dir)
     scope = _build_scope_info(df)
     scope["n_channels_before"] = int(df["channel"].nunique())
@@ -1817,6 +2062,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
     structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
     qc_gate = _compute_qc_gate(df, merged, cfg, tables_dir)
+    workbench = build_workbench_artifacts(merged, cfg, tables_dir)
 
     analysis_cfg = (cfg.get("analysis", {}) or {})
     ranking_qc_scope = str(analysis_cfg.get("ranking_qc_scope", "all")).strip().lower()
@@ -1961,6 +2207,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "total_rows": total_rows_for_coverage,
         "pass_coverage_pct": pass_coverage_pct,
     }
+    robustness_score = _load_robustness_model_score(scope, cfg)
 
     decision_card = _compute_decision_card(
         diagnostics,
@@ -1969,6 +2216,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         cfg,
         prior_guardrail=prior_guardrail,
         pass_coverage=pass_coverage,
+        robustness_score=robustness_score,
     )
 
     overview = {
@@ -2007,7 +2255,9 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "spend_effect": spend_effect,
         "structural": structural,
         "qc_gate": qc_gate,
+        "workbench": workbench,
         "prior_guardrail": prior_guardrail,
+        "robustness_score": robustness_score,
         "decision_card": decision_card,
         "baseline_df": baseline_df,
         "rank_df": rank,
