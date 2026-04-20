@@ -441,6 +441,18 @@ def main():
         "max_lag": structural_grids["max_lag"][0],
         "adstock_decay_spec": structural_grids["adstock_decay"][0],
     }
+    official_outdir = os.path.join(
+        project_root,
+        "data",
+        "output",
+        "03_reports",
+        "report",
+        output_tag,
+        "figures",
+        "meridian_official",
+    )
+    official_manifest = os.path.join(official_outdir, "manifest.json")
+    official_export_done = os.path.exists(official_manifest)
     print(
         "Baseline (effective) =",
         {"mu": baseline_mu, "sigma": baseline_sigma, "dist": baseline_dist},
@@ -600,6 +612,30 @@ def main():
         if population_col:
             cmd.extend(["--population_col", population_col])
 
+        is_baseline_grid_point = (
+            abs(float(mu) - float(baseline_mu)) <= 1e-9
+            and abs(float(sigma) - float(baseline_sigma)) <= 1e-9
+            and str(dist) == str(baseline_dist)
+            and (
+                (alpha_m is None and baseline_structural["alpha_m"] is None)
+                or (alpha_m is not None and baseline_structural["alpha_m"] is not None and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9)
+            )
+            and (
+                (ec_m is None and baseline_structural["ec_m"] is None)
+                or (ec_m is not None and baseline_structural["ec_m"] is not None and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9)
+            )
+            and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
+            and int(max_lag) == int(baseline_structural["max_lag"])
+            and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
+        )
+        if is_baseline_grid_point and not official_export_done:
+            cmd.extend([
+                "--official_outdir",
+                official_outdir,
+                "--official_time_granularity",
+                "quarterly",
+            ])
+
         proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
         if proc.returncode != 0:
             print("\n--- Subprocess STDOUT ---\n", proc.stdout)
@@ -632,6 +668,8 @@ def main():
         already_done.add(run_key)
         os.remove(tmp_run_out)
         os.remove(tmp_roi_out)
+        if is_baseline_grid_point:
+            official_export_done = True
 
         print("Iteration time:", round(time.time() - t0, 2), "seconds")
         run_index += 1

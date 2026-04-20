@@ -844,6 +844,75 @@ def render_dashboard_output(
                 "n": int(row.get("n", 0) or 0),
             })
 
+    meridian_official_dir = outdir / "figures" / "meridian_official"
+    manifest_data = {}
+    manifest_path = meridian_official_dir / "manifest.json"
+    if manifest_path.exists() and manifest_path.is_file():
+        try:
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            manifest_data = {}
+    if not isinstance(manifest_data, dict):
+        manifest_data = {}
+
+    def _official_rel(filename: str) -> str | None:
+        p = meridian_official_dir / filename
+        if p.exists() and p.is_file():
+            return f"figures/meridian_official/{filename}"
+        return None
+
+    official_chart_keys = [
+        "spend_vs_contribution",
+        "roi_by_channel",
+        "roi_vs_mroi",
+        "roi_vs_effectiveness",
+        "contribution_waterfall",
+        "contribution_over_time",
+    ]
+    official_chart_defaults = {
+        "spend_vs_contribution": "spend_vs_contribution.html",
+        "roi_by_channel": "roi_by_channel.html",
+        "roi_vs_mroi": "roi_vs_mroi.html",
+        "roi_vs_effectiveness": "roi_vs_effectiveness.html",
+        "contribution_waterfall": "contribution_waterfall.html",
+        "contribution_over_time": "contribution_over_time.html",
+    }
+    manifest_files_raw = manifest_data.get("files", {}) if isinstance(manifest_data, dict) else {}
+    manifest_files = manifest_files_raw if isinstance(manifest_files_raw, dict) else {}
+    meridian_official_files = {
+        key: _official_rel(str(manifest_files.get(key) or official_chart_defaults[key]))
+        for key in official_chart_keys
+    }
+
+    manifest_specs_raw = manifest_data.get("chart_specs", {}) if isinstance(manifest_data, dict) else {}
+    meridian_chart_specs = manifest_specs_raw if isinstance(manifest_specs_raw, dict) else {}
+
+    def _extract_vega_spec_from_html(path: Path) -> dict | None:
+        try:
+            text = path.read_text(encoding="utf-8-sig", errors="ignore")
+        except Exception:
+            return None
+        m = re.search(r"var\s+spec\s*=\s*(\{.*?\})\s*;\s*var\s+embedOpt", text, flags=re.S)
+        if not m:
+            return None
+        try:
+            spec = json.loads(m.group(1))
+        except Exception:
+            return None
+        return spec if isinstance(spec, dict) else None
+
+    for key in official_chart_keys:
+        if isinstance(meridian_chart_specs.get(key), dict):
+            continue
+        filename = str(manifest_files.get(key) or official_chart_defaults[key])
+        src_path = meridian_official_dir / filename
+        if src_path.exists() and src_path.is_file():
+            extracted = _extract_vega_spec_from_html(src_path)
+            if extracted:
+                meridian_chart_specs[key] = extracted
+
+    meridian_official_available = any(isinstance(meridian_chart_specs.get(key), dict) for key in official_chart_keys)
+
     dashboard_payload = {
         "meta": {
             "title": meta.get("title", "Report"),
@@ -872,6 +941,12 @@ def render_dashboard_output(
         },
         "structural": structural_block,
         "workbench": workbench_block,
+        "meridian_official": {
+            "available": bool(meridian_official_available),
+            "files": meridian_official_files,
+            "chart_specs": meridian_chart_specs,
+            "manifest": manifest_data,
+        },
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
     }

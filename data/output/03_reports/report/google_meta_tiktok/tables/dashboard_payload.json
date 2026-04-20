@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-04-19 02:16:45",
+    "generated_at": "2026-04-19 23:08:59",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -4024,6 +4024,5167 @@
         "sigma_sensitivity_contribution_max": 585092.803
       }
     ]
+  },
+  "meridian_official": {
+    "available": true,
+    "files": {
+      "spend_vs_contribution": "figures/meridian_official/spend_vs_contribution.html",
+      "roi_by_channel": "figures/meridian_official/roi_by_channel.html",
+      "roi_vs_mroi": "figures/meridian_official/roi_vs_mroi.html",
+      "roi_vs_effectiveness": "figures/meridian_official/roi_vs_effectiveness.html",
+      "contribution_waterfall": "figures/meridian_official/contribution_waterfall.html",
+      "contribution_over_time": "figures/meridian_official/contribution_over_time.html"
+    },
+    "chart_specs": {
+      "spend_vs_contribution": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300,
+            "strokeOpacity": 0
+          },
+          "axis": {
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          },
+          "header": {
+            "labelAlign": "right",
+            "labelAngle": -45,
+            "labelBaseline": "middle",
+            "labelOrient": "bottom",
+            "title": null
+          }
+        },
+        "data": {
+          "name": "data-336a510e9ea9a345c65acff3aa9c304e"
+        },
+        "facet": {
+          "column": {
+            "field": "channel",
+            "type": "nominal"
+          }
+        },
+        "spec": {
+          "layer": [
+            {
+              "mark": {
+                "type": "bar",
+                "cornerRadiusEnd": 2,
+                "tooltip": true
+              },
+              "encoding": {
+                "color": {
+                  "field": "label",
+                  "legend": {
+                    "columnPadding": 20,
+                    "orient": "bottom",
+                    "rowPadding": 10,
+                    "title": null
+                  },
+                  "scale": {
+                    "domain": [
+                      "% KPI",
+                      "% Spend",
+                      "Return on Investment"
+                    ],
+                    "range": [
+                      "#669DF6",
+                      "#AECBFA",
+                      "#188038"
+                    ]
+                  },
+                  "type": "nominal"
+                },
+                "tooltip": [
+                  {
+                    "field": "pct",
+                    "format": ".1%",
+                    "type": "quantitative"
+                  }
+                ],
+                "x": {
+                  "axis": {
+                    "labels": false,
+                    "ticks": false,
+                    "title": null
+                  },
+                  "field": "label",
+                  "scale": {
+                    "paddingOuter": 0.5
+                  },
+                  "type": "nominal"
+                },
+                "y": {
+                  "axis": {
+                    "format": "%",
+                    "tickCount": 2,
+                    "titleAlign": "left",
+                    "titleAngle": 0,
+                    "titleY": -20
+                  },
+                  "field": "pct",
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "mark": {
+                "type": "tick",
+                "color": "#188038",
+                "cornerRadius": 2,
+                "size": 20,
+                "thickness": 4,
+                "tooltip": true
+              },
+              "encoding": {
+                "tooltip": [
+                  {
+                    "field": "roi",
+                    "format": ".2f",
+                    "type": "quantitative"
+                  }
+                ],
+                "y": {
+                  "field": "roi_scaled",
+                  "title": "%",
+                  "type": "quantitative"
+                }
+              }
+            },
+            {
+              "mark": {
+                "type": "text",
+                "color": "#202124",
+                "dy": -15,
+                "fontSize": 12
+              },
+              "encoding": {
+                "text": {
+                  "field": "roi",
+                  "format": ".1f",
+                  "type": "quantitative"
+                },
+                "y": {
+                  "field": "roi_scaled",
+                  "type": "quantitative"
+                }
+              }
+            }
+          ]
+        },
+        "spacing": -1,
+        "title": {
+          "text": "Spend and KPI contribution by marketing channel",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-336a510e9ea9a345c65acff3aa9c304e": [
+            {
+              "channel": "meta",
+              "pct": 0.042,
+              "label": "% KPI",
+              "roi": 0.034,
+              "roi_scaled": 0.11
+            },
+            {
+              "channel": "google",
+              "pct": 0.394,
+              "label": "% KPI",
+              "roi": 0.026,
+              "roi_scaled": 0.084
+            },
+            {
+              "channel": "snapchat",
+              "pct": 0.189,
+              "label": "% KPI",
+              "roi": 0.029,
+              "roi_scaled": 0.096
+            },
+            {
+              "channel": "tiktok",
+              "pct": 0.095,
+              "label": "% KPI",
+              "roi": 0.036,
+              "roi_scaled": 0.119
+            },
+            {
+              "channel": "moloco",
+              "pct": 0.088,
+              "label": "% KPI",
+              "roi": 0.07,
+              "roi_scaled": 0.23
+            },
+            {
+              "channel": "liveintent",
+              "pct": 0.109,
+              "label": "% KPI",
+              "roi": 0.092,
+              "roi_scaled": 0.301
+            },
+            {
+              "channel": "beehiiv",
+              "pct": 0.08,
+              "label": "% KPI",
+              "roi": 0.164,
+              "roi_scaled": 0.536
+            },
+            {
+              "channel": "amazon",
+              "pct": 0.003,
+              "label": "% KPI",
+              "roi": 0.132,
+              "roi_scaled": 0.432
+            },
+            {
+              "channel": "meta",
+              "pct": 0.044,
+              "label": "% Spend",
+              "roi": 0.034,
+              "roi_scaled": 0.11
+            },
+            {
+              "channel": "google",
+              "pct": 0.536,
+              "label": "% Spend",
+              "roi": 0.026,
+              "roi_scaled": 0.084
+            },
+            {
+              "channel": "snapchat",
+              "pct": 0.226,
+              "label": "% Spend",
+              "roi": 0.029,
+              "roi_scaled": 0.096
+            },
+            {
+              "channel": "tiktok",
+              "pct": 0.091,
+              "label": "% Spend",
+              "roi": 0.036,
+              "roi_scaled": 0.119
+            },
+            {
+              "channel": "moloco",
+              "pct": 0.044,
+              "label": "% Spend",
+              "roi": 0.07,
+              "roi_scaled": 0.23
+            },
+            {
+              "channel": "liveintent",
+              "pct": 0.042,
+              "label": "% Spend",
+              "roi": 0.092,
+              "roi_scaled": 0.301
+            },
+            {
+              "channel": "beehiiv",
+              "pct": 0.017,
+              "label": "% Spend",
+              "roi": 0.164,
+              "roi_scaled": 0.536
+            },
+            {
+              "channel": "amazon",
+              "pct": 0.001,
+              "label": "% Spend",
+              "roi": 0.132,
+              "roi_scaled": 0.432
+            }
+          ]
+        }
+      },
+      "roi_by_channel": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300
+          },
+          "axis": {
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          },
+          "tick": {
+            "bandSize": 10,
+            "thickness": 2
+          }
+        },
+        "layer": [
+          {
+            "mark": {
+              "type": "bar",
+              "color": "#1A73E8",
+              "cornerRadiusEnd": 2,
+              "size": 42
+            },
+            "encoding": {
+              "x": {
+                "axis": {
+                  "labelAngle": -45
+                },
+                "field": "channel",
+                "title": "Channel",
+                "type": "nominal"
+              },
+              "y": {
+                "axis": {
+                  "gridDash": [
+                    3,
+                    2
+                  ],
+                  "titleAlign": "left",
+                  "titleAngle": 0,
+                  "titleY": -20
+                },
+                "field": "roi",
+                "title": "ROI",
+                "type": "quantitative"
+              }
+            }
+          },
+          {
+            "mark": {
+              "type": "errorbar",
+              "color": "#8AB4F8",
+              "ticks": true
+            },
+            "encoding": {
+              "strokeWidth": {
+                "value": 2
+              },
+              "x": {
+                "field": "channel",
+                "type": "nominal"
+              },
+              "y": {
+                "field": "ci_hi",
+                "title": "ROI",
+                "type": "quantitative"
+              },
+              "y2": {
+                "field": "ci_lo"
+              }
+            }
+          },
+          {
+            "mark": {
+              "type": "point",
+              "color": "#8AB4F8",
+              "filled": true,
+              "tooltip": true
+            },
+            "encoding": {
+              "x": {
+                "field": "channel",
+                "type": "nominal"
+              },
+              "y": {
+                "field": "roi",
+                "type": "quantitative"
+              }
+            }
+          },
+          {
+            "mark": {
+              "type": "text",
+              "align": "center",
+              "baseline": "bottom",
+              "color": "#202124",
+              "dy": -5,
+              "fontSize": 12
+            },
+            "encoding": {
+              "text": {
+                "field": "roi",
+                "format": ".2f",
+                "type": "quantitative"
+              },
+              "x": {
+                "axis": {
+                  "labelAngle": -45
+                },
+                "field": "channel",
+                "title": "Channel",
+                "type": "nominal"
+              },
+              "y": {
+                "axis": {
+                  "gridDash": [
+                    3,
+                    2
+                  ],
+                  "titleAlign": "left",
+                  "titleAngle": 0,
+                  "titleY": -20
+                },
+                "field": "roi",
+                "title": "ROI",
+                "type": "quantitative"
+              }
+            }
+          }
+        ],
+        "data": {
+          "name": "data-13d5a39b2794d83b2a746287af9afc69"
+        },
+        "title": {
+          "text": "ROI by channel with 90% credible interval",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "width": {
+          "step": 80
+        },
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-13d5a39b2794d83b2a746287af9afc69": [
+            {
+              "channel": "amazon",
+              "ci_hi": 0.295,
+              "ci_lo": 0.031,
+              "roi": 0.132
+            },
+            {
+              "channel": "beehiiv",
+              "ci_hi": 0.358,
+              "ci_lo": 0.042,
+              "roi": 0.164
+            },
+            {
+              "channel": "google",
+              "ci_hi": 0.035,
+              "ci_lo": 0.017,
+              "roi": 0.026
+            },
+            {
+              "channel": "liveintent",
+              "ci_hi": 0.205,
+              "ci_lo": 0.025,
+              "roi": 0.092
+            },
+            {
+              "channel": "meta",
+              "ci_hi": 0.047,
+              "ci_lo": 0.022,
+              "roi": 0.034
+            },
+            {
+              "channel": "moloco",
+              "ci_hi": 0.127,
+              "ci_lo": 0.025,
+              "roi": 0.07
+            },
+            {
+              "channel": "snapchat",
+              "ci_hi": 0.053,
+              "ci_lo": 0.01,
+              "roi": 0.029
+            },
+            {
+              "channel": "tiktok",
+              "ci_hi": 0.054,
+              "ci_lo": 0.023,
+              "roi": 0.036
+            }
+          ]
+        }
+      },
+      "roi_vs_mroi": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300
+          },
+          "axis": {
+            "gridDash": [
+              3,
+              2
+            ],
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          }
+        },
+        "data": {
+          "name": "data-0296613c540656a672c689023b2fe6e6"
+        },
+        "mark": {
+          "type": "circle",
+          "size": 80,
+          "tooltip": true
+        },
+        "encoding": {
+          "color": {
+            "field": "channel",
+            "legend": {
+              "columnPadding": 20,
+              "columns": 7,
+              "orient": "bottom",
+              "rowPadding": 10,
+              "title": null
+            },
+            "type": "nominal"
+          },
+          "size": {
+            "field": "spend",
+            "legend": null,
+            "scale": {
+              "range": [
+                100,
+                5000
+              ]
+            },
+            "type": "quantitative"
+          },
+          "x": {
+            "field": "roi",
+            "scale": {},
+            "title": "ROI",
+            "type": "quantitative"
+          },
+          "y": {
+            "axis": {
+              "titleAlign": "left",
+              "titleAngle": 0,
+              "titleY": -20
+            },
+            "field": "mroi",
+            "scale": {},
+            "title": "Marginal ROI",
+            "type": "quantitative"
+          }
+        },
+        "title": {
+          "text": "ROI vs. marginal ROI",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "width": 400,
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-0296613c540656a672c689023b2fe6e6": [
+            {
+              "channel": "meta",
+              "roi": 0.034,
+              "mroi": 0.015,
+              "spend": 840158.188
+            },
+            {
+              "channel": "google",
+              "roi": 0.026,
+              "mroi": 0.008,
+              "spend": 10298544.0
+            },
+            {
+              "channel": "snapchat",
+              "roi": 0.029,
+              "mroi": 0.011,
+              "spend": 4342437.0
+            },
+            {
+              "channel": "tiktok",
+              "roi": 0.036,
+              "mroi": 0.014,
+              "spend": 1752685.0
+            },
+            {
+              "channel": "moloco",
+              "roi": 0.07,
+              "mroi": 0.02,
+              "spend": 842234.625
+            },
+            {
+              "channel": "liveintent",
+              "roi": 0.092,
+              "mroi": 0.032,
+              "spend": 797987.125
+            },
+            {
+              "channel": "beehiiv",
+              "roi": 0.164,
+              "mroi": 0.065,
+              "spend": 328172.25
+            },
+            {
+              "channel": "amazon",
+              "roi": 0.132,
+              "mroi": 0.059,
+              "spend": 15740.258
+            }
+          ]
+        }
+      },
+      "roi_vs_effectiveness": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300
+          },
+          "axis": {
+            "gridDash": [
+              3,
+              2
+            ],
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          }
+        },
+        "data": {
+          "name": "data-c0160ece5eecd05add42126a04d3d443"
+        },
+        "mark": {
+          "type": "circle",
+          "size": 80,
+          "tooltip": true
+        },
+        "encoding": {
+          "color": {
+            "field": "channel",
+            "legend": {
+              "columnPadding": 20,
+              "columns": 7,
+              "orient": "bottom",
+              "rowPadding": 10,
+              "title": null
+            },
+            "type": "nominal"
+          },
+          "size": {
+            "field": "spend",
+            "legend": null,
+            "scale": {
+              "range": [
+                100,
+                5000
+              ]
+            },
+            "type": "quantitative"
+          },
+          "x": {
+            "field": "roi",
+            "scale": {},
+            "title": "ROI",
+            "type": "quantitative"
+          },
+          "y": {
+            "axis": {
+              "titleAlign": "left",
+              "titleAngle": 0,
+              "titleY": -20
+            },
+            "field": "effectiveness",
+            "scale": {},
+            "title": "Effectiveness",
+            "type": "quantitative"
+          }
+        },
+        "title": {
+          "text": "ROI vs. effectiveness",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "width": 400,
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-c0160ece5eecd05add42126a04d3d443": [
+            {
+              "channel": "meta",
+              "roi": 0.034,
+              "effectiveness": 0.0,
+              "spend": 840158.188
+            },
+            {
+              "channel": "google",
+              "roi": 0.026,
+              "effectiveness": 0.001,
+              "spend": 10298544.0
+            },
+            {
+              "channel": "snapchat",
+              "roi": 0.029,
+              "effectiveness": 0.001,
+              "spend": 4342437.0
+            },
+            {
+              "channel": "tiktok",
+              "roi": 0.036,
+              "effectiveness": 0.001,
+              "spend": 1752685.0
+            },
+            {
+              "channel": "moloco",
+              "roi": 0.07,
+              "effectiveness": 0.002,
+              "spend": 842234.625
+            },
+            {
+              "channel": "liveintent",
+              "roi": 0.092,
+              "effectiveness": 0.008,
+              "spend": 797987.125
+            },
+            {
+              "channel": "beehiiv",
+              "roi": 0.164,
+              "effectiveness": 0.016,
+              "spend": 328172.25
+            },
+            {
+              "channel": "amazon",
+              "roi": 0.132,
+              "effectiveness": 0.003,
+              "spend": 15740.258
+            }
+          ]
+        }
+      },
+      "contribution_waterfall": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300,
+            "strokeOpacity": 0
+          },
+          "axis": {
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          }
+        },
+        "layer": [
+          {
+            "mark": {
+              "type": "bar",
+              "size": 42
+            },
+            "encoding": {
+              "color": {
+                "condition": {
+                  "test": "(datum.channel === 'BASELINE')",
+                  "value": "#F9AB00"
+                },
+                "value": "#1967D2"
+              },
+              "x": {
+                "axis": {
+                  "domain": false,
+                  "format": "%",
+                  "labelPadding": 10,
+                  "tickCount": 5,
+                  "ticks": false
+                },
+                "field": "prev_sum",
+                "title": "% KPI",
+                "type": "quantitative"
+              },
+              "x2": {
+                "field": "sum_outcome"
+              },
+              "y": {
+                "axis": {
+                  "domain": false,
+                  "labelLimit": 0,
+                  "labelPadding": 10,
+                  "ticks": false
+                },
+                "field": "channel",
+                "scale": {
+                  "paddingOuter": 0.2
+                },
+                "sort": null,
+                "title": null,
+                "type": "nominal"
+              }
+            },
+            "transform": [
+              {
+                "window": [
+                  {
+                    "op": "sum",
+                    "field": "pct_of_contribution",
+                    "as": "sum_outcome"
+                  },
+                  {
+                    "op": "lead",
+                    "field": "channel",
+                    "as": "kwargs"
+                  }
+                ]
+              },
+              {
+                "calculate": "datum.sum_outcome - datum.pct_of_contribution",
+                "as": "prev_sum"
+              },
+              {
+                "calculate": "datum.incremental_outcome < 0 ? datum.prev_sum : datum.sum_outcome",
+                "as": "text_x"
+              }
+            ]
+          },
+          {
+            "mark": {
+              "type": "text",
+              "align": "left",
+              "color": "#5F6368",
+              "dx": 10,
+              "fontSize": 14
+            },
+            "encoding": {
+              "text": {
+                "field": "outcome_text",
+                "type": "nominal"
+              },
+              "x": {
+                "field": "text_x",
+                "type": "quantitative"
+              },
+              "y": {
+                "axis": {
+                  "domain": false,
+                  "labelLimit": 0,
+                  "labelPadding": 10,
+                  "ticks": false
+                },
+                "field": "channel",
+                "scale": {
+                  "paddingOuter": 0.2
+                },
+                "sort": null,
+                "title": null,
+                "type": "nominal"
+              }
+            },
+            "transform": [
+              {
+                "window": [
+                  {
+                    "op": "sum",
+                    "field": "pct_of_contribution",
+                    "as": "sum_outcome"
+                  },
+                  {
+                    "op": "lead",
+                    "field": "channel",
+                    "as": "kwargs"
+                  }
+                ]
+              },
+              {
+                "calculate": "datum.sum_outcome - datum.pct_of_contribution",
+                "as": "prev_sum"
+              },
+              {
+                "calculate": "datum.incremental_outcome < 0 ? datum.prev_sum : datum.sum_outcome",
+                "as": "text_x"
+              }
+            ]
+          }
+        ],
+        "data": {
+          "name": "data-48b40a2d7911cc31f609558c96030b3c"
+        },
+        "height": 394.8,
+        "title": {
+          "text": "Contribution by baseline and marketing channels",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "width": 500,
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-48b40a2d7911cc31f609558c96030b3c": [
+            {
+              "channel": "GOOGLE",
+              "incremental_outcome": 265212.812,
+              "pct_of_contribution": 0.289,
+              "outcome_text": "28.9% (265k)"
+            },
+            {
+              "channel": "BASELINE",
+              "incremental_outcome": 244104.75,
+              "pct_of_contribution": 0.266,
+              "outcome_text": "26.6% (244k)"
+            },
+            {
+              "channel": "SNAPCHAT",
+              "incremental_outcome": 127416.281,
+              "pct_of_contribution": 0.139,
+              "outcome_text": "13.9% (127k)"
+            },
+            {
+              "channel": "LIVEINTENT",
+              "incremental_outcome": 73561.555,
+              "pct_of_contribution": 0.08,
+              "outcome_text": "8.0% (74k)"
+            },
+            {
+              "channel": "TIKTOK",
+              "incremental_outcome": 63947.594,
+              "pct_of_contribution": 0.07,
+              "outcome_text": "7.0% (64k)"
+            },
+            {
+              "channel": "MOLOCO",
+              "incremental_outcome": 59235.68,
+              "pct_of_contribution": 0.065,
+              "outcome_text": "6.5% (59k)"
+            },
+            {
+              "channel": "BEEHIIV",
+              "incremental_outcome": 53811.328,
+              "pct_of_contribution": 0.059,
+              "outcome_text": "5.9% (54k)"
+            },
+            {
+              "channel": "META",
+              "incremental_outcome": 28242.727,
+              "pct_of_contribution": 0.031,
+              "outcome_text": "3.1% (28k)"
+            },
+            {
+              "channel": "AMAZON",
+              "incremental_outcome": 2081.204,
+              "pct_of_contribution": 0.002,
+              "outcome_text": "0.2% (2k)"
+            }
+          ]
+        }
+      },
+      "contribution_over_time": {
+        "config": {
+          "view": {
+            "continuousWidth": 300,
+            "continuousHeight": 300,
+            "strokeOpacity": 0
+          },
+          "axis": {
+            "labelColor": "#5F6368",
+            "labelFont": "Roboto",
+            "labelFontSize": 12,
+            "titleColor": "#5F6368",
+            "titleFont": "Roboto",
+            "titleFontSize": 12,
+            "titleFontWeight": "normal",
+            "titlePadding": 10
+          }
+        },
+        "data": {
+          "name": "data-4fc456e8331061ed71a49519e9d25056"
+        },
+        "mark": {
+          "type": "area"
+        },
+        "encoding": {
+          "color": {
+            "field": "channel",
+            "legend": {
+              "labelFont": "Roboto",
+              "labelFontSize": 12,
+              "orient": "bottom",
+              "title": null
+            },
+            "scale": {
+              "domain": [
+                "baseline",
+                "amazon",
+                "beehiiv",
+                "google",
+                "liveintent",
+                "meta",
+                "moloco",
+                "snapchat",
+                "tiktok"
+              ]
+            },
+            "sort": [
+              "baseline",
+              "amazon",
+              "beehiiv",
+              "google",
+              "liveintent",
+              "meta",
+              "moloco",
+              "snapchat",
+              "tiktok"
+            ],
+            "type": "nominal"
+          },
+          "order": {
+            "field": "sort_channel",
+            "sort": "descending",
+            "type": "nominal"
+          },
+          "tooltip": [
+            {
+              "field": "time",
+              "format": "%Y-%m-%d",
+              "type": "temporal"
+            },
+            {
+              "field": "channel",
+              "type": "nominal"
+            },
+            {
+              "field": "incremental_outcome",
+              "format": ",.2f",
+              "type": "quantitative"
+            }
+          ],
+          "x": {
+            "axis": {
+              "domainColor": "#DADCE0",
+              "format": "%Y %b",
+              "grid": false,
+              "tickCount": 8
+            },
+            "field": "time",
+            "title": "Time period",
+            "type": "temporal"
+          },
+          "y": {
+            "axis": {
+              "domain": false,
+              "labelExpr": "replace(format(datum.value, '.3~s'), 'G', 'B')",
+              "labelPadding": 10,
+              "tickCount": 5,
+              "ticks": false,
+              "titleAlign": "left",
+              "titleAngle": 0,
+              "titleY": -20
+            },
+            "field": "incremental_outcome",
+            "scale": {
+              "clamp": true,
+              "domainMin": 419.851
+            },
+            "title": "KPI",
+            "type": "quantitative"
+          }
+        },
+        "title": {
+          "text": "Contribution over time by baseline and marketing channels",
+          "anchor": "start",
+          "color": "#3C4043",
+          "font": "Google Sans Display",
+          "fontSize": 18,
+          "fontWeight": "normal",
+          "offset": 10
+        },
+        "transform": [
+          {
+            "calculate": "indexof(['amazon', 'beehiiv', 'google', 'liveintent', 'meta', 'moloco', 'snapchat', 'tiktok', 'baseline'], datum.channel)",
+            "as": "sort_channel"
+          }
+        ],
+        "width": 700,
+        "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json",
+        "datasets": {
+          "data-4fc456e8331061ed71a49519e9d25056": [
+            {
+              "time": "2024-03-11",
+              "channel": "baseline",
+              "incremental_outcome": 3474.483,
+              "pct_of_contribution": 0.348
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "google",
+              "incremental_outcome": 2276.222,
+              "pct_of_contribution": 0.228
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "snapchat",
+              "incremental_outcome": 1424.982,
+              "pct_of_contribution": 0.143
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "moloco",
+              "incremental_outcome": 1146.472,
+              "pct_of_contribution": 0.115
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "meta",
+              "incremental_outcome": 1084.439,
+              "pct_of_contribution": 0.109
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "liveintent",
+              "incremental_outcome": 581.451,
+              "pct_of_contribution": 0.058
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-11",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "baseline",
+              "incremental_outcome": 3474.485,
+              "pct_of_contribution": 0.335
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "google",
+              "incremental_outcome": 2389.157,
+              "pct_of_contribution": 0.23
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "snapchat",
+              "incremental_outcome": 1852.705,
+              "pct_of_contribution": 0.179
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "moloco",
+              "incremental_outcome": 1050.807,
+              "pct_of_contribution": 0.101
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "meta",
+              "incremental_outcome": 971.871,
+              "pct_of_contribution": 0.094
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "liveintent",
+              "incremental_outcome": 633.605,
+              "pct_of_contribution": 0.061
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-18",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "baseline",
+              "incremental_outcome": 3958.556,
+              "pct_of_contribution": 0.379
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "google",
+              "incremental_outcome": 2584.661,
+              "pct_of_contribution": 0.247
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "snapchat",
+              "incremental_outcome": 1836.99,
+              "pct_of_contribution": 0.176
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "moloco",
+              "incremental_outcome": 930.265,
+              "pct_of_contribution": 0.089
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "liveintent",
+              "incremental_outcome": 795.526,
+              "pct_of_contribution": 0.076
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "meta",
+              "incremental_outcome": 345.355,
+              "pct_of_contribution": 0.033
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-03-25",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "baseline",
+              "incremental_outcome": 4442.618,
+              "pct_of_contribution": 0.401
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "google",
+              "incremental_outcome": 2883.779,
+              "pct_of_contribution": 0.26
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "snapchat",
+              "incremental_outcome": 1993.464,
+              "pct_of_contribution": 0.18
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "moloco",
+              "incremental_outcome": 878.818,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "liveintent",
+              "incremental_outcome": 789.307,
+              "pct_of_contribution": 0.071
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "meta",
+              "incremental_outcome": 92.492,
+              "pct_of_contribution": 0.008
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-01",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "baseline",
+              "incremental_outcome": 4926.689,
+              "pct_of_contribution": 0.422
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "google",
+              "incremental_outcome": 2910.592,
+              "pct_of_contribution": 0.249
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "snapchat",
+              "incremental_outcome": 1895.432,
+              "pct_of_contribution": 0.162
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "moloco",
+              "incremental_outcome": 990.154,
+              "pct_of_contribution": 0.085
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "liveintent",
+              "incremental_outcome": 937.985,
+              "pct_of_contribution": 0.08
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "meta",
+              "incremental_outcome": 22.531,
+              "pct_of_contribution": 0.002
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-08",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "baseline",
+              "incremental_outcome": 5410.747,
+              "pct_of_contribution": 0.428
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "google",
+              "incremental_outcome": 3144.301,
+              "pct_of_contribution": 0.248
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "snapchat",
+              "incremental_outcome": 2020.439,
+              "pct_of_contribution": 0.16
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "moloco",
+              "incremental_outcome": 1074.404,
+              "pct_of_contribution": 0.085
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "liveintent",
+              "incremental_outcome": 1003.649,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "meta",
+              "incremental_outcome": 3.161,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-15",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "baseline",
+              "incremental_outcome": 3860.877,
+              "pct_of_contribution": 0.351
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "google",
+              "incremental_outcome": 3037.512,
+              "pct_of_contribution": 0.276
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "snapchat",
+              "incremental_outcome": 2101.182,
+              "pct_of_contribution": 0.191
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "moloco",
+              "incremental_outcome": 1130.302,
+              "pct_of_contribution": 0.103
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "liveintent",
+              "incremental_outcome": 879.954,
+              "pct_of_contribution": 0.08
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-22",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "google",
+              "incremental_outcome": 3295.225,
+              "pct_of_contribution": 0.341
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "baseline",
+              "incremental_outcome": 2311.026,
+              "pct_of_contribution": 0.239
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "snapchat",
+              "incremental_outcome": 2129.865,
+              "pct_of_contribution": 0.22
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "moloco",
+              "incremental_outcome": 1086.95,
+              "pct_of_contribution": 0.112
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "liveintent",
+              "incremental_outcome": 845.126,
+              "pct_of_contribution": 0.087
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-04-29",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "google",
+              "incremental_outcome": 2815.293,
+              "pct_of_contribution": 0.306
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "baseline",
+              "incremental_outcome": 2606.063,
+              "pct_of_contribution": 0.284
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "snapchat",
+              "incremental_outcome": 2067.878,
+              "pct_of_contribution": 0.225
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "moloco",
+              "incremental_outcome": 975.378,
+              "pct_of_contribution": 0.106
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "liveintent",
+              "incremental_outcome": 723.655,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-06",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "baseline",
+              "incremental_outcome": 2901.087,
+              "pct_of_contribution": 0.3
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "google",
+              "incremental_outcome": 2767.627,
+              "pct_of_contribution": 0.286
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "snapchat",
+              "incremental_outcome": 1936.741,
+              "pct_of_contribution": 0.2
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "moloco",
+              "incremental_outcome": 1169.511,
+              "pct_of_contribution": 0.121
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "liveintent",
+              "incremental_outcome": 887.258,
+              "pct_of_contribution": 0.092
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-13",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "baseline",
+              "incremental_outcome": 3196.103,
+              "pct_of_contribution": 0.32
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "google",
+              "incremental_outcome": 2869.843,
+              "pct_of_contribution": 0.287
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "snapchat",
+              "incremental_outcome": 2089.502,
+              "pct_of_contribution": 0.209
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "moloco",
+              "incremental_outcome": 1116.702,
+              "pct_of_contribution": 0.112
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "liveintent",
+              "incremental_outcome": 715.939,
+              "pct_of_contribution": 0.072
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-20",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "baseline",
+              "incremental_outcome": 3491.145,
+              "pct_of_contribution": 0.331
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "google",
+              "incremental_outcome": 3323.62,
+              "pct_of_contribution": 0.315
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "snapchat",
+              "incremental_outcome": 1968.906,
+              "pct_of_contribution": 0.187
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "moloco",
+              "incremental_outcome": 1056.578,
+              "pct_of_contribution": 0.1
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "liveintent",
+              "incremental_outcome": 707.206,
+              "pct_of_contribution": 0.067
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-05-27",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "baseline",
+              "incremental_outcome": 3786.167,
+              "pct_of_contribution": 0.35
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "google",
+              "incremental_outcome": 3354.423,
+              "pct_of_contribution": 0.31
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "snapchat",
+              "incremental_outcome": 1952.869,
+              "pct_of_contribution": 0.181
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "moloco",
+              "incremental_outcome": 974.879,
+              "pct_of_contribution": 0.09
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "liveintent",
+              "incremental_outcome": 746.573,
+              "pct_of_contribution": 0.069
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-03",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "baseline",
+              "incremental_outcome": 4081.181,
+              "pct_of_contribution": 0.375
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "google",
+              "incremental_outcome": 3077.724,
+              "pct_of_contribution": 0.283
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "snapchat",
+              "incremental_outcome": 1912.128,
+              "pct_of_contribution": 0.176
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "moloco",
+              "incremental_outcome": 1061.17,
+              "pct_of_contribution": 0.098
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "liveintent",
+              "incremental_outcome": 738.699,
+              "pct_of_contribution": 0.068
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-10",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "baseline",
+              "incremental_outcome": 4376.206,
+              "pct_of_contribution": 0.374
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "google",
+              "incremental_outcome": 3254.049,
+              "pct_of_contribution": 0.278
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "snapchat",
+              "incremental_outcome": 2114.735,
+              "pct_of_contribution": 0.181
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "moloco",
+              "incremental_outcome": 1167.354,
+              "pct_of_contribution": 0.1
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "liveintent",
+              "incremental_outcome": 791.932,
+              "pct_of_contribution": 0.068
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-17",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "baseline",
+              "incremental_outcome": 4671.246,
+              "pct_of_contribution": 0.395
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "google",
+              "incremental_outcome": 3182.094,
+              "pct_of_contribution": 0.269
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "snapchat",
+              "incremental_outcome": 2095.123,
+              "pct_of_contribution": 0.177
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "moloco",
+              "incremental_outcome": 1131.796,
+              "pct_of_contribution": 0.096
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "liveintent",
+              "incremental_outcome": 758.229,
+              "pct_of_contribution": 0.064
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-06-24",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "baseline",
+              "incremental_outcome": 4966.265,
+              "pct_of_contribution": 0.408
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "google",
+              "incremental_outcome": 3242.541,
+              "pct_of_contribution": 0.266
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "snapchat",
+              "incremental_outcome": 1994.429,
+              "pct_of_contribution": 0.164
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "moloco",
+              "incremental_outcome": 1065.126,
+              "pct_of_contribution": 0.088
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "liveintent",
+              "incremental_outcome": 904.491,
+              "pct_of_contribution": 0.074
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-01",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "baseline",
+              "incremental_outcome": 5261.294,
+              "pct_of_contribution": 0.437
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "google",
+              "incremental_outcome": 2905.184,
+              "pct_of_contribution": 0.241
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "snapchat",
+              "incremental_outcome": 2008.767,
+              "pct_of_contribution": 0.167
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "moloco",
+              "incremental_outcome": 1004.694,
+              "pct_of_contribution": 0.083
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "liveintent",
+              "incremental_outcome": 866.18,
+              "pct_of_contribution": 0.072
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-08",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "baseline",
+              "incremental_outcome": 5556.317,
+              "pct_of_contribution": 0.43
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "google",
+              "incremental_outcome": 3414.729,
+              "pct_of_contribution": 0.264
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "snapchat",
+              "incremental_outcome": 1875.784,
+              "pct_of_contribution": 0.145
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "moloco",
+              "incremental_outcome": 1181.66,
+              "pct_of_contribution": 0.091
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "liveintent",
+              "incremental_outcome": 895.911,
+              "pct_of_contribution": 0.069
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-15",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "baseline",
+              "incremental_outcome": 4946.869,
+              "pct_of_contribution": 0.408
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "google",
+              "incremental_outcome": 3335.928,
+              "pct_of_contribution": 0.275
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "snapchat",
+              "incremental_outcome": 1873.57,
+              "pct_of_contribution": 0.155
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "moloco",
+              "incremental_outcome": 1158.57,
+              "pct_of_contribution": 0.096
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "liveintent",
+              "incremental_outcome": 797.348,
+              "pct_of_contribution": 0.066
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-22",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "baseline",
+              "incremental_outcome": 4337.412,
+              "pct_of_contribution": 0.385
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "google",
+              "incremental_outcome": 3291.652,
+              "pct_of_contribution": 0.292
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "snapchat",
+              "incremental_outcome": 1719.428,
+              "pct_of_contribution": 0.153
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "moloco",
+              "incremental_outcome": 1026.781,
+              "pct_of_contribution": 0.091
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "liveintent",
+              "incremental_outcome": 894.289,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-07-29",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "baseline",
+              "incremental_outcome": 3727.956,
+              "pct_of_contribution": 0.353
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "google",
+              "incremental_outcome": 3157.852,
+              "pct_of_contribution": 0.299
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "snapchat",
+              "incremental_outcome": 1850.625,
+              "pct_of_contribution": 0.175
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "moloco",
+              "incremental_outcome": 951.802,
+              "pct_of_contribution": 0.09
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "liveintent",
+              "incremental_outcome": 860.317,
+              "pct_of_contribution": 0.082
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-05",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "baseline",
+              "incremental_outcome": 3553.849,
+              "pct_of_contribution": 0.353
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "google",
+              "incremental_outcome": 3183.919,
+              "pct_of_contribution": 0.316
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "snapchat",
+              "incremental_outcome": 1782.186,
+              "pct_of_contribution": 0.177
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "liveintent",
+              "incremental_outcome": 891.908,
+              "pct_of_contribution": 0.088
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "moloco",
+              "incremental_outcome": 668.64,
+              "pct_of_contribution": 0.066
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-12",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "google",
+              "incremental_outcome": 3380.715,
+              "pct_of_contribution": 0.346
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "baseline",
+              "incremental_outcome": 3379.747,
+              "pct_of_contribution": 0.346
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "snapchat",
+              "incremental_outcome": 1695.844,
+              "pct_of_contribution": 0.174
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "liveintent",
+              "incremental_outcome": 758.19,
+              "pct_of_contribution": 0.078
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "moloco",
+              "incremental_outcome": 556.771,
+              "pct_of_contribution": 0.057
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-19",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "baseline",
+              "incremental_outcome": 3205.63,
+              "pct_of_contribution": 0.33
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "google",
+              "incremental_outcome": 3201.364,
+              "pct_of_contribution": 0.329
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "snapchat",
+              "incremental_outcome": 1539.609,
+              "pct_of_contribution": 0.158
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "liveintent",
+              "incremental_outcome": 737.953,
+              "pct_of_contribution": 0.076
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "tiktok",
+              "incremental_outcome": 685.178,
+              "pct_of_contribution": 0.071
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "moloco",
+              "incremental_outcome": 346.41,
+              "pct_of_contribution": 0.036
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-08-26",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "google",
+              "incremental_outcome": 3692.396,
+              "pct_of_contribution": 0.357
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "baseline",
+              "incremental_outcome": 3031.509,
+              "pct_of_contribution": 0.293
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "snapchat",
+              "incremental_outcome": 1497.653,
+              "pct_of_contribution": 0.145
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "liveintent",
+              "incremental_outcome": 1027.227,
+              "pct_of_contribution": 0.099
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "tiktok",
+              "incremental_outcome": 815.065,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "moloco",
+              "incremental_outcome": 290.099,
+              "pct_of_contribution": 0.028
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-02",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "google",
+              "incremental_outcome": 3368.748,
+              "pct_of_contribution": 0.326
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "baseline",
+              "incremental_outcome": 2857.401,
+              "pct_of_contribution": 0.276
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "snapchat",
+              "incremental_outcome": 1699.138,
+              "pct_of_contribution": 0.164
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "tiktok",
+              "incremental_outcome": 1214.287,
+              "pct_of_contribution": 0.117
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "liveintent",
+              "incremental_outcome": 929.944,
+              "pct_of_contribution": 0.09
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "moloco",
+              "incremental_outcome": 272.221,
+              "pct_of_contribution": 0.026
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-09",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "google",
+              "incremental_outcome": 3655.131,
+              "pct_of_contribution": 0.346
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "baseline",
+              "incremental_outcome": 2683.309,
+              "pct_of_contribution": 0.254
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "snapchat",
+              "incremental_outcome": 1539.634,
+              "pct_of_contribution": 0.146
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "tiktok",
+              "incremental_outcome": 1247.973,
+              "pct_of_contribution": 0.118
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "liveintent",
+              "incremental_outcome": 1018.675,
+              "pct_of_contribution": 0.097
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "moloco",
+              "incremental_outcome": 410.298,
+              "pct_of_contribution": 0.039
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-16",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "google",
+              "incremental_outcome": 3619.099,
+              "pct_of_contribution": 0.341
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "baseline",
+              "incremental_outcome": 2509.176,
+              "pct_of_contribution": 0.237
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "snapchat",
+              "incremental_outcome": 1573.172,
+              "pct_of_contribution": 0.148
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "tiktok",
+              "incremental_outcome": 1427.966,
+              "pct_of_contribution": 0.135
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "liveintent",
+              "incremental_outcome": 966.0,
+              "pct_of_contribution": 0.091
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "moloco",
+              "incremental_outcome": 509.603,
+              "pct_of_contribution": 0.048
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-23",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "google",
+              "incremental_outcome": 3715.95,
+              "pct_of_contribution": 0.355
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "baseline",
+              "incremental_outcome": 2335.071,
+              "pct_of_contribution": 0.223
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "snapchat",
+              "incremental_outcome": 1427.549,
+              "pct_of_contribution": 0.136
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "tiktok",
+              "incremental_outcome": 1245.947,
+              "pct_of_contribution": 0.119
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "liveintent",
+              "incremental_outcome": 1069.435,
+              "pct_of_contribution": 0.102
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "moloco",
+              "incremental_outcome": 481.501,
+              "pct_of_contribution": 0.046
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "meta",
+              "incremental_outcome": 194.407,
+              "pct_of_contribution": 0.019
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-09-30",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "google",
+              "incremental_outcome": 3668.67,
+              "pct_of_contribution": 0.31
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "baseline",
+              "incremental_outcome": 2160.962,
+              "pct_of_contribution": 0.182
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "snapchat",
+              "incremental_outcome": 1635.618,
+              "pct_of_contribution": 0.138
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "tiktok",
+              "incremental_outcome": 1427.68,
+              "pct_of_contribution": 0.12
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "meta",
+              "incremental_outcome": 1257.689,
+              "pct_of_contribution": 0.106
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "liveintent",
+              "incremental_outcome": 1055.087,
+              "pct_of_contribution": 0.089
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "moloco",
+              "incremental_outcome": 642.574,
+              "pct_of_contribution": 0.054
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-07",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "google",
+              "incremental_outcome": 3283.775,
+              "pct_of_contribution": 0.276
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "baseline",
+              "incremental_outcome": 1986.86,
+              "pct_of_contribution": 0.167
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "snapchat",
+              "incremental_outcome": 1663.47,
+              "pct_of_contribution": 0.14
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "meta",
+              "incremental_outcome": 1626.212,
+              "pct_of_contribution": 0.137
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "tiktok",
+              "incremental_outcome": 1363.417,
+              "pct_of_contribution": 0.115
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "liveintent",
+              "incremental_outcome": 1075.009,
+              "pct_of_contribution": 0.09
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "moloco",
+              "incremental_outcome": 882.346,
+              "pct_of_contribution": 0.074
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-14",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "google",
+              "incremental_outcome": 3451.746,
+              "pct_of_contribution": 0.281
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "baseline",
+              "incremental_outcome": 1812.735,
+              "pct_of_contribution": 0.148
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "snapchat",
+              "incremental_outcome": 1752.289,
+              "pct_of_contribution": 0.143
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "tiktok",
+              "incremental_outcome": 1661.852,
+              "pct_of_contribution": 0.135
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "meta",
+              "incremental_outcome": 1569.886,
+              "pct_of_contribution": 0.128
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "liveintent",
+              "incremental_outcome": 1043.513,
+              "pct_of_contribution": 0.085
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "moloco",
+              "incremental_outcome": 585.049,
+              "pct_of_contribution": 0.048
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "amazon",
+              "incremental_outcome": 392.612,
+              "pct_of_contribution": 0.032
+            },
+            {
+              "time": "2024-10-21",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "google",
+              "incremental_outcome": 3605.989,
+              "pct_of_contribution": 0.303
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "tiktok",
+              "incremental_outcome": 1798.251,
+              "pct_of_contribution": 0.151
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "snapchat",
+              "incremental_outcome": 1653.075,
+              "pct_of_contribution": 0.139
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "baseline",
+              "incremental_outcome": 1638.624,
+              "pct_of_contribution": 0.138
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "meta",
+              "incremental_outcome": 1439.528,
+              "pct_of_contribution": 0.121
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "liveintent",
+              "incremental_outcome": 938.127,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "amazon",
+              "incremental_outcome": 469.457,
+              "pct_of_contribution": 0.039
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "moloco",
+              "incremental_outcome": 367.327,
+              "pct_of_contribution": 0.031
+            },
+            {
+              "time": "2024-10-28",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "google",
+              "incremental_outcome": 3795.504,
+              "pct_of_contribution": 0.333
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "tiktok",
+              "incremental_outcome": 1935.712,
+              "pct_of_contribution": 0.17
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "baseline",
+              "incremental_outcome": 1464.525,
+              "pct_of_contribution": 0.128
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "snapchat",
+              "incremental_outcome": 1422.235,
+              "pct_of_contribution": 0.125
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "liveintent",
+              "incremental_outcome": 953.909,
+              "pct_of_contribution": 0.084
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "meta",
+              "incremental_outcome": 676.221,
+              "pct_of_contribution": 0.059
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "amazon",
+              "incremental_outcome": 598.191,
+              "pct_of_contribution": 0.052
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "moloco",
+              "incremental_outcome": 551.071,
+              "pct_of_contribution": 0.048
+            },
+            {
+              "time": "2024-11-04",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "google",
+              "incremental_outcome": 3516.966,
+              "pct_of_contribution": 0.323
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "tiktok",
+              "incremental_outcome": 1958.36,
+              "pct_of_contribution": 0.18
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "snapchat",
+              "incremental_outcome": 1403.643,
+              "pct_of_contribution": 0.129
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "baseline",
+              "incremental_outcome": 1290.406,
+              "pct_of_contribution": 0.119
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "moloco",
+              "incremental_outcome": 1109.86,
+              "pct_of_contribution": 0.102
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "liveintent",
+              "incremental_outcome": 1006.662,
+              "pct_of_contribution": 0.092
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "amazon",
+              "incremental_outcome": 399.166,
+              "pct_of_contribution": 0.037
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "meta",
+              "incremental_outcome": 203.764,
+              "pct_of_contribution": 0.019
+            },
+            {
+              "time": "2024-11-11",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "google",
+              "incremental_outcome": 3353.354,
+              "pct_of_contribution": 0.286
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "tiktok",
+              "incremental_outcome": 1828.641,
+              "pct_of_contribution": 0.156
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "snapchat",
+              "incremental_outcome": 1592.351,
+              "pct_of_contribution": 0.136
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "meta",
+              "incremental_outcome": 1423.069,
+              "pct_of_contribution": 0.121
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "moloco",
+              "incremental_outcome": 1155.129,
+              "pct_of_contribution": 0.099
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "baseline",
+              "incremental_outcome": 1116.306,
+              "pct_of_contribution": 0.095
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "liveintent",
+              "incremental_outcome": 1090.055,
+              "pct_of_contribution": 0.093
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "amazon",
+              "incremental_outcome": 165.562,
+              "pct_of_contribution": 0.014
+            },
+            {
+              "time": "2024-11-18",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "google",
+              "incremental_outcome": 3703.214,
+              "pct_of_contribution": 0.308
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "tiktok",
+              "incremental_outcome": 2019.899,
+              "pct_of_contribution": 0.168
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "snapchat",
+              "incremental_outcome": 1701.434,
+              "pct_of_contribution": 0.141
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "meta",
+              "incremental_outcome": 1520.101,
+              "pct_of_contribution": 0.126
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "liveintent",
+              "incremental_outcome": 1064.824,
+              "pct_of_contribution": 0.088
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "moloco",
+              "incremental_outcome": 1039.623,
+              "pct_of_contribution": 0.086
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "baseline",
+              "incremental_outcome": 942.183,
+              "pct_of_contribution": 0.078
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "amazon",
+              "incremental_outcome": 46.158,
+              "pct_of_contribution": 0.004
+            },
+            {
+              "time": "2024-11-25",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "google",
+              "incremental_outcome": 3356.15,
+              "pct_of_contribution": 0.309
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "tiktok",
+              "incremental_outcome": 1948.54,
+              "pct_of_contribution": 0.179
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "snapchat",
+              "incremental_outcome": 1595.621,
+              "pct_of_contribution": 0.147
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "meta",
+              "incremental_outcome": 1392.299,
+              "pct_of_contribution": 0.128
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "liveintent",
+              "incremental_outcome": 1022.539,
+              "pct_of_contribution": 0.094
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "baseline",
+              "incremental_outcome": 768.073,
+              "pct_of_contribution": 0.071
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "moloco",
+              "incremental_outcome": 762.289,
+              "pct_of_contribution": 0.07
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "amazon",
+              "incremental_outcome": 10.056,
+              "pct_of_contribution": 0.001
+            },
+            {
+              "time": "2024-12-02",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "google",
+              "incremental_outcome": 3344.66,
+              "pct_of_contribution": 0.314
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "tiktok",
+              "incremental_outcome": 2053.647,
+              "pct_of_contribution": 0.193
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "snapchat",
+              "incremental_outcome": 1495.195,
+              "pct_of_contribution": 0.141
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "meta",
+              "incremental_outcome": 1407.558,
+              "pct_of_contribution": 0.132
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "liveintent",
+              "incremental_outcome": 1186.91,
+              "pct_of_contribution": 0.112
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "baseline",
+              "incremental_outcome": 593.969,
+              "pct_of_contribution": 0.056
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "moloco",
+              "incremental_outcome": 556.76,
+              "pct_of_contribution": 0.052
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-09",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "google",
+              "incremental_outcome": 3060.362,
+              "pct_of_contribution": 0.304
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "tiktok",
+              "incremental_outcome": 1964.665,
+              "pct_of_contribution": 0.195
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "snapchat",
+              "incremental_outcome": 1663.404,
+              "pct_of_contribution": 0.165
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "meta",
+              "incremental_outcome": 1511.762,
+              "pct_of_contribution": 0.15
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "liveintent",
+              "incremental_outcome": 1093.661,
+              "pct_of_contribution": 0.109
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "baseline",
+              "incremental_outcome": 419.851,
+              "pct_of_contribution": 0.042
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "moloco",
+              "incremental_outcome": 340.327,
+              "pct_of_contribution": 0.034
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-16",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "google",
+              "incremental_outcome": 2979.835,
+              "pct_of_contribution": 0.294
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "tiktok",
+              "incremental_outcome": 1876.474,
+              "pct_of_contribution": 0.185
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "snapchat",
+              "incremental_outcome": 1452.897,
+              "pct_of_contribution": 0.144
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "meta",
+              "incremental_outcome": 1154.892,
+              "pct_of_contribution": 0.114
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "liveintent",
+              "incremental_outcome": 1062.017,
+              "pct_of_contribution": 0.105
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "baseline",
+              "incremental_outcome": 977.257,
+              "pct_of_contribution": 0.097
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "moloco",
+              "incremental_outcome": 617.708,
+              "pct_of_contribution": 0.061
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-23",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "google",
+              "incremental_outcome": 2948.375,
+              "pct_of_contribution": 0.305
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "tiktok",
+              "incremental_outcome": 1748.907,
+              "pct_of_contribution": 0.181
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "baseline",
+              "incremental_outcome": 1534.641,
+              "pct_of_contribution": 0.159
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "snapchat",
+              "incremental_outcome": 1436.143,
+              "pct_of_contribution": 0.149
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "liveintent",
+              "incremental_outcome": 1023.451,
+              "pct_of_contribution": 0.106
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "moloco",
+              "incremental_outcome": 525.262,
+              "pct_of_contribution": 0.054
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "meta",
+              "incremental_outcome": 449.007,
+              "pct_of_contribution": 0.046
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2024-12-30",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "google",
+              "incremental_outcome": 2673.095,
+              "pct_of_contribution": 0.286
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "baseline",
+              "incremental_outcome": 2092.04,
+              "pct_of_contribution": 0.224
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "snapchat",
+              "incremental_outcome": 1704.299,
+              "pct_of_contribution": 0.183
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "tiktok",
+              "incremental_outcome": 1469.883,
+              "pct_of_contribution": 0.157
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "liveintent",
+              "incremental_outcome": 982.432,
+              "pct_of_contribution": 0.105
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "moloco",
+              "incremental_outcome": 292.012,
+              "pct_of_contribution": 0.031
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "meta",
+              "incremental_outcome": 121.838,
+              "pct_of_contribution": 0.013
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-06",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "google",
+              "incremental_outcome": 2775.798,
+              "pct_of_contribution": 0.288
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "baseline",
+              "incremental_outcome": 2250.385,
+              "pct_of_contribution": 0.233
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "snapchat",
+              "incremental_outcome": 1850.48,
+              "pct_of_contribution": 0.192
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "tiktok",
+              "incremental_outcome": 1610.461,
+              "pct_of_contribution": 0.167
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "liveintent",
+              "incremental_outcome": 998.826,
+              "pct_of_contribution": 0.103
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "moloco",
+              "incremental_outcome": 138.365,
+              "pct_of_contribution": 0.014
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "meta",
+              "incremental_outcome": 26.55,
+              "pct_of_contribution": 0.003
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-13",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "baseline",
+              "incremental_outcome": 2408.735,
+              "pct_of_contribution": 0.254
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "google",
+              "incremental_outcome": 2392.558,
+              "pct_of_contribution": 0.252
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "snapchat",
+              "incremental_outcome": 1903.417,
+              "pct_of_contribution": 0.201
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "tiktok",
+              "incremental_outcome": 1673.161,
+              "pct_of_contribution": 0.176
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "liveintent",
+              "incremental_outcome": 1012.917,
+              "pct_of_contribution": 0.107
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "moloco",
+              "incremental_outcome": 89.504,
+              "pct_of_contribution": 0.009
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "meta",
+              "incremental_outcome": 3.048,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-20",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "google",
+              "incremental_outcome": 3324.698,
+              "pct_of_contribution": 0.308
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "baseline",
+              "incremental_outcome": 2567.077,
+              "pct_of_contribution": 0.238
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "snapchat",
+              "incremental_outcome": 1827.416,
+              "pct_of_contribution": 0.169
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "tiktok",
+              "incremental_outcome": 1698.772,
+              "pct_of_contribution": 0.158
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "liveintent",
+              "incremental_outcome": 1160.291,
+              "pct_of_contribution": 0.108
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "moloco",
+              "incremental_outcome": 205.398,
+              "pct_of_contribution": 0.019
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "beehiiv",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-01-27",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "google",
+              "incremental_outcome": 3661.592,
+              "pct_of_contribution": 0.329
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "baseline",
+              "incremental_outcome": 2725.42,
+              "pct_of_contribution": 0.245
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "snapchat",
+              "incremental_outcome": 1861.068,
+              "pct_of_contribution": 0.167
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "tiktok",
+              "incremental_outcome": 1529.387,
+              "pct_of_contribution": 0.137
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "liveintent",
+              "incremental_outcome": 1054.728,
+              "pct_of_contribution": 0.095
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "moloco",
+              "incremental_outcome": 273.302,
+              "pct_of_contribution": 0.025
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "beehiiv",
+              "incremental_outcome": 19.916,
+              "pct_of_contribution": 0.002
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-03",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "baseline",
+              "incremental_outcome": 4013.132,
+              "pct_of_contribution": 0.327
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "google",
+              "incremental_outcome": 3561.263,
+              "pct_of_contribution": 0.29
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "tiktok",
+              "incremental_outcome": 1639.021,
+              "pct_of_contribution": 0.134
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "snapchat",
+              "incremental_outcome": 1511.323,
+              "pct_of_contribution": 0.123
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "liveintent",
+              "incremental_outcome": 1153.292,
+              "pct_of_contribution": 0.094
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "moloco",
+              "incremental_outcome": 394.433,
+              "pct_of_contribution": 0.032
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "beehiiv",
+              "incremental_outcome": 4.716,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-10",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "baseline",
+              "incremental_outcome": 5300.852,
+              "pct_of_contribution": 0.352
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "google",
+              "incremental_outcome": 3802.059,
+              "pct_of_contribution": 0.253
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "tiktok",
+              "incremental_outcome": 1957.189,
+              "pct_of_contribution": 0.13
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "snapchat",
+              "incremental_outcome": 1817.62,
+              "pct_of_contribution": 0.121
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "liveintent",
+              "incremental_outcome": 1139.255,
+              "pct_of_contribution": 0.076
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "beehiiv",
+              "incremental_outcome": 610.721,
+              "pct_of_contribution": 0.041
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "moloco",
+              "incremental_outcome": 419.244,
+              "pct_of_contribution": 0.028
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-17",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "baseline",
+              "incremental_outcome": 4272.633,
+              "pct_of_contribution": 0.319
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "google",
+              "incremental_outcome": 3901.113,
+              "pct_of_contribution": 0.291
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "snapchat",
+              "incremental_outcome": 1835.063,
+              "pct_of_contribution": 0.137
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "tiktok",
+              "incremental_outcome": 1803.085,
+              "pct_of_contribution": 0.135
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "liveintent",
+              "incremental_outcome": 1054.686,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "moloco",
+              "incremental_outcome": 360.638,
+              "pct_of_contribution": 0.027
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "beehiiv",
+              "incremental_outcome": 164.715,
+              "pct_of_contribution": 0.012
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-02-24",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "google",
+              "incremental_outcome": 4141.117,
+              "pct_of_contribution": 0.329
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "baseline",
+              "incremental_outcome": 3244.407,
+              "pct_of_contribution": 0.258
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "tiktok",
+              "incremental_outcome": 1801.319,
+              "pct_of_contribution": 0.143
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "snapchat",
+              "incremental_outcome": 1662.684,
+              "pct_of_contribution": 0.132
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "liveintent",
+              "incremental_outcome": 1020.127,
+              "pct_of_contribution": 0.081
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "beehiiv",
+              "incremental_outcome": 562.877,
+              "pct_of_contribution": 0.045
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "moloco",
+              "incremental_outcome": 165.576,
+              "pct_of_contribution": 0.013
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-03",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "google",
+              "incremental_outcome": 4239.202,
+              "pct_of_contribution": 0.324
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "baseline",
+              "incremental_outcome": 3417.91,
+              "pct_of_contribution": 0.261
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "tiktok",
+              "incremental_outcome": 1798.315,
+              "pct_of_contribution": 0.138
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "snapchat",
+              "incremental_outcome": 1614.38,
+              "pct_of_contribution": 0.123
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "liveintent",
+              "incremental_outcome": 982.708,
+              "pct_of_contribution": 0.075
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "beehiiv",
+              "incremental_outcome": 789.911,
+              "pct_of_contribution": 0.06
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "moloco",
+              "incremental_outcome": 233.148,
+              "pct_of_contribution": 0.018
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-10",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "google",
+              "incremental_outcome": 4521.479,
+              "pct_of_contribution": 0.319
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "baseline",
+              "incremental_outcome": 3591.388,
+              "pct_of_contribution": 0.254
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "tiktok",
+              "incremental_outcome": 1889.389,
+              "pct_of_contribution": 0.133
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "snapchat",
+              "incremental_outcome": 1600.012,
+              "pct_of_contribution": 0.113
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "liveintent",
+              "incremental_outcome": 1045.449,
+              "pct_of_contribution": 0.074
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "beehiiv",
+              "incremental_outcome": 1025.542,
+              "pct_of_contribution": 0.072
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "moloco",
+              "incremental_outcome": 489.75,
+              "pct_of_contribution": 0.035
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-17",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "google",
+              "incremental_outcome": 4387.141,
+              "pct_of_contribution": 0.299
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "baseline",
+              "incremental_outcome": 3764.902,
+              "pct_of_contribution": 0.256
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "tiktok",
+              "incremental_outcome": 1857.507,
+              "pct_of_contribution": 0.126
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "snapchat",
+              "incremental_outcome": 1760.788,
+              "pct_of_contribution": 0.12
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "beehiiv",
+              "incremental_outcome": 1415.773,
+              "pct_of_contribution": 0.096
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "liveintent",
+              "incremental_outcome": 1022.743,
+              "pct_of_contribution": 0.07
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "moloco",
+              "incremental_outcome": 483.868,
+              "pct_of_contribution": 0.033
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-24",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "google",
+              "incremental_outcome": 4508.645,
+              "pct_of_contribution": 0.292
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "baseline",
+              "incremental_outcome": 3938.384,
+              "pct_of_contribution": 0.255
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "beehiiv",
+              "incremental_outcome": 1934.347,
+              "pct_of_contribution": 0.125
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "tiktok",
+              "incremental_outcome": 1788.636,
+              "pct_of_contribution": 0.116
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "snapchat",
+              "incremental_outcome": 1686.25,
+              "pct_of_contribution": 0.109
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "liveintent",
+              "incremental_outcome": 1107.434,
+              "pct_of_contribution": 0.072
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "moloco",
+              "incremental_outcome": 467.621,
+              "pct_of_contribution": 0.03
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-03-31",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "google",
+              "incremental_outcome": 4610.507,
+              "pct_of_contribution": 0.278
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "baseline",
+              "incremental_outcome": 4111.895,
+              "pct_of_contribution": 0.248
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "beehiiv",
+              "incremental_outcome": 2153.836,
+              "pct_of_contribution": 0.13
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "tiktok",
+              "incremental_outcome": 1929.247,
+              "pct_of_contribution": 0.116
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "snapchat",
+              "incremental_outcome": 1792.251,
+              "pct_of_contribution": 0.108
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "liveintent",
+              "incremental_outcome": 1036.079,
+              "pct_of_contribution": 0.063
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "moloco",
+              "incremental_outcome": 936.588,
+              "pct_of_contribution": 0.057
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-07",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "google",
+              "incremental_outcome": 4711.876,
+              "pct_of_contribution": 0.293
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "baseline",
+              "incremental_outcome": 4285.4,
+              "pct_of_contribution": 0.267
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "beehiiv",
+              "incremental_outcome": 2199.411,
+              "pct_of_contribution": 0.137
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "tiktok",
+              "incremental_outcome": 1633.224,
+              "pct_of_contribution": 0.102
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "snapchat",
+              "incremental_outcome": 1317.672,
+              "pct_of_contribution": 0.082
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "liveintent",
+              "incremental_outcome": 1047.83,
+              "pct_of_contribution": 0.065
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "moloco",
+              "incremental_outcome": 876.875,
+              "pct_of_contribution": 0.055
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-14",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "google",
+              "incremental_outcome": 4700.288,
+              "pct_of_contribution": 0.314
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "baseline",
+              "incremental_outcome": 3345.34,
+              "pct_of_contribution": 0.224
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "beehiiv",
+              "incremental_outcome": 2261.664,
+              "pct_of_contribution": 0.151
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "tiktok",
+              "incremental_outcome": 1701.468,
+              "pct_of_contribution": 0.114
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "liveintent",
+              "incremental_outcome": 1059.951,
+              "pct_of_contribution": 0.071
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "snapchat",
+              "incremental_outcome": 1058.89,
+              "pct_of_contribution": 0.071
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "moloco",
+              "incremental_outcome": 822.049,
+              "pct_of_contribution": 0.055
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-21",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "google",
+              "incremental_outcome": 4610.041,
+              "pct_of_contribution": 0.327
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "beehiiv",
+              "incremental_outcome": 2504.74,
+              "pct_of_contribution": 0.178
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "baseline",
+              "incremental_outcome": 2405.332,
+              "pct_of_contribution": 0.171
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "tiktok",
+              "incremental_outcome": 1668.787,
+              "pct_of_contribution": 0.118
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "snapchat",
+              "incremental_outcome": 1107.603,
+              "pct_of_contribution": 0.079
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "liveintent",
+              "incremental_outcome": 1059.553,
+              "pct_of_contribution": 0.075
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "moloco",
+              "incremental_outcome": 742.88,
+              "pct_of_contribution": 0.053
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-04-28",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "google",
+              "incremental_outcome": 4564.672,
+              "pct_of_contribution": 0.353
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "beehiiv",
+              "incremental_outcome": 2382.77,
+              "pct_of_contribution": 0.184
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "baseline",
+              "incremental_outcome": 1465.312,
+              "pct_of_contribution": 0.113
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "tiktok",
+              "incremental_outcome": 1463.809,
+              "pct_of_contribution": 0.113
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "liveintent",
+              "incremental_outcome": 1098.008,
+              "pct_of_contribution": 0.085
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "snapchat",
+              "incremental_outcome": 1010.614,
+              "pct_of_contribution": 0.078
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "moloco",
+              "incremental_outcome": 954.042,
+              "pct_of_contribution": 0.074
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-05",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "google",
+              "incremental_outcome": 4492.207,
+              "pct_of_contribution": 0.312
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "beehiiv",
+              "incremental_outcome": 2775.868,
+              "pct_of_contribution": 0.193
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "baseline",
+              "incremental_outcome": 2610.248,
+              "pct_of_contribution": 0.181
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "tiktok",
+              "incremental_outcome": 1451.14,
+              "pct_of_contribution": 0.101
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "moloco",
+              "incremental_outcome": 1101.846,
+              "pct_of_contribution": 0.077
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "liveintent",
+              "incremental_outcome": 992.916,
+              "pct_of_contribution": 0.069
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "snapchat",
+              "incremental_outcome": 962.709,
+              "pct_of_contribution": 0.067
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-12",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "google",
+              "incremental_outcome": 4382.958,
+              "pct_of_contribution": 0.295
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "baseline",
+              "incremental_outcome": 3755.173,
+              "pct_of_contribution": 0.252
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "beehiiv",
+              "incremental_outcome": 2767.586,
+              "pct_of_contribution": 0.186
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "moloco",
+              "incremental_outcome": 1219.378,
+              "pct_of_contribution": 0.082
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "tiktok",
+              "incremental_outcome": 952.69,
+              "pct_of_contribution": 0.064
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "liveintent",
+              "incremental_outcome": 947.807,
+              "pct_of_contribution": 0.064
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "snapchat",
+              "incremental_outcome": 857.022,
+              "pct_of_contribution": 0.058
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-19",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "baseline",
+              "incremental_outcome": 4900.127,
+              "pct_of_contribution": 0.311
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "google",
+              "incremental_outcome": 4235.102,
+              "pct_of_contribution": 0.269
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "beehiiv",
+              "incremental_outcome": 2699.022,
+              "pct_of_contribution": 0.171
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "snapchat",
+              "incremental_outcome": 1349.285,
+              "pct_of_contribution": 0.086
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "moloco",
+              "incremental_outcome": 1233.201,
+              "pct_of_contribution": 0.078
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "liveintent",
+              "incremental_outcome": 1018.779,
+              "pct_of_contribution": 0.065
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "tiktok",
+              "incremental_outcome": 313.806,
+              "pct_of_contribution": 0.02
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-05-26",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "baseline",
+              "incremental_outcome": 6045.063,
+              "pct_of_contribution": 0.359
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "google",
+              "incremental_outcome": 4453.092,
+              "pct_of_contribution": 0.264
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "beehiiv",
+              "incremental_outcome": 2492.598,
+              "pct_of_contribution": 0.148
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "snapchat",
+              "incremental_outcome": 1573.356,
+              "pct_of_contribution": 0.093
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "moloco",
+              "incremental_outcome": 1225.703,
+              "pct_of_contribution": 0.073
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "liveintent",
+              "incremental_outcome": 992.814,
+              "pct_of_contribution": 0.059
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "tiktok",
+              "incremental_outcome": 77.117,
+              "pct_of_contribution": 0.005
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-02",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "baseline",
+              "incremental_outcome": 7189.987,
+              "pct_of_contribution": 0.389
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "google",
+              "incremental_outcome": 4346.371,
+              "pct_of_contribution": 0.235
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "beehiiv",
+              "incremental_outcome": 2777.411,
+              "pct_of_contribution": 0.15
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "snapchat",
+              "incremental_outcome": 1768.443,
+              "pct_of_contribution": 0.096
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "moloco",
+              "incremental_outcome": 1211.762,
+              "pct_of_contribution": 0.066
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "liveintent",
+              "incremental_outcome": 1177.733,
+              "pct_of_contribution": 0.064
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "tiktok",
+              "incremental_outcome": 16.073,
+              "pct_of_contribution": 0.001
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-09",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "baseline",
+              "incremental_outcome": 5714.536,
+              "pct_of_contribution": 0.335
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "google",
+              "incremental_outcome": 4358.742,
+              "pct_of_contribution": 0.256
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "beehiiv",
+              "incremental_outcome": 2713.794,
+              "pct_of_contribution": 0.159
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "snapchat",
+              "incremental_outcome": 1794.863,
+              "pct_of_contribution": 0.105
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "liveintent",
+              "incremental_outcome": 1276.424,
+              "pct_of_contribution": 0.075
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "moloco",
+              "incremental_outcome": 1197.902,
+              "pct_of_contribution": 0.07
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "tiktok",
+              "incremental_outcome": 1.635,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-16",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "google",
+              "incremental_outcome": 4331.883,
+              "pct_of_contribution": 0.275
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "baseline",
+              "incremental_outcome": 4239.094,
+              "pct_of_contribution": 0.269
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "beehiiv",
+              "incremental_outcome": 2686.623,
+              "pct_of_contribution": 0.17
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "snapchat",
+              "incremental_outcome": 2060.798,
+              "pct_of_contribution": 0.131
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "liveintent",
+              "incremental_outcome": 1277.644,
+              "pct_of_contribution": 0.081
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "moloco",
+              "incremental_outcome": 1169.529,
+              "pct_of_contribution": 0.074
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "meta",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-23",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "google",
+              "incremental_outcome": 4386.166,
+              "pct_of_contribution": 0.283
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "baseline",
+              "incremental_outcome": 2763.651,
+              "pct_of_contribution": 0.178
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "beehiiv",
+              "incremental_outcome": 2648.863,
+              "pct_of_contribution": 0.171
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "snapchat",
+              "incremental_outcome": 2038.981,
+              "pct_of_contribution": 0.131
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "liveintent",
+              "incremental_outcome": 1345.158,
+              "pct_of_contribution": 0.087
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "meta",
+              "incremental_outcome": 1246.269,
+              "pct_of_contribution": 0.08
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "moloco",
+              "incremental_outcome": 1088.102,
+              "pct_of_contribution": 0.07
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-06-30",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "google",
+              "incremental_outcome": 4151.586,
+              "pct_of_contribution": 0.257
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "baseline",
+              "incremental_outcome": 3190.529,
+              "pct_of_contribution": 0.197
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "beehiiv",
+              "incremental_outcome": 2781.839,
+              "pct_of_contribution": 0.172
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "snapchat",
+              "incremental_outcome": 2076.042,
+              "pct_of_contribution": 0.128
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "meta",
+              "incremental_outcome": 1469.768,
+              "pct_of_contribution": 0.091
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "liveintent",
+              "incremental_outcome": 1356.805,
+              "pct_of_contribution": 0.084
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "moloco",
+              "incremental_outcome": 1135.333,
+              "pct_of_contribution": 0.07
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-07",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "google",
+              "incremental_outcome": 4135.623,
+              "pct_of_contribution": 0.246
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "baseline",
+              "incremental_outcome": 3617.406,
+              "pct_of_contribution": 0.215
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "beehiiv",
+              "incremental_outcome": 2923.069,
+              "pct_of_contribution": 0.174
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "snapchat",
+              "incremental_outcome": 2046.119,
+              "pct_of_contribution": 0.122
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "meta",
+              "incremental_outcome": 1640.993,
+              "pct_of_contribution": 0.097
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "liveintent",
+              "incremental_outcome": 1370.208,
+              "pct_of_contribution": 0.081
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "moloco",
+              "incremental_outcome": 1100.841,
+              "pct_of_contribution": 0.065
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-14",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "google",
+              "incremental_outcome": 4140.125,
+              "pct_of_contribution": 0.246
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "baseline",
+              "incremental_outcome": 3617.44,
+              "pct_of_contribution": 0.215
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "beehiiv",
+              "incremental_outcome": 2882.084,
+              "pct_of_contribution": 0.172
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "snapchat",
+              "incremental_outcome": 2094.969,
+              "pct_of_contribution": 0.125
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "meta",
+              "incremental_outcome": 1690.375,
+              "pct_of_contribution": 0.101
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "liveintent",
+              "incremental_outcome": 1338.087,
+              "pct_of_contribution": 0.08
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "moloco",
+              "incremental_outcome": 1037.61,
+              "pct_of_contribution": 0.062
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-21",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "google",
+              "incremental_outcome": 4252.415,
+              "pct_of_contribution": 0.25
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "baseline",
+              "incremental_outcome": 3617.408,
+              "pct_of_contribution": 0.212
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "beehiiv",
+              "incremental_outcome": 2848.642,
+              "pct_of_contribution": 0.167
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "snapchat",
+              "incremental_outcome": 1978.82,
+              "pct_of_contribution": 0.116
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "meta",
+              "incremental_outcome": 1881.879,
+              "pct_of_contribution": 0.111
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "liveintent",
+              "incremental_outcome": 1329.185,
+              "pct_of_contribution": 0.078
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "moloco",
+              "incremental_outcome": 1119.343,
+              "pct_of_contribution": 0.066
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-07-28",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "google",
+              "incremental_outcome": 4059.57,
+              "pct_of_contribution": 0.244
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "baseline",
+              "incremental_outcome": 3617.434,
+              "pct_of_contribution": 0.218
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "beehiiv",
+              "incremental_outcome": 2783.019,
+              "pct_of_contribution": 0.168
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "snapchat",
+              "incremental_outcome": 1955.273,
+              "pct_of_contribution": 0.118
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "meta",
+              "incremental_outcome": 1815.759,
+              "pct_of_contribution": 0.109
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "liveintent",
+              "incremental_outcome": 1331.935,
+              "pct_of_contribution": 0.08
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "moloco",
+              "incremental_outcome": 1048.777,
+              "pct_of_contribution": 0.063
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "tiktok",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            },
+            {
+              "time": "2025-08-04",
+              "channel": "amazon",
+              "incremental_outcome": 0.0,
+              "pct_of_contribution": 0.0
+            }
+          ]
+        }
+      }
+    },
+    "manifest": {
+      "files": {
+        "model_results_summary": "model_results_summary.html",
+        "spend_vs_contribution": "spend_vs_contribution.html",
+        "roi_by_channel": "roi_by_channel.html",
+        "roi_vs_mroi": "roi_vs_mroi.html",
+        "roi_vs_effectiveness": "roi_vs_effectiveness.html",
+        "contribution_waterfall": "contribution_waterfall.html",
+        "contribution_over_time": "contribution_over_time.html"
+      },
+      "errors": [],
+      "health_score_baseline": 100.0,
+      "health_status_baseline": "PASS",
+      "health_card_data": {
+        "title": "Model Health Card",
+        "score_label": "Model health score",
+        "score": 100.0,
+        "overall_status": "PASS",
+        "summary": "Passed: No major quality issues were identified.",
+        "rows": [
+          {
+            "check": "Convergence",
+            "status": "PASS",
+            "recommendation": "The model has likely converged, as all parameters have R-hat values < 1.2."
+          },
+          {
+            "check": "Baseline",
+            "status": "PASS",
+            "recommendation": "The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this."
+          },
+          {
+            "check": "BayesianPPP",
+            "status": "PASS",
+            "recommendation": "The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution."
+          },
+          {
+            "check": "GoodnessOfFit",
+            "status": "PASS",
+            "recommendation": "R-squared = 0.8738, MAPE = 0.0576, and wMAPE = 0.0565. These goodness-of-fit metrics are intended for guidance and relative comparison."
+          },
+          {
+            "check": "PriorPosteriorShift",
+            "status": "PASS",
+            "recommendation": "The model has successfully learned from the data. This is a positive sign that your data was informative."
+          },
+          {
+            "check": "ROIConsistency",
+            "status": "PASS",
+            "recommendation": "The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+          }
+        ]
+      },
+      "time_granularity": "quarterly",
+      "use_kpi": false
+    }
   },
   "quick_overview_lines": [
     "liveintent ROI prior (LogNormal): max |% change| -> 25.24% change in estimated ROI",

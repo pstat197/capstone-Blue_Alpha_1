@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}, "axis": {"labelColor": "#5F6368", "labelFont": "Roboto", "labelFontSize": 12, "titleColor": "#5F6368", "titleFont": "Roboto", "titleFontSize": 12, "titleFontWeight": "normal", "titlePadding": 10}, "tick": {"bandSize": 10, "thickness": 2}}, "layer": [{"mark": {"type": "bar", "color": "#1A73E8", "cornerRadiusEnd": 2, "size": 42}, "encoding": {"x": {"axis": {"labelAngle": -45}, "field": "channel", "title": "Channel", "type": "nominal"}, "y": {"axis": {"gridDash": [3, 2], "titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "roi", "title": "ROI", "type": "quantitative"}}}, {"mark": {"type": "errorbar", "color": "#8AB4F8", "ticks": true}, "encoding": {"strokeWidth": {"value": 2}, "x": {"field": "channel", "type": "nominal"}, "y": {"field": "ci_hi", "title": "ROI", "type": "quantitative"}, "y2": {"field": "ci_lo"}}}, {"mark": {"type": "point", "color": "#8AB4F8", "filled": true, "tooltip": true}, "encoding": {"x": {"field": "channel", "type": "nominal"}, "y": {"field": "roi", "type": "quantitative"}}}, {"mark": {"type": "text", "align": "center", "baseline": "bottom", "color": "#202124", "dy": -5, "fontSize": 12}, "encoding": {"text": {"field": "roi", "format": ".2f", "type": "quantitative"}, "x": {"axis": {"labelAngle": -45}, "field": "channel", "title": "Channel", "type": "nominal"}, "y": {"axis": {"gridDash": [3, 2], "titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "roi", "title": "ROI", "type": "quantitative"}}}], "data": {"name": "data-13d5a39b2794d83b2a746287af9afc69"}, "title": {"text": "ROI by channel with 90% credible interval", "anchor": "start", "color": "#3C4043", "font": "Google Sans Display", "fontSize": 18, "fontWeight": "normal", "offset": 10}, "width": {"step": 80}, "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json", "datasets": {"data-13d5a39b2794d83b2a746287af9afc69": [{"channel": "amazon", "ci_hi": 0.29456788301467896, "ci_lo": 0.030560825020074844, "roi": 0.1322217881679535}, {"channel": "beehiiv", "ci_hi": 0.35769444704055786, "ci_lo": 0.041792046278715134, "roi": 0.16397300362586975}, {"channel": "google", "ci_hi": 0.035280004143714905, "ci_lo": 0.01726316288113594, "roi": 0.025752464309334755}, {"channel": "liveintent", "ci_hi": 0.20501209795475006, "ci_lo": 0.025366926565766335, "roi": 0.09218384325504303}, {"channel": "meta", "ci_hi": 0.04734945297241211, "ci_lo": 0.021971123293042183, "roi": 0.033615950495004654}, {"channel": "moloco", "ci_hi": 0.12694896757602692, "ci_lo": 0.025228163227438927, "roi": 0.07033154368400574}, {"channel": "snapchat", "ci_hi": 0.053482457995414734, "ci_lo": 0.010446607135236263, "roi": 0.02934211492538452}, {"channel": "tiktok", "ci_hi": 0.0539020374417305, "ci_lo": 0.02268935926258564, "roi": 0.03648551180958748}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

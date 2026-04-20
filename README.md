@@ -55,6 +55,7 @@ For a target tag `<tag>` (example: `google_meta_tiktok`):
 - ROI CSV: `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 - Tornado CSV: `data/output/02_tables/<tag>/tornado_<tag>.csv`
 - Dashboard folder: `data/output/03_reports/report/<tag>/`
+- Meridian official embeds (when baseline run is executed): `data/output/03_reports/report/<tag>/figures/meridian_official/`
 
 ## Main Commands
 
@@ -71,6 +72,26 @@ python -m src.recommend_next_grid google meta tiktok
 # Build dashboard
 python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
+
+### Meridian Official Outputs (Health Card + 6 Standard Charts)
+
+`src.main` now exports Meridian official HTML assets from the baseline grid point into:
+
+- `data/output/03_reports/report/<tag>/figures/meridian_official/`
+
+The dashboard auto-detects and renders these six Meridian standard charts:
+
+- `spend_vs_contribution`
+- `roi_by_channel`
+- `roi_vs_mroi`
+- `roi_vs_effectiveness`
+- `contribution_waterfall`
+- `contribution_over_time`
+
+Model Health Card is rendered inline in the dashboard from `manifest.json` (`health_card_data`) and no longer requires `health_card.html`.
+Official charts are rendered directly in dashboard cards (no iframe container).
+
+If files are missing, the QC section shows a placeholder message instead of failing.
 
 ## Repo Map
 

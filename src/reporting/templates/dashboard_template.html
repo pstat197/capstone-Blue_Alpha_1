@@ -10,6 +10,9 @@
       document.write('<script src="https://unpkg.com/echarts@5/dist/echarts.min.js"><\\/script>');
     }
   </script>
+  <script src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
   <link rel="stylesheet" href="{{ dashboard_css_href or 'dashboard.css' }}">
 </head>
 <body data-page="{{ dashboard_page or 'overview' }}">
@@ -71,66 +74,78 @@
       </aside>
 
       <main class="panels">
-        <section class="kpi-grid" id="section-kpi" data-page-group="overview">
-          <article class="kpi">
-            <div class="k">Most Sensitive Pair</div>
-            <div id="kpi-top-pair" class="v">-</div>
-          </article>
-          <article class="kpi">
-            <div class="k">Top Sensitivity</div>
-            <div id="kpi-top-value" class="v">-</div>
-          </article>
-          <article class="kpi">
-            <div class="k">QC Pass Rate</div>
-            <div id="kpi-qc-pass" class="v">-</div>
-          </article>
-          <article class="kpi">
-            <div class="k">Decision Tier</div>
-            <div id="kpi-tier" class="v">-</div>
-          </article>
-        </section>
+        <section class="panel card decision-theme-yellow" id="section-decision" data-page-group="overview">
+          <h2>Executive Decision Hub</h2>
 
-        <section class="panel card decision-theme-yellow" id="section-decision" data-page-group="decision">
-          <h2>Decision Card</h2>
-
-          <div class="decision-main-grid">
-            <section class="decision-col">
-              <article class="decision-summary-card">
-                <div class="k">Decision Tier</div>
-                <div id="decision-tier-chip" class="decision-tier-chip">YELLOW</div>
-              </article>
-
-              <p id="decision-headline" class="decision-headline-bar">Decision summary unavailable.</p>
-
-              <details class="decision-compact">
-                <summary>Key Rules</summary>
-                <ul id="decision-triggered-list" class="list"></ul>
-              </details>
-              <details class="decision-compact">
-                <summary>Recommended Actions</summary>
-                <ul id="decision-actions-list" class="list"></ul>
-              </details>
-            </section>
-
-            <section class="decision-col">
-              <article class="decision-summary-card">
-                <div id="decision-score-label" class="k">Pending Robustness Score</div>
-                <div id="decision-score-value" class="v">N/A (awaiting score pipeline)</div>
-                <div id="decision-score-note" class="decision-score-note"></div>
-                <div class="field" style="margin:8px 0 0;">
-                  <label for="decision-subscore-select" style="font-size:0.72rem;letter-spacing:.04em;text-transform:uppercase;color:#5a7397;font-weight:700;">Subscore View</label>
-                  <select id="decision-subscore-select" style="margin-top:4px;">
-                    <option value="">Overall Robustness</option>
-                  </select>
+          <div class="decision-layer decision-layer-hero">
+            <article class="decision-hero-primary">
+              <div class="k">Decision Tier</div>
+              <div id="decision-tier-chip" class="decision-tier-chip">YELLOW</div>
+            </article>
+            <article class="decision-hero-health">
+              <div class="decision-hero-health-row">
+                <div>
+                  <div class="k">Health Status</div>
+                  <div id="mh-status-chip" class="decision-tier-chip tier-yellow">MONITOR</div>
                 </div>
-                <div id="decision-subscore-note" class="decision-score-note"></div>
-              </article>
+                <div>
+                  <div class="k">QC Pass Rate</div>
+                  <div id="mh-pass-rate" class="v">-</div>
+                </div>
+              </div>
+            </article>
+            <p id="decision-headline" class="decision-headline-bar">Decision summary unavailable.</p>
+          </div>
 
-              <details class="decision-compact">
-                <summary>Why This Tier</summary>
-                <ul id="decision-reasons-list" class="list"></ul>
-              </details>
-            </section>
+          <div class="decision-layer decision-layer-kpis">
+            <article class="kpi decision-kpi-core decision-kpi-core--score">
+              <div id="decision-score-label" class="k">Pending Robustness Score</div>
+              <div id="decision-score-value" class="v">N/A (awaiting score pipeline)</div>
+            </article>
+            <article class="kpi decision-kpi-core">
+              <div class="k">Top Sensitivity</div>
+              <div id="kpi-top-value" class="v">-</div>
+            </article>
+            <article class="kpi decision-kpi-core">
+              <div class="k">Most Sensitive Pair</div>
+              <div id="kpi-top-pair" class="v">-</div>
+            </article>
+            <article class="kpi decision-kpi-core">
+              <div class="k">Run Status Mix</div>
+              <div id="mh-status-breakdown" class="v" style="font-size:1rem;">-</div>
+            </article>
+          </div>
+
+          <div id="decision-guidance-layer" class="decision-layer decision-layer-guidance">
+            <article id="decision-subscore-panel" class="decision-summary-card decision-subscore-card">
+              <div class="k">Subscore View</div>
+              <div class="field" style="margin:6px 0 0;">
+                <select id="decision-subscore-select" style="margin-top:4px;">
+                  <option value="">Overall Robustness</option>
+                </select>
+              </div>
+              <div id="decision-subscore-note" class="decision-subscore-feedback"></div>
+            </article>
+            <details id="decision-rules-panel" class="decision-compact decision-compact--dense">
+              <summary>Key Rules</summary>
+              <ul id="decision-triggered-list" class="list"></ul>
+            </details>
+            <details id="decision-why-panel" class="decision-compact decision-compact--dense">
+              <summary>Why This Tier</summary>
+              <ul id="decision-reasons-list" class="list"></ul>
+            </details>
+            <details id="decision-actions-panel" class="decision-compact" open>
+              <summary>Recommended Actions</summary>
+              <ul id="decision-actions-list" class="list"></ul>
+            </details>
+          </div>
+
+          <div class="decision-hidden-metrics" aria-hidden="true">
+            <span id="kpi-qc-pass"></span>
+            <span id="kpi-tier"></span>
+            <span id="mh-tier-score"></span>
+            <span id="decision-score-note"></span>
+            <span id="mh-note"></span>
           </div>
         </section>
 
@@ -210,12 +225,13 @@
 
             <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="comparison">
               <section class="panel card" data-wb-pages="comparison">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI Distribution By Channel (Box-and-Whisker)</h2>
-                <div id="wb2-roi-box-chart" class="chart chart--boxplot compact"></div>
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Distribution By Channel</h2>
+                <div id="wb2-contrib-box-chart" class="chart chart--boxplot compact"></div>
               </section>
               <section class="panel card" data-wb-pages="comparison">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Distribution By Channel (Box-and-Whisker)</h2>
-                <div id="wb2-contrib-box-chart" class="chart chart--boxplot compact"></div>
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Mu-Sigma Sensitivity Gap</h2>
+                <p class="subhead">Positive = mu-driven; negative = sigma-driven.</p>
+                <div id="wb2-driver-balance-chart" class="chart chart--rank compact"></div>
               </section>
             </div>
 
@@ -321,19 +337,6 @@
               </section>
             </div>
 
-            <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="comparison">
-              <section class="panel card">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Driver Balance (Mu vs Sigma Lollipop)</h2>
-                <p class="subhead">Positive = mu-driven; negative = sigma-driven.</p>
-                <div id="wb2-driver-balance-chart" class="chart chart--rank compact"></div>
-              </section>
-              <section class="panel card">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Share Mix (Spend / Effect / Contribution)</h2>
-                <p class="subhead">Baseline share comparison by channel.</p>
-                <div id="wb2-share-mix-chart" class="chart compact"></div>
-              </section>
-            </div>
-
             <section class="panel card" style="margin-top:10px;" data-wb-pages="comparison">
               <h2 style="margin:0 0 6px;font-size:0.96rem;">Allocation Gap (Effect vs Spend)</h2>
               <p class="subhead">Dumbbell view by channel (effect share minus spend share).</p>
@@ -342,11 +345,56 @@
               <p id="wb2-allocation-gap-note" class="figure-note"></p>
             </section>
 
-            <section class="panel card" style="margin-top:10px;" data-wb-pages="explorer">
-              <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Waterfall vs Reference (Selected Scenario)</h2>
-              <p class="subhead">Selected scenario delta vs reference contribution.</p>
-              <div id="wb2-contrib-waterfall-chart" class="chart chart--rank"></div>
+            <section class="panel card" style="margin-top:10px;" data-wb-pages="qc">
+              <div id="wb2-meridian-health-full" class="meridian-health-inline-host">
+                <div class="empty">Official Meridian health card not found yet.</div>
+              </div>
             </section>
+
+            <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="comparison">
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Spend vs Contribution</h2>
+                <div id="wb2-meridian-chart-spend-contrib" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI by Channel</h2>
+                <div id="wb2-meridian-chart-roi-channel" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+            </div>
+
+            <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="comparison">
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI vs mROI</h2>
+                <div id="wb2-meridian-chart-roi-mroi" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI vs Effectiveness</h2>
+                <div id="wb2-meridian-chart-roi-eff" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+            </div>
+
+            <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="explorer">
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Waterfall</h2>
+                <div id="wb2-meridian-chart-waterfall" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+              <section class="panel card">
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution over Time</h2>
+                <div id="wb2-meridian-chart-contrib-time" class="figure-frame meridian-vega-frame">
+                  <div class="empty">Not generated yet.</div>
+                </div>
+              </section>
+            </div>
 
             <details class="panel card" style="margin-top:10px;padding:10px 14px;" data-wb-pages="comparison,qc">
               <summary style="cursor:pointer;font-weight:700;color:#1f456f;">Mu vs Sigma Driver Split (detail table)</summary>
@@ -422,14 +470,14 @@
           </section>
         </section>
 
-        <section class="split" id="section-actions" data-page-group="overview">
-          <section class="panel card">
-            <h2>Executive Readout</h2>
+        <section class="split split--tight" id="section-actions" data-page-group="overview">
+          <section class="panel card panel--compact">
+            <h2>Sensitivity Highlights</h2>
             <ul id="overview-list" class="list"></ul>
           </section>
-          <section class="panel card">
-            <h2>Recommended Actions</h2>
-            <ul id="recommendation-list" class="list"></ul>
+          <section class="panel card panel--compact">
+            <h2>Portfolio Readout</h2>
+            <ul id="readout-list" class="list"></ul>
           </section>
         </section>
       </main>
@@ -528,9 +576,9 @@
       const spendRows = Array.isArray(payload.spend_effect_rows) ? payload.spend_effect_rows : [];
       const scenarioItems = Array.isArray(payload.scenario_items) ? payload.scenario_items : [];
       const diagnostics = payload.diagnostics_overview || {};
+      const overview = payload.overview || {};
       const decision = payload.decision_card || {};
       const overviewLines = Array.isArray(payload.quick_overview_lines) ? payload.quick_overview_lines : [];
-      const recommendations = Array.isArray(payload.recommendations) ? payload.recommendations : [];
 
       const byId = (id) => document.getElementById(id);
       const distFilter = byId("dist-filter");
@@ -542,6 +590,11 @@
       const decisionHeadline = byId("decision-headline");
       const decisionTriggeredList = byId("decision-triggered-list");
       const decisionActionsList = byId("decision-actions-list");
+      const decisionActionsPanel = byId("decision-actions-panel");
+      const decisionRulesPanel = byId("decision-rules-panel");
+      const decisionWhyPanel = byId("decision-why-panel");
+      const decisionSubscorePanel = byId("decision-subscore-panel");
+      const decisionGuidanceLayer = byId("decision-guidance-layer");
       const decisionTierChip = byId("decision-tier-chip");
       const decisionSection = byId("section-decision");
       const decisionScoreLabel = byId("decision-score-label");
@@ -550,6 +603,11 @@
       const decisionSubscoreSelect = byId("decision-subscore-select");
       const decisionSubscoreNote = byId("decision-subscore-note");
       const decisionReasonsList = byId("decision-reasons-list");
+      const mhStatusChip = byId("mh-status-chip");
+      const mhPassRate = byId("mh-pass-rate");
+      const mhStatusBreakdown = byId("mh-status-breakdown");
+      const mhTierScore = byId("mh-tier-score");
+      const mhNote = byId("mh-note");
       const structProfileSelect = byId("struct-profile-select");
       const alphaSlider = byId("alpha-slider");
       const ecSlider = byId("ec-slider");
@@ -575,12 +633,12 @@
         pct: {
           key: "max_abs_pct_change",
           label: "Max |% Change|",
-          format: (v) => Number.isFinite(v) ? `${v.toFixed(3)}%` : "NA",
+          format: (v) => Number.isFinite(v) ? `${fmtNum(v, 3)}%` : "NA",
         },
         delta: {
           key: "max_abs_delta_roi",
           label: "Max |Delta ROI|",
-          format: (v) => Number.isFinite(v) ? v.toFixed(3) : "NA",
+          format: (v) => Number.isFinite(v) ? fmtNum(v, 3) : "NA",
         },
       };
 
@@ -614,7 +672,8 @@
       };
       const normalizeDist = (v) => String(v || "").trim().toLowerCase();
       const channelUpper = (v) => String(v || "").toUpperCase();
-      const fmtNum = (v, d = 3) => (Number.isFinite(v) ? Number(v).toFixed(d) : "NA");
+      const trimFixed = (v, d = 3) => Number(v).toFixed(d).replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "");
+      const fmtNum = (v, d = 3) => (Number.isFinite(v) ? trimFixed(v, d) : "NA");
       const fmtPctCompact = (v, maxDigits = 3) => {
         if (!Number.isFinite(v)) return "NA";
         let s = Number(v).toFixed(maxDigits);
@@ -968,7 +1027,7 @@
               formatter: (items) => {
                 const i = items[0] ? items[0].dataIndex : -1;
                 const v = i >= 0 ? weightPct[i] : null;
-                return `${lagLabels[i] || ""}<br>Adstock mass: <b>${Number.isFinite(v) ? v.toFixed(3) : "NA"}%</b>`;
+                return `${lagLabels[i] || ""}<br>Adstock mass: <b>${Number.isFinite(v) ? fmtNum(v, 3) : "NA"}%</b>`;
               },
             },
             grid: makeGrid("structural", { left: 64, right: 20, top: 20, bottom: 56 }),
@@ -1013,7 +1072,7 @@
               trigger: "axis",
               formatter: (items) => {
                 const i = items[0] ? items[0].dataIndex : -1;
-                return `Spend index: ${i >= 0 ? xVals[i].toFixed(3) : "NA"}<br>Response: <b>${i >= 0 ? yVals[i].toFixed(3) : "NA"}%</b>`;
+                return `Spend index: ${i >= 0 ? fmtNum(xVals[i], 3) : "NA"}<br>Response: <b>${i >= 0 ? fmtNum(yVals[i], 3) : "NA"}%</b>`;
               },
             },
             grid: makeGrid("structural", { left: 64, right: 20, top: 20, bottom: 56 }),
@@ -1065,7 +1124,7 @@
               formatter: (items) => {
                 const i = items[0] ? items[0].dataIndex : -1;
                 const v = i >= 0 ? weightPct[i] : null;
-                return `${lagLabels[i] || ""}<br>Contribution: <b>${Number.isFinite(v) ? v.toFixed(3) : "NA"}%</b>`;
+                return `${lagLabels[i] || ""}<br>Contribution: <b>${Number.isFinite(v) ? fmtNum(v, 3) : "NA"}%</b>`;
               },
             },
             grid: makeGrid("structural", { left: 64, right: 20, top: 20, bottom: 56 }),
@@ -1091,7 +1150,7 @@
                 label: {
                   show: true,
                   position: "top",
-                  formatter: (ctx) => `${Number(ctx.value || 0).toFixed(3)}%`,
+                  formatter: (ctx) => `${fmtNum(Number(ctx.value || 0), 3)}%`,
                   color: "#2d517d",
                   fontSize: 10,
                 },
@@ -1102,8 +1161,8 @@
 
         if (structKpiGrid) {
           const cards = [
-            { k: "Immediate Share", v: `${(100 * immediate).toFixed(3)}%` },
-            { k: "Carryover Share", v: `${(100 * carryover).toFixed(3)}%` },
+            { k: "Immediate Share", v: `${fmtNum(100 * immediate, 3)}%` },
+            { k: "Carryover Share", v: `${fmtNum(100 * carryover, 3)}%` },
             { k: "Avg Lag", v: `${fmtNum(avgLag, 3)} periods` },
             { k: "Half-Life", v: Number.isFinite(halfLife) ? `${fmtNum(halfLife, 3)} periods` : "NA" },
             { k: "Current Alpha", v: fmtNum(alpha, 3) },
@@ -1134,36 +1193,93 @@
         state.selectedChannel = previous === next ? null : next;
         renderAll();
       };
+      const buildWhyThisTierHighlights = () => {
+        const lines = [];
+        const nRuns = Number(diagnostics.n_runs || 0);
+        const pass = Number(diagnostics.pass_runs || 0);
+        const review = Number(diagnostics.review_runs || 0);
+        const fail = Number(diagnostics.fail_runs || 0);
+        const passRate = Number.isFinite(Number(diagnostics.pass_rate_pct))
+          ? Number(diagnostics.pass_rate_pct)
+          : (nRuns > 0 ? (100 * pass / nRuns) : null);
+
+        if (Number.isFinite(passRate)) {
+          lines.push(`QC diagnostics: PASS ${fmtNum(passRate, 1)}%, REVIEW ${review}, FAIL ${fail}.`);
+        } else if (nRuns > 0) {
+          lines.push(`QC diagnostics: PASS ${pass}, REVIEW ${review}, FAIL ${fail}.`);
+        }
+
+        const scoreText = String(decision.score_value || "").trim();
+        if (scoreText) {
+          lines.push(`Robustness score: ${scoreText}.`);
+        }
+
+        const coverageRaw = (Array.isArray(decision.reasons) ? decision.reasons : [])
+          .find((x) => String(x || "").toLowerCase().includes("pass coverage"));
+        if (coverageRaw) {
+          let short = String(coverageRaw).replace(/^PASS coverage[^:]*:\s*/i, "PASS coverage: ");
+          short = short.replace(/\s*scope=.*?(?=,|\)|$)/gi, "");
+          short = short.replace(/\s+/g, " ").trim();
+          lines.push(short.endsWith(".") ? short : `${short}.`);
+        }
+
+        const top = getFilteredRows({ limit: 1 })[0] || null;
+        if (top) {
+          const conf = metricConfig[state.metric] || metricConfig.pct;
+          lines.push(`Top sensitivity: ${channelUpper(top.channel)} (${top.roi_prior_dist || "?"}), ${conf.format(top[conf.key])}.`);
+        }
+
+        return lines.slice(0, 4);
+      };
+      const syncDecisionGuidanceLayout = () => {
+        if (!decisionGuidanceLayer) return;
+        const leftPanels = [decisionSubscorePanel, decisionRulesPanel, decisionWhyPanel];
+        const visibleCount = leftPanels.filter((node) => node && node.style.display !== "none").length;
+        decisionGuidanceLayer.style.setProperty("--decision-left-rows", String(Math.max(1, visibleCount)));
+      };
 
       const renderDecisionCard = () => {
         const tier = String(decision.tier || "NA").toUpperCase();
-        const renderCompactList = (node, items, emptyText) => {
+        const setNodeVisible = (node, visible) => {
           if (!node) return;
+          node.style.display = visible ? "" : "none";
+        };
+        const renderCompactList = (panelNode, listNode, items, emptyText, opts = {}) => {
+          if (!listNode) return;
+          const hideIfEmpty = !!opts.hideIfEmpty;
           const clean = Array.isArray(items) ? items.filter((x) => String(x || "").trim()) : [];
           if (!clean.length) {
-            node.innerHTML = `<li>${emptyText}</li>`;
+            listNode.innerHTML = `<li>${emptyText}</li>`;
+            if (hideIfEmpty) setNodeVisible(panelNode, false);
             return;
           }
-          node.innerHTML = clean.map((x) => `<li>${x}</li>`).join("");
+          listNode.innerHTML = clean.map((x) => `<li>${x}</li>`).join("");
+          setNodeVisible(panelNode, true);
         };
 
         if (decisionHeadline) {
           decisionHeadline.textContent = String(decision.headline || "Decision summary unavailable.");
         }
         renderCompactList(
+          decisionRulesPanel,
           decisionTriggeredList,
           Array.isArray(decision.triggered_rules) ? decision.triggered_rules : [],
           "No triggered rules available.",
+          { hideIfEmpty: true },
         );
         renderCompactList(
+          decisionWhyPanel,
           decisionReasonsList,
-          Array.isArray(decision.reasons) ? decision.reasons : [],
+          buildWhyThisTierHighlights(),
           "No why-this-tier evidence available.",
+          { hideIfEmpty: true },
         );
         renderCompactList(
+          decisionActionsPanel,
           decisionActionsList,
           Array.isArray(decision.actions) ? decision.actions : [],
           "No action lines available.",
+          { hideIfEmpty: false },
         );
 
         if (decisionScoreLabel) {
@@ -1189,6 +1305,9 @@
           decisionSubscoreNote.textContent = subs.length
             ? "Pick a subscore."
             : "No subscores available.";
+          if (decisionSubscorePanel) {
+            decisionSubscorePanel.style.display = subs.length ? "" : "none";
+          }
           decisionSubscoreSelect.onchange = () => {
             const idx = Number(decisionSubscoreSelect.value);
             if (!Number.isFinite(idx) || idx < 0 || idx >= subs.length) {
@@ -1201,7 +1320,7 @@
             const label = String(row.label || "Subscore");
             const value = Number(row.value);
             decisionSubscoreNote.textContent = Number.isFinite(value)
-              ? `${label}: ${value.toFixed(3)} / 100`
+              ? `${label}: ${fmtNum(value, 3)} / 100`
               : `${label}: NA`;
           };
         }
@@ -1220,6 +1339,7 @@
           else if (tier === "RED") decisionSection.classList.add("decision-theme-red");
           else decisionSection.classList.add("decision-theme-yellow");
         }
+        syncDecisionGuidanceLayout();
       };
 
       const renderKpis = (rows) => {
@@ -1248,9 +1368,38 @@
           total = Number(diagnostics.n_runs || 0);
         }
         const passRate = total > 0 ? (100 * pass / total) : 0;
-        byId("kpi-qc-pass").textContent = `${passRate.toFixed(3)}%`;
+        byId("kpi-qc-pass").textContent = `${fmtNum(passRate, 3)}%`;
 
         byId("kpi-tier").textContent = String(decision.tier || "NA").toUpperCase();
+      };
+
+      const renderModelHealthCard = () => {
+        if (!mhStatusChip || !mhPassRate || !mhStatusBreakdown || !mhTierScore || !mhNote) return;
+        const nRuns = Number(diagnostics.n_runs || 0);
+        const pass = Number(diagnostics.pass_runs || 0);
+        const review = Number(diagnostics.review_runs || 0);
+        const fail = Number(diagnostics.fail_runs || 0);
+        const unknown = Number(diagnostics.unknown_runs || 0);
+        const passRate = Number.isFinite(Number(diagnostics.pass_rate_pct))
+          ? Number(diagnostics.pass_rate_pct)
+          : (nRuns > 0 ? (100 * pass / nRuns) : 0);
+
+        const tier = String(decision.tier || "NA").toUpperCase();
+        let statusText = "MONITOR";
+        if (fail > 0 || tier === "RED") statusText = "ATTENTION";
+        else if (review === 0 && tier === "GREEN") statusText = "HEALTHY";
+
+        mhStatusChip.textContent = statusText;
+        mhStatusChip.classList.remove("tier-green", "tier-yellow", "tier-red");
+        if (statusText === "HEALTHY") mhStatusChip.classList.add("tier-green");
+        else if (statusText === "ATTENTION") mhStatusChip.classList.add("tier-red");
+        else mhStatusChip.classList.add("tier-yellow");
+
+        mhPassRate.textContent = `${fmtNum(passRate, 3)}%`;
+        mhStatusBreakdown.textContent = `P ${pass} | R ${review} | F ${fail}`;
+        const scoreTxt = String(decision.score_value || "NA");
+        mhTierScore.textContent = `${tier} | ${scoreTxt}`;
+        mhNote.textContent = `Runs=${nRuns} (unknown=${unknown}). Policy: ${String(decision.policy_name || "Traffic-Light Policy")}.`;
       };
 
       const renderSpendEffect = () => {
@@ -1289,10 +1438,10 @@
               const gap = Number(row.share_gap_pp || 0);
               return [
                 `<b>${channelUpper(row.channel)}</b>`,
-                `Spend: ${Number(row.spend_share_pct || 0).toFixed(3)}%`,
-                `Effect: ${Number(row.effect_share_pct || 0).toFixed(3)}%`,
-                `Gap: <b>${gap >= 0 ? "+" : ""}${gap.toFixed(3)} pp</b>`,
-                `ROI: ${Number.isFinite(row.estimated_roi) ? Number(row.estimated_roi).toFixed(3) : "NA"}`,
+                `Spend: ${fmtNum(Number(row.spend_share_pct || 0), 3)}%`,
+                `Effect: ${fmtNum(Number(row.effect_share_pct || 0), 3)}%`,
+                `Gap: <b>${gap >= 0 ? "+" : ""}${fmtNum(gap, 3)} pp</b>`,
+                `ROI: ${Number.isFinite(row.estimated_roi) ? fmtNum(Number(row.estimated_roi), 3) : "NA"}`,
               ].join("<br>");
             },
           },
@@ -1302,7 +1451,7 @@
             type: "value",
             min: 0,
             max: axisMax,
-            axisLabel: { formatter: (v) => `${Number(v).toFixed(3)}%`, hideOverlap: true },
+            axisLabel: { formatter: (v) => `${fmtNum(v, 3)}%`, hideOverlap: true },
             splitLine: { lineStyle: { color: "rgba(31, 70, 127, 0.12)", type: "dashed" } },
           },
           yAxis: {
@@ -1322,7 +1471,7 @@
                 distance: 4,
                 color: "#5f7695",
                 fontSize: 10,
-                formatter: (p) => `${Number(p && p.value || 0).toFixed(3)}%`,
+                formatter: (p) => `${fmtNum(Number(p && p.value || 0), 3)}%`,
               },
               itemStyle: {
                 color: "#7f97b8",
@@ -1341,7 +1490,7 @@
                 distance: 4,
                 color: "#214db1",
                 fontSize: 10,
-                formatter: (p) => `${Number(p && p.value || 0).toFixed(3)}%`,
+                formatter: (p) => `${fmtNum(Number(p && p.value || 0), 3)}%`,
               },
               itemStyle: {
                 color: "#2f5dc6",
@@ -1352,7 +1501,7 @@
           ],
         }, true);
         if (spendNote) {
-          spendNote.textContent = `Axis interval: [0.000%, ${axisMax.toFixed(3)}%] (top ${rows.length} channels by |gap|).`;
+          spendNote.textContent = `Axis interval: [0%, ${fmtNum(axisMax, 3)}%] (top ${rows.length} channels by |gap|).`;
         }
 
         spendChart.off("click");
@@ -1403,7 +1552,7 @@
               return [
                 `<b>${p && p.name ? p.name : ""}</b>`,
                 `runs: ${Number.isFinite(value) ? value : "NA"}`,
-                `share: ${Number.isFinite(pct) ? `${pct.toFixed(3)}%` : "NA"}`,
+                `share: ${Number.isFinite(pct) ? `${fmtNum(pct, 3)}%` : "NA"}`,
               ].join("<br>");
             },
           },
@@ -1443,16 +1592,47 @@
 
       const renderLists = () => {
         const ov = byId("overview-list");
-        const rec = byId("recommendation-list");
+        const readout = byId("readout-list");
+        const actionSection = byId("section-actions");
+        const topRows = getFilteredRows({ limit: 1 });
+        const top = topRows[0] || null;
+        const nRuns = Number(diagnostics.n_runs || 0);
+        const pass = Number(diagnostics.pass_runs || 0);
+        const review = Number(diagnostics.review_runs || 0);
+        const fail = Number(diagnostics.fail_runs || 0);
+        const passRate = nRuns > 0 ? (100 * pass / nRuns) : null;
+        const readoutLines = [];
+        if (String(decision.tier || "").trim()) {
+          readoutLines.push(`Decision tier: ${String(decision.tier || "").toUpperCase()}${String(decision.score_value || "").trim() ? ` | score ${String(decision.score_value)}` : ""}`);
+        }
+        if (top) {
+          const conf = metricConfig[state.metric] || metricConfig.pct;
+          readoutLines.push(`Top sensitivity signal: ${String(top.channel || "").toUpperCase()} (${top.roi_prior_dist || "?"}) at ${conf.format(top[conf.key])}.`);
+        }
+        if (Number.isFinite(passRate)) {
+          readoutLines.push(`Run mix: P ${pass} | R ${review} | F ${fail} (${fmtNum(passRate, 3)}% pass).`);
+        } else if (nRuns > 0) {
+          readoutLines.push(`Run mix: P ${pass} | R ${review} | F ${fail}.`);
+        }
+        if (Number.isFinite(Number(overview.n_channels)) || Number.isFinite(Number(overview.n_dists))) {
+          const chTxt = Number.isFinite(Number(overview.n_channels)) ? `${Number(overview.n_channels)} channels` : null;
+          const dTxt = Number.isFinite(Number(overview.n_dists)) ? `${Number(overview.n_dists)} prior dists` : null;
+          readoutLines.push(`Coverage: ${[chTxt, dTxt].filter(Boolean).join(", ")}.`);
+        }
         if (ov) {
           ov.innerHTML = overviewLines.length
             ? overviewLines.map((x) => `<li>${x}</li>`).join("")
             : "<li>No overview lines available.</li>";
         }
-        if (rec) {
-          rec.innerHTML = recommendations.length
-            ? recommendations.map((x) => `<li>${x}</li>`).join("")
-            : "<li>No recommendation lines available.</li>";
+        if (readout) {
+          readout.innerHTML = readoutLines.length
+            ? readoutLines.map((x) => `<li>${x}</li>`).join("")
+            : "<li>No portfolio readout available.</li>";
+        }
+        if (actionSection) {
+          const hasOverview = overviewLines.length > 0;
+          const hasReadout = readoutLines.length > 0;
+          actionSection.style.display = (hasOverview || hasReadout) ? "" : "none";
         }
       };
 
@@ -1469,43 +1649,43 @@
         if (!Number.isFinite(v)) return "NA";
         const sign = v < 0 ? "-" : v > 0 ? "+" : "";
         const a = Math.abs(v);
-        if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(3)}B`;
-        if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(3)}M`;
-        if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(3)}K`;
-        return `${sign}$${a.toFixed(3)}`;
+        if (a >= 1e9) return `${sign}$${fmtNum(a / 1e9, 3)}B`;
+        if (a >= 1e6) return `${sign}$${fmtNum(a / 1e6, 3)}M`;
+        if (a >= 1e3) return `${sign}$${fmtNum(a / 1e3, 3)}K`;
+        return `${sign}$${fmtNum(a, 3)}`;
       };
       const fmtMoneyAxisCompact = (v) => {
         if (!Number.isFinite(v)) return "NA";
         const sign = v < 0 ? "-" : "";
         const a = Math.abs(v);
-        if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(1)}B`;
-        if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
-        if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(1)}K`;
+        if (a >= 1e9) return `${sign}$${fmtNum(a / 1e9, 3)}B`;
+        if (a >= 1e6) return `${sign}$${fmtNum(a / 1e6, 3)}M`;
+        if (a >= 1e3) return `${sign}$${fmtNum(a / 1e3, 3)}K`;
         return `${sign}$${Math.round(a)}`;
       };
       const fmtMoneyLabelShort = (v) => {
         if (!Number.isFinite(v)) return "NA";
         const sign = v < 0 ? "-" : v > 0 ? "+" : "";
         const a = Math.abs(v);
-        if (a >= 1e9) return `${sign}$${(a / 1e9).toFixed(1)}B`;
-        if (a >= 1e6) return `${sign}$${(a / 1e6).toFixed(1)}M`;
-        if (a >= 1e3) return `${sign}$${(a / 1e3).toFixed(1)}K`;
-        return `${sign}$${a.toFixed(1)}`;
+        if (a >= 1e9) return `${sign}$${fmtNum(a / 1e9, 3)}B`;
+        if (a >= 1e6) return `${sign}$${fmtNum(a / 1e6, 3)}M`;
+        if (a >= 1e3) return `${sign}$${fmtNum(a / 1e3, 3)}K`;
+        return `${sign}$${fmtNum(a, 3)}`;
       };
       const fmtPctAxisCompact = (v) => {
         if (!Number.isFinite(v)) return "NA";
         const a = Math.abs(v);
-        if (a >= 10) return `${Number(v).toFixed(1)}%`;
-        if (a >= 1) return `${Number(v).toFixed(3)}%`;
-        return `${Number(v).toFixed(3)}%`;
+        if (a >= 10) return `${fmtNum(v, 3)}%`;
+        if (a >= 1) return `${fmtNum(v, 3)}%`;
+        return `${fmtNum(v, 3)}%`;
       };
       const fmtPctLabelShort = (v) => {
         if (!Number.isFinite(v)) return "NA";
         const sign = v > 0 ? "+" : "";
         const a = Math.abs(v);
-        if (a >= 10) return `${sign}${Number(v).toFixed(1)}%`;
-        if (a >= 1) return `${sign}${Number(v).toFixed(2)}%`;
-        return `${sign}${Number(v).toFixed(3)}%`;
+        if (a >= 10) return `${sign}${fmtNum(v, 3)}%`;
+        if (a >= 1) return `${sign}${fmtNum(v, 3)}%`;
+        return `${sign}${fmtNum(v, 3)}%`;
       };
 
       const renderTornadoBar = (chart, rowsRaw, opts) => {
@@ -1668,7 +1848,7 @@
         const roiRender = renderTornadoBar(tornadoRoiChart, roiTornadoRows, {
           leftKey: "left",
           rightKey: "right",
-          valueFormatter: (v) => (v >= 0 ? `+${v.toFixed(3)}%` : `${v.toFixed(3)}%`),
+          valueFormatter: (v) => (v >= 0 ? `+${fmtNum(v, 3)}%` : `${fmtNum(v, 3)}%`),
           intervalFormatter: fmtPctLabelShort,
           axisFormatter: fmtPctAxisCompact,
           barColor: "#4f8fb9",
@@ -1706,6 +1886,7 @@
       const renderAll = () => {
         const rows = getFilteredRows();
         renderDecisionCard();
+        renderModelHealthCard();
         renderKpis(rows);
         renderSpendEffect();
         renderQc();
@@ -1937,6 +2118,110 @@
       const kpiPct = byId("wb2-kpi-pct");
       const kpiContrib = byId("wb2-kpi-contrib");
       const kpiContribShare = byId("wb2-kpi-contrib-share");
+      const meridianOfficial = payload.meridian_official || {};
+      const meridianChartSpecs = meridianOfficial.chart_specs || {};
+      const meridianRunChartSpecs = meridianOfficial.run_chart_specs || {};
+      const diagnostics = payload.diagnostics_overview || {};
+      const mountMeridianSpec = (containerId, spec, emptyText) => {
+        const node = byId(containerId);
+        if (!node) return null;
+        if (node.offsetParent === null || node.clientWidth <= 0) {
+          return null;
+        }
+        if (!spec || typeof spec !== "object") {
+          node.innerHTML = `<div class="empty">${emptyText || "Not generated yet."}</div>`;
+          return null;
+        }
+        if (typeof window.vegaEmbed !== "function") {
+          node.innerHTML = '<div class="empty">Vega runtime unavailable; cannot render official chart.</div>';
+          return null;
+        }
+        const hostId = `${containerId}-vega`;
+        node.innerHTML = `<div id="${hostId}" class="meridian-vega-host"></div>`;
+        const embedOpts = { mode: "vega-lite", actions: false, renderer: "svg" };
+        const specSafe = JSON.parse(JSON.stringify(spec));
+        return window.vegaEmbed(`#${hostId}`, specSafe, embedOpts).catch((err) => {
+          const msg = err && err.message ? err.message : String(err || "unknown error");
+          node.innerHTML = `<div class="empty">Failed to render chart: ${escapeHtml(msg)}</div>`;
+          return null;
+        });
+      };
+      const setMeridianHealthMeta = (baselineScore, baselineStatus) => {
+        const baselineNode = byId("wb2-meridian-baseline-health");
+        const globalNode = byId("wb2-meridian-global-pass");
+        if (baselineNode) {
+          if (Number.isFinite(Number(baselineScore))) {
+            baselineNode.textContent = `Baseline model health: ${Number(baselineScore).toFixed(1)}`;
+          } else if (baselineStatus) {
+            baselineNode.textContent = `Baseline model health: ${String(baselineStatus).toUpperCase()}`;
+          } else {
+            baselineNode.textContent = "Baseline model health: --";
+          }
+        }
+        if (globalNode) {
+          const passRate = Number(diagnostics.pass_rate_pct);
+          globalNode.textContent = Number.isFinite(passRate)
+            ? `Global QC pass rate: ${passRate.toFixed(1)}%`
+            : "Global QC pass rate: --";
+        }
+      };
+      const escapeHtml = (raw) => String(raw ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+      const renderInlineHealthCard = (containerId, cardData) => {
+        const node = byId(containerId);
+        if (!node) return;
+        if (!cardData || typeof cardData !== "object") {
+          node.innerHTML = '<div class="empty">Official Meridian health card data not found yet.</div>';
+          return;
+        }
+        const scoreNum = Number(cardData.score);
+        const score = Number.isFinite(scoreNum) ? scoreNum : null;
+        const pct = score === null ? 0 : Math.max(0, Math.min(100, score));
+        const status = escapeHtml(String(cardData.overall_status || "UNKNOWN").toUpperCase());
+        const scoreLabel = escapeHtml(String(cardData.score_label || "Model health score"));
+        const summary = escapeHtml(String(cardData.summary || ""));
+        const rows = Array.isArray(cardData.rows) ? cardData.rows : [];
+        const rowsHtml = rows.length
+          ? rows.map((r) => `<tr><td>${escapeHtml(r.check || "")}</td><td>${escapeHtml(String(r.status || "").toUpperCase())}</td><td>${escapeHtml(r.recommendation || "")}</td></tr>`).join("")
+          : '<tr><td colspan="3">No check rows available.</td></tr>';
+
+        node.innerHTML = `
+          <div class="meridian-health-inline">
+            <div class="meridian-health-inline__left">
+              <div class="meridian-health-inline__score-label">${scoreLabel}</div>
+              <div class="meridian-health-inline__score-wrap">
+                <div class="meridian-health-inline__ring" style="background:conic-gradient(#6ea4ff ${pct}%, #dbe8ff 0)"></div>
+                <div class="meridian-health-inline__score-value">${score === null ? "NA" : score.toFixed(1)}</div>
+              </div>
+              <div class="meridian-health-inline__chip">Overall: ${status}</div>
+              <p class="meridian-health-inline__summary">${summary}</p>
+            </div>
+            <div class="meridian-health-inline__right">
+              <table>
+                <thead><tr><th>Check</th><th>Status</th><th>Recommendation</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      };
+      let meridianRerenderTimer = null;
+      let lastMeridianContext = null;
+      const scheduleMeridianRerender = () => {
+        if (meridianRerenderTimer !== null) {
+          clearTimeout(meridianRerenderTimer);
+        }
+        meridianRerenderTimer = window.setTimeout(() => {
+          meridianRerenderTimer = null;
+          if (typeof renderMeridianOfficialEmbeds === "function") {
+            renderMeridianOfficialEmbeds(lastMeridianContext, { force: true });
+          }
+        }, 120);
+      };
       if (!section || !emptyNode || !contentNode || !channelSelect || !tableBody || !splitTableBody) return;
 
       const rowsRaw = Array.isArray(wb.run_rows) ? wb.run_rows : [];
@@ -1948,23 +2233,36 @@
         contentNode.style.display = "none";
         return;
       }
+      window.addEventListener("resize", scheduleMeridianRerender, { passive: true });
+      if (document.body && typeof MutationObserver !== "undefined") {
+        const bodyObserver = new MutationObserver((records) => {
+          if (records.some((r) => r.type === "attributes" && r.attributeName === "data-page")) {
+            scheduleMeridianRerender();
+          }
+        });
+        bodyObserver.observe(document.body, { attributes: true, attributeFilter: ["data-page"] });
+      }
 
       const toNum = (v) => {
         if (v === null || v === undefined || v === "") return null;
         const n = Number(v);
         return Number.isFinite(n) ? n : null;
       };
-      const fmt = (v, d = 3) => (Number.isFinite(v) ? Number(v).toFixed(d) : "NA");
+      const fmt = (v, d = 3) => (Number.isFinite(v) ? Number(v).toFixed(d).replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "") : "NA");
+      const fmtTrim3 = (n) => {
+        if (!Number.isFinite(n)) return "NA";
+        return Number(n).toFixed(3).replace(/\.?0+$/u, "");
+      };
       const fmtCompact = (v) => {
         if (!Number.isFinite(v)) return "NA";
-        const abs = Math.abs(Number(v));
-        if (abs >= 1e9) return `${(v / 1e9).toFixed(3)}B`;
-        if (abs >= 1e6) return `${(v / 1e6).toFixed(3)}M`;
-        if (abs >= 1e3) return `${(v / 1e3).toFixed(3)}K`;
-        if (abs >= 1) return Number(v).toFixed(3);
-        return Number(v).toFixed(3);
+        const num = Number(v);
+        const abs = Math.abs(num);
+        if (abs >= 1e9) return `${fmtTrim3(num / 1e9)}B`;
+        if (abs >= 1e6) return `${fmtTrim3(num / 1e6)}M`;
+        if (abs >= 1e3) return `${fmtTrim3(num / 1e3)}K`;
+        return fmtTrim3(num);
       };
-      const fmtPct = (v) => (Number.isFinite(v) ? `${Number(v).toFixed(3)}%` : "NA");
+      const fmtPct = (v) => (Number.isFinite(v) ? `${fmt(v, 3)}%` : "NA");
       const normalizeDist = (x) => String(x || "").trim().toLowerCase();
       const approxEq = (a, b, tol = 1e-9) => Number.isFinite(a) && Number.isFinite(b) && Math.abs(Number(a) - Number(b)) <= tol;
       const dist = (a, b) => (Number.isFinite(a) && Number.isFinite(b) ? Math.abs(Number(a) - Number(b)) : Infinity);
@@ -2112,17 +2410,23 @@
         const parsed = parseStructFromRunId(r.run_id);
         return {
           ...r,
+          run_id: String(r.run_id || ""),
           channel: String(r.channel || ""),
           roi_prior_dist: String(r.roi_prior_dist || ""),
           roi_prior_mu: toNum(r.roi_prior_mu),
           roi_prior_sigma: toNum(r.roi_prior_sigma),
           estimated_roi: toNum(r.estimated_roi),
+          posterior_roi_p05: toNum(r.posterior_roi_p05),
+          posterior_roi_p95: toNum(r.posterior_roi_p95),
           baseline_roi: toNum(r.baseline_roi),
           pct_change: toNum(r.pct_change),
           contribution_value: toNum(r.contribution_value),
           contribution_share: toNum(r.contribution_share),
           effect_share: toNum(r.effect_share),
           spend_share: toNum(r.spend_share),
+          channel_total_spend: toNum(r.channel_total_spend),
+          mroi: toNum(r.mroi),
+          effectiveness: toNum(r.effectiveness),
           adstock_alpha_m: toNum(r.adstock_alpha_m) ?? toNum(parsed.adstock_alpha_m),
           saturation_ec_m: toNum(r.saturation_ec_m) ?? toNum(parsed.saturation_ec_m),
           saturation_slope_m: toNum(r.saturation_slope_m) ?? toNum(parsed.saturation_slope_m),
@@ -2130,6 +2434,350 @@
           adstock_decay_spec: String(r.adstock_decay_spec || parsed.adstock_decay_spec || "geometric").toLowerCase(),
         };
       });
+
+      const runRowsById = new Map();
+      rows.forEach((r) => {
+        const runId = String(r.run_id || "");
+        if (!runId) return;
+        if (!runRowsById.has(runId)) runRowsById.set(runId, []);
+        runRowsById.get(runId).push(r);
+      });
+
+      const cloneObj = (obj) => {
+        if (!obj || typeof obj !== "object") return null;
+        try {
+          return JSON.parse(JSON.stringify(obj));
+        } catch (_) {
+          return null;
+        }
+      };
+      const firstDatasetRows = (spec) => {
+        if (!spec || typeof spec !== "object") return [];
+        if (spec.datasets && typeof spec.datasets === "object") {
+          const keys = Object.keys(spec.datasets);
+          for (let i = 0; i < keys.length; i += 1) {
+            const arr = spec.datasets[keys[i]];
+            if (Array.isArray(arr) && arr.length) return arr;
+          }
+        }
+        if (Array.isArray(spec.data)) {
+          for (let i = 0; i < spec.data.length; i += 1) {
+            const d = spec.data[i];
+            if (d && Array.isArray(d.values) && d.values.length) return d.values;
+          }
+        }
+        if (spec.data && Array.isArray(spec.data.values) && spec.data.values.length) {
+          return spec.data.values;
+        }
+        return [];
+      };
+      const withDatasetRows = (spec, rowsForDataset) => {
+        const cloned = cloneObj(spec);
+        if (!cloned || typeof cloned !== "object") return null;
+        if (cloned.datasets && typeof cloned.datasets === "object") {
+          const keys = Object.keys(cloned.datasets);
+          if (keys.length) {
+            cloned.datasets[keys[0]] = rowsForDataset;
+            return cloned;
+          }
+          cloned.datasets = { data: rowsForDataset };
+          cloned.data = cloned.data && typeof cloned.data === "object" ? cloned.data : {};
+          if (!cloned.data.name) cloned.data.name = "data";
+          return cloned;
+        }
+        if (Array.isArray(cloned.data)) {
+          const idx = cloned.data.findIndex((d) => d && Array.isArray(d.values));
+          if (idx >= 0) cloned.data[idx].values = rowsForDataset;
+          else cloned.data.push({ values: rowsForDataset });
+          return cloned;
+        }
+        if (cloned.data && typeof cloned.data === "object") {
+          cloned.data.values = rowsForDataset;
+          return cloned;
+        }
+        cloned.data = { values: rowsForDataset };
+        return cloned;
+      };
+      const toChannelKey = (v) => String(v || "").trim().toLowerCase();
+      const sameStruct = (a, b) => (
+        !!a && !!b
+        && approxEq(a.adstock_alpha_m, b.adstock_alpha_m, 1e-3)
+        && approxEq(a.saturation_ec_m, b.saturation_ec_m, 1e-3)
+        && approxEq(a.saturation_slope_m, b.saturation_slope_m, 1e-3)
+        && approxEq(a.max_lag, b.max_lag, 0.5)
+      );
+      const valueOr = (v, fb = null) => (Number.isFinite(v) ? Number(v) : fb);
+      const qSorted = (vals, p) => {
+        if (!vals.length) return null;
+        const clean = vals.filter((v) => Number.isFinite(v)).sort((a, b) => a - b);
+        if (!clean.length) return null;
+        return percentile(clean, p);
+      };
+      const baselineData = {
+        spendVsContribution: firstDatasetRows(meridianChartSpecs.spend_vs_contribution).map((x) => ({ ...x })),
+        roiByChannel: firstDatasetRows(meridianChartSpecs.roi_by_channel).map((x) => ({ ...x })),
+        roiVsMroi: firstDatasetRows(meridianChartSpecs.roi_vs_mroi).map((x) => ({ ...x })),
+        roiVsEffectiveness: firstDatasetRows(meridianChartSpecs.roi_vs_effectiveness).map((x) => ({ ...x })),
+        contributionWaterfall: firstDatasetRows(meridianChartSpecs.contribution_waterfall).map((x) => ({ ...x })),
+        contributionOverTime: firstDatasetRows(meridianChartSpecs.contribution_over_time).map((x) => ({ ...x })),
+      };
+      const rowsToMapByChannel = (arr) => {
+        const m = new Map();
+        arr.forEach((r) => {
+          const k = toChannelKey(r && r.channel);
+          if (!k || m.has(k)) return;
+          m.set(k, r);
+        });
+        return m;
+      };
+      const baselineRoiMap = rowsToMapByChannel(baselineData.roiByChannel);
+      const baselineMroiMap = rowsToMapByChannel(baselineData.roiVsMroi);
+      const baselineEffMap = rowsToMapByChannel(baselineData.roiVsEffectiveness);
+      const baselineWaterfallMap = rowsToMapByChannel(baselineData.contributionWaterfall);
+      const spendLabelFromBase = (() => {
+        const row = baselineData.spendVsContribution.find((r) => /spend/i.test(String(r.label || "")));
+        return row ? String(row.label) : "% Spend";
+      })();
+      const kpiLabelFromBase = (() => {
+        const row = baselineData.spendVsContribution.find((r) => !/spend/i.test(String(r.label || "")));
+        return row ? String(row.label) : "% KPI";
+      })();
+      const buildDynamicMeridianSpecs = (selectedRunRows, anchorRow) => {
+        if (!Array.isArray(selectedRunRows) || !selectedRunRows.length) return {};
+        const channelRows = selectedRunRows
+          .filter((r) => r && String(r.channel || "").trim())
+          .map((r) => ({ ...r, channel: String(r.channel || "").trim() }));
+        if (!channelRows.length) return {};
+        const roiValues = channelRows.map((r) => valueOr(r.estimated_roi)).filter((v) => Number.isFinite(v));
+        const maxAbsRoi = Math.max(1e-9, ...roiValues.map((v) => Math.abs(v)));
+
+        const spendVsContributionRows = [];
+        channelRows.forEach((r) => {
+          const roi = valueOr(r.estimated_roi, 0);
+          const spendPct = valueOr(r.spend_share, 0);
+          const kpiPct = Number.isFinite(r.effect_share) ? Number(r.effect_share) : valueOr(r.contribution_share, 0);
+          const roiScaled = roi / maxAbsRoi;
+          spendVsContributionRows.push({
+            channel: String(r.channel || "").toLowerCase(),
+            pct: spendPct,
+            label: spendLabelFromBase,
+            roi,
+            roi_scaled: roiScaled,
+          });
+          spendVsContributionRows.push({
+            channel: String(r.channel || "").toLowerCase(),
+            pct: kpiPct,
+            label: kpiLabelFromBase,
+            roi,
+            roi_scaled: roiScaled,
+          });
+        });
+
+        const sameStructRows = rows.filter((r) => sameStruct(r, anchorRow) && normalizeDist(r.roi_prior_dist) === normalizeDist(anchorRow && anchorRow.roi_prior_dist));
+        const roiByChannelRows = channelRows
+          .map((r) => {
+            const chKey = toChannelKey(r.channel);
+            const roi = valueOr(r.estimated_roi, 0);
+            let ciLo = valueOr(r.posterior_roi_p05);
+            let ciHi = valueOr(r.posterior_roi_p95);
+            if (!Number.isFinite(ciLo) || !Number.isFinite(ciHi)) {
+              const samples = sameStructRows
+                .filter((x) => toChannelKey(x.channel) === chKey)
+                .map((x) => valueOr(x.estimated_roi))
+                .filter((v) => Number.isFinite(v));
+              ciLo = qSorted(samples, 0.05);
+              ciHi = qSorted(samples, 0.95);
+            }
+            if (!Number.isFinite(ciLo) || !Number.isFinite(ciHi)) {
+              const base = baselineRoiMap.get(chKey);
+              if (base && Number.isFinite(valueOr(base.roi)) && Math.abs(Number(base.roi)) > 1e-9) {
+                const ratio = roi / Number(base.roi);
+                ciLo = Number(base.ci_lo) * ratio;
+                ciHi = Number(base.ci_hi) * ratio;
+              } else {
+                ciLo = roi;
+                ciHi = roi;
+              }
+            }
+            if (ciLo > ciHi) {
+              const t = ciLo;
+              ciLo = ciHi;
+              ciHi = t;
+            }
+            return {
+              channel: String(r.channel || "").toLowerCase(),
+              ci_hi: ciHi,
+              ci_lo: ciLo,
+              roi,
+            };
+          })
+          .sort((a, b) => Number(b.roi) - Number(a.roi));
+
+        const roiVsMroiRows = channelRows
+          .map((r) => {
+            const chKey = toChannelKey(r.channel);
+            const roi = valueOr(r.estimated_roi, 0);
+            let mroi = valueOr(r.mroi);
+            const base = baselineMroiMap.get(chKey);
+            if (!Number.isFinite(mroi)) {
+              if (base && Number.isFinite(valueOr(base.mroi)) && Number.isFinite(valueOr(base.roi)) && Math.abs(Number(base.roi)) > 1e-9) {
+                mroi = Number(base.mroi) * (roi / Number(base.roi));
+              } else {
+                mroi = roi;
+              }
+            }
+            const spend = Number.isFinite(r.channel_total_spend)
+              ? Number(r.channel_total_spend)
+              : (base && Number.isFinite(valueOr(base.spend)) ? Number(base.spend) : 0);
+            return { channel: String(r.channel || "").toLowerCase(), roi, mroi, spend };
+          })
+          .sort((a, b) => Number(b.spend) - Number(a.spend));
+
+        const roiVsEffectivenessRows = channelRows
+          .map((r) => {
+            const chKey = toChannelKey(r.channel);
+            const roi = valueOr(r.estimated_roi, 0);
+            let effectiveness = valueOr(r.effectiveness);
+            const base = baselineEffMap.get(chKey);
+            if (!Number.isFinite(effectiveness)) {
+              if (base && Number.isFinite(valueOr(base.effectiveness)) && Number.isFinite(valueOr(base.roi)) && Math.abs(Number(base.roi)) > 1e-9) {
+                effectiveness = Number(base.effectiveness) * (roi / Number(base.roi));
+              } else if (Number.isFinite(r.effect_share) && Number.isFinite(r.spend_share) && Math.abs(Number(r.spend_share)) > 1e-9) {
+                effectiveness = Number(r.effect_share) / Number(r.spend_share);
+              } else {
+                effectiveness = 0;
+              }
+            }
+            const spend = Number.isFinite(r.channel_total_spend)
+              ? Number(r.channel_total_spend)
+              : (base && Number.isFinite(valueOr(base.spend)) ? Number(base.spend) : 0);
+            return { channel: String(r.channel || "").toLowerCase(), roi, effectiveness, spend };
+          })
+          .sort((a, b) => Number(b.spend) - Number(a.spend));
+
+        const baselineWaterfallRows = baselineData.contributionWaterfall;
+        const baselineMarketingTotal = baselineWaterfallRows
+          .filter((r) => toChannelKey(r.channel) !== "baseline")
+          .reduce((acc, r) => acc + (Number.isFinite(valueOr(r.incremental_outcome)) ? Number(r.incremental_outcome) : 0), 0);
+        const selectedMarketingTotalRaw = channelRows
+          .reduce((acc, r) => acc + (Number.isFinite(valueOr(r.contribution_value)) ? Number(r.contribution_value) : 0), 0);
+        const scale = Math.abs(selectedMarketingTotalRaw) > 1e-9
+          ? (Math.abs(baselineMarketingTotal) > 1e-9 ? baselineMarketingTotal / selectedMarketingTotalRaw : 1)
+          : 1;
+        const scaledMarketingRows = channelRows.map((r) => {
+          const out = Number.isFinite(valueOr(r.contribution_value)) ? Number(r.contribution_value) * scale : 0;
+          return {
+            channel: String(r.channel || "").toUpperCase(),
+            incremental_outcome: out,
+          };
+        });
+        const baselineRowForWaterfall = baselineWaterfallMap.get("baseline");
+        if (baselineRowForWaterfall && Number.isFinite(valueOr(baselineRowForWaterfall.incremental_outcome))) {
+          scaledMarketingRows.push({
+            channel: "BASELINE",
+            incremental_outcome: Number(baselineRowForWaterfall.incremental_outcome),
+          });
+        }
+        const totalWaterfall = scaledMarketingRows.reduce((acc, r) => acc + (Number.isFinite(valueOr(r.incremental_outcome)) ? Number(r.incremental_outcome) : 0), 0);
+        const contributionWaterfallRows = scaledMarketingRows
+          .map((r) => {
+            const val = Number(r.incremental_outcome || 0);
+            const pct = Math.abs(totalWaterfall) > 1e-9 ? val / totalWaterfall : 0;
+            return {
+              channel: String(r.channel || "").toUpperCase(),
+              incremental_outcome: val,
+              pct_of_contribution: pct,
+              outcome_text: `${(100 * pct).toFixed(1)}% (${fmtCompact(val)})`,
+            };
+          })
+          .sort((a, b) => Number(b.incremental_outcome) - Number(a.incremental_outcome));
+
+        const channelTotals = new Map();
+        contributionWaterfallRows.forEach((r) => {
+          channelTotals.set(toChannelKey(r.channel), Number(r.incremental_outcome || 0));
+        });
+        const baselineTimeRows = baselineData.contributionOverTime;
+        let contributionOverTimeRows = [];
+        if (baselineTimeRows.length) {
+          const baselineTotalsByChannel = new Map();
+          baselineTimeRows.forEach((r) => {
+            const key = toChannelKey(r.channel);
+            const prev = baselineTotalsByChannel.get(key) || 0;
+            baselineTotalsByChannel.set(key, prev + (Number.isFinite(valueOr(r.incremental_outcome)) ? Number(r.incremental_outcome) : 0));
+          });
+          contributionOverTimeRows = baselineTimeRows.map((r) => {
+            const key = toChannelKey(r.channel);
+            const baseTotal = baselineTotalsByChannel.get(key) || 0;
+            const targetTotal = channelTotals.has(key) ? Number(channelTotals.get(key)) : baseTotal;
+            const factor = Math.abs(baseTotal) > 1e-9 ? targetTotal / baseTotal : 1;
+            const nextValue = (Number.isFinite(valueOr(r.incremental_outcome)) ? Number(r.incremental_outcome) : 0) * factor;
+            return {
+              time: String(r.time || ""),
+              channel: String(r.channel || ""),
+              incremental_outcome: nextValue,
+              pct_of_contribution: 0,
+            };
+          });
+          const totalsByTime = new Map();
+          contributionOverTimeRows.forEach((r) => {
+            const key = String(r.time || "");
+            const prev = totalsByTime.get(key) || 0;
+            totalsByTime.set(key, prev + Number(r.incremental_outcome || 0));
+          });
+          contributionOverTimeRows = contributionOverTimeRows.map((r) => {
+            const denom = totalsByTime.get(String(r.time || "")) || 0;
+            const pct = Math.abs(denom) > 1e-9 ? Number(r.incremental_outcome || 0) / denom : 0;
+            return { ...r, pct_of_contribution: pct };
+          });
+        }
+
+        const out = {};
+        const spendSpec = withDatasetRows(meridianChartSpecs.spend_vs_contribution, spendVsContributionRows);
+        if (spendSpec) out.spend_vs_contribution = spendSpec;
+        const roiSpec = withDatasetRows(meridianChartSpecs.roi_by_channel, roiByChannelRows);
+        if (roiSpec) out.roi_by_channel = roiSpec;
+        const mroiSpec = withDatasetRows(meridianChartSpecs.roi_vs_mroi, roiVsMroiRows);
+        if (mroiSpec) out.roi_vs_mroi = mroiSpec;
+        const effSpec = withDatasetRows(meridianChartSpecs.roi_vs_effectiveness, roiVsEffectivenessRows);
+        if (effSpec) out.roi_vs_effectiveness = effSpec;
+        const wfSpec = withDatasetRows(meridianChartSpecs.contribution_waterfall, contributionWaterfallRows);
+        if (wfSpec) out.contribution_waterfall = wfSpec;
+        if (contributionOverTimeRows.length) {
+          const timeSpec = withDatasetRows(meridianChartSpecs.contribution_over_time, contributionOverTimeRows);
+          if (timeSpec) out.contribution_over_time = timeSpec;
+        }
+        return out;
+      };
+      let lastMeridianRunId = "";
+      function renderMeridianOfficialEmbeds(context, options = {}) {
+        const force = !!(options && options.force);
+        const ctx = context || {};
+        const runId = String(ctx.runId || "");
+        if (!force && runId && runId === lastMeridianRunId) return;
+        const manifest = meridianOfficial.manifest || {};
+        renderInlineHealthCard("wb2-meridian-health-full", manifest.health_card_data || null);
+
+        const cachedRunSpecs = runId && meridianRunChartSpecs && typeof meridianRunChartSpecs === "object"
+          ? meridianRunChartSpecs[runId]
+          : null;
+        const dynamicSpecs = (cachedRunSpecs && typeof cachedRunSpecs === "object")
+          ? cachedRunSpecs
+          : buildDynamicMeridianSpecs(ctx.runRows || [], ctx.anchor || null);
+
+        const pickSpec = (key) => {
+          if (dynamicSpecs && dynamicSpecs[key] && typeof dynamicSpecs[key] === "object") return dynamicSpecs[key];
+          return meridianChartSpecs[key];
+        };
+
+        mountMeridianSpec("wb2-meridian-chart-spend-contrib", pickSpec("spend_vs_contribution"), "Official spend-vs-contribution chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-channel", pickSpec("roi_by_channel"), "Official ROI-by-channel chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-mroi", pickSpec("roi_vs_mroi"), "Official ROI-vs-mROI chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-eff", pickSpec("roi_vs_effectiveness"), "Official ROI-vs-effectiveness chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-waterfall", pickSpec("contribution_waterfall"), "Official contribution-waterfall chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-contrib-time", pickSpec("contribution_over_time"), "Official contribution-over-time chart not found yet.");
+        setMeridianHealthMeta(manifest.health_score_baseline, manifest.health_status_baseline);
+        lastMeridianRunId = runId;
+      }
 
       const primaryDist = String((wb.dist_config || {}).primary_dist || "LogNormal");
       const allPrimaryRows = () => rows.filter((r) => normalizeDist(r.roi_prior_dist) === normalizeDist(primaryDist));
@@ -2263,7 +2911,7 @@
         if (kpiDelta) kpiDelta.textContent = Number.isFinite(deltaRoi) ? `${deltaRoi >= 0 ? "+" : ""}${fmt(deltaRoi, 3)}` : "NA";
         if (kpiPct) kpiPct.textContent = fmtPct(pct);
         if (kpiContrib) kpiContrib.textContent = fmtCompact(selected.contribution_value);
-        if (kpiContribShare) kpiContribShare.textContent = Number.isFinite(selected.contribution_share) ? `${(100 * selected.contribution_share).toFixed(3)}%` : "NA";
+        if (kpiContribShare) kpiContribShare.textContent = Number.isFinite(selected.contribution_share) ? `${fmt(100 * selected.contribution_share, 3)}%` : "NA";
       };
 
       const renderRoiBox = () => {
@@ -2283,7 +2931,7 @@
         }
         const cats = rowsBox.map((x) => String(x.channel).toUpperCase());
         roiBoxChart.setOption({
-          grid: withLayoutGrid("boxplot", { left: 72, right: 24, top: 24, bottom: 68 }),
+          grid: withLayoutGrid("boxplot", { left: 56, right: 24, top: 80, bottom: 68 }),
           tooltip: {
             trigger: "item",
             formatter: (p) => {
@@ -2305,7 +2953,12 @@
             axisLabel: { ...axisLabelBase, rotate: 22, margin: 12 },
             axisTick: { alignWithLabel: true },
           },
-          yAxis: valueAxis("ROI", (v) => Number(v).toFixed(3)),
+          yAxis: valueAxis("ROI    ", (v) => fmt(v, 3), {
+            nameLocation: "end",
+            nameGap: 20,
+            nameTextStyle: { color: "#4d688b", fontSize: 11, align: "right", verticalAlign: "bottom" },
+            axisLabel: { ...axisLabelBase, formatter: (v) => fmt(v, 3), margin: 10, width: 80, align: "right" },
+          }),
           series: [{ type: "boxplot", data: rowsBox.map((x) => x.stats), itemStyle: { color: "rgba(255,255,255,0.25)", borderColor: "#2f5dc6", borderWidth: 2 } }],
         }, true);
       };
@@ -2327,7 +2980,7 @@
         }
         const cats = rowsBox.map((x) => String(x.channel).toUpperCase());
         contribBoxChart.setOption({
-          grid: withLayoutGrid("boxplot", { left: 88, right: 24, top: 24, bottom: 68 }),
+          grid: withLayoutGrid("boxplot", { left: 56, right: 24, top: 80, bottom: 68 }),
           tooltip: {
             trigger: "item",
             formatter: (p) => {
@@ -2349,7 +3002,12 @@
             axisLabel: { ...axisLabelBase, rotate: 22, margin: 12 },
             axisTick: { alignWithLabel: true },
           },
-          yAxis: valueAxis("Contribution", (v) => fmtCompact(v)),
+          yAxis: valueAxis("Contribution              ", (v) => fmtCompact(v), {
+            nameLocation: "end",
+            nameGap: 20,
+            nameTextStyle: { color: "#4d688b", fontSize: 11, align: "center", verticalAlign: "bottom" },
+            axisLabel: { ...axisLabelBase, formatter: (v) => fmtCompact(v), margin: 10, width: 74, align: "right" },
+          }),
           series: [{ type: "boxplot", data: rowsBox.map((x) => x.stats), itemStyle: { color: "rgba(255,255,255,0.25)", borderColor: "#1ba790", borderWidth: 2 } }],
         }, true);
       };
@@ -2490,7 +3148,7 @@
               nameLocation: "end",
               nameGap: 12,
               nameTextStyle: { color: "#4d688b", fontSize: 11 },
-              axisLabel: { ...axisLabelBase, formatter: (v) => `${Number(v).toFixed(3)}%` },
+              axisLabel: { ...axisLabelBase, formatter: (v) => `${fmt(v, 3)}%` },
               splitLine: { show: false },
             },
           ],
@@ -2563,7 +3221,7 @@
           return;
         }
         chart.setOption({
-          grid: withLayoutGrid("rank_lollipop", { left: 112, right: 22, top: 16, bottom: 24 }),
+          grid: withLayoutGrid("rank_lollipop", { left: 112, right: 86, top: 16, bottom: 24 }),
           tooltip: {
             trigger: "axis",
             axisPointer: { type: "shadow" },
@@ -2584,7 +3242,21 @@
             data: clean.map((r) => r.channel.toUpperCase()),
             axisLabel: { ...axisLabelBase, margin: 14 },
           },
-          series: [{ type: "bar", data: clean.map((r) => r.value), barWidth: 12, itemStyle: { color, borderRadius: [0, 6, 6, 0] } }],
+          series: [{
+            type: "bar",
+            data: clean.map((r) => r.value),
+            barWidth: 12,
+            label: {
+              show: true,
+              position: "right",
+              distance: 8,
+              color: "#5f7aa1",
+              fontSize: 11,
+              formatter: (p) => fmt(toNum(p && p.value), 3),
+            },
+            labelLayout: { hideOverlap: true },
+            itemStyle: { color, borderRadius: [0, 6, 6, 0] },
+          }],
         }, true);
       };
 
@@ -2608,6 +3280,8 @@
           renderNoDataChart(driverBalanceChart, "No mu/sigma split summary rows.");
           return;
         }
+        const maxAbsDiff = Math.max(...split.map((r) => Math.abs(Number(r.diff) || 0)), 0);
+        const axisSpan = Math.max(0.01, maxAbsDiff * 1.08);
         const selected = state.channel;
         driverBalanceChart.setOption({
           animationDuration: 360,
@@ -2625,9 +3299,13 @@
               ].join("<br>");
             },
           },
-          grid: withLayoutGrid("rank_lollipop", { left: 112, right: 30, top: 16, bottom: 26 }),
+          grid: withLayoutGrid("rank_lollipop", { left: 20, right: 84, top: 30, bottom: 26 }),
           xAxis: {
             ...valueAxis("", (v) => fmt(v, 3), { name: "" }),
+            min: -axisSpan,
+            max: axisSpan,
+            splitNumber: 6,
+            axisLabel: { ...axisLabelBase, formatter: (v) => fmt(v, 3), showMinLabel: true, showMaxLabel: true },
           },
           yAxis: {
             type: "category",
@@ -2638,7 +3316,20 @@
             {
               type: "bar",
               data: split.map((r) => r.diff),
-              barWidth: 10,
+              barWidth: 12,
+              label: {
+                show: true,
+                position: "right",
+                distance: 8,
+                color: "#5f7aa1",
+                fontSize: 11,
+                formatter: (p) => {
+                  const v = toNum(p && p.value);
+                  if (!Number.isFinite(v)) return "";
+                  return `${v >= 0 ? "+" : ""}${fmt(v, 3)}`;
+                },
+              },
+              labelLayout: { hideOverlap: true },
               itemStyle: {
                 borderRadius: 4,
                 color: (ctx) => {
@@ -2657,15 +3348,6 @@
                 symbol: "none",
                 lineStyle: { color: "#7b93b5", type: "dashed" },
                 data: [{ xAxis: 0 }],
-              },
-              markPoint: {
-                symbolSize: 10,
-                symbol: "circle",
-                data: split.map((r, i) => ({
-                  value: "",
-                  coord: [r.diff, i],
-                  itemStyle: { color: r.diff >= 0 ? "#2f5dc6" : "#8d6fb8" },
-                })),
               },
             },
           ],
@@ -2745,7 +3427,7 @@
             axisLabel: { ...axisLabelBase, rotate: 26, margin: 14, interval: 0 },
             axisTick: { alignWithLabel: true },
           },
-          yAxis: valueAxis("Share %", (v) => `${Number(v).toFixed(3)}%`, { max: 100, nameLocation: "end", nameGap: 12 }),
+          yAxis: valueAxis("Share %", (v) => `${fmt(v, 3)}%`, { max: 100, nameLocation: "end", nameGap: 12 }),
           series: [
             {
               name: "Spend",
@@ -3151,7 +3833,7 @@
           <td>${fmt(r.baseline_roi, 3)}</td>
           <td>${fmtPct(r.pct_change)}</td>
           <td>${fmt(r.contribution_value, 3)}</td>
-          <td>${Number.isFinite(r.contribution_share) ? `${(100 * r.contribution_share).toFixed(3)}%` : "NA"}</td>
+          <td>${Number.isFinite(r.contribution_share) ? `${fmt(100 * r.contribution_share, 3)}%` : "NA"}</td>
         </tr>`).join("");
       };
 
@@ -3186,7 +3868,10 @@
         });
 
         if (!varyingParams.length) {
-          structResponseChart.clear();
+          renderNoDataChart(
+            structResponseChart,
+            "No structural curve: alpha/ec/slope/lag are fixed in current runs.",
+          );
           return;
         }
 
@@ -3242,7 +3927,10 @@
         });
 
         if (!series.length) {
-          structResponseChart.clear();
+          renderNoDataChart(
+            structResponseChart,
+            "No matching structural points for current mu/sigma selection.",
+          );
           return;
         }
 
@@ -3251,7 +3939,7 @@
           legend: { ...legendBase, top: 0, data: legendEntries },
           tooltip: {
             trigger: "item",
-            formatter: (p) => `<b>${p.seriesName}</b><br>param value: ${Number(p.data[0]).toFixed(3)}<br>ROI: ${Number(p.data[1]).toFixed(3)}`,
+            formatter: (p) => `<b>${p.seriesName}</b><br>param value: ${fmt(Number(p.data[0]), 3)}<br>ROI: ${fmt(Number(p.data[1]), 3)}`,
           },
           grid: withLayoutGrid("structural", { left: 68, right: 28, top: 58, bottom: 52 }, true),
           xAxis: valueAxis("Parameter", (v) => fmt(v, 3), { nameLocation: "end", nameGap: 12 }),
@@ -3277,6 +3965,7 @@
         renderMarginal(muProfileChart, muSlice.length ? muSlice : slice, "roi_prior_mu", muAxis, `sigma=${fmt(sigmaFixed, 3)}`, "#2f5dc6");
         renderMarginal(sigmaProfileChart, sigmaSlice.length ? sigmaSlice : slice, "roi_prior_sigma", sigmaAxis, `mu=${fmt(muFixed, 3)}`, "#8d6fb8");
         renderStructuralResponseChart(muVals, sigmaVals);
+        return { anchor, base, slice };
       };
 
       const renderAll = () => {
@@ -3302,8 +3991,13 @@
         renderAllocationGap();
         renderSplitTable();
         renderTable();
-        renderScenario(muVals, sigmaVals);
+        const scenarioCtx = renderScenario(muVals, sigmaVals);
         renderContribWaterfall(muVals, sigmaVals);
+        const anchor = scenarioCtx && scenarioCtx.anchor ? scenarioCtx.anchor : null;
+        const runId = anchor ? String(anchor.run_id || "") : "";
+        const runRows = runId && runRowsById.has(runId) ? runRowsById.get(runId) : [];
+        lastMeridianContext = { runId, runRows, anchor };
+        renderMeridianOfficialEmbeds(lastMeridianContext);
       };
 
       channelSelect.addEventListener("change", () => {

@@ -123,7 +123,7 @@ def main():
     parser.add_argument(
         "--clean-output",
         action="store_true",
-        help="Remove existing files under outdir/tables (and legacy report artifacts) before regeneration.",
+        help="Remove existing generated files before regeneration, while preserving figures/meridian_official.",
     )
     args = parser.parse_args()
 
@@ -165,6 +165,8 @@ def main():
             clean_dirs.append(assets_dir)
         for d in clean_dirs:
             for p in d.iterdir():
+                if d == figures_dir and p.is_dir() and p.name == "meridian_official":
+                    continue
                 if p.is_dir():
                     shutil.rmtree(p)
                 else:
