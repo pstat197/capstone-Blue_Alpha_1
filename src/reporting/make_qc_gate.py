@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import argparse
 from datetime import datetime
@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.formatting import status_bucket as _status_bucket
 from src.output_paths import (
     PROJECT_ROOT,
     candidate_run_csv_paths,
@@ -14,9 +15,9 @@ from src.output_paths import (
 )
 
 
-DEFAULT_MU_VALUES = [0.020759, 0.051898]
-DEFAULT_SIGMA_VALUES = [0.006689, 0.033445]
-DEFAULT_DISTS = ["Normal"]
+DEFAULT_MU_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+DEFAULT_SIGMA_VALUES = [0.5, 1.0, 1.5]
+DEFAULT_DISTS = ["LogNormal"]
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -52,11 +53,8 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _status_bucket(value: object) -> str:
-    text = str(value).strip().upper()
-    if text in {"PASS", "REVIEW", "FAIL"}:
-        return text
-    return "UNKNOWN"
+
+# _status_bucket is now imported from src.formatting
 
 
 def _pick_sensitivity_col(df: pd.DataFrame) -> str | None:

@@ -16,10 +16,10 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "population_col": None,
     },
     "experiment": {
-        "multipliers": [0.4, 1.0, 2.0],
-        "roi_mu_values": None,
-        "roi_sigma_values": None,
-        "roi_dist_values": ["Normal", "LogNormal"],
+        # Explicit-prior mode only: grid values must be provided directly.
+        "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+        "roi_sigma_values": [0.5, 1.0, 1.5],
+        "roi_dist_values": ["LogNormal"],
     },
     "structural": {
         # MVP defaults keep legacy behavior unless explicitly overridden.
@@ -31,9 +31,10 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     },
     "defaults": {
         "targets": ["tiktok"],
+        "target_sets": None,
     },
     "baseline": {
-        # Optional explicit baseline. When null, baseline is auto-picked from the active grid.
+        # Optional explicit baseline. When null, baseline defaults to first value in each active grid.
         "roi_mu": None,
         "roi_sigma": None,
         "roi_dist": None,
@@ -108,6 +109,12 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
 
 def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     model = config.setdefault("model", {})
+    channels = _as_string_list(model.get("channels"), "model.channels")
+    if not channels:
+        raise ValueError("Config field 'model.channels' must contain at least one channel.")
+    model["channels"] = _dedupe_preserve_order(channels)
+    model_channel_set = set(model["channels"])
+
     data_csv = model.get("data_csv")
     if data_csv is None or str(data_csv).strip() == "":
         raise ValueError("Config field 'model.data_csv' is required.")
@@ -143,22 +150,19 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
 
     exp = config.setdefault("experiment", {})
 
-    multipliers = _as_numeric_list(exp.get("multipliers"), "experiment.multipliers")
-    if not multipliers:
-        raise ValueError("Config field 'experiment.multipliers' must contain at least one value.")
-    if any(v <= 0 for v in multipliers):
-        raise ValueError("Config field 'experiment.multipliers' must be strictly positive.")
-    exp["multipliers"] = [float(v) for v in multipliers]
-
     raw_mu = exp.get("roi_mu_values")
     mu_values = _as_numeric_list(raw_mu, "experiment.roi_mu_values")
-    exp["roi_mu_values"] = [round(float(v), 6) for v in mu_values] if mu_values else None
+    if not mu_values:
+        raise ValueError("Config field 'experiment.roi_mu_values' must contain at least one value.")
+    exp["roi_mu_values"] = [round(float(v), 6) for v in mu_values]
 
     raw_sigma = exp.get("roi_sigma_values")
     sigma_values = _as_numeric_list(raw_sigma, "experiment.roi_sigma_values")
+    if not sigma_values:
+        raise ValueError("Config field 'experiment.roi_sigma_values' must contain at least one value.")
     if any(v <= 0 for v in sigma_values):
         raise ValueError("Config field 'experiment.roi_sigma_values' must be strictly positive.")
-    exp["roi_sigma_values"] = [round(float(v), 6) for v in sigma_values] if sigma_values else None
+    exp["roi_sigma_values"] = [round(float(v), 6) for v in sigma_values]
 
     dist_values = _as_string_list(exp.get("roi_dist_values"), "experiment.roi_dist_values")
     if not dist_values:
@@ -185,6 +189,48 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         baseline["roi_dist"] = str(raw_dist).strip()
         if baseline["roi_dist"] == "":
             raise ValueError("Config field 'baseline.roi_dist' cannot be empty.")
+
+    defaults = config.setdefault("defaults", {})
+    targets = _as_string_list(defaults.get("targets", ["tiktok"]), "defaults.targets")
+    if not targets:
+        raise ValueError("Config field 'defaults.targets' must contain at least one channel.")
+    defaults["targets"] = _dedupe_preserve_order(targets)
+    unknown_default_targets = [t for t in defaults["targets"] if t not in model_channel_set]
+    if unknown_default_targets:
+        raise ValueError(
+            "Config field 'defaults.targets' has channels not present in model.channels: "
+            + ", ".join(unknown_default_targets)
+        )
+
+    raw_target_sets = defaults.get("target_sets")
+    if raw_target_sets is None or str(raw_target_sets).strip().lower() in {"", "null", "none"}:
+        defaults["target_sets"] = None
+    else:
+        if not isinstance(raw_target_sets, list):
+            raise ValueError("Config field 'defaults.target_sets' must be a list of channel lists.")
+
+        normalized_sets: list[list[str]] = []
+        seen_keys: set[tuple[str, ...]] = set()
+        for idx, item in enumerate(raw_target_sets):
+            item_field = f"defaults.target_sets[{idx}]"
+            channels = _as_string_list(item, item_field)
+            channels = _dedupe_preserve_order(channels)
+            if not channels:
+                raise ValueError(f"Config field '{item_field}' cannot be empty.")
+            key = tuple(sorted(channels))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unknown_set_targets = [t for t in channels if t not in model_channel_set]
+            if unknown_set_targets:
+                raise ValueError(
+                    f"Config field '{item_field}' has channels not present in model.channels: "
+                    + ", ".join(unknown_set_targets)
+                )
+            normalized_sets.append(channels)
+        if not normalized_sets:
+            raise ValueError("Config field 'defaults.target_sets' must contain at least one non-empty channel set.")
+        defaults["target_sets"] = normalized_sets
 
     return config
 

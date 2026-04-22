@@ -2,6 +2,7 @@
 import argparse
 import faulthandler
 import gc
+from html import escape
 import json
 import os
 import re
@@ -41,10 +42,131 @@ def _workspace_user_cache_dir(
 platformdirs.user_cache_dir = _workspace_user_cache_dir
 
 from meridian.analysis.review import reviewer
+from meridian.analysis import visualizer as meridian_visualizer
 from meridian.data import data_frame_input_data_builder
-from meridian.model import model
+from meridian.model import model, prior_distribution, spec
+import tensorflow_probability as tfp
 
-from src.utils import build_model_spec, extract_roi_mean
+# ---------------------------------------------------------------------------
+# Meridian ModelSpec construction (inlined from former meridian_spec.py)
+# ---------------------------------------------------------------------------
+
+BASE_ROI_MU = 0.4
+BASE_ROI_SIGMA = 0.5
+_ALLOWED_DECAYS = {"geometric", "binomial"}
+
+
+def _natural_to_lognormal_params(mu_vec: np.ndarray, sigma_vec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    mu_safe = np.maximum(mu_vec.astype(np.float32), np.float32(1e-8))
+    sigma_safe = np.maximum(sigma_vec.astype(np.float32), np.float32(1e-8))
+    log_scale_sq = np.log1p((sigma_safe ** 2) / (mu_safe ** 2)).astype(np.float32)
+    return (np.log(mu_safe) - 0.5 * log_scale_sq).astype(np.float32), np.sqrt(log_scale_sq).astype(np.float32)
+
+
+def _fixed_uniform(value: float, name: str, *, lower: float, upper: float | None = None):
+    v = float(value)
+    if upper is not None:
+        eps = max((upper - lower) * 1e-4, 1e-6)
+        v = min(max(v, lower + eps), upper - eps)
+        lo, hi = max(lower, v - eps), min(upper, v + eps)
+    else:
+        v = max(v, lower)
+        eps = max(abs(v) * 1e-4, 1e-6)
+        lo, hi = max(lower, v - eps), v + eps
+    if hi <= lo:
+        hi = lo + 1e-6
+    return tfp.distributions.Uniform(low=np.float32(lo), high=np.float32(hi), name=name)
+
+
+def _build_roi_prior(roi_dist: str, roi_mu_vec: np.ndarray, roi_sigma_vec: np.ndarray):
+    if roi_dist == "LogNormal":
+        log_loc, log_scale = _natural_to_lognormal_params(roi_mu_vec, roi_sigma_vec)
+        return tfp.distributions.LogNormal(loc=log_loc, scale=log_scale, name="roi_m")
+    if roi_dist == "Normal":
+        return tfp.distributions.Normal(loc=roi_mu_vec, scale=roi_sigma_vec, name="roi_m")
+    raise ValueError(f"Unsupported distribution type: {roi_dist}")
+
+
+def build_model_spec(
+    channels,
+    target_channel=None,
+    roi_mu=None,
+    roi_sigma=BASE_ROI_SIGMA,
+    roi_dist="LogNormal",
+    roi_prior_overrides=None,
+    structural_overrides=None,
+):
+    roi_mu_vec = np.full(len(channels), BASE_ROI_MU, dtype=np.float32)
+    roi_sigma_vec = np.full(len(channels), BASE_ROI_SIGMA, dtype=np.float32)
+
+    if roi_prior_overrides is not None:
+        shared_dist = None
+        for ch, params in roi_prior_overrides.items():
+            if ch not in channels:
+                raise ValueError(f"Override channel '{ch}' not in channels list.")
+            d = str(params.get("dist", roi_dist))
+            if shared_dist is None:
+                shared_dist = d
+            elif d != shared_dist:
+                raise ValueError(
+                    "Mixed dist types in roi_prior_overrides are not supported in one run. "
+                    "Use the same dist (all Normal or all LogNormal) for all targets."
+                )
+            idx = channels.index(ch)
+            roi_mu_vec[idx] = np.float32(params["mu"])
+            roi_sigma_vec[idx] = np.float32(params["sigma"])
+        roi_dist = shared_dist or roi_dist
+    else:
+        if target_channel is None or roi_mu is None:
+            raise ValueError("Single-target mode requires target_channel and roi_mu.")
+        idx = channels.index(target_channel)
+        roi_mu_vec[idx] = np.float32(roi_mu)
+        roi_sigma_vec[idx] = np.float32(roi_sigma)
+
+    prior_kwargs = {"roi_m": _build_roi_prior(roi_dist, roi_mu_vec, roi_sigma_vec)}
+    model_spec_kwargs = {"enable_aks": True}
+
+    s = structural_overrides or {}
+    if s.get("alpha_m") is not None:
+        prior_kwargs["alpha_m"] = _fixed_uniform(float(s["alpha_m"]), "alpha_m", lower=0.0, upper=1.0)
+    if s.get("ec_m") is not None:
+        prior_kwargs["ec_m"] = _fixed_uniform(float(s["ec_m"]), "ec_m", lower=1e-6)
+    if s.get("slope_m") is not None:
+        prior_kwargs["slope_m"] = _fixed_uniform(float(s["slope_m"]), "slope_m", lower=1e-6)
+    if s.get("max_lag") is not None:
+        model_spec_kwargs["max_lag"] = int(s["max_lag"])
+    if s.get("adstock_decay_spec") is not None:
+        decay = str(s["adstock_decay_spec"]).strip().lower()
+        if decay not in _ALLOWED_DECAYS:
+            raise ValueError("adstock_decay_spec must be 'geometric' or 'binomial'.")
+        model_spec_kwargs["adstock_decay_spec"] = decay
+
+    return spec.ModelSpec(prior=prior_distribution.PriorDistribution(**prior_kwargs), **model_spec_kwargs)
+
+
+def extract_roi_mean(mmm, channels):
+    """Return per-channel posterior ROI summaries on the natural scale."""
+    roi_values = np.asarray(mmm.inference_data.posterior["roi_m"].values, dtype=np.float64)
+    if roi_values.ndim < 2:
+        raise ValueError("Unexpected ROI posterior shape; expected at least 2 dimensions.")
+
+    roi_flat = roi_values.reshape(-1, roi_values.shape[-1])
+    mean_roi = np.nanmean(roi_flat, axis=0)
+    sd_roi = np.nanstd(roi_flat, axis=0, ddof=0)
+    p05_roi = np.nanpercentile(roi_flat, 5, axis=0)
+    p50_roi = np.nanpercentile(roi_flat, 50, axis=0)
+    p95_roi = np.nanpercentile(roi_flat, 95, axis=0)
+
+    return pd.DataFrame(
+        {
+            "channel": channels,
+            "estimated_roi": mean_roi,
+            "posterior_roi_sd": sd_roi,
+            "posterior_roi_p05": p05_roi,
+            "posterior_roi_p50": p50_roi,
+            "posterior_roi_p95": p95_roi,
+        }
+    )
 
 faulthandler.enable()
 warnings.filterwarnings("ignore")
@@ -230,6 +352,76 @@ def derive_qc_rollup(qc_status: Optional[str], needs_review: bool, check_details
     }
 
 
+def _natural_to_lognormal_params_scalar(mu: float, sigma: float) -> tuple[float, float]:
+    mu_safe = max(float(mu), 1e-8)
+    sigma_safe = max(float(sigma), 1e-8)
+    variance_ratio = (sigma_safe ** 2) / (mu_safe ** 2)
+    log_scale_sq = float(np.log1p(variance_ratio))
+    log_scale = float(np.sqrt(log_scale_sq))
+    log_loc = float(np.log(mu_safe) - 0.5 * log_scale_sq)
+    return log_loc, log_scale
+
+
+def _build_channel_prior_params(
+    channels: list[str],
+    *,
+    multiprior: bool,
+    overrides: Optional[dict],
+    target_channel: Optional[str],
+    target_mu: Optional[float],
+    target_sigma: Optional[float],
+    shared_dist: Optional[str],
+) -> pd.DataFrame:
+    rows = []
+    shared_dist = str(shared_dist) if shared_dist is not None else "LogNormal"
+    overrides = overrides or {}
+    for ch in channels:
+        if multiprior and ch in overrides:
+            mu = float(overrides[ch]["mu"])
+            sigma = float(overrides[ch]["sigma"])
+        elif (not multiprior) and target_channel is not None and ch == target_channel:
+            mu = float(target_mu)
+            sigma = float(target_sigma)
+        else:
+            mu = float(BASE_ROI_MU)
+            sigma = float(BASE_ROI_SIGMA)
+        rows.append(
+            {
+                "channel": ch,
+                "prior_roi_mu_channel": mu,
+                "prior_roi_sigma_channel": sigma,
+                "prior_roi_dist_channel": shared_dist,
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _kl_gaussian_from_moments(
+    post_mean: pd.Series,
+    post_sd: pd.Series,
+    prior_mean: pd.Series,
+    prior_sd: pd.Series,
+) -> pd.Series:
+    eps = 1e-8
+    s1 = pd.to_numeric(post_sd, errors="coerce").clip(lower=eps)
+    s0 = pd.to_numeric(prior_sd, errors="coerce").clip(lower=eps)
+    m1 = pd.to_numeric(post_mean, errors="coerce")
+    m0 = pd.to_numeric(prior_mean, errors="coerce")
+    return np.log(s0 / s1) + ((s1 ** 2) + ((m1 - m0) ** 2)) / (2.0 * (s0 ** 2)) - 0.5
+
+
+def _wasserstein_1d_from_samples(sample_a: np.ndarray, sample_b: np.ndarray) -> float:
+    a = np.asarray(sample_a, dtype=np.float64)
+    b = np.asarray(sample_b, dtype=np.float64)
+    if a.size == 0 or b.size == 0:
+        return float("nan")
+
+    q = np.linspace(0.001, 0.999, 400)
+    a_q = np.quantile(a, q)
+    b_q = np.quantile(b, q)
+    return float(np.mean(np.abs(a_q - b_q)))
+
+
 def _normalize_structural_overrides(overrides: Optional[dict]) -> dict:
     raw = {**STRUCT_DEFAULTS, **(overrides or {})}
     return {
@@ -291,6 +483,22 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--baseline_sigma", type=float, default=None)
     parser.add_argument("--baseline_dist", type=str, default=None)
     parser.add_argument("--baseline_structural_overrides_json", default=None)
+    parser.add_argument(
+        "--official_outdir",
+        default=None,
+        help="If provided, export Meridian official HTML outputs (health card + standard charts) to this directory.",
+    )
+    parser.add_argument(
+        "--official_time_granularity",
+        default="quarterly",
+        choices=["weekly", "quarterly"],
+        help="Time granularity for contribution-over-time chart export.",
+    )
+    parser.add_argument(
+        "--official_use_kpi",
+        action="store_true",
+        help="Use KPI units for official Meridian summaries instead of revenue units.",
+    )
     return parser
 
 
@@ -432,6 +640,203 @@ def _round_or_none(v):
     return None if v is None else round(float(v), 6)
 
 
+def _compute_review_health_score(review_summary) -> tuple[float, str]:
+    status = str(getattr(getattr(review_summary, "overall_status", None), "name", "UNKNOWN"))
+    status_to_score = {"PASS": 1.0, "REVIEW": 0.6, "FAIL": 0.0}
+    parts = []
+    for r in list(getattr(review_summary, "results", []) or []):
+        check_status = str(getattr(getattr(getattr(r, "case", None), "status", None), "name", "UNKNOWN"))
+        parts.append(status_to_score.get(check_status, 0.5))
+    if parts:
+        score = round(float(np.mean(parts) * 100.0), 1)
+    else:
+        score = round(float(status_to_score.get(status, 0.5) * 100.0), 1)
+    score = max(0.0, min(100.0, score))
+    return score, status
+
+
+def _build_health_card_data(review_summary) -> dict:
+    health_score, status = _compute_review_health_score(review_summary)
+    summary_message = str(getattr(review_summary, "summary_message", "No summary available."))
+    rows = []
+    for r in list(getattr(review_summary, "results", []) or []):
+        cls_name = r.__class__.__name__
+        title = cls_name[:-11] if cls_name.endswith("CheckResult") else cls_name
+        check_status = str(getattr(getattr(getattr(r, "case", None), "status", None), "name", "UNKNOWN"))
+        rec = getattr(r, "recommendation", None)
+        rec_txt = str(rec) if rec else "No recommendation."
+        rows.append({
+            "check": str(title),
+            "status": str(check_status),
+            "recommendation": str(rec_txt),
+        })
+    return {
+        "title": "Model Health Card",
+        "score_label": "Model health score",
+        "score": float(health_score),
+        "overall_status": str(status),
+        "summary": str(summary_message),
+        "rows": rows,
+    }
+
+
+def _write_fallback_health_card_html(review_summary, out_path: Path) -> None:
+    card = _build_health_card_data(review_summary)
+    health_score = float(card["score"])
+    status = str(card["overall_status"])
+    summary_message = str(card["summary"])
+
+    row_html = "".join(
+        f"<tr><td>{escape(str(row.get('check', '')))}</td><td>{escape(str(row.get('status', '')))}</td><td>{escape(str(row.get('recommendation', '')))}</td></tr>"
+        for row in list(card.get("rows", []) or [])
+    ) or "<tr><td colspan='3'>No check rows available.</td></tr>"
+
+    html = f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Model Health Card</title>
+  <style>
+    body{{font-family:Arial,Helvetica,sans-serif;margin:16px;color:#173a66;background:#fff;}}
+    .card{{border:1px solid #d7e4f5;border-radius:12px;padding:14px;background:#f9fcff;}}
+    .chip{{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #b8cbe6;font-weight:700;}}
+    .layout{{display:grid;grid-template-columns:minmax(280px, 360px) 1fr;gap:24px;align-items:start;}}
+    .score-wrap{{display:flex;align-items:center;gap:20px;margin:8px 0 12px;}}
+    .score-ring{{width:130px;height:130px;border-radius:50%;
+      background:conic-gradient(#6ea4ff {health_score}%, #dbe8ff 0);
+      position:relative;flex:0 0 130px;}}
+    .score-ring::after{{content:'';position:absolute;inset:14px;border-radius:50%;background:#f9fcff;}}
+    .score-value{{font-size:56px;line-height:1;font-weight:700;color:#173a66;}}
+    .score-label{{font-size:28px;line-height:1.2;font-weight:700;color:#173a66;}}
+    table{{width:100%;border-collapse:collapse;margin-top:0;}}
+    th,td{{border-bottom:1px solid #e4ecf8;padding:8px 6px;text-align:left;font-size:13px;vertical-align:top;}}
+    th{{color:#355a86;font-weight:700;}}
+    .muted{{color:#5a7396;font-size:13px;margin-top:8px;}}
+    .left h2{{margin:0 0 8px;}}
+    .right{{padding-top:4px;}}
+    body.embedded{{margin:0;padding:0;background:transparent;}}
+    body.embedded .card{{border:0;border-radius:0;padding:0;background:transparent;box-shadow:none;}}
+    @media (max-width: 920px) {{
+      .layout{{grid-template-columns:1fr;gap:14px;}}
+      .right{{padding-top:0;}}
+    }}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="layout">
+      <div class="left">
+        <h2>Model Health Card</h2>
+        <div class="score-label">Model health score</div>
+        <div class="score-wrap">
+          <div class="score-ring" aria-label="Model health score ring"></div>
+          <div class="score-value">{health_score:.1f}</div>
+        </div>
+        <div class="chip">Overall: {escape(status)}</div>
+        <p class="muted">{escape(summary_message)}</p>
+      </div>
+      <div class="right">
+        <table>
+          <thead><tr><th>Check</th><th>Status</th><th>Recommendation</th></tr></thead>
+          <tbody>{row_html}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {{
+      try {{
+        if (window.self !== window.top) {{
+          document.body.classList.add("embedded");
+        }}
+      }} catch (_) {{}}
+    }})();
+  </script>
+</body>
+</html>"""
+    out_path.write_text(html, encoding="utf-8")
+
+
+def _export_meridian_official_outputs(
+    mmm,
+    review_summary,
+    outdir: Path,
+    *,
+    time_granularity: str = "quarterly",
+    use_kpi: bool = False,
+) -> None:
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    files = {}
+    chart_specs = {}
+    errors = []
+    health_card_data = _build_health_card_data(review_summary)
+    health_score_baseline = float(health_card_data["score"])
+    health_status_baseline = str(health_card_data["overall_status"])
+
+    prior_ready = False
+    try:
+        if hasattr(mmm, "sample_prior"):
+            try:
+                mmm.sample_prior()
+            except TypeError:
+                mmm.sample_prior(n_draws=1000)
+            prior_ready = True
+        else:
+            errors.append("sample_prior: Meridian model object does not expose sample_prior().")
+    except Exception as exc:
+        errors.append(f"sample_prior: {exc}")
+
+    if prior_ready:
+        try:
+            media_summary = meridian_visualizer.MediaSummary(mmm, use_kpi=use_kpi)
+            chart_jobs = [
+                ("spend_vs_contribution", "plot_spend_vs_contribution", {}, "spend_vs_contribution.html"),
+                ("roi_by_channel", "plot_roi_bar_chart", {"include_ci": True}, "roi_by_channel.html"),
+                ("roi_vs_mroi", "plot_roi_vs_mroi", {}, "roi_vs_mroi.html"),
+                ("roi_vs_effectiveness", "plot_roi_vs_effectiveness", {}, "roi_vs_effectiveness.html"),
+                ("contribution_waterfall", "plot_contribution_waterfall_chart", {}, "contribution_waterfall.html"),
+                (
+                    "contribution_over_time",
+                    "plot_channel_contribution_area_chart",
+                    {"time_granularity": str(time_granularity).strip().lower()},
+                    "contribution_over_time.html",
+                ),
+            ]
+            for key, fn_name, kwargs, filename in chart_jobs:
+                try:
+                    chart = getattr(media_summary, fn_name)(**kwargs)
+                    try:
+                        chart_specs[key] = chart.to_dict()
+                    except Exception as exc:
+                        errors.append(f"{key}_spec: {exc}")
+                    try:
+                        chart.save(str(outdir / filename))
+                        files[key] = filename
+                    except Exception as exc:
+                        errors.append(f"{key}_html: {exc}")
+                except Exception as exc:
+                    errors.append(f"{key}: {exc}")
+        except Exception as exc:
+            errors.append(f"media_summary_init: {exc}")
+    else:
+        errors.append("media_summary_init: skipped because sample_prior() was unavailable or failed.")
+
+    manifest = {
+        "files": files,
+        "chart_specs": chart_specs,
+        "errors": errors,
+        "health_score_baseline": health_score_baseline,
+        "health_status_baseline": health_status_baseline,
+        "health_card_data": health_card_data,
+        "time_granularity": str(time_granularity).strip().lower(),
+        "use_kpi": bool(use_kpi),
+    }
+    (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
 def main():
     args = _build_parser().parse_args()
     if args.out_roi_csv is None:
@@ -468,6 +873,17 @@ def main():
     qc_metrics = extract_qc_metrics_from_text(qc_report_full)
     check_details = extract_check_details(qc_report_full)
     qc_rollup = derive_qc_rollup(qc_status, review_needed, check_details, qc_report_full)
+    if args.official_outdir:
+        try:
+            _export_meridian_official_outputs(
+                mmm,
+                qc,
+                Path(args.official_outdir),
+                time_granularity=args.official_time_granularity,
+                use_kpi=bool(args.official_use_kpi),
+            )
+        except Exception as exc:
+            print(f"[warn] Failed to export official Meridian outputs: {exc}")
 
     shared_mu = mode["shared_mu"]
     shared_sigma = mode["shared_sigma"]
@@ -477,6 +893,16 @@ def main():
     shared_slope = normalized_structural["slope_m"]
     shared_max_lag = normalized_structural["max_lag"]
     shared_decay = normalized_structural["adstock_decay_spec"]
+
+    channel_prior_df = _build_channel_prior_params(
+        channels=channels,
+        multiprior=bool(mode["multiprior"]),
+        overrides=mode.get("overrides"),
+        target_channel=args.target_channel,
+        target_mu=args.mu,
+        target_sigma=args.sigma,
+        shared_dist=shared_dist,
+    )
 
     roi_df = extract_roi_mean(mmm, channels).assign(
         target_channel=mode["targets_str"],
@@ -489,6 +915,37 @@ def main():
         max_lag=shared_max_lag,
         adstock_decay_spec=shared_decay,
     )
+    roi_df = roi_df.merge(channel_prior_df, on="channel", how="left")
+
+    roi_df["prior_posterior_kl_gaussian"] = _kl_gaussian_from_moments(
+        post_mean=roi_df["estimated_roi"],
+        post_sd=roi_df["posterior_roi_sd"],
+        prior_mean=roi_df["prior_roi_mu_channel"],
+        prior_sd=roi_df["prior_roi_sigma_channel"],
+    )
+
+    roi_samples = np.asarray(mmm.inference_data.posterior["roi_m"].values, dtype=np.float64)
+    roi_samples_flat = roi_samples.reshape(-1, roi_samples.shape[-1])
+    rng = np.random.default_rng(int(args.seed))
+    n_draws = int(roi_samples_flat.shape[0])
+    w1_by_channel = {}
+    for channel_idx, channel_name in enumerate(channels):
+        posterior_draws = roi_samples_flat[:, channel_idx]
+        ch_row = channel_prior_df[channel_prior_df["channel"] == channel_name].iloc[0]
+        prior_mu = float(ch_row["prior_roi_mu_channel"])
+        prior_sigma = max(float(ch_row["prior_roi_sigma_channel"]), 1e-8)
+        prior_dist = str(ch_row["prior_roi_dist_channel"])
+
+        if prior_dist == "Normal":
+            prior_draws = rng.normal(loc=prior_mu, scale=prior_sigma, size=n_draws)
+        elif prior_dist == "LogNormal":
+            log_loc, log_scale = _natural_to_lognormal_params_scalar(prior_mu, prior_sigma)
+            prior_draws = rng.lognormal(mean=log_loc, sigma=log_scale, size=n_draws)
+        else:
+            prior_draws = np.array([], dtype=np.float64)
+        w1_by_channel[channel_name] = _wasserstein_1d_from_samples(posterior_draws, prior_draws)
+
+    roi_df["prior_posterior_wasserstein"] = roi_df["channel"].map(w1_by_channel)
 
     for col in ["roi_prior_mu", "roi_prior_sigma", "adstock_alpha_m", "saturation_ec_m", "saturation_slope_m", "max_lag"]:
         roi_df[col] = pd.to_numeric(roi_df[col], errors="coerce").round(6)

@@ -21,7 +21,7 @@ This policy defines how to assign decision tiers before the robustness score pip
 - Diagnostics remain within green limits.
 - Top sensitivity is below the high threshold.
 
-## Current Thresholds (from `config/report_google_meta_tiktok.yaml`)
+## Current Thresholds (from `config/dashboard.yaml`)
 - `high_sensitivity_pct`: 15.0
 - `medium_sensitivity_pct`: 7.5
 - Green limits:

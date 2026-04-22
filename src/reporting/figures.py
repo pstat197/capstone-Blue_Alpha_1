@@ -109,6 +109,62 @@ def _bluealpha_heatmap_cmap() -> LinearSegmentedColormap:
     )
 
 
+def _cleanup_stale_generated_figures(fig_dir: Path, out: dict) -> None:
+    """Remove legacy/stale generated figure files that are not referenced by this run."""
+    expected: set[str] = set()
+    single_keys = [
+        "tornado",
+        "tornado_dollar",
+        "spend_effect",
+        "adstock_curves",
+        "saturation_curves",
+        "carryover_decomposition",
+        "scenario_snapshot",
+    ]
+    for k in single_keys:
+        v = out.get(k)
+        if isinstance(v, str) and v.strip():
+            expected.add(Path(v).name)
+
+    for item in out.get("scenario_snapshots", []) or []:
+        path = item.get("path")
+        if isinstance(path, str) and path.strip():
+            expected.add(Path(path).name)
+
+    for item in out.get("heatmap_pages", []) or []:
+        path = item.get("path")
+        if isinstance(path, str) and path.strip():
+            expected.add(Path(path).name)
+
+    def is_managed_generated_file(name: str) -> bool:
+        if name in {
+            "tornado_top_sensitivity.png",
+            "tornado_dollar_sensitivity.png",
+            "spend_vs_effect_onepager.png",
+            "structural_adstock_curves.png",
+            "structural_saturation_curves.png",
+            "structural_carryover_decomposition.png",
+        }:
+            return True
+        if name.startswith("scenario_snapshot_") and name.endswith(".png"):
+            return True
+        if name.startswith("heatmap_board_") and name.endswith(".png"):
+            return True
+        return False
+
+    for p in fig_dir.glob("*.png"):
+        name = p.name
+        if not is_managed_generated_file(name):
+            continue
+        if name in expected:
+            continue
+        try:
+            p.unlink()
+        except Exception:
+            # Best-effort cleanup; never fail figure generation due to stale file removal.
+            continue
+
+
 def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) -> dict:
     fig_dir.mkdir(parents=True, exist_ok=True)
     out = {
@@ -584,6 +640,10 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
                         "is_default": mode == default_scale_mode,
                     }
                 )
+
+    cleanup_stale = bool(cfg.get("figures", {}).get("cleanup_stale_figure_outputs", True))
+    if cleanup_stale:
+        _cleanup_stale_generated_figures(fig_dir, out)
 
     return out
 

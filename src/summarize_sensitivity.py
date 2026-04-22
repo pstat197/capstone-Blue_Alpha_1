@@ -46,7 +46,7 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
         mu0 = _pick_center(g["roi_prior_mu"])
         sigma0 = _pick_center(g["roi_prior_sigma"])
         dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
-        dist0 = "Normal" if "Normal" in dists else (_pick_center(dists) if dists else None)
+        dist0 = "LogNormal" if "LogNormal" in dists else (_pick_center(dists) if dists else None)
 
         mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
         mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
@@ -157,6 +157,9 @@ def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
                 "run_id",
                 "prior_key",
                 "targets",
+                "roi_prior_mu",
+                "roi_prior_sigma",
+                "roi_prior_dist",
                 *STRUCTURAL_COLUMNS,
                 "is_baseline",
                 "qc_status_code",
@@ -231,7 +234,8 @@ def main():
     if "is_baseline" not in df.columns:
         raise ValueError("Missing column 'is_baseline' in results CSV. Cannot identify baseline reliably.")
 
-    baseline_df = df[df["is_baseline"] == True].copy()
+    baseline_mask = df["is_baseline"].astype(str).str.lower().isin({"true", "1", "yes"})
+    baseline_df = df[baseline_mask].copy()
     baseline_run_ids = None
     if baseline_df.empty:
         baseline_df = _infer_baseline_rows(df)
@@ -243,11 +247,21 @@ def main():
         if "run_id" in baseline_df.columns:
             baseline_run_ids = set(baseline_df["run_id"].dropna().astype(str).tolist())
         print("[warn] No explicit baseline rows found; inferred baseline from center prior values.")
+    baseline_metric_rename = {
+        "estimated_roi": "roi_baseline",
+        "posterior_roi_sd": "roi_baseline_sd",
+        "posterior_roi_p05": "roi_baseline_p05",
+        "posterior_roi_p50": "roi_baseline_p50",
+        "posterior_roi_p95": "roi_baseline_p95",
+    }
+    baseline_metric_cols = [c for c in baseline_metric_rename if c in baseline_df.columns]
+    if not baseline_metric_cols:
+        raise ValueError("Baseline rows are missing ROI metrics needed for tornado summarization.")
     baseline_summary = (
-        baseline_df.groupby(["targets", "channel"])["estimated_roi"]
+        baseline_df.groupby(["targets", "channel"])[baseline_metric_cols]
         .mean()
         .reset_index()
-        .rename(columns={"estimated_roi": "roi_baseline"})
+        .rename(columns=baseline_metric_rename)
     )
 
     df = df.merge(baseline_summary, on=["targets", "channel"], how="left")
@@ -258,6 +272,24 @@ def main():
         ((df["roi_new"] / df["roi_baseline"]) - 1).abs(),
         np.nan
     )
+
+    if "posterior_roi_p05" in df.columns:
+        df["roi_new_p05"] = pd.to_numeric(df["posterior_roi_p05"], errors="coerce")
+    if "posterior_roi_p50" in df.columns:
+        df["roi_new_p50"] = pd.to_numeric(df["posterior_roi_p50"], errors="coerce")
+    if "posterior_roi_p95" in df.columns:
+        df["roi_new_p95"] = pd.to_numeric(df["posterior_roi_p95"], errors="coerce")
+    if "posterior_roi_sd" in df.columns:
+        df["roi_new_sd"] = pd.to_numeric(df["posterior_roi_sd"], errors="coerce")
+
+    if {"roi_baseline_p05", "roi_baseline_p95", "roi_new_p05", "roi_new_p95"}.issubset(df.columns):
+        lo_base = pd.to_numeric(df["roi_baseline_p05"], errors="coerce")
+        hi_base = pd.to_numeric(df["roi_baseline_p95"], errors="coerce")
+        lo_new = pd.to_numeric(df["roi_new_p05"], errors="coerce")
+        hi_new = pd.to_numeric(df["roi_new_p95"], errors="coerce")
+        overlap = np.maximum(0.0, np.minimum(hi_base, hi_new) - np.maximum(lo_base, lo_new))
+        union = np.maximum(hi_base, hi_new) - np.minimum(lo_base, lo_new)
+        df["ci_overlap_baseline_new"] = np.where(union > 0, overlap / union, np.nan)
 
     spend_df = _load_channel_spend(project_root, sorted(df["channel"].dropna().astype(str).unique().tolist()))
     if not spend_df.empty:
@@ -279,7 +311,8 @@ def main():
     if baseline_run_ids is not None and "run_id" in df.columns:
         df = df[~df["run_id"].astype(str).isin(baseline_run_ids)].copy()
     else:
-        df = df[df["is_baseline"] == False].copy()
+        non_baseline_mask = df["is_baseline"].astype(str).str.lower().isin({"false", "0", "no"})
+        df = df[non_baseline_mask].copy()
     if df.empty:
         print(
             "[warn] No non-baseline rows available for tornado scoring. "
@@ -302,6 +335,23 @@ def main():
     ]
     optional_cols = [
         *STRUCTURAL_COLUMNS,
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "roi_prior_dist",
+        "roi_baseline_sd",
+        "roi_baseline_p05",
+        "roi_baseline_p50",
+        "roi_baseline_p95",
+        "roi_new_sd",
+        "roi_new_p05",
+        "roi_new_p50",
+        "roi_new_p95",
+        "ci_overlap_baseline_new",
+        "prior_roi_mu_channel",
+        "prior_roi_sigma_channel",
+        "prior_roi_dist_channel",
+        "prior_posterior_kl_gaussian",
+        "prior_posterior_wasserstein",
         "channel_total_spend",
         "incremental_outcome_baseline",
         "incremental_outcome_new",

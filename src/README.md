@@ -1,4 +1,4 @@
-﻿# src/ Technical Guide
+﻿# Technical Guide
 
 This folder contains the runnable MMM prior-sensitivity code.
 
@@ -6,24 +6,24 @@ This folder contains the runnable MMM prior-sensitivity code.
 
 ```powershell
 # 1) Run sensitivity experiments
-python -m src.main --targets google meta tiktok --config config/sensitivity_google_meta_tiktok_full18.yaml
+python -m src.main --targets google meta tiktok --config config/sensitivity.yaml
 
 # 2) Build tornado summary table
 python -m src.summarize_sensitivity google meta tiktok
 
 # 3) Build dashboard package
-python -m src.reporting.make_report --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
 
 ## Core Modules
 
-- `main.py`: runs experiment grid and writes split run outputs.
-- `run_meridian_once.py`: one model fit + diagnostics row + ROI rows.
+- `main.py`: runs experiment grid (includes experiment config + baseline stats).
+- `run_meridian_once.py`: one model fit + diagnostics + ROI extraction (includes ModelSpec building).
 - `summarize_sensitivity.py`: merges split outputs, writes tornado table.
-- `recommend_next_grid.py`: suggests next tests from sensitivity + QC.
-- `next_grid_generator.py`: writes next-iteration YAML automatically.
 - `pipeline.py`: one-command orchestrator.
-- `reporting/make_report.py`: builds dashboard/report artifacts.
+- `formatting.py`: shared formatting, value-safety, and QC status helpers.
+- `reporting/make_dashboard.py`: builds dashboard artifacts (includes CSV loading).
+- `viz/tornado_plots.py`: tornado sensitivity visualizations.
 
 ## Input Contract (minimum)
 

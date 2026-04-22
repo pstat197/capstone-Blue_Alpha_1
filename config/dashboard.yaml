@@ -1,0 +1,128 @@
+project:
+  title: "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)"
+  subtitle: "Google Meridian MMM - Prior Robustness Diagnostics"
+  authors:
+    - "Aidan Frazier"
+    - "Quinlan Wilson"
+    - "Jimmy Wu"
+    - "Jasper Luo"
+    - "Coraline Zhu"
+
+branding:
+  cobrand_label: "UCSB x BlueAlpha AI"
+  logos:
+    ucsb: "src/reporting/assets/ucsb_seal_gold.gif"
+    bluealpha: "src/reporting/assets/bluealpha_mark_blue.png"
+
+introduction:
+  title: "Introduction"
+  paragraphs:
+    - "Marketing Mix Models (MMM) are widely used by companies to evaluate the effectiveness of marketing channels and guide budget allocation decisions. Recent Bayesian MMM frameworks, such as Google Meridian, allow analysts to incorporate prior information into model estimation."
+    - "However, Bayesian models can be sensitive to prior assumptions. Small changes in prior parameters may lead to large differences in estimated ROI for marketing channels. Understanding this sensitivity is critical for building reliable MMM models."
+    - "This project proposes a systematic prior sensitivity analysis framework that evaluates how ROI estimates change across different prior configurations. The framework generates automated diagnostic reports that help analysts identify unstable parameters and improve model robustness."
+
+baseline:
+  rule: "median"
+
+ranking:
+  top_n: 10
+  score: "max_abs_pct_change"
+
+thresholds:
+  high_sensitivity_pct: 15.0
+  medium_sensitivity_pct: 7.5
+
+decision_policy:
+  name: "Traffic-Light Policy v2 (LogNormal-first robustness)"
+  require_qc_gate_for_green: true
+  max_diag_fail_runs_for_green: 0
+  max_diag_review_runs_for_green: 5
+  min_pass_coverage_pct_for_green: 60.0
+  red_on_qc_fail: true
+  red_on_no_qc_with_fail: true
+  yellow_on_sensitivity_ge_high: true
+  yellow_on_prior_guardrail_fail: true
+
+analysis:
+  # all: show all modeled channels in report
+  channel_scope: "all"
+  # all | pass_only | non_fail
+  ranking_qc_scope: "pass_only"
+  prior_guardrail:
+    enabled: true
+    max_neg_prior_prob: 0.20
+  pct_change_guardrail:
+    min_abs_baseline_roi: 0.05
+    require_positive_baseline: true
+    require_qc_pass_baseline: true
+    avoid_sign_flip_zone: true
+    local_neighbor_count: 4
+    max_local_sensitivity_ratio: 1.0
+  qc_gate:
+    enabled: true
+    mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    sigma_values: [0.5, 1.0, 1.5]
+    dists: [LogNormal]
+  workbench:
+    primary_dist: LogNormal
+    allow_legacy_distribution_debug: false
+    default_channel: meta
+  # scenario_selection:
+  # - largest_total_abs_pct_non_fail (recommended)
+  # - largest_total_abs_pct
+  # - first_non_baseline
+  scenario_selection: "largest_total_abs_pct_non_fail"
+
+presentation:
+  # hide | concise | full
+  diagnostics_level: "hide"
+  # hide | concise | full
+  structural_level: "concise"
+  # concise | full
+  qc_gate_level: "concise"
+  # false for client-facing deck/report
+  show_sources: false
+
+figures:
+  dpi: 160
+  make_tornado: true
+  make_spend_effect: true
+  spend_effect_top_n: 8
+  tornado_range_mode: "p05p95"
+  tornado_top_n: 10
+  make_scenario_snapshot: true
+  scenario_snapshot_top_n: 8
+  scenario_snapshot_max_runs: 6
+  make_structural: true
+  structural_top_profiles: 4
+  structural_top_runs: 12
+  carryover_top_channels: 10
+  make_heatmaps: true
+  heatmap_top_n: 4
+  heatmap_grid_rows: 2
+  heatmap_grid_cols: 2
+  heatmap_annotate_cells: true
+  heatmap_scale_mode: "robust_q95"  # robust_q95 | abs_max
+  heatmap_compare_scales: false
+
+theory:
+  enabled: false
+  title: "Linked Math Theory"
+  source_tex: "docs/theory/prior-sensitivity-theory.tex"
+  max_subsections: 8
+  max_equations: 8
+  highlights:
+    - "Posterior response is a weighted balance of data signal and prior pull."
+    - "Mu shifts move attribution center; sigma shifts change shrinkage strength."
+    - "Cross-channel reallocation appears under joint posterior estimation and collinearity."
+    - "Heatmap surfaces represent ROI response over the tested (mu, sigma) prior grid."
+
+methods:
+  baseline_description: "Baseline ROI is selected from the median prior location within each channel/dist pair, then validated by stability filters (QC pass, denominator magnitude, sign-stability, and local smoothness)."
+  sensitivity_description: "LogNormal prior sensitivity is the primary analysis surface; percent change is shown only for stable baselines, with |Delta ROI| fallback when denominator stability is weak."
+  visualization_description: "The dashboard emphasizes LogNormal grid exploration with channel-level drill-down, mu/sigma split diagnostics, box-and-whisker distributions, and ROI/contribution response surfaces."
+
+output:
+  write_dashboard: true
+  dashboard_filename: "dashboard.html"
+  dashboard_template: "dashboard_template.html"

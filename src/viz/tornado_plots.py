@@ -9,6 +9,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
+from src.formatting import fmt_money as _fmt_money
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 CSV_NAME = "data/output/02_tables/google_meta_tiktok/tornado_google_meta_tiktok.csv"
@@ -138,18 +140,8 @@ def _to_numeric(series: pd.Series) -> pd.Series:
     return pd.to_numeric(series, errors="coerce")
 
 
-def _fmt_money(x: float) -> str:
-    if pd.isna(x):
-        return "NA"
-    sign = "-" if x < 0 else ""
-    ax = abs(float(x))
-    if ax >= 1_000_000_000:
-        return f"{sign}${ax/1_000_000_000:.2f}B"
-    if ax >= 1_000_000:
-        return f"{sign}${ax/1_000_000:.2f}M"
-    if ax >= 1_000:
-        return f"{sign}${ax/1_000:.1f}K"
-    return f"{sign}${ax:,.0f}"
+
+# _fmt_money is now imported from src.formatting
 
 
 def _fmt_delta_money(x: float) -> str:

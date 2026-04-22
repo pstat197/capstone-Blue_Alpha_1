@@ -1,0 +1,40 @@
+experiment:
+  # Explicit prior grid only.
+  # 6 x 3 x 1 = 18 runs total with the fixed structural profile below.
+  roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+  roi_sigma_values: [0.5, 1.0, 1.5]
+  roi_dist_values: [LogNormal]
+
+structural:
+  # Fixed structural profile for full-grid prior sensitivity run.
+  alpha_m_values: [0.3]
+  ec_m_values: [0.5]
+  slope_m_values: [1.2]
+  max_lag_values: [4]
+  adstock_decay_values: [geometric]
+
+baseline:
+  # Deterministic baseline anchor for this explicit grid.
+  roi_mu: 0.5
+  roi_sigma: 0.5
+  roi_dist: LogNormal
+
+defaults:
+  # Active target set when running pipeline without CLI targets.
+  # One-channel: [google]
+  # Two-channel: [google, meta]
+  # Three-channel: [google, meta, tiktok]
+  targets: [google, meta, tiktok]
+  # Optional batch mode (run multiple sets in one command):
+  # target_sets:
+  #   - [google]
+  #   - [google, meta]
+  #   - [google, meta, tiktok]
+  target_sets: null
+
+sampler:
+  n_chains: 4
+  n_adapt: 700
+  n_burnin: 500
+  n_keep: 300
+  seed: 0

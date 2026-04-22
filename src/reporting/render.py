@@ -1,60 +1,19 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 import math
 import re
+import shutil
 from pathlib import Path
 
 from jinja2 import Environment, FileSystemLoader
 
-
-def _fmt_money(x: float) -> str:
-    v = float(x)
-    sign = "-" if v < 0 else ""
-    av = abs(v)
-    if av >= 1_000_000_000:
-        return f"{sign}${av/1_000_000_000:.2f}B"
-    if av >= 1_000_000:
-        return f"{sign}${av/1_000_000:.2f}M"
-    if av >= 1_000:
-        return f"{sign}${av/1_000:.1f}K"
-    return f"{sign}${av:,.2f}"
-
-
-
-def _is_missing_value(x) -> bool:
-    if x is None:
-        return True
-    if isinstance(x, str):
-        s = x.strip().lower()
-        return s in {"", "nan", "na", "n/a", "none", "null"}
-    try:
-        return math.isnan(float(x))
-    except Exception:
-        return False
-
-
-def _fmt_float_safe(x, digits: int = 6, missing_label: str = "-") -> str:
-    if _is_missing_value(x):
-        return missing_label
-    return f"{float(x):.{digits}f}"
-
-
-def _to_float_safe(x) -> float | None:
-    if _is_missing_value(x):
-        return None
-    if isinstance(x, str):
-        cleaned = re.sub(r"[^0-9eE+\-.]", "", x.strip())
-        if cleaned in {"", "-", "+", ".", "-.", "+."}:
-            return None
-        try:
-            return float(cleaned)
-        except Exception:
-            return None
-    try:
-        return float(x)
-    except Exception:
-        return None
+from src.formatting import (
+    fmt_money as _fmt_money,
+    is_missing_value as _is_missing_value,
+    fmt_float_safe as _fmt_float_safe,
+    to_float_safe as _to_float_safe,
+)
 
 
 def _clean_text_safe(x, missing_label: str = "-") -> str:
@@ -68,6 +27,38 @@ def _truncate_text(s: str, max_len: int = 58) -> str:
     if len(text) <= max_len:
         return text
     return text[: max_len - 1] + "..."
+
+
+def _json_compatible(value, *, float_decimals: int | None = None):
+    """Recursively convert payload values to strict-JSON-safe primitives.
+
+    In particular, converts NaN/inf to None so browser-side JSON.parse succeeds.
+    """
+    if isinstance(value, dict):
+        return {str(k): _json_compatible(v, float_decimals=float_decimals) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_json_compatible(v, float_decimals=float_decimals) for v in value]
+    if isinstance(value, tuple):
+        return [_json_compatible(v, float_decimals=float_decimals) for v in value]
+    if value is None or isinstance(value, (str, bool)):
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            return None
+        value_f = float(value)
+        if isinstance(float_decimals, int) and float_decimals >= 0:
+            return round(value_f, float_decimals)
+        return value_f
+    if isinstance(value, int):
+        return int(value)
+
+    # numpy/pandas scalar fallback
+    if hasattr(value, "item"):
+        try:
+            return _json_compatible(value.item(), float_decimals=float_decimals)
+        except Exception:
+            pass
+    return value
 
 def _load_theory_block(cfg: dict) -> dict:
     theory_cfg = cfg.get("theory", {})
@@ -139,7 +130,7 @@ def _load_theory_block(cfg: dict) -> dict:
     }
 
 
-def render_html_report(
+def render_dashboard_output(
     metrics: dict,
     fig_paths: dict,
     cfg: dict,
@@ -150,7 +141,9 @@ def render_html_report(
 ) -> None:
     template_dir = Path(__file__).resolve().parent / "templates"
     env = Environment(loader=FileSystemLoader(str(template_dir)))
-    template = env.get_template("report_template.html")
+    output_cfg = cfg.get("output", {}) or {}
+    write_report = bool(output_cfg.get("write_report", False))
+    template = env.get_template("report_template.html") if write_report else None
 
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
@@ -162,6 +155,7 @@ def render_html_report(
     scenario_snapshot = metrics.get("scenario_snapshot", {"available": False})
     spend_effect = metrics.get("spend_effect", {"available": False})
     structural = metrics.get("structural", {"available": False})
+    workbench = metrics.get("workbench", {"available": False})
     presentation_cfg = cfg.get("presentation", {}) or {}
     diagnostics_level = str(presentation_cfg.get("diagnostics_level", "concise")).strip().lower()
     structural_level = str(presentation_cfg.get("structural_level", "concise")).strip().lower()
@@ -271,18 +265,36 @@ def render_html_report(
                 "tables/structural_carryover_by_channel.csv",
             ]
         )
+    if workbench.get("available"):
+        appendix_tables.extend(
+            [
+                "tables/workbench_run_level.csv",
+                "tables/workbench_channel_summary.csv",
+                "tables/workbench_mu_marginal_summary.csv",
+                "tables/workbench_sigma_marginal_summary.csv",
+                "tables/workbench_mu_sigma_split_summary.csv",
+                "tables/workbench_mu_sensitivity_rank.csv",
+                "tables/workbench_sigma_sensitivity_rank.csv",
+            ]
+        )
 
     rank_table_raw_df = metrics["rank_df"].copy()
     rank_table_df = rank_table_raw_df.copy()
     if "baseline_roi" in rank_table_df.columns:
-        rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
+        rank_table_df["baseline_roi"] = rank_table_df["baseline_roi"].map(
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}"
+        )
     if "max_abs_pct_change" in rank_table_df.columns:
         rank_table_df["max_abs_pct_change"] = rank_table_df["max_abs_pct_change"].map(
-            lambda x: f"{float(x):.2f}%"
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}%"
+        )
+    if "max_abs_pct_change_raw" in rank_table_df.columns:
+        rank_table_df["max_abs_pct_change_raw"] = rank_table_df["max_abs_pct_change_raw"].map(
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}%"
         )
     if "max_abs_delta_roi" in rank_table_df.columns:
         rank_table_df["max_abs_delta_roi"] = rank_table_df["max_abs_delta_roi"].map(
-            lambda x: f"{float(x):.4f}"
+            lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}"
         )
 
     if "primary_metric" in rank_table_df.columns:
@@ -291,9 +303,13 @@ def render_html_report(
         )
         rank_table_df["max_change_display"] = rank_table_df.apply(
             lambda r: (
-                f"{float(r.get('primary_value')):.2f}%"
-                if str(r.get("primary_metric")) == "pct_change"
-                else f"{float(r.get('primary_value')):.4f}"
+                "NA"
+                if _to_float_safe(r.get("primary_value")) is None
+                else (
+                    f"{float(_to_float_safe(r.get('primary_value'))):.3f}%"
+                    if str(r.get("primary_metric")) == "pct_change"
+                    else f"{float(_to_float_safe(r.get('primary_value'))):.3f}"
+                )
             ),
             axis=1,
         )
@@ -312,6 +328,8 @@ def render_html_report(
     if "pct_metric_reliable" in rank_table_df.columns:
         stable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] == True].copy()  # noqa: E712
         unstable_rank_df = rank_table_df[rank_table_df["pct_metric_reliable"] != True].copy()  # noqa: E712
+        if "max_abs_pct_change_raw" in unstable_rank_df.columns:
+            unstable_rank_df["max_abs_pct_change"] = unstable_rank_df["max_abs_pct_change_raw"]
         rank_table_exec_df = stable_rank_df.head(top_n).copy()
         if rank_table_exec_df.empty:
             rank_table_exec_df = rank_table_df.head(top_n).copy()
@@ -359,7 +377,7 @@ def render_html_report(
             baseline_neg_prob = (
                 None
                 if _is_missing_value(row.get("qc_baseline_neg_prob"))
-                else f"{float(row.get('qc_baseline_neg_prob')):.2f}"
+                else f"{float(row.get('qc_baseline_neg_prob')):.3f}"
             )
 
             notes_parts = []
@@ -381,8 +399,8 @@ def render_html_report(
                     "scenario_id": f"Q{idx}",
                     "run_id": run_id_text,
                     "run_id_short": _truncate_text(run_id_text, max_len=64) if run_id_text else "",
-                    "roi_prior_mu": _fmt_float_safe(row.get("roi_prior_mu"), digits=6),
-                    "roi_prior_sigma": _fmt_float_safe(row.get("roi_prior_sigma"), digits=6),
+                    "roi_prior_mu": _fmt_float_safe(row.get("roi_prior_mu"), digits=3),
+                    "roi_prior_sigma": _fmt_float_safe(row.get("roi_prior_sigma"), digits=3),
                     "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), "-"),
                     "qc_status_code": status,
                     "review_notes": review_notes,
@@ -399,14 +417,14 @@ def render_html_report(
                         if row.get("max_change") is None
                         else _fmt_money(float(row.get("max_change")))
                         if qc_gate.get("rank_metric") == "delta_value_abs"
-                        else f"{float(row.get('max_change')):.4f}"
+                        else f"{float(row.get('max_change')):.3f}"
                     ),
                     "median_change": (
                         "NA"
                         if row.get("median_change") is None
                         else _fmt_money(float(row.get("median_change")))
                         if qc_gate.get("rank_metric") == "delta_value_abs"
-                        else f"{float(row.get('median_change')):.4f}"
+                        else f"{float(row.get('median_change')):.3f}"
                     ),
                     "n": int(row.get("n", 0) or 0),
                 }
@@ -415,8 +433,8 @@ def render_html_report(
         qc_gate_block = {
             "available": True,
             "result": qc_gate.get("result", "REVIEW"),
-            "mu_values": [_fmt_float_safe(v, digits=6, missing_label="NA") for v in qc_gate.get("mu_values", [])],
-            "sigma_values": [_fmt_float_safe(v, digits=6, missing_label="NA") for v in qc_gate.get("sigma_values", [])],
+            "mu_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("mu_values", [])],
+            "sigma_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("sigma_values", [])],
             "dists": qc_gate.get("dists", []),
             "overview": qc_gate.get("overview", {}),
             "status_rows": qc_gate.get("status_rows", []),
@@ -441,6 +459,15 @@ def render_html_report(
             "headline": _clean_text_safe(decision_card.get("headline"), ""),
             "score_label": _clean_text_safe(decision_card.get("score_label"), ""),
             "score_value": _clean_text_safe(decision_card.get("score_value"), ""),
+            "score_note": _clean_text_safe(decision_card.get("score_note"), ""),
+            "score_subscores": [
+                {
+                    "id": _clean_text_safe(x.get("id"), ""),
+                    "label": _clean_text_safe(x.get("label"), ""),
+                    "value": _to_float_safe(x.get("value")),
+                }
+                for x in (decision_card.get("score_subscores", []) or [])
+            ],
             "policy_name": _clean_text_safe(decision_card.get("policy_name"), ""),
             "policy_rules": decision_card.get("policy_rules", []),
             "triggered_rules": decision_card.get("triggered_rules", []),
@@ -460,22 +487,22 @@ def render_html_report(
                         "spend_share_pct": (
                             "NA"
                             if row.get("spend_share_pct") is None
-                            else f"{float(row.get('spend_share_pct')):.1f}%"
+                            else f"{float(row.get('spend_share_pct')):.3f}%"
                         ),
                         "effect_share_pct": (
                             "NA"
                             if row.get("effect_share_pct") is None
-                            else f"{float(row.get('effect_share_pct')):.1f}%"
+                            else f"{float(row.get('effect_share_pct')):.3f}%"
                         ),
                         "share_gap_pp": (
                             "NA"
                             if row.get("share_gap_pp") is None
-                            else f"{float(row.get('share_gap_pp')):+.1f} pp"
+                            else f"{float(row.get('share_gap_pp')):+.3f} pp"
                         ),
                         "estimated_roi": (
                             "NA"
                             if row.get("estimated_roi") is None
-                            else f"{float(row.get('estimated_roi')):.4f}"
+                            else f"{float(row.get('estimated_roi')):.3f}"
                         ),
                         "effect_negative": bool(row.get("effect_negative", False)),
                     }
@@ -515,15 +542,21 @@ def render_html_report(
                 snap_df = snap_df.head(snap_top_n)
 
             if "pct_change" in snap_df.columns:
-                snap_df["pct_change"] = snap_df["pct_change"].map(lambda x: f"{float(x):.2f}%")
+                snap_df["pct_change"] = snap_df["pct_change"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}%"
+                )
             if "delta_value_used" in snap_df.columns:
                 snap_df["delta_value_used"] = snap_df["delta_value_used"].map(
                     lambda x: _fmt_money(float(x)) if str(x).strip().lower() not in {"nan", "none", ""} else "NA"
                 )
             if "estimated_roi" in snap_df.columns:
-                snap_df["estimated_roi"] = snap_df["estimated_roi"].map(lambda x: f"{float(x):.4f}")
+                snap_df["estimated_roi"] = snap_df["estimated_roi"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}"
+                )
             if "baseline_roi" in snap_df.columns:
-                snap_df["baseline_roi"] = snap_df["baseline_roi"].map(lambda x: f"{float(x):.4f}")
+                snap_df["baseline_roi"] = snap_df["baseline_roi"].map(
+                    lambda x: "NA" if _to_float_safe(x) is None else f"{float(_to_float_safe(x)):.3f}"
+                )
 
             keep_cols = [
                 c
@@ -565,10 +598,10 @@ def render_html_report(
                     "saturation_slope_m": ("NA" if row.get("saturation_slope_m") is None else f"{float(row.get('saturation_slope_m')):.3f}"),
                     "max_lag": ("NA" if row.get("max_lag") is None else str(int(float(row.get("max_lag"))))),
                     "adstock_decay_spec": row.get("adstock_decay_spec"),
-                    "immediate_share": ("NA" if row.get("immediate_share") is None else f"{100.0*float(row.get('immediate_share')):.1f}%"),
-                    "carryover_share": ("NA" if row.get("carryover_share") is None else f"{100.0*float(row.get('carryover_share')):.1f}%"),
-                    "avg_lag": ("NA" if row.get("avg_lag") is None else f"{float(row.get('avg_lag')):.2f}"),
-                    "half_life_lag": ("NA" if row.get("half_life_lag") is None else f"{float(row.get('half_life_lag')):.2f}"),
+                    "immediate_share": ("NA" if row.get("immediate_share") is None else f"{100.0*float(row.get('immediate_share')):.3f}%"),
+                    "carryover_share": ("NA" if row.get("carryover_share") is None else f"{100.0*float(row.get('carryover_share')):.3f}%"),
+                    "avg_lag": ("NA" if row.get("avg_lag") is None else f"{float(row.get('avg_lag')):.3f}"),
+                    "half_life_lag": ("NA" if row.get("half_life_lag") is None else f"{float(row.get('half_life_lag')):.3f}"),
                     "n_runs": int(row.get("n_runs", 0) or 0),
                 }
             )
@@ -578,8 +611,8 @@ def render_html_report(
             run_rows.append(
                 {
                     "run_id": row.get("run_id"),
-                    "roi_prior_mu": ("NA" if row.get("roi_prior_mu") is None else f"{float(row.get('roi_prior_mu')):.6f}"),
-                    "roi_prior_sigma": ("NA" if row.get("roi_prior_sigma") is None else f"{float(row.get('roi_prior_sigma')):.6f}"),
+                    "roi_prior_mu": ("NA" if row.get("roi_prior_mu") is None else f"{float(row.get('roi_prior_mu')):.3f}"),
+                    "roi_prior_sigma": ("NA" if row.get("roi_prior_sigma") is None else f"{float(row.get('roi_prior_sigma')):.3f}"),
                     "roi_prior_dist": row.get("roi_prior_dist"),
                     "adstock_alpha_m": ("NA" if row.get("adstock_alpha_m") is None else f"{float(row.get('adstock_alpha_m')):.3f}"),
                     "saturation_ec_m": ("NA" if row.get("saturation_ec_m") is None else f"{float(row.get('saturation_ec_m')):.3f}"),
@@ -588,7 +621,7 @@ def render_html_report(
                     "adstock_decay_spec": row.get("adstock_decay_spec"),
                     "qc_status_code": row.get("qc_status_code"),
                     "is_baseline": bool(row.get("is_baseline", False)),
-                    "total_abs_pct_change": ("NA" if row.get("total_abs_pct_change") is None else f"{float(row.get('total_abs_pct_change')):.2f}"),
+                    "total_abs_pct_change": ("NA" if row.get("total_abs_pct_change") is None else f"{float(row.get('total_abs_pct_change')):.3f}"),
                 }
             )
 
@@ -629,12 +662,16 @@ def render_html_report(
         primary_value = _to_float_safe(row.get("primary_value"))
         if primary_value is None:
             primary_value = _to_float_safe(row.get("max_abs_pct_change"))
+        raw_pct_value = _to_float_safe(row.get("max_abs_pct_change_raw"))
+        if primary_value is None and primary_metric == "pct_change":
+            primary_value = raw_pct_value
         rank_dashboard_rows.append(
             {
                 "channel": _clean_text_safe(row.get("channel"), "unknown"),
                 "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), "Unknown"),
                 "baseline_roi": _to_float_safe(row.get("baseline_roi")),
                 "max_abs_pct_change": _to_float_safe(row.get("max_abs_pct_change")),
+                "max_abs_pct_change_raw": raw_pct_value,
                 "max_abs_delta_roi": _to_float_safe(row.get("max_abs_delta_roi")),
                 "primary_metric": primary_metric,
                 "primary_value": primary_value,
@@ -679,6 +716,215 @@ def render_html_report(
             }
         )
 
+    workbench_block = {"available": False}
+    if workbench.get("available"):
+        dist_cfg = workbench.get("dist_config", {}) or {}
+
+        run_rows = []
+        run_df = workbench.get("run_level_df")
+        if run_df is not None and not run_df.empty:
+            for row in run_df.to_dict(orient="records"):
+                run_rows.append(
+                    {
+                        "run_id": _clean_text_safe(row.get("run_id"), ""),
+                        "channel": _clean_text_safe(row.get("channel"), "unknown"),
+                        "target_channel": _clean_text_safe(row.get("target_channel"), ""),
+                        "targets": _clean_text_safe(row.get("targets"), ""),
+                        "roi_prior_mu": _to_float_safe(row.get("roi_prior_mu")),
+                        "roi_prior_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+                        "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), ""),
+                        "is_baseline": bool(row.get("is_baseline", False)),
+                        "estimated_roi": _to_float_safe(row.get("estimated_roi")),
+                        "baseline_roi": _to_float_safe(row.get("baseline_roi")),
+                        "pct_change": _to_float_safe(row.get("pct_change")),
+                        "delta_abs": _to_float_safe(row.get("delta_abs")),
+                        "delta_pct": _to_float_safe(row.get("delta_pct")),
+                        "contribution_value": _to_float_safe(row.get("contribution_value")),
+                        "contribution_delta": _to_float_safe(row.get("contribution_delta")),
+                        "contribution_share": _to_float_safe(row.get("contribution_share")),
+                        "effect_value": _to_float_safe(row.get("effect_value")),
+                        "effect_share": _to_float_safe(row.get("effect_share")),
+                        "channel_total_spend": _to_float_safe(row.get("channel_total_spend")),
+                        "spend_share": _to_float_safe(row.get("spend_share")),
+                        "adstock_alpha_m": _to_float_safe(row.get("adstock_alpha_m")),
+                        "saturation_ec_m": _to_float_safe(row.get("saturation_ec_m")),
+                        "saturation_slope_m": _to_float_safe(row.get("saturation_slope_m")),
+                        "max_lag": _to_float_safe(row.get("max_lag")),
+                        "adstock_decay_spec": _clean_text_safe(row.get("adstock_decay_spec"), ""),
+                        "qc_status_code": _clean_text_safe(row.get("qc_status_code"), ""),
+                        "qc_summary_short": _clean_text_safe(row.get("qc_summary_short"), ""),
+                    }
+                )
+
+        def _df_to_records(df_obj):
+            if df_obj is None or df_obj.empty:
+                return []
+            out_rows = []
+            for row in df_obj.to_dict(orient="records"):
+                out = {}
+                for k, v in row.items():
+                    if isinstance(v, bool):
+                        out[k] = bool(v)
+                        continue
+                    f = _to_float_safe(v)
+                    if f is not None:
+                        out[k] = f
+                    else:
+                        if isinstance(v, str):
+                            out[k] = _clean_text_safe(v, "")
+                        elif isinstance(v, (int, float)):
+                            try:
+                                vv = float(v)
+                                out[k] = vv if math.isfinite(vv) else None
+                            except Exception:
+                                out[k] = None
+                        else:
+                            out[k] = None if _is_missing_value(v) else v
+                out_rows.append(out)
+            return out_rows
+
+        workbench_block = {
+            "available": True,
+            "notes": _clean_text_safe(workbench.get("notes"), ""),
+            "contribution_col": _clean_text_safe(workbench.get("contribution_col"), ""),
+            "contribution_delta_col": _clean_text_safe(workbench.get("contribution_delta_col"), ""),
+            "default_channel": _clean_text_safe(workbench.get("default_channel"), ""),
+            "available_channels": workbench.get("available_channels", []),
+            "mu_values": [float(v) for v in workbench.get("mu_values", [])],
+            "sigma_values": [float(v) for v in workbench.get("sigma_values", [])],
+            "dist_config": {
+                "primary_dist": _clean_text_safe(dist_cfg.get("primary_dist"), ""),
+                "primary_dist_requested": _clean_text_safe(dist_cfg.get("primary_dist_requested"), ""),
+                "primary_dist_fallback_used": bool(dist_cfg.get("primary_dist_fallback_used", False)),
+                "allow_legacy_distribution_debug": bool(dist_cfg.get("allow_legacy_distribution_debug", False)),
+                "available_dists": dist_cfg.get("available_dists", []),
+            },
+            "run_rows": run_rows,
+            "channel_summary_rows": _df_to_records(workbench.get("channel_summary_df")),
+            "mu_marginal_rows": _df_to_records(workbench.get("mu_marginal_df")),
+            "sigma_marginal_rows": _df_to_records(workbench.get("sigma_marginal_df")),
+            "mu_sigma_split_rows": _df_to_records(workbench.get("sensitivity_split_df")),
+            "mu_rank_rows": _df_to_records(workbench.get("mu_rank_df")),
+            "sigma_rank_rows": _df_to_records(workbench.get("sigma_rank_df")),
+        }
+
+    import numpy as _np
+    merged_df_for_tornado = metrics.get("merged_df")
+    roi_tornado_rows: list[dict] = []
+    if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
+        tornado_range_mode = str(cfg.get("figures", {}).get("tornado_range_mode", "p05p95")).strip().lower()
+        for channel, g in merged_df_for_tornado.groupby("channel", as_index=False):
+            vals = _np.array([])
+            source = ""
+            if "pct_change" in g.columns:
+                vals = g["pct_change"].dropna().to_numpy(dtype=float)
+                source = "pct_change"
+            if vals.size == 0 and "pct_change_raw" in g.columns:
+                vals = g["pct_change_raw"].dropna().to_numpy(dtype=float)
+                source = "pct_change_raw"
+            if vals.size == 0:
+                continue
+            if tornado_range_mode == "minmax":
+                left_v = float(_np.min(vals))
+                right_v = float(_np.max(vals))
+            else:
+                left_v = float(_np.quantile(vals, 0.05))
+                right_v = float(_np.quantile(vals, 0.95))
+            roi_tornado_rows.append({
+                "channel": str(channel),
+                "left": left_v,
+                "right": right_v,
+                "impact": max(abs(left_v), abs(right_v)),
+                "n": int(vals.size),
+                "source": source,
+            })
+        roi_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
+
+    dollar_tornado_rows: list[dict] = []
+    if dollar.get("available") and dollar.get("rank_df") is not None:
+        for row in dollar["rank_df"].to_dict(orient="records"):
+            left_v = _to_float_safe(row.get("left_dollar"))
+            right_v = _to_float_safe(row.get("right_dollar"))
+            if left_v is None or right_v is None:
+                continue
+            dollar_tornado_rows.append({
+                "channel": str(row.get("channel", "")),
+                "left_dollar": float(left_v),
+                "right_dollar": float(right_v),
+                "max_abs_dollar_change": float(max(abs(left_v), abs(right_v))),
+                "median_dollar_change": _to_float_safe(row.get("median_dollar_change")),
+                "n": int(row.get("n", 0) or 0),
+            })
+
+    meridian_official_dir = outdir / "figures" / "meridian_official"
+    manifest_data = {}
+    manifest_path = meridian_official_dir / "manifest.json"
+    if manifest_path.exists() and manifest_path.is_file():
+        try:
+            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
+        except Exception:
+            manifest_data = {}
+    if not isinstance(manifest_data, dict):
+        manifest_data = {}
+
+    def _official_rel(filename: str) -> str | None:
+        p = meridian_official_dir / filename
+        if p.exists() and p.is_file():
+            return f"figures/meridian_official/{filename}"
+        return None
+
+    official_chart_keys = [
+        "spend_vs_contribution",
+        "roi_by_channel",
+        "roi_vs_mroi",
+        "roi_vs_effectiveness",
+        "contribution_waterfall",
+        "contribution_over_time",
+    ]
+    official_chart_defaults = {
+        "spend_vs_contribution": "spend_vs_contribution.html",
+        "roi_by_channel": "roi_by_channel.html",
+        "roi_vs_mroi": "roi_vs_mroi.html",
+        "roi_vs_effectiveness": "roi_vs_effectiveness.html",
+        "contribution_waterfall": "contribution_waterfall.html",
+        "contribution_over_time": "contribution_over_time.html",
+    }
+    manifest_files_raw = manifest_data.get("files", {}) if isinstance(manifest_data, dict) else {}
+    manifest_files = manifest_files_raw if isinstance(manifest_files_raw, dict) else {}
+    meridian_official_files = {
+        key: _official_rel(str(manifest_files.get(key) or official_chart_defaults[key]))
+        for key in official_chart_keys
+    }
+
+    manifest_specs_raw = manifest_data.get("chart_specs", {}) if isinstance(manifest_data, dict) else {}
+    meridian_chart_specs = manifest_specs_raw if isinstance(manifest_specs_raw, dict) else {}
+
+    def _extract_vega_spec_from_html(path: Path) -> dict | None:
+        try:
+            text = path.read_text(encoding="utf-8-sig", errors="ignore")
+        except Exception:
+            return None
+        m = re.search(r"var\s+spec\s*=\s*(\{.*?\})\s*;\s*var\s+embedOpt", text, flags=re.S)
+        if not m:
+            return None
+        try:
+            spec = json.loads(m.group(1))
+        except Exception:
+            return None
+        return spec if isinstance(spec, dict) else None
+
+    for key in official_chart_keys:
+        if isinstance(meridian_chart_specs.get(key), dict):
+            continue
+        filename = str(manifest_files.get(key) or official_chart_defaults[key])
+        src_path = meridian_official_dir / filename
+        if src_path.exists() and src_path.is_file():
+            extracted = _extract_vega_spec_from_html(src_path)
+            if extracted:
+                meridian_chart_specs[key] = extracted
+
+    meridian_official_available = any(isinstance(meridian_chart_specs.get(key), dict) for key in official_chart_keys)
+
     dashboard_payload = {
         "meta": {
             "title": meta.get("title", "Report"),
@@ -698,92 +944,101 @@ def render_html_report(
         "rank_rows": rank_dashboard_rows,
         "spend_effect_rows": spend_effect_dashboard_rows,
         "scenario_items": scenario_dashboard_items,
+        "roi_tornado_rows": roi_tornado_rows,
+        "dollar_tornado_rows": dollar_tornado_rows,
+        "dollar_meta": {
+            "available": bool(dollar.get("available")),
+            "dollars_per_subscription_note": str(dollar.get("dollars_per_subscription_note", "unknown")),
+            "range_mode": str(dollar.get("range_mode", "p05p95")),
+        },
+        "structural": structural_block,
+        "workbench": workbench_block,
+        "meridian_official": {
+            "available": bool(meridian_official_available),
+            "files": meridian_official_files,
+            "chart_specs": meridian_chart_specs,
+            "manifest": manifest_data,
+        },
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
-        "figures": {
-            "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
-            "tornado_dollar": (
-                f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
-            ),
-            "spend_effect": (
-                f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
-            ),
-            "adstock_curves": (
-                f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
-            ),
-            "saturation_curves": (
-                f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
-            ),
-            "carryover_decomposition": (
-                f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
-            ),
-            "scenario_snapshot": (
-                f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
-            ),
-        },
-        "heatmap_pages": [f"figures/{x}" for x in fig_paths.get("heatmap_pages", [])],
-        "heatmap_modes": fig_paths.get("heatmap_modes", []),
-        "default_heatmap_mode": fig_paths.get("default_heatmap_mode"),
     }
-    html = template.render(
-        meta=meta,
-        methods=methods,
-        introduction=intro_block,
-        theory=theory_block,
-        scope=scope_block,
-        overview=overview,
-        diagnostics=diagnostics,
-        diagnostics_focus=diagnostics_focus,
-        qc_gate=qc_gate_block,
-        decision_card=decision_card_block,
-        dollar=dollar_block,
-        scenario_snapshot=scenario_block,
-        spend_effect=spend_effect_block,
-        structural=structural_block,
-        display=display_block,
-        quick_overview_lines=metrics.get("quick_overview_lines", []),
-        rank_table=rank_table_exec_df.to_dict(orient="records"),
-        rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
-        exec_table_mode=exec_table_mode,
-        recommendations=metrics["recommendations"],
-        figures={
-            "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
-            "tornado_dollar": (
-                f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
-            ),
-            "spend_effect": (
-                f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
-            ),
-            "adstock_curves": (
-                f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
-            ),
-            "saturation_curves": (
-                f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
-            ),
-            "carryover_decomposition": (
-                f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
-            ),
-            "scenario_snapshot": (
-                f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
-            ),
-        },
-        heatmap_pages=fig_paths.get("heatmap_pages", []),
-        heatmap_modes=fig_paths.get("heatmap_modes", []),
-        default_heatmap_mode=fig_paths.get("default_heatmap_mode"),
-        appendix_tables=appendix_tables,
-        show_appendix=bool(cfg.get("output", {}).get("show_appendix", False)),
-    )
+    dashboard_payload = _json_compatible(dashboard_payload, float_decimals=3)
+    if write_report and template is not None:
+        html = template.render(
+            meta=meta,
+            methods=methods,
+            introduction=intro_block,
+            theory=theory_block,
+            scope=scope_block,
+            overview=overview,
+            diagnostics=diagnostics,
+            diagnostics_focus=diagnostics_focus,
+            qc_gate=qc_gate_block,
+            decision_card=decision_card_block,
+            dollar=dollar_block,
+            scenario_snapshot=scenario_block,
+            spend_effect=spend_effect_block,
+            structural=structural_block,
+            display=display_block,
+            quick_overview_lines=metrics.get("quick_overview_lines", []),
+            rank_table=rank_table_exec_df.to_dict(orient="records"),
+            rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
+            exec_table_mode=exec_table_mode,
+            recommendations=metrics["recommendations"],
+            figures={
+                "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
+                "tornado_dollar": (
+                    f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
+                ),
+                "spend_effect": (
+                    f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
+                ),
+                "adstock_curves": (
+                    f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
+                ),
+                "saturation_curves": (
+                    f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
+                ),
+                "carryover_decomposition": (
+                    f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
+                ),
+                "scenario_snapshot": (
+                    f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
+                ),
+            },
+            heatmap_pages=fig_paths.get("heatmap_pages", []),
+            heatmap_modes=fig_paths.get("heatmap_modes", []),
+            default_heatmap_mode=fig_paths.get("default_heatmap_mode"),
+            appendix_tables=appendix_tables,
+            show_appendix=bool(output_cfg.get("show_appendix", False)),
+        )
 
-    out_path = outdir / cfg["output"]["report_filename"]
-    out_path.write_text(html, encoding="utf-8")
+        out_path = outdir / str(output_cfg.get("report_filename", "report.html"))
+        out_path.write_text(html, encoding="utf-8")
+    elif not write_report:
+        stale_report_path = outdir / str(output_cfg.get("report_filename", "report.html"))
+        if stale_report_path.exists() and stale_report_path.is_file():
+            try:
+                stale_report_path.unlink()
+            except Exception:
+                pass
 
     payload_path = outdir / "tables" / "dashboard_payload.json"
-    payload_path.write_text(json.dumps(dashboard_payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    payload_path.write_text(
+        json.dumps(dashboard_payload, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
 
-    output_cfg = cfg.get("output", {}) or {}
     write_dashboard = bool(output_cfg.get("write_dashboard", True))
     if write_dashboard:
         dashboard_template_name = str(output_cfg.get("dashboard_template", "dashboard_template.html"))
+        dashboard_css_name = str(output_cfg.get("dashboard_css", "dashboard.css"))
+        dashboard_css_src = template_dir / dashboard_css_name
+        dashboard_css_href = dashboard_css_name
+        if dashboard_css_src.exists() and dashboard_css_src.is_file():
+            dashboard_css_dest = outdir / dashboard_css_name
+            dashboard_css_dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(dashboard_css_src, dashboard_css_dest)
         dashboard_nav = {
             "overview": str(output_cfg.get("dashboard_filename", "dashboard.html")),
         }
@@ -802,16 +1057,18 @@ def render_html_report(
                     dashboard_payload=dashboard_payload,
                     dashboard_page=page_key,
                     dashboard_nav=dashboard_nav,
+                    dashboard_css_href=dashboard_css_href,
                 )
                 (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
                 kept_files.add(page_filename)
 
+            # Legacy multi-page dashboard outputs from older template generations.
             stale_candidates = [
-                str(output_cfg.get("dashboard_sensitivity_filename", "dashboard_sensitivity.html")),
-                str(output_cfg.get("dashboard_allocation_filename", "dashboard_allocation.html")),
-                str(output_cfg.get("dashboard_scenarios_filename", "dashboard_scenarios.html")),
-                str(output_cfg.get("dashboard_actions_filename", "dashboard_actions.html")),
-                str(output_cfg.get("dashboard_decision_filename", "dashboard_decision.html")),
+                "dashboard_sensitivity.html",
+                "dashboard_allocation.html",
+                "dashboard_scenarios.html",
+                "dashboard_actions.html",
+                "dashboard_decision.html",
             ]
             for stale_name in stale_candidates:
                 if stale_name in kept_files:
@@ -819,6 +1076,10 @@ def render_html_report(
                 stale_path = outdir / stale_name
                 if stale_path.exists() and stale_path.is_file():
                     stale_path.unlink()
+
+
+# Backward-compatible alias for older imports.
+render_html_report = render_dashboard_output
 
 
 
