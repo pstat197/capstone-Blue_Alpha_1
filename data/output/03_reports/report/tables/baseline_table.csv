@@ -1,6 +1,0 @@
-channel,roi_prior_dist,baseline_mu,baseline_sigma,baseline_roi,baseline_run_id,baseline_qc_status,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,pct_metric_reliable,pct_metric_unstable_reason
-amazon,LogNormal,0.020759,0.006689,0.08926594,,,True,False,4,0.4973547581529978,True,
-google,LogNormal,0.051898,0.016722,0.44604105,,,True,False,4,0.45868772616332065,True,
-meta,LogNormal,0.051898,0.016722,1.0271761,,,True,False,4,0.9007452470905427,True,
-snapchat,LogNormal,0.051898,0.016722,0.34344682,,,True,False,4,0.5585700866294234,True,
-tiktok,LogNormal,0.051898,0.016722,0.10978498,,,True,False,4,1.0484358516073875,False,local_volatility_ratio=1.048 > max_local_sensitivity_ratio=1.000

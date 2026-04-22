@@ -123,10 +123,6 @@ methods:
   visualization_description: "The dashboard emphasizes LogNormal grid exploration with channel-level drill-down, mu/sigma split diagnostics, box-and-whisker distributions, and ROI/contribution response surfaces."
 
 output:
-  write_report: false
-  report_filename: "report.html"
   write_dashboard: true
   dashboard_filename: "dashboard.html"
   dashboard_template: "dashboard_template.html"
-  cleanup_report_outputs: true
-  show_appendix: false

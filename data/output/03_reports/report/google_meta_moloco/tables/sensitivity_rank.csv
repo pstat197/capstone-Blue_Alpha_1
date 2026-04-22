@@ -1,3 +1,0 @@
-target_channel,roi_prior_dist,max_abs_pct_change,baseline_roi,baseline_mu,baseline_sigma
-"google,meta,moloco",Normal,241.494387819354,0.12061889,0.051898,0.016722
-"google,meta,moloco",LogNormal,88.46876928339479,1.4225322,0.051898,0.016722

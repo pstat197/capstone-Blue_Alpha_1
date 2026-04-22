@@ -1,2 +1,0 @@
-threshold,n_total_rows,n_applicable_rows,n_fail_rows,fail_rate_pct,n_fail_runs,max_prior_neg_prob
-0.2,808,808,0,0.0,0,0.0

@@ -33,6 +33,7 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     },
     "defaults": {
         "targets": ["tiktok"],
+        "target_sets": None,
     },
     "baseline": {
         # Optional explicit baseline. When null, baseline is auto-picked from the active grid.
@@ -110,6 +111,12 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
 
 def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     model = config.setdefault("model", {})
+    channels = _as_string_list(model.get("channels"), "model.channels")
+    if not channels:
+        raise ValueError("Config field 'model.channels' must contain at least one channel.")
+    model["channels"] = _dedupe_preserve_order(channels)
+    model_channel_set = set(model["channels"])
+
     data_csv = model.get("data_csv")
     if data_csv is None or str(data_csv).strip() == "":
         raise ValueError("Config field 'model.data_csv' is required.")
@@ -187,6 +194,48 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         baseline["roi_dist"] = str(raw_dist).strip()
         if baseline["roi_dist"] == "":
             raise ValueError("Config field 'baseline.roi_dist' cannot be empty.")
+
+    defaults = config.setdefault("defaults", {})
+    targets = _as_string_list(defaults.get("targets", ["tiktok"]), "defaults.targets")
+    if not targets:
+        raise ValueError("Config field 'defaults.targets' must contain at least one channel.")
+    defaults["targets"] = _dedupe_preserve_order(targets)
+    unknown_default_targets = [t for t in defaults["targets"] if t not in model_channel_set]
+    if unknown_default_targets:
+        raise ValueError(
+            "Config field 'defaults.targets' has channels not present in model.channels: "
+            + ", ".join(unknown_default_targets)
+        )
+
+    raw_target_sets = defaults.get("target_sets")
+    if raw_target_sets is None or str(raw_target_sets).strip().lower() in {"", "null", "none"}:
+        defaults["target_sets"] = None
+    else:
+        if not isinstance(raw_target_sets, list):
+            raise ValueError("Config field 'defaults.target_sets' must be a list of channel lists.")
+
+        normalized_sets: list[list[str]] = []
+        seen_keys: set[tuple[str, ...]] = set()
+        for idx, item in enumerate(raw_target_sets):
+            item_field = f"defaults.target_sets[{idx}]"
+            channels = _as_string_list(item, item_field)
+            channels = _dedupe_preserve_order(channels)
+            if not channels:
+                raise ValueError(f"Config field '{item_field}' cannot be empty.")
+            key = tuple(sorted(channels))
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+            unknown_set_targets = [t for t in channels if t not in model_channel_set]
+            if unknown_set_targets:
+                raise ValueError(
+                    f"Config field '{item_field}' has channels not present in model.channels: "
+                    + ", ".join(unknown_set_targets)
+                )
+            normalized_sets.append(channels)
+        if not normalized_sets:
+            raise ValueError("Config field 'defaults.target_sets' must contain at least one non-empty channel set.")
+        defaults["target_sets"] = normalized_sets
 
     return config
 

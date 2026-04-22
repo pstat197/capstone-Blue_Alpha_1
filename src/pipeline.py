@@ -17,16 +17,21 @@ from src.output_paths import (
     first_existing,
     report_input_csv_path,
 )
+from src.run_config import load_run_config
 
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, build dashboard.",
     )
-    parser.add_argument("targets", nargs="+", help="Target channels to perturb together.")
+    parser.add_argument(
+        "targets",
+        nargs="*",
+        help="Optional target channels to perturb together. If omitted, pipeline uses defaults.targets or defaults.target_sets from YAML.",
+    )
     parser.add_argument(
         "--config",
-        default="config/sensitivity_google_meta_tiktok_full18.yaml",
+        default="config/sensitivity.yaml",
         help="Run config YAML passed to src.main.",
     )
     parser.add_argument(
@@ -39,7 +44,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dashboard-config",
         "--report-config",
         dest="dashboard_config",
-        default="config/report_google_meta_tiktok.yaml",
+        default="config/dashboard.yaml",
         help="Config YAML for src.reporting.make_dashboard.",
     )
     parser.add_argument(
@@ -105,6 +110,37 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Skip src.reporting.make_dashboard.",
     )
     return parser
+
+
+def _unique_sorted(values: list[str]) -> list[str]:
+    return sorted({str(v).strip() for v in values if str(v).strip()})
+
+
+def _resolve_target_sets(args: argparse.Namespace, run_cfg: dict) -> list[list[str]]:
+    if args.targets:
+        targets = _unique_sorted(list(args.targets))
+        if not targets:
+            raise ValueError("At least one target is required when passing CLI targets.")
+        return [targets]
+
+    defaults = run_cfg.get("defaults", {}) or {}
+    raw_sets = defaults.get("target_sets")
+    if raw_sets:
+        out_sets = []
+        for idx, raw in enumerate(raw_sets):
+            if not isinstance(raw, list):
+                raise ValueError(f"defaults.target_sets[{idx}] must be a list of channel names.")
+            target_set = _unique_sorted(raw)
+            if not target_set:
+                raise ValueError(f"defaults.target_sets[{idx}] cannot be empty.")
+            out_sets.append(target_set)
+        if out_sets:
+            return out_sets
+
+    default_targets = _unique_sorted(defaults.get("targets", []))
+    if not default_targets:
+        raise ValueError("No targets found. Set defaults.targets (or defaults.target_sets) in config YAML, or pass CLI targets.")
+    return [default_targets]
 
 
 def _run_step(cmd: list[str], project_root: Path) -> None:
@@ -275,91 +311,99 @@ def main() -> None:
 
     ensure_output_dirs()
     project_root = Path(__file__).resolve().parents[1]
-    targets = sorted({str(t) for t in args.targets})
-    if not targets:
-        raise ValueError("At least one target is required.")
-    tag = "_".join(targets)
+    config_path = args.config
+    if config_path and not Path(config_path).is_absolute():
+        config_path = str((project_root / config_path).resolve())
+    run_cfg = load_run_config(config_path)
+    target_sets = _resolve_target_sets(args, run_cfg)
 
-    tornado_candidates = candidate_tornado_csv_paths(tag)
-    if args.skip_summarize:
-        tornado_csv = first_existing(tornado_candidates) or tornado_candidates[0]
-    else:
-        tornado_csv = tornado_candidates[0]
-    dashboard_outdir = Path(args.dashboard_outdir) / tag
-    tornado_outdir = Path(args.tornado_outdir) / tag
+    built_tags: list[str] = []
+    for targets in target_sets:
+        tag = "_".join(targets)
+        built_tags.append(tag)
+        print(f"\n=== Target set: {', '.join(targets)} (tag: {tag}) ===")
 
-    if not args.skip_main:
-        cmd = [sys.executable, "-m", "src.main", "--targets", *targets]
-        if args.config:
-            cmd.extend(["--config", args.config])
-        _run_step(cmd, project_root)
+        tornado_candidates = candidate_tornado_csv_paths(tag)
+        if args.skip_summarize:
+            tornado_csv = first_existing(tornado_candidates) or tornado_candidates[0]
+        else:
+            tornado_csv = tornado_candidates[0]
+        dashboard_outdir = Path(args.dashboard_outdir) / tag
+        tornado_outdir = Path(args.tornado_outdir) / tag
 
-    if not args.skip_summarize:
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.summarize_sensitivity",
-            *targets,
-            "--dollars_per_subscription",
-            str(float(args.dollars_per_subscription)),
-        ]
-        _run_step(cmd, project_root)
+        if not args.skip_main:
+            cmd = [sys.executable, "-m", "src.main", "--targets", *targets]
+            if args.config:
+                cmd.extend(["--config", args.config])
+            _run_step(cmd, project_root)
 
-    if not args.skip_tornado:
-        tornado_outdir.mkdir(parents=True, exist_ok=True)
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.viz.tornado_plots",
-            "--input-mode",
-            "single",
-            "--csv",
-            str(tornado_csv.relative_to(project_root)),
-            "--outdir",
-            str(tornado_outdir),
-            "--range-mode",
-            args.tornado_range_mode,
-            "--top-n",
-            str(int(args.tornado_top_n)),
-        ]
-        _run_step(cmd, project_root)
+        if not args.skip_summarize:
+            cmd = [
+                sys.executable,
+                "-m",
+                "src.summarize_sensitivity",
+                *targets,
+                "--dollars_per_subscription",
+                str(float(args.dollars_per_subscription)),
+            ]
+            _run_step(cmd, project_root)
 
-    dashboard_input_path = None
-    dashboard_source_files: dict | None = None
-    if not args.skip_dashboard:
-        dashboard_input_path, dashboard_source_files = _build_dashboard_input_csv(tag)
-        cmd = [
-            sys.executable,
-            "-m",
-            "src.reporting.make_dashboard",
-            "--input",
-            str(dashboard_input_path.relative_to(project_root)),
-            "--outdir",
-            str(dashboard_outdir),
-            "--config",
-            args.dashboard_config,
-            "--clean-output",
-        ]
-        if dashboard_source_files is not None:
-            if dashboard_source_files.get("runs_csv"):
-                cmd.extend(["--source-runs-csv", _to_project_rel_or_abs(dashboard_source_files["runs_csv"], project_root)])
-            if dashboard_source_files.get("roi_csv"):
-                cmd.extend(["--source-roi-csv", _to_project_rel_or_abs(dashboard_source_files["roi_csv"], project_root)])
-            if dashboard_source_files.get("tornado_csv"):
-                cmd.extend(["--source-tornado-csv", _to_project_rel_or_abs(dashboard_source_files["tornado_csv"], project_root)])
-        cmd.extend(["--channel-scope", args.dashboard_channel_scope])
-        if args.dashboard_scenario_selection:
-            cmd.extend(["--scenario-selection", args.dashboard_scenario_selection])
-        _run_step(cmd, project_root)
+        if not args.skip_tornado:
+            tornado_outdir.mkdir(parents=True, exist_ok=True)
+            cmd = [
+                sys.executable,
+                "-m",
+                "src.viz.tornado_plots",
+                "--input-mode",
+                "single",
+                "--csv",
+                str(tornado_csv.relative_to(project_root)),
+                "--outdir",
+                str(tornado_outdir),
+                "--range-mode",
+                args.tornado_range_mode,
+                "--top-n",
+                str(int(args.tornado_top_n)),
+            ]
+            _run_step(cmd, project_root)
 
-    print("\nPipeline finished.")
-    print("Targets:", ", ".join(targets))
-    print("Run outputs dir:", RUNS_DIR)
-    print("Tornado CSV:", tornado_csv)
-    print("Tornado outputs:", tornado_outdir)
-    if dashboard_input_path is not None:
-        print("Dashboard input table:", dashboard_input_path)
-    print("Dashboard output:", project_root / dashboard_outdir)
+        dashboard_input_path = None
+        dashboard_source_files: dict | None = None
+        if not args.skip_dashboard:
+            dashboard_input_path, dashboard_source_files = _build_dashboard_input_csv(tag)
+            cmd = [
+                sys.executable,
+                "-m",
+                "src.reporting.make_dashboard",
+                "--input",
+                str(dashboard_input_path.relative_to(project_root)),
+                "--outdir",
+                str(dashboard_outdir),
+                "--config",
+                args.dashboard_config,
+                "--clean-output",
+            ]
+            if dashboard_source_files is not None:
+                if dashboard_source_files.get("runs_csv"):
+                    cmd.extend(["--source-runs-csv", _to_project_rel_or_abs(dashboard_source_files["runs_csv"], project_root)])
+                if dashboard_source_files.get("roi_csv"):
+                    cmd.extend(["--source-roi-csv", _to_project_rel_or_abs(dashboard_source_files["roi_csv"], project_root)])
+                if dashboard_source_files.get("tornado_csv"):
+                    cmd.extend(["--source-tornado-csv", _to_project_rel_or_abs(dashboard_source_files["tornado_csv"], project_root)])
+            cmd.extend(["--channel-scope", args.dashboard_channel_scope])
+            if args.dashboard_scenario_selection:
+                cmd.extend(["--scenario-selection", args.dashboard_scenario_selection])
+            _run_step(cmd, project_root)
+
+        print("Finished target set:", ", ".join(targets))
+        print("Run outputs dir:", RUNS_DIR)
+        print("Tornado CSV:", tornado_csv)
+        print("Tornado outputs:", tornado_outdir)
+        if dashboard_input_path is not None:
+            print("Dashboard input table:", dashboard_input_path)
+        print("Dashboard output:", project_root / dashboard_outdir)
+
+    print("\nPipeline finished for tags:", ", ".join(built_tags))
 
 
 if __name__ == "__main__":
