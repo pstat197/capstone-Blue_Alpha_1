@@ -21,11 +21,8 @@ Use the local demo launcher below.
 From repo root:
 
 ```powershell
-# 1) Run pipeline
+# 1) Run pipeline (runs sensitivity + summarize + tornado + robustness + dashboard)
 python -m src.pipeline --config config/sensitivity.yaml
-
-# 2) Build dashboard package
-python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
 ```
 
 Open:
@@ -49,6 +46,7 @@ For a target tag `<tag>` (example: `google_meta_tiktok`):
 - Runs CSV: `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
 - ROI CSV: `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 - Tornado CSV: `data/output/02_tables/<tag>/tornado_<tag>.csv`
+- Robustness CSVs: `data/output/02_tables/<tag>/robustness_*_<tag>.csv`
 - Dashboard folder: `data/output/03_reports/report/<tag>/`
 
 ## Main Commands
@@ -62,6 +60,9 @@ python -m src.summarize_sensitivity google meta tiktok
 
 # Build dashboard
 python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+
+# Compute robustness score
+python -m src.robustness_score google meta tiktok
 ```
 
 ### Target Selection (YAML-first)
@@ -84,7 +85,7 @@ BLUEALPHA/
       02_tables/   merged sensitivity tables, tornado CSVs
       03_reports/  client-facing HTML dashboards, figures, tables
   docs/            theory, slides, interim reports, project management
-  docs/notebooks/  Jupyter notebooks (Colab prior-sensitivity, visualization)
+  docs/notebooks/  Jupyter notebooks (prior-sensitivity experiments)
   scripts/         utility scripts (demo launcher)
   src/
     main.py              grid orchestrator + experiment config + baseline stats

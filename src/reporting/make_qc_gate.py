@@ -15,9 +15,9 @@ from src.output_paths import (
 )
 
 
-DEFAULT_MU_VALUES = [0.020759, 0.051898]
-DEFAULT_SIGMA_VALUES = [0.006689, 0.033445]
-DEFAULT_DISTS = ["Normal"]
+DEFAULT_MU_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+DEFAULT_SIGMA_VALUES = [0.5, 1.0, 1.5]
+DEFAULT_DISTS = ["LogNormal"]
 
 
 def _build_parser() -> argparse.ArgumentParser:

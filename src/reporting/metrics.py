@@ -13,7 +13,7 @@ from src.formatting import (
     to_float_safe as _safe_float,
     to_bool as _to_bool,
 )
-from src.output_paths import OUTPUT_ROOT
+from src.output_paths import OUTPUT_ROOT, TABLES_DIR
 from src.reporting.workbench import build_workbench_artifacts
 
 STRUCTURAL_COLS = [
@@ -32,8 +32,8 @@ DEFAULT_STRUCTURAL = {
     "adstock_decay_spec": "geometric",
 }
 
-DEFAULT_QC_GATE_MU = [0.020759, 0.051898]
-DEFAULT_QC_GATE_SIGMA = [0.006689, 0.033445]
+DEFAULT_QC_GATE_MU = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+DEFAULT_QC_GATE_SIGMA = [0.5, 1.0, 1.5]
 DEFAULT_QC_GATE_DISTS = ["LogNormal"]
 
 
@@ -709,17 +709,23 @@ def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
     return None
 
 
-def _resolve_robustness_dir(cfg: dict) -> Path:
+def _resolve_robustness_dirs(cfg: dict, tag: str) -> list[Path]:
     policy_cfg = cfg.get("decision_policy", {}) or {}
     raw_dir = str(policy_cfg.get("robustness_dir", "") or "").strip()
-    if not raw_dir:
-        return OUTPUT_ROOT / "robustness"
+    if raw_dir:
+        resolved = raw_dir.format(tag=tag)
+        out_dir = Path(resolved)
+        if out_dir.is_absolute():
+            return [out_dir]
+        project_root = Path(__file__).resolve().parents[2]
+        return [project_root / out_dir]
 
-    out_dir = Path(raw_dir)
-    if out_dir.is_absolute():
-        return out_dir
-    project_root = Path(__file__).resolve().parents[2]
-    return project_root / out_dir
+    # Default (new): per-tag 02_tables folder.
+    # Backward compatibility: keep old robustness root lookup as fallback.
+    return [
+        TABLES_DIR / tag,
+        OUTPUT_ROOT / "robustness",
+    ]
 
 
 def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
@@ -740,15 +746,17 @@ def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
             "reason": "could not infer robustness tag from report scope",
         }
 
-    out_dir = _resolve_robustness_dir(cfg)
-    model_csv = out_dir / f"robustness_model_{tag}.csv"
-    if not model_csv.exists():
+    candidate_dirs = _resolve_robustness_dirs(cfg, tag)
+    candidate_model_csvs = [d / f"robustness_model_{tag}.csv" for d in candidate_dirs]
+    model_csv = next((p for p in candidate_model_csvs if p.exists()), None)
+    if model_csv is None:
         return {
             "enabled": True,
             "available": False,
             "tag": tag,
-            "model_csv": str(model_csv),
+            "model_csv": str(candidate_model_csvs[0]),
             "reason": "robustness model CSV not found",
+            "searched_paths": [str(p) for p in candidate_model_csvs],
         }
 
     try:

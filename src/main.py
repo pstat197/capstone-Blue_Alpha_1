@@ -41,40 +41,17 @@ class ExperimentConfig:
     output_file: str
     channels: List[str]
     spend_cols: List[str]
-    mu0: float
-    sigma0: float
-    multipliers: List[float]
     roi_mu_values: List[float]
     roi_sigma_values: List[float]
     roi_dist_values: List[str]
 
-
-def _compute_mu0(df: pd.DataFrame, kpi_col: str, spend_cols: List[str]) -> float:
-    total_spend = df[spend_cols].sum(axis=1)
-    return float((df[kpi_col] / total_spend).median())
-
-
-def _compute_sigma0(df: pd.DataFrame, kpi_col: str, spend_cols: List[str]) -> float:
-    total_spend = df[spend_cols].sum(axis=1)
-    return float((df[kpi_col] / total_spend).std())
-
-
-def _make_mu_grid(mu0: float, multipliers: List[float], digits: int = 6) -> List[float]:
-    return [round(mu0 * m, digits) for m in multipliers]
-
-
-def _make_sigma_grid(sigma0: float, multipliers: List[float], digits: int = 6) -> List[float]:
-    return [round(sigma0 * m, digits) for m in multipliers]
-
-
 def build_experiment_config(
     channels: List[str],
-    multipliers: List[float],
+    roi_mu_values: List[float],
+    roi_sigma_values: List[float],
+    roi_dist_values: List[str],
     kpi_col: str = "subscriptions",
     spend_suffix: str = "_spend",
-    mu_grid: list = None,
-    sigma_grid: list = None,
-    dist_grid: list = None,
     output_file: Optional[str] = None,
     data_csv: Optional[str] = None,
 ) -> ExperimentConfig:
@@ -105,13 +82,9 @@ def build_experiment_config(
             + ", ".join(df.columns)
         )
 
-    mu0 = _compute_mu0(df, kpi_col=kpi_col, spend_cols=spend_cols)
-    roi_mu_values = _make_mu_grid(mu0, multipliers) if mu_grid is None else mu_grid
-
-    sigma0 = _compute_sigma0(df, kpi_col=kpi_col, spend_cols=spend_cols)
-    roi_sigma_values = _make_sigma_grid(sigma0, multipliers) if sigma_grid is None else sigma_grid
-
-    roi_dist_values = ["LogNormal"] if dist_grid is None else dist_grid
+    roi_mu_values = [round(float(v), 6) for v in roi_mu_values]
+    roi_sigma_values = [round(float(v), 6) for v in roi_sigma_values]
+    roi_dist_values = [str(v) for v in roi_dist_values]
 
     return ExperimentConfig(
         project_root=project_root,
@@ -121,9 +94,6 @@ def build_experiment_config(
         output_file=output_file,
         channels=channels,
         spend_cols=spend_cols,
-        mu0=mu0,
-        sigma0=sigma0,
-        multipliers=multipliers,
         roi_mu_values=roi_mu_values,
         roi_sigma_values=roi_sigma_values,
         roi_dist_values=roi_dist_values,
@@ -184,27 +154,12 @@ def _contains_close(values: list[float], target: float, tol: float = 1e-9) -> bo
     return any(abs(float(v) - float(target)) <= tol for v in values)
 
 
-def _nearest_value(values: list[float], reference: float) -> float:
-    if not values:
-        raise ValueError("Cannot choose nearest value from an empty list.")
-    return float(min((float(v) for v in values), key=lambda x: (abs(x - float(reference)), x)))
-
-
-def _pick_preferred_dist(dist_values: list[str]) -> str:
-    if not dist_values:
-        raise ValueError("Distribution grid is empty.")
-    for d in dist_values:
-        if str(d).strip().lower() == "lognormal":
-            return str(d)
-    return str(dist_values[0])
-
-
 def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str]:
     baseline_cfg = run_cfg.get("baseline", {}) or {}
 
     baseline_mu_cfg = baseline_cfg.get("roi_mu")
     if baseline_mu_cfg is None:
-        baseline_mu = _nearest_value(cfg.roi_mu_values, cfg.mu0)
+        baseline_mu = float(cfg.roi_mu_values[0])
     else:
         baseline_mu = round(float(baseline_mu_cfg), 6)
         if not _contains_close(cfg.roi_mu_values, baseline_mu):
@@ -215,7 +170,7 @@ def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str
 
     baseline_sigma_cfg = baseline_cfg.get("roi_sigma")
     if baseline_sigma_cfg is None:
-        baseline_sigma = _nearest_value(cfg.roi_sigma_values, cfg.sigma0)
+        baseline_sigma = float(cfg.roi_sigma_values[0])
     else:
         baseline_sigma = round(float(baseline_sigma_cfg), 6)
         if not _contains_close(cfg.roi_sigma_values, baseline_sigma):
@@ -227,7 +182,7 @@ def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str
     dist_values = [str(x) for x in cfg.roi_dist_values]
     baseline_dist_cfg = baseline_cfg.get("roi_dist")
     if baseline_dist_cfg is None:
-        baseline_dist = _pick_preferred_dist(dist_values)
+        baseline_dist = str(dist_values[0])
     else:
         wanted = str(baseline_dist_cfg).strip().lower()
         mapped = {str(d).strip().lower(): str(d) for d in dist_values}
@@ -319,15 +274,9 @@ def main():
 
     model_cfg = run_cfg.get("model", {})
     channels = [str(x) for x in model_cfg["channels"]]
-    multipliers = [float(x) for x in run_cfg["experiment"]["multipliers"]]
-    mu_grid = run_cfg["experiment"].get("roi_mu_values")
-    sigma_grid = run_cfg["experiment"].get("roi_sigma_values")
+    mu_grid = [float(x) for x in run_cfg["experiment"]["roi_mu_values"]]
+    sigma_grid = [float(x) for x in run_cfg["experiment"]["roi_sigma_values"]]
     dist_grid = [str(x) for x in run_cfg["experiment"].get("roi_dist_values", ["LogNormal"])]
-
-    if mu_grid is not None:
-        mu_grid = [float(x) for x in mu_grid]
-    if sigma_grid is not None:
-        sigma_grid = [float(x) for x in sigma_grid]
 
     structural_cfg = run_cfg.get("structural", {})
     structural_grids = {
@@ -374,12 +323,11 @@ def main():
             raise FileNotFoundError(f"CLI --csv path does not exist: {data_csv}")
     cfg = build_experiment_config(
         channels=channels,
-        multipliers=multipliers,
+        roi_mu_values=mu_grid,
+        roi_sigma_values=sigma_grid,
+        roi_dist_values=dist_grid,
         kpi_col=kpi_col,
         data_csv=data_csv,
-        mu_grid=mu_grid,
-        sigma_grid=sigma_grid,
-        dist_grid=dist_grid,
         output_file="prior_sensitivity_results.csv",
     )
     if not targets:
@@ -397,41 +345,23 @@ def main():
     os.makedirs(tmp_dir, exist_ok=True)
 
     channels_json = json.dumps(channels)
+    structural_combo_count = (
+        len(structural_grids["alpha_m"])
+        * len(structural_grids["ec_m"])
+        * len(structural_grids["slope_m"])
+        * len(structural_grids["max_lag"])
+        * len(structural_grids["adstock_decay"])
+    )
+    total_runs = len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) * structural_combo_count
 
-    print("Spend cols used:", cfg.spend_cols)
-    print("Computed mu0 =", round(cfg.mu0, 6))
-    print("Computed sigma0 =", round(cfg.sigma0, 6))
     print(
-        "Mu grid source =",
-        "experiment.roi_mu_values (manual)" if mu_grid is not None else "mu0 * experiment.multipliers (auto)",
+        "Run plan:",
+        f"targets={targets_str}; mu={len(cfg.roi_mu_values)} vals; sigma={len(cfg.roi_sigma_values)} vals; "
+        f"dist={len(cfg.roi_dist_values)} vals; structural combos={structural_combo_count}; total runs={total_runs}",
     )
-    print(
-        "Sigma grid source =",
-        "experiment.roi_sigma_values (manual)" if sigma_grid is not None else "sigma0 * experiment.multipliers (auto)",
-    )
-    if mu_grid is not None or sigma_grid is not None:
-        print(
-            "Grid precedence note: explicit experiment.roi_mu_values / roi_sigma_values override multipliers "
-            "for those dimensions."
-        )
-    print("Mu grid =", cfg.roi_mu_values)
-    print("Sigma grid =", cfg.roi_sigma_values)
-    print("Dist grid =", cfg.roi_dist_values)
-    print("Alpha_m grid =", structural_grids["alpha_m"])
-    print("Ec_m grid =", structural_grids["ec_m"])
-    print("Slope_m grid =", structural_grids["slope_m"])
-    print("Max lag grid =", structural_grids["max_lag"])
-    print("Adstock decay grid =", structural_grids["adstock_decay"])
     print("Input data CSV =", data_csv)
-    if data_tag:
-        print("Data tag =", data_tag)
-        print("Output tag =", output_tag)
-    print("KPI col =", kpi_col)
-    print("Time col =", time_col)
-    print("Geo col =", geo_col if geo_col is not None else "(auto/national)")
-    print("Population col =", population_col if population_col is not None else "(none/auto)")
-    print("Run output file:", run_output_file)
-    print("ROI output file:", roi_output_file)
+    print("Run output file =", run_output_file)
+    print("ROI output file =", roi_output_file)
 
     baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(cfg, run_cfg)
     baseline_structural = {
@@ -453,10 +383,7 @@ def main():
     )
     official_manifest = os.path.join(official_outdir, "manifest.json")
     official_export_done = os.path.exists(official_manifest)
-    print(
-        "Baseline (effective) =",
-        {"mu": baseline_mu, "sigma": baseline_sigma, "dist": baseline_dist},
-    )
+    print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
 
     already_done = load_resume_state(run_output_file)
     for legacy_path in candidate_run_csv_paths(output_tag)[1:]:
@@ -468,21 +395,11 @@ def main():
     env["TF_CPP_MIN_LOG_LEVEL"] = "3"
     env["TF_ENABLE_ONEDNN_OPTS"] = "0"
 
-    print("MODE: LINKED TARGET-SET (UNIFIED)")
-    print("Targets to perturb together:", targets_str)
-
-    total_runs = (
-        len(cfg.roi_mu_values)
-        * len(cfg.roi_sigma_values)
-        * len(cfg.roi_dist_values)
-        * len(structural_grids["alpha_m"])
-        * len(structural_grids["ec_m"])
-        * len(structural_grids["slope_m"])
-        * len(structural_grids["max_lag"])
-        * len(structural_grids["adstock_decay"])
-    )
+    print(f"Mode = linked target-set | targets={targets_str}")
 
     run_index = 1
+    skipped_runs = 0
+    executed_runs = 0
     grid_iter = product(
         cfg.roi_mu_values,
         cfg.roi_sigma_values,
@@ -535,17 +452,12 @@ def main():
         )
 
         if run_key in already_done:
-            print(
-                "Skipping"
-                f" targets={targets_str}, mu={mu}, sigma={sigma}, dist={dist},"
-                f" alpha={alpha_m}, ec={ec_m}, slope={slope_m}, max_lag={max_lag}, decay={adstock_decay}"
-            )
+            skipped_runs += 1
             run_index += 1
             continue
 
-        print(f"\n===== Run {run_index}/{total_runs} =====")
         print(
-            f"Targets: {targets_str}, Prior mu: {mu}, Prior sigma: {sigma}, Dist: {dist}, "
+            f"[run {run_index}/{total_runs}] targets={targets_str}, mu={mu}, sigma={sigma}, dist={dist}, "
             f"alpha={alpha_m}, ec={ec_m}, slope={slope_m}, max_lag={max_lag}, decay={adstock_decay}"
         )
 
@@ -671,10 +583,13 @@ def main():
         if is_baseline_grid_point:
             official_export_done = True
 
-        print("Iteration time:", round(time.time() - t0, 2), "seconds")
+        elapsed_sec = round(time.time() - t0, 2)
+        executed_runs += 1
+        print(f"[done {run_index}/{total_runs}] {elapsed_sec} sec")
         run_index += 1
 
     print("\nALL RUNS COMPLETED.")
+    print(f"Run summary: total={total_runs}, executed={executed_runs}, skipped_existing={skipped_runs}")
     print("Saved run diagnostics to:", run_output_file)
     print("Saved ROI results to:", roi_output_file)
 

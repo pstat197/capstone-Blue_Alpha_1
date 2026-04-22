@@ -1,7 +1,6 @@
 experiment:
-  # Explicit prior grid for current test (no mu0/sigma0 multiplier logic).
+  # Explicit prior grid only.
   # 6 x 3 x 1 = 18 runs total with the fixed structural profile below.
-  multipliers: [1.0]
   roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
   roi_sigma_values: [0.5, 1.0, 1.5]
   roi_dist_values: [LogNormal]

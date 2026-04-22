@@ -641,6 +641,27 @@
           format: (v) => Number.isFinite(v) ? fmtNum(v, 3) : "NA",
         },
       };
+      const metricValueForRow = (row, metric) => {
+        const m = String(metric || "pct");
+        if (m === "delta") {
+          const direct = Number(row && row.max_abs_delta_roi);
+          if (Number.isFinite(direct)) return direct;
+          if (String(row && row.primary_metric || "") === "delta_roi") {
+            const pv = Number(row && row.primary_value);
+            if (Number.isFinite(pv)) return pv;
+          }
+          return NaN;
+        }
+        const stablePct = Number(row && row.max_abs_pct_change);
+        if (Number.isFinite(stablePct)) return stablePct;
+        const rawPct = Number(row && row.max_abs_pct_change_raw);
+        if (Number.isFinite(rawPct)) return rawPct;
+        if (String(row && row.primary_metric || "") === "pct_change") {
+          const pv = Number(row && row.primary_value);
+          if (Number.isFinite(pv)) return pv;
+        }
+        return NaN;
+      };
 
       const presetCopy = {
         default: {
@@ -861,16 +882,31 @@
         const limit = Number.isFinite(options.limit) ? Number(options.limit) : topN;
         const targetChannel = options.channel ? channelUpper(options.channel) : null;
         const conf = metricConfig[metric] || metricConfig.pct;
-        return rankRows
-          .filter((r) => {
-            if (dist === "all") return true;
-            return normalizeDist(r.roi_prior_dist) === dist;
-          })
-          .filter((r) => !stable || !!r.pct_metric_reliable)
-          .filter((r) => Number.isFinite(r[conf.key]))
-          .filter((r) => !targetChannel || channelUpper(r.channel) === targetChannel)
-          .sort((a, b) => (b[conf.key] || 0) - (a[conf.key] || 0))
-          .slice(0, Math.max(1, limit));
+        const applyFilter = (stableFlag) =>
+          rankRows
+            .filter((r) => {
+              if (dist === "all") return true;
+              return normalizeDist(r.roi_prior_dist) === dist;
+            })
+            .filter((r) => !stableFlag || !!r.pct_metric_reliable)
+            .filter((r) => !targetChannel || channelUpper(r.channel) === targetChannel)
+            .map((r) => {
+              const val = metricValueForRow(r, metric);
+              return {
+                ...r,
+                [conf.key]: val,
+                __metric_value: val,
+              };
+            })
+            .filter((r) => Number.isFinite(r.__metric_value))
+            .sort((a, b) => (b.__metric_value || 0) - (a.__metric_value || 0))
+            .slice(0, Math.max(1, limit));
+
+        let rows = applyFilter(stable);
+        if (!rows.length && stable) {
+          rows = applyFilter(false);
+        }
+        return rows;
       };
 
       const setMetricButtons = () => {

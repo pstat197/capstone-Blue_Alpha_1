@@ -7,7 +7,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-from src.output_paths import OUTPUT_ROOT, candidate_run_csv_paths, candidate_tornado_csv_paths, first_existing
+from src.output_paths import candidate_run_csv_paths, candidate_tornado_csv_paths, first_existing, tables_tag_dir
 
 EPS = 1e-8
 
@@ -29,7 +29,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--out-dir",
         default=None,
-        help="Optional output directory. Defaults to data/output/robustness.",
+        help="Optional output directory. Defaults to data/output/02_tables/<tag>/.",
     )
     return parser
 
@@ -666,7 +666,7 @@ def main() -> None:
     channel_df["targets"] = targets_str
     channel_df = channel_df.sort_values("overall_channel_robustness_score", ascending=True).reset_index(drop=True)
 
-    out_dir = args.out_dir or os.path.join(str(OUTPUT_ROOT), "robustness")
+    out_dir = args.out_dir or str(tables_tag_dir(tag))
     os.makedirs(out_dir, exist_ok=True)
 
     channel_csv = os.path.join(out_dir, f"robustness_channel_{tag}.csv")

@@ -662,12 +662,16 @@ def render_dashboard_output(
         primary_value = _to_float_safe(row.get("primary_value"))
         if primary_value is None:
             primary_value = _to_float_safe(row.get("max_abs_pct_change"))
+        raw_pct_value = _to_float_safe(row.get("max_abs_pct_change_raw"))
+        if primary_value is None and primary_metric == "pct_change":
+            primary_value = raw_pct_value
         rank_dashboard_rows.append(
             {
                 "channel": _clean_text_safe(row.get("channel"), "unknown"),
                 "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), "Unknown"),
                 "baseline_roi": _to_float_safe(row.get("baseline_roi")),
                 "max_abs_pct_change": _to_float_safe(row.get("max_abs_pct_change")),
+                "max_abs_pct_change_raw": raw_pct_value,
                 "max_abs_delta_roi": _to_float_safe(row.get("max_abs_delta_roi")),
                 "primary_metric": primary_metric,
                 "primary_value": primary_value,
@@ -810,7 +814,14 @@ def render_dashboard_output(
     if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
         tornado_range_mode = str(cfg.get("figures", {}).get("tornado_range_mode", "p05p95")).strip().lower()
         for channel, g in merged_df_for_tornado.groupby("channel", as_index=False):
-            vals = g["pct_change"].dropna().to_numpy(dtype=float) if "pct_change" in g.columns else _np.array([])
+            vals = _np.array([])
+            source = ""
+            if "pct_change" in g.columns:
+                vals = g["pct_change"].dropna().to_numpy(dtype=float)
+                source = "pct_change"
+            if vals.size == 0 and "pct_change_raw" in g.columns:
+                vals = g["pct_change_raw"].dropna().to_numpy(dtype=float)
+                source = "pct_change_raw"
             if vals.size == 0:
                 continue
             if tornado_range_mode == "minmax":
@@ -825,6 +836,7 @@ def render_dashboard_output(
                 "right": right_v,
                 "impact": max(abs(left_v), abs(right_v)),
                 "n": int(vals.size),
+                "source": source,
             })
         roi_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
 

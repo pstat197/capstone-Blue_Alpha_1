@@ -22,7 +22,7 @@ from src.run_config import load_run_config
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, build dashboard.",
+        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, compute robustness score, build dashboard.",
     )
     parser.add_argument(
         "targets",
@@ -103,6 +103,11 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Skip src.viz.tornado_plots.",
     )
     parser.add_argument(
+        "--skip-robustness",
+        action="store_true",
+        help="Skip src.robustness_score.",
+    )
+    parser.add_argument(
         "--skip-dashboard",
         "--skip-report",
         dest="skip_dashboard",
@@ -144,7 +149,14 @@ def _resolve_target_sets(args: argparse.Namespace, run_cfg: dict) -> list[list[s
 
 
 def _run_step(cmd: list[str], project_root: Path) -> None:
-    print("\n[run]", " ".join(cmd))
+    step_name = cmd[0]
+    if "-m" in cmd:
+        mod_idx = cmd.index("-m")
+        if mod_idx + 1 < len(cmd):
+            step_name = cmd[mod_idx + 1]
+    else:
+        step_name = Path(cmd[0]).name
+    print(f"\n[run] {step_name}")
     proc = subprocess.run(cmd, cwd=project_root)
     if proc.returncode != 0:
         raise RuntimeError(f"Command failed with exit code {proc.returncode}: {' '.join(cmd)}")
@@ -364,6 +376,18 @@ def main() -> None:
                 args.tornado_range_mode,
                 "--top-n",
                 str(int(args.tornado_top_n)),
+            ]
+            _run_step(cmd, project_root)
+
+        if not args.skip_robustness:
+            robustness_outdir = Path("data/output/02_tables") / tag
+            cmd = [
+                sys.executable,
+                "-m",
+                "src.robustness_score",
+                *targets,
+                "--out-dir",
+                str(robustness_outdir),
             ]
             _run_step(cmd, project_root)
 

@@ -16,11 +16,9 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "population_col": None,
     },
     "experiment": {
-        # Product-default grid: 5x5x1 (LogNormal-first).
-        # This can still be overridden by config YAML.
-        "multipliers": [0.4, 0.7, 1.0, 1.4, 2.0],
-        "roi_mu_values": None,
-        "roi_sigma_values": None,
+        # Explicit-prior mode only: grid values must be provided directly.
+        "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+        "roi_sigma_values": [0.5, 1.0, 1.5],
         "roi_dist_values": ["LogNormal"],
     },
     "structural": {
@@ -36,7 +34,7 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "target_sets": None,
     },
     "baseline": {
-        # Optional explicit baseline. When null, baseline is auto-picked from the active grid.
+        # Optional explicit baseline. When null, baseline defaults to first value in each active grid.
         "roi_mu": None,
         "roi_sigma": None,
         "roi_dist": None,
@@ -152,22 +150,19 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
 
     exp = config.setdefault("experiment", {})
 
-    multipliers = _as_numeric_list(exp.get("multipliers"), "experiment.multipliers")
-    if not multipliers:
-        raise ValueError("Config field 'experiment.multipliers' must contain at least one value.")
-    if any(v <= 0 for v in multipliers):
-        raise ValueError("Config field 'experiment.multipliers' must be strictly positive.")
-    exp["multipliers"] = [float(v) for v in multipliers]
-
     raw_mu = exp.get("roi_mu_values")
     mu_values = _as_numeric_list(raw_mu, "experiment.roi_mu_values")
-    exp["roi_mu_values"] = [round(float(v), 6) for v in mu_values] if mu_values else None
+    if not mu_values:
+        raise ValueError("Config field 'experiment.roi_mu_values' must contain at least one value.")
+    exp["roi_mu_values"] = [round(float(v), 6) for v in mu_values]
 
     raw_sigma = exp.get("roi_sigma_values")
     sigma_values = _as_numeric_list(raw_sigma, "experiment.roi_sigma_values")
+    if not sigma_values:
+        raise ValueError("Config field 'experiment.roi_sigma_values' must contain at least one value.")
     if any(v <= 0 for v in sigma_values):
         raise ValueError("Config field 'experiment.roi_sigma_values' must be strictly positive.")
-    exp["roi_sigma_values"] = [round(float(v), 6) for v in sigma_values] if sigma_values else None
+    exp["roi_sigma_values"] = [round(float(v), 6) for v in sigma_values]
 
     dist_values = _as_string_list(exp.get("roi_dist_values"), "experiment.roi_dist_values")
     if not dist_values:

@@ -60,8 +60,8 @@ analysis:
     max_local_sensitivity_ratio: 1.0
   qc_gate:
     enabled: true
-    mu_values: [0.020759, 0.051898]
-    sigma_values: [0.006689, 0.033445]
+    mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    sigma_values: [0.5, 1.0, 1.5]
     dists: [LogNormal]
   workbench:
     primary_dist: LogNormal

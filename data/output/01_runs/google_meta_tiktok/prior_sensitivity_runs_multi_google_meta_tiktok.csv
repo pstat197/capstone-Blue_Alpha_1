@@ -557,3 +557,561 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|0.500000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",0.5,0.5,LogNormal,0.3,0.5,1.2,4,geometric,True,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.8793,0.056,0.0551,0.91,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.91. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8793, MAPE = 0.0560, and wMAPE = 0.0551. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|0.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",0.5,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,google,We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.,PASS,PASS,PASS,PASS,PASS,REVIEW,0.8917,0.0527,0.0522,0.94,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.94. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8917, MAPE = 0.0527, and wMAPE = 0.0522. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",0.5,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8947,0.0517,0.0514,0.95,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed: No major quality issues were identified.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8947, MAPE = 0.0517, and wMAPE = 0.0514. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|google,meta,tiktok|1.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.0,0.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.63. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,PASS,PASS,PASS,REVIEW,0.8105,0.0709,0.069,0.84,0.63,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.63. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.84. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8105, MAPE = 0.0709, and wMAPE = 0.0690. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|1.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.8742,0.0573,0.0563,0.98,0.01,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.01. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8742, MAPE = 0.0573, and wMAPE = 0.0563. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|1.000000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.0,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.8855,0.0543,0.0537,0.93,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.93. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8855, MAPE = 0.0543, and wMAPE = 0.0537. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|1.500000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.5,0.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.6151,0.0995,0.0957,0.72,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.72. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.6151, MAPE = 0.0995, and wMAPE = 0.0957. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|1.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.5,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.8415,0.0647,0.0633,0.93,0.18,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.18. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.93. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8415, MAPE = 0.0647, and wMAPE = 0.0633. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|1.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",1.5,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.8701,0.0583,0.0572,0.88,0.03,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.03. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.88. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8701, MAPE = 0.0583, and wMAPE = 0.0572. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.0,0.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.1546,0.1407,0.1345,0.45,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.45. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.1546, MAPE = 0.1407, and wMAPE = 0.1345. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.86. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.7807,0.0763,0.0741,0.83,0.86,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 0.86. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.83. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.7807, MAPE = 0.0763, and wMAPE = 0.0741. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.000000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.0,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:ROIConsistency,ROIConsistency,"meta,google,tiktok","We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context.",PASS,PASS,PASS,PASS,PASS,REVIEW,0.849,0.063,0.0617,0.86,0.1,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.10. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.86. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8490, MAPE = 0.0630, and wMAPE = 0.0617. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.500000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.5,0.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,REVIEW,PASS,REVIEW,-0.7571,0.2,0.1915,0.17,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.17. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -0.7571, MAPE = 0.2000, and wMAPE = 0.1915. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.5,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.6731,0.0924,0.0891,0.7,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.70. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.6731, MAPE = 0.0924, and wMAPE = 0.0891. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|2.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.5, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",2.5,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,REVIEW,1,True,REVIEW:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.56. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,PASS,PASS,PASS,REVIEW,0.8146,0.0702,0.0684,0.89,0.56,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.56. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.89. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8146, MAPE = 0.0702, and wMAPE = 0.0684. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 0.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",3.0,0.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.72. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.",PASS,REVIEW,FAIL,REVIEW,PASS,REVIEW,-1755.1404,8.136,7.9922,0.0,0.72,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: REVIEW
+  Recommendation: The posterior probability that the baseline is negative is 0.72. This indicates that the baseline time series occasionally dips into negative values. We recommend visually inspecting the baseline time series in the Model Fit charts, but don't be overly concerned. An occasional, small dip may indicate minor statistical error, which is inherent in any model.
+----------------------------------------
+BayesianPPP Check:
+  Status: FAIL
+  Recommendation: The Bayesian posterior predictive p-value is 0.00. The observed total outcome is an extreme outlier compared to the model's expected total outcomes, which suggests a systematic lack of fit. We recommend reviewing input data quality and re-examining the model specification (e.g., priors, transformations) to resolve this issue.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: REVIEW
+  Recommendation: R-squared = -1755.1404, MAPE = 8.1360, and wMAPE = 7.9922. A negative R-squared signals a potential conflict between your priors and the data, and it warrants investigation. If this conflict is intentional (due to an informative prior), no further action is needed. If it's unintentional, we recommend relaxing your priors to be less restrictive.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|3.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.0}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",3.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.4883,0.1128,0.1082,0.62,1.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 1.00. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.62. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.4883, MAPE = 0.1128, and wMAPE = 0.1082. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+"multi|google,meta,tiktok|3.000000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric","{""roi_prior_overrides"": {""google"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 3.0, ""sigma"": 1.5}}, ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}}","google,meta,tiktok","google,meta,tiktok",3.0,1.5,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,FAIL,2,False,FAIL:Baseline,Baseline,,"The posterior probability that the baseline is negative is 0.93. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.",PASS,FAIL,PASS,PASS,PASS,REVIEW,0.7606,0.0797,0.0773,0.8,0.93,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: FAIL
+  Recommendation: The posterior probability that the baseline is negative is 0.93. This high probability points to a statistical error and is a clear signal that the model requires adjustment. The model is likely over-crediting your treatments. Consider adjusting the model's settings, data, or priors to correct this issue.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.80. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.7606, MAPE = 0.0797, and wMAPE = 0.0773. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`, `snapchat`, `tiktok`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
