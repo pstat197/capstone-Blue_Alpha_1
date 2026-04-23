@@ -1,0 +1,113 @@
+<section id="tornado-dollar-tornado-google">
+  <h2>Tornado Dollar Sensitivity Summary</h2>
+  <p><strong>Input CSV:</strong> tornado_google.csv</p>
+  <p><strong>Channels altered:</strong> GOOGLE</p>
+  <p><strong>Value Scaling:</strong> scaled by row-level &#x27;dollars_per_subscription&#x27;</p>
+  <h3>Best Overall Prior Distribution Setup</h3>
+  <p><strong>Selection objective:</strong> total_new_value</p>
+  <p><strong>Best prior setup:</strong> ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</p>
+  <ul>
+    <li><strong>Total baseline incremental value:</strong> $59.69M</li>
+    <li><strong>Total new incremental value:</strong> $208.73M</li>
+    <li><strong>Overall dollar change vs baseline:</strong> +$149.04M</li>
+    <li><strong>Overall ROI change when channels were changed:</strong> +7.7550 (775.50%)</li>
+  </ul>
+  <h3>Top Prior Setups (By Objective)</h3>
+  <table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>prior_setup</th>
+      <th>total_new_value</th>
+      <th>delta_value_vs_baseline</th>
+      <th>delta_roi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</td>
+      <td>$208.73M</td>
+      <td>+$149.04M</td>
+      <td>775.50%</td>
+    </tr>
+    <tr>
+      <td>ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</td>
+      <td>$172.42M</td>
+      <td>+$112.73M</td>
+      <td>586.58%</td>
+    </tr>
+    <tr>
+      <td>ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</td>
+      <td>$138.10M</td>
+      <td>+$78.41M</td>
+      <td>407.99%</td>
+    </tr>
+    <tr>
+      <td>ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</td>
+      <td>$116.07M</td>
+      <td>+$56.38M</td>
+      <td>293.36%</td>
+    </tr>
+    <tr>
+      <td>ROI_PRIOR_OVERRIDES: NA(mu=NA, sigma=NA) | STRUCTURAL_OVERRIDES: NA(mu=NA, sigma=NA)</td>
+      <td>$107.47M</td>
+      <td>+$47.78M</td>
+      <td>248.61%</td>
+    </tr>
+  </tbody>
+</table>
+  <h3>Channel Effects At Best Setup</h3>
+  <table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: left;">
+      <th>channel</th>
+      <th>delta_value</th>
+      <th>delta_roi</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>GOOGLE</td>
+      <td>+$162.15M</td>
+      <td>15.75%</td>
+    </tr>
+    <tr>
+      <td>META</td>
+      <td>+$1.24M</td>
+      <td>1.48%</td>
+    </tr>
+    <tr>
+      <td>AMAZON</td>
+      <td>-$6.9K</td>
+      <td>-0.44%</td>
+    </tr>
+    <tr>
+      <td>TIKTOK</td>
+      <td>-$1.11M</td>
+      <td>-0.63%</td>
+    </tr>
+    <tr>
+      <td>MOLOCO</td>
+      <td>-$1.46M</td>
+      <td>-1.73%</td>
+    </tr>
+    <tr>
+      <td>BEEHIIV</td>
+      <td>-$3.01M</td>
+      <td>-9.16%</td>
+    </tr>
+    <tr>
+      <td>LIVEINTENT</td>
+      <td>-$3.73M</td>
+      <td>-4.67%</td>
+    </tr>
+    <tr>
+      <td>SNAPCHAT</td>
+      <td>-$5.05M</td>
+      <td>-1.16%</td>
+    </tr>
+  </tbody>
+</table>
+  <h3>Tornado Plot Interpretation</h3>
+  <p>Largest sensitivity ranges are in GOOGLE (-$9.15M to $131.22M); SNAPCHAT (-$4.13M to -$39.9K); LIVEINTENT (-$3.37M to $369.9K). Biggest upside scenario is GOOGLE at $131.22M, while the largest downside scenario is GOOGLE at -$9.15M. Bars crossing zero indicate the channel can either help or hurt depending on prior assumptions; wider bars indicate greater uncertainty and model sensitivity.</p>
+  <img src="channel_sensitivity_tornado_dollar_value_p05p95.png" alt="Tornado plot: channel sensitivity in dollar value" style="max-width:100%;height:auto;border:1px solid #ccc;" />
+</section>

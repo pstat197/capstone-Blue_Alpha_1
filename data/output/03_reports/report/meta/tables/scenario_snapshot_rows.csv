@@ -1,0 +1,9 @@
+run_id,channel,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,estimated_roi,baseline_roi,pct_change,abs_pct_change,delta_value_used,qc_status_code,qc_summary_short
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,meta,meta,3.0,0.5,LogNormal,0.4747863409419854,0.0487444552453234,,,37429530.156122975,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,amazon,meta,3.0,0.5,LogNormal,0.2616569847303132,0.1465167666824224,,,187209.7646752949,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,beehiiv,meta,3.0,0.5,LogNormal,0.1232578592553424,0.1775703480498244,,,-2167603.4400528804,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,tiktok,meta,3.0,0.5,LogNormal,0.0606035769901548,0.0307713768429433,,,5576190.181219952,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,liveintent,meta,3.0,0.5,LogNormal,0.0916672795681127,0.1033024348823043,,,-840492.8738718368,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,moloco,meta,3.0,0.5,LogNormal,0.0748550977344469,0.0703099257564948,,,333085.93502049707,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,google,meta,3.0,0.5,LogNormal,0.0179693990839102,0.0151750972773879,,,4093918.95292967,REVIEW,REVIEW:Baseline
+multi|meta|3.000000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,snapchat,meta,3.0,0.5,LogNormal,0.0286693824115597,0.0295174331237406,,,-666699.602053035,REVIEW,REVIEW:Baseline
