@@ -20,7 +20,6 @@ from src.io_utils import (
 )
 from src.output_paths import (
     RUNS_DIR,
-    candidate_run_csv_paths,
     ensure_output_dirs,
     roi_csv_path,
     run_csv_path,
@@ -386,10 +385,6 @@ def main():
     print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
 
     already_done = load_resume_state(run_output_file)
-    for legacy_path in candidate_run_csv_paths(output_tag)[1:]:
-        legacy_run_output_file = str(legacy_path)
-        if legacy_run_output_file != run_output_file and os.path.exists(legacy_run_output_file):
-            already_done.update(load_resume_state(legacy_run_output_file))
 
     env = os.environ.copy()
     env["TF_CPP_MIN_LOG_LEVEL"] = "3"

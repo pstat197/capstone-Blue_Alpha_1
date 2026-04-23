@@ -7,7 +7,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
-from src.output_paths import candidate_run_csv_paths, candidate_tornado_csv_paths, first_existing, tables_tag_dir
+from src.output_paths import run_csv_path, tables_tag_dir, tornado_csv_path
 
 EPS = 1e-8
 
@@ -38,21 +38,17 @@ def _tag_for_targets(targets: Iterable[str]) -> str:
     return "_".join(sorted(str(t) for t in targets))
 
 
-def _paths_for_tag(tag: str) -> dict:
+def _paths_for_tag(tag: str) -> dict[str, str]:
     return {
-        "tornado_csv_candidates": candidate_tornado_csv_paths(tag),
-        "run_csv_candidates": candidate_run_csv_paths(tag),
+        "tornado_csv": str(tornado_csv_path(tag)),
+        "run_csv": str(run_csv_path(tag)),
     }
 
 
-def _ensure_tornado_exists(project_root: str, targets_sorted: list[str], tornado_candidates: list) -> str:
-    existing = first_existing(tornado_candidates)
-    if existing is not None:
-        return str(existing)
-
-    # Prefer the first candidate path for post-generation existence checks.
-    preferred = str(tornado_candidates[0])
-    os.makedirs(os.path.dirname(preferred), exist_ok=True)
+def _ensure_tornado_exists(project_root: str, targets_sorted: list[str], tornado_csv: str) -> str:
+    if os.path.exists(tornado_csv):
+        return tornado_csv
+    os.makedirs(os.path.dirname(tornado_csv), exist_ok=True)
 
     cmd = [sys.executable, "-m", "src.summarize_sensitivity"] + targets_sorted
     print("Tornado CSV missing; generating it first via:")
@@ -61,17 +57,15 @@ def _ensure_tornado_exists(project_root: str, targets_sorted: list[str], tornado
     if proc.returncode != 0:
         raise RuntimeError(f"Auto-run of src.summarize_sensitivity failed with exit code {proc.returncode}")
 
-    existing = first_existing(tornado_candidates)
-    if existing is None:
-        raise FileNotFoundError(f"Expected tornado CSV still not found. Tried: {', '.join(str(p) for p in tornado_candidates)}")
-    return str(existing)
+    if not os.path.exists(tornado_csv):
+        raise FileNotFoundError(f"Expected tornado CSV still not found: {tornado_csv}")
+    return tornado_csv
 
 
-def _pick_run_csv(run_candidates: list) -> str | None:
-    existing = first_existing(run_candidates)
-    if existing is None:
+def _pick_run_csv(run_csv: str) -> str | None:
+    if not os.path.exists(run_csv):
         return None
-    return str(existing)
+    return run_csv
 
 
 def _pick_center(values: pd.Series):
@@ -569,7 +563,7 @@ def main() -> None:
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     paths = _paths_for_tag(tag)
-    tornado_csv = _ensure_tornado_exists(project_root, targets_sorted, paths["tornado_csv_candidates"])
+    tornado_csv = _ensure_tornado_exists(project_root, targets_sorted, paths["tornado_csv"])
 
     tornado_df = pd.read_csv(tornado_csv)
     if tornado_df.empty:
@@ -580,7 +574,7 @@ def main() -> None:
         raise ValueError("No rows found for the requested target set in tornado CSV.")
 
     run_df = pd.DataFrame()
-    run_csv = _pick_run_csv(paths["run_csv_candidates"])
+    run_csv = _pick_run_csv(paths["run_csv"])
     if run_csv is not None and os.path.exists(run_csv):
         run_df = pd.read_csv(run_csv)
         if "targets" in run_df.columns:

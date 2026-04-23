@@ -2,7 +2,7 @@ experiment:
   # Explicit prior grid only.
   # 6 x 3 x 1 = 18 runs total with the fixed structural profile below.
   roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-  roi_sigma_values: [0.5, 1.0, 1.5]
+  roi_sigma_values: [1.0, 1.5, 2.0]
   roi_dist_values: [LogNormal]
 
 structural:
@@ -15,9 +15,29 @@ structural:
 
 baseline:
   # Deterministic baseline anchor for this explicit grid.
-  roi_mu: 0.5
-  roi_sigma: 0.5
+  roi_mu: 1.5
+  roi_sigma: 1.5
   roi_dist: LogNormal
+
+two_layer:
+  enabled: true
+  clean_between_layers: true
+  layer1:
+    # Fixed coarse scan across datasets.
+    roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    roi_sigma_values: [1.0, 1.5, 2.0]
+    roi_dist_values: [LogNormal]
+  layer2:
+    # Auto-refine around the best local neighborhood from Layer 1.
+    mode: auto_refine
+    top_n_mu: 3
+    top_n_sigma: 2
+    mu_step: 0.25
+    sigma_step: 0.25
+    fallback:
+      roi_mu_values: [0.5, 1.0, 1.5, 2.0]
+      roi_sigma_values: [1.0, 1.5]
+      roi_dist_values: [LogNormal]
 
 defaults:
   # Active target set when running pipeline without CLI targets.

@@ -11,12 +11,9 @@ import numpy as np
 
 from src.output_paths import (
     TABLES_DIR,
-    LEGACY_OUTPUT_DIR,
-    candidate_roi_csv_paths,
-    candidate_run_csv_paths,
     ensure_output_dirs,
-    first_existing,
-    legacy_combined_csv_path,
+    roi_csv_path,
+    run_csv_path,
     tornado_csv_path,
 )
 from src.io_utils import STRUCTURAL_COLUMNS
@@ -62,11 +59,10 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(picked, ignore_index=True)
 
 
-def _paths_for_tag(tag: str) -> dict[str, Path | list[Path]]:
+def _paths_for_tag(tag: str) -> dict[str, Path]:
     return {
-        "run_csv_candidates": candidate_run_csv_paths(tag),
-        "roi_csv_candidates": candidate_roi_csv_paths(tag),
-        "legacy_csv": legacy_combined_csv_path(tag, LEGACY_OUTPUT_DIR),
+        "run_csv": run_csv_path(tag),
+        "roi_csv": roi_csv_path(tag),
         "tornado_csv": tornado_csv_path(tag, TABLES_DIR),
     }
 
@@ -127,55 +123,38 @@ def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
-    run_candidates = paths["run_csv_candidates"]
-    roi_candidates = paths["roi_csv_candidates"]
+def _load_current_results(paths: dict[str, Path]) -> pd.DataFrame:
+    run_csv = paths["run_csv"]
+    roi_csv = paths["roi_csv"]
+    if not run_csv.exists() or not roi_csv.exists():
+        return pd.DataFrame()
 
-    run_csv = None
-    roi_csv = None
-    if run_candidates[0].exists() and roi_candidates[0].exists():
-        run_csv = run_candidates[0]
-        roi_csv = roi_candidates[0]
-    elif run_candidates[1].exists() and roi_candidates[1].exists():
-        run_csv = run_candidates[1]
-        roi_csv = roi_candidates[1]
-    else:
-        run_csv = first_existing(run_candidates)
-        roi_csv = first_existing(roi_candidates)
+    run_df = _safe_read_csv_or_backup(run_csv)
+    roi_df = _safe_read_csv_or_backup(roi_csv)
+    if run_df.empty or roi_df.empty:
+        return pd.DataFrame()
 
-    if run_csv is not None and roi_csv is not None:
-        run_df = _safe_read_csv_or_backup(run_csv)
-        roi_df = _safe_read_csv_or_backup(roi_csv)
-        if run_df.empty or roi_df.empty:
-            return pd.DataFrame()
+    if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
+        raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
 
-        if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
-            raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
-
-        run_cols = [
-            c for c in [
-                "run_id",
-                "prior_key",
-                "targets",
-                "roi_prior_mu",
-                "roi_prior_sigma",
-                "roi_prior_dist",
-                *STRUCTURAL_COLUMNS,
-                "is_baseline",
-                "qc_status_code",
-                "qc_summary_short",
-                "qc_primary_review_check",
-                "qc_flagged_channels",
-            ] if c in run_df.columns
-        ]
-        run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
-        return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
-
-    legacy_csv = paths["legacy_csv"]
-    if legacy_csv.exists():
-        return pd.read_csv(legacy_csv)
-
-    return pd.DataFrame()
+    run_cols = [
+        c for c in [
+            "run_id",
+            "prior_key",
+            "targets",
+            "roi_prior_mu",
+            "roi_prior_sigma",
+            "roi_prior_dist",
+            *STRUCTURAL_COLUMNS,
+            "is_baseline",
+            "qc_status_code",
+            "qc_summary_short",
+            "qc_primary_review_check",
+            "qc_flagged_channels",
+        ] if c in run_df.columns
+    ]
+    run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
+    return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
 
 
 def main():
@@ -217,11 +196,9 @@ def main():
 
         df = _load_current_results(paths)
         if df.empty:
-            run_candidates = ", ".join(str(p) for p in paths["run_csv_candidates"])
-            roi_candidates = ", ".join(str(p) for p in paths["roi_csv_candidates"])
             raise FileNotFoundError(
-                "Expected split outputs (or legacy combined output) still not found after auto-run: "
-                f"{run_candidates} / {roi_candidates}"
+                "Expected split outputs not found after auto-run: "
+                f"{paths['run_csv']} / {paths['roi_csv']}"
             )
 
     # Summarize

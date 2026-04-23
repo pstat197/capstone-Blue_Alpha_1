@@ -18,11 +18,11 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     "experiment": {
         # Explicit-prior mode only: grid values must be provided directly.
         "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
-        "roi_sigma_values": [0.5, 1.0, 1.5],
+        "roi_sigma_values": [1.0, 1.5, 2.0],
         "roi_dist_values": ["LogNormal"],
     },
     "structural": {
-        # MVP defaults keep legacy behavior unless explicitly overridden.
+        # Fixed structural defaults unless explicitly overridden.
         "alpha_m_values": [None],
         "ec_m_values": [None],
         "slope_m_values": [1.0],
@@ -46,11 +46,26 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "n_keep": 300,
         "seed": 0,
     },
-    "next_grid_policy": {
-        "min_dist_pass_rate": 0.7,
-        "max_baseline_issue_rate": 0.1,
-        "min_param_pass_rate": 0.6,
-        "fallback_keep_all_dists": True,
+    "two_layer": {
+        "enabled": True,
+        "clean_between_layers": True,
+        "layer1": {
+            "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
+            "roi_sigma_values": [1.0, 1.5, 2.0],
+            "roi_dist_values": ["LogNormal"],
+        },
+        "layer2": {
+            "mode": "auto_refine",
+            "top_n_mu": 3,
+            "top_n_sigma": 2,
+            "mu_step": 0.25,
+            "sigma_step": 0.25,
+            "fallback": {
+                "roi_mu_values": [0.5, 1.0, 1.5, 2.0],
+                "roi_sigma_values": [1.0, 1.5],
+                "roi_dist_values": ["LogNormal"],
+            },
+        },
     },
 }
 

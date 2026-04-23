@@ -1,9 +1,0 @@
-run_id,channel,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,estimated_roi,baseline_roi,pct_change,abs_pct_change,delta_value_used,qc_status_code,qc_summary_short
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,google,google,0.5,1.5,LogNormal,0.0074346376137934,0.0340916580497287,,,-11388311.749489725,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,beehiiv,google,0.5,1.5,LogNormal,0.1957000139961019,0.1739763221105871,,,586803.7049881928,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,liveintent,google,0.5,1.5,LogNormal,0.1058320098389716,0.0924023820184326,,,371923.59247531183,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,amazon,google,0.5,1.5,LogNormal,0.1446359621811037,0.1361602997221052,,,8424.892934789066,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,moloco,google,0.5,1.5,LogNormal,0.0737119531142525,0.0709589544901003,,,157367.38790517673,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,tiktok,google,0.5,1.5,LogNormal,0.0290192056268764,0.0266074529167963,,,135217.00632668473,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,meta,google,0.5,1.5,LogNormal,0.0229427925584604,0.0253376100418002,,,-107259.15549738635,REVIEW,REVIEW:ROIConsistency
-multi|google|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,snapchat,google,0.5,1.5,LogNormal,0.0309938179278591,0.030446853407969,,,-24275.892561580986,REVIEW,REVIEW:ROIConsistency

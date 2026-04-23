@@ -5,14 +5,8 @@ This folder contains the runnable MMM prior-sensitivity code.
 ## Minimal Flow
 
 ```powershell
-# 1) Run sensitivity experiments
-python -m src.main --targets google meta tiktok --config config/sensitivity.yaml
-
-# 2) Build tornado summary table
-python -m src.summarize_sensitivity google meta tiktok
-
-# 3) Build dashboard package
-python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+# 1) End-to-end pipeline (always two-layer)
+python -m src.pipeline google meta tiktok --config config/sensitivity.yaml
 ```
 
 ## Core Modules
@@ -41,6 +35,8 @@ For tag `<tag>`:
 - `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 - `data/output/02_tables/<tag>/tornado_<tag>.csv`
 - `data/output/03_reports/report/<tag>/dashboard.html`
+
+Two-layer mode keeps dashboard inputs clean by removing Layer 1 artifacts before Layer 2 final run.
 
 ## Troubleshooting
 
