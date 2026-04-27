@@ -559,7 +559,7 @@ def plot_interval_by_channel(
     summ: pd.DataFrame, title: str, outpath: Path, subscription_scale_note: str
 ):
     if summ.empty:
-        print("No data to plot.")
+        print("No tornado data to plot.")
         return
 
     # least sensitive at bottom, most sensitive at top
@@ -910,14 +910,7 @@ def main():
         try:
             result = process_single_csv(csv_path=csv_path, out_dir=out_dir)
             scenario_summaries.append(result["scenario_summary"])
-            print(f"\n[{result['csv_name']}] Saved:")
-            print(" -", result["plot_path"])
-            if result["summ_csv"] is not None:
-                print(" -", result["summ_csv"])
-            if result["html_report_path"] is not None:
-                print(" -", result["html_report_path"])
-            if result["html_fragment_path"] is not None:
-                print(" -", result["html_fragment_path"])
+            print(f"[{result['csv_name']}] Tornado outputs ready.")
         except Exception as exc:
             failures.append((csv_path.name, str(exc)))
             print(f"\n[{csv_path.name}] ERROR: {exc}")
@@ -941,10 +934,7 @@ def main():
             agg=global_agg,
             scenarios_count=len(csv_paths) - len(failures),
         )
-        print("\n[GLOBAL] Saved:")
-        print(" -", global_html_report_path)
-        if global_html_fragment_path is not None:
-            print(" -", global_html_fragment_path)
+        print("[GLOBAL] Tornado summary ready.")
 
     if WRITE_GLOBAL_REPORT and not global_agg.empty:
         top_channel = str(global_agg.iloc[0]["channel"]).upper()

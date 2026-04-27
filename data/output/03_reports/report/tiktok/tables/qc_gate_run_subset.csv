@@ -1,0 +1,16 @@
+run_id,roi_prior_mu,roi_prior_sigma,roi_prior_dist,qc_status_code,qc_primary_review_check,qc_flagged_channels
+multi|tiktok|pmode=roi|rpk=none|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.5,1.0,LogNormal,PASS,,
+multi|tiktok|pmode=roi|rpk=none|mu=0.500000|sigma=1.500000|dist=LogNormal|0.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.5,1.5,LogNormal,PASS,,
+multi|tiktok|pmode=roi|rpk=none|mu=0.500000|sigma=2.000000|dist=LogNormal|0.500000|2.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.5,2.0,LogNormal,PASS,,
+multi|tiktok|pmode=roi|rpk=none|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.0,1.0,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=1.000000|sigma=1.500000|dist=LogNormal|1.000000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.0,1.5,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=1.000000|sigma=2.000000|dist=LogNormal|1.000000|2.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.0,2.0,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.5,1.0,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=1.500000|sigma=1.500000|dist=LogNormal|1.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.5,1.5,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=1.500000|sigma=2.000000|dist=LogNormal|1.500000|2.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,1.5,2.0,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=2.500000|sigma=1.000000|dist=LogNormal|2.500000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,2.5,1.0,LogNormal,REVIEW,ROIConsistency,"google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=2.500000|sigma=1.500000|dist=LogNormal|2.500000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,2.5,1.5,LogNormal,REVIEW,ROIConsistency,"google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=2.500000|sigma=2.000000|dist=LogNormal|2.500000|2.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,2.5,2.0,LogNormal,REVIEW,ROIConsistency,"meta,google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=4.000000|sigma=1.000000|dist=LogNormal|4.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,4.0,1.0,LogNormal,REVIEW,Baseline,
+multi|tiktok|pmode=roi|rpk=none|mu=4.000000|sigma=1.500000|dist=LogNormal|4.000000|1.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,4.0,1.5,LogNormal,REVIEW,ROIConsistency,"google,tiktok"
+multi|tiktok|pmode=roi|rpk=none|mu=4.000000|sigma=2.000000|dist=LogNormal|4.000000|2.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,4.0,2.0,LogNormal,REVIEW,ROIConsistency,"google,tiktok"

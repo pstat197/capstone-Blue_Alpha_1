@@ -33,6 +33,9 @@ temp/
 *.tmp
 *.log
 
+# Local reports
+docs/reports/
+
 # Output folders are intentionally versioned for collaboration
 # (dashboards/reports/tables are shared in GitHub).
 

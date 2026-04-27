@@ -393,7 +393,7 @@ def main() -> None:
     for targets in target_sets:
         tag = "_".join(targets)
         built_tags.append(tag)
-        print(f"\n=== Target set: {', '.join(targets)} (tag: {tag}) ===")
+        print(f"\n=== Target set: {', '.join(targets)} ===")
 
         tornado_csv = tornado_csv_path(tag)
         dashboard_outdir = Path(args.dashboard_outdir) / tag
@@ -475,15 +475,9 @@ def main() -> None:
                 cmd.extend(["--scenario-selection", args.dashboard_scenario_selection])
             _run_step(cmd, project_root)
 
-        print("Finished target set:", ", ".join(targets))
-        print("Run outputs dir:", RUNS_DIR)
-        print("Tornado CSV:", tornado_csv)
-        print("Tornado outputs:", tornado_outdir)
-        if dashboard_input_path is not None:
-            print("Dashboard input table:", dashboard_input_path)
-        print("Dashboard output:", project_root / dashboard_outdir)
+        print("Target set complete:", ", ".join(targets))
 
-    print("\nPipeline finished for tags:", ", ".join(built_tags))
+    print("\nPipeline complete:", ", ".join(built_tags))
 
 
 if __name__ == "__main__":

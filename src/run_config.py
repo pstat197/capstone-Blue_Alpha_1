@@ -11,17 +11,23 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     "run_modes": {
         "fast_product": {
             "roi_mu_values": [0.5, 1.0, 1.5, 2.5, 4.0],
-            "roi_sigma_values": [0.8, 1.5, 2.5],
+            "roi_sigma_values": [1.0, 1.5, 2.0],
             "roi_dist_values": ["LogNormal"],
+            "contribution_mean_values": [0.005, 0.01, 0.02, 0.05, 0.15],
+            "contribution_scale_values": [0.005, 0.02, 0.05],
+            "contribution_dist_values": ["LogNormal"],
             "n_chains": 2,
             "n_adapt": 300,
             "n_burnin": 300,
             "n_keep": 150,
         },
         "audit_research": {
-            "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
-            "roi_sigma_values": [1.0, 1.5, 2.0],
+            "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0],
+            "roi_sigma_values": [0.5, 1.0, 1.5, 2.0],
             "roi_dist_values": ["LogNormal"],
+            "contribution_mean_values": [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15],
+            "contribution_scale_values": [0.005, 0.01, 0.02, 0.05],
+            "contribution_dist_values": ["LogNormal"],
             "n_chains": 4,
             "n_adapt": 700,
             "n_burnin": 500,
@@ -82,6 +88,8 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
     },
     "sweep": {
         "type": "fixed_full_grid",
+        "prior_grid_scope": "full_grid",
+        "structural_grid_scope": "full_grid",
     },
     "sampler": {
         "n_chains": 4,
@@ -155,6 +163,10 @@ def _normalize_positive_list(values: list[float], field_name: str) -> list[float
     return rounded
 
 
+def _default_run_mode_field(name: str, field_name: str, fallback: Any) -> Any:
+    return DEFAULT_RUN_CONFIG.get("run_modes", {}).get(name, {}).get(field_name, fallback)
+
+
 def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
     if not isinstance(raw_profile, dict):
         raise ValueError(f"Config field 'run_modes.{name}' must be a mapping/object.")
@@ -174,6 +186,71 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
         raise ValueError(f"Config field 'run_modes.{name}.roi_dist_values' must contain at least one value.")
     dist_values = _dedupe_preserve_order(dist_values)
 
+    contrib_mean_values = _as_numeric_list(
+        raw_profile.get(
+            "contribution_mean_values",
+            _default_run_mode_field(
+                name,
+                "contribution_mean_values",
+                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_mean_values"],
+            ),
+        ),
+        f"run_modes.{name}.contribution_mean_values",
+    )
+    if not contrib_mean_values:
+        raise ValueError(f"Config field 'run_modes.{name}.contribution_mean_values' must contain at least one value.")
+    contrib_mean_values = _normalize_positive_list(
+        contrib_mean_values, f"run_modes.{name}.contribution_mean_values"
+    )
+
+    contrib_scale_values = _as_numeric_list(
+        raw_profile.get(
+            "contribution_scale_values",
+            _default_run_mode_field(
+                name,
+                "contribution_scale_values",
+                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_scale_values"],
+            ),
+        ),
+        f"run_modes.{name}.contribution_scale_values",
+    )
+    if not contrib_scale_values:
+        raise ValueError(f"Config field 'run_modes.{name}.contribution_scale_values' must contain at least one value.")
+    contrib_scale_values = _normalize_positive_list(
+        contrib_scale_values, f"run_modes.{name}.contribution_scale_values"
+    )
+
+    contrib_dist_values = _as_string_list(
+        raw_profile.get(
+            "contribution_dist_values",
+            _default_run_mode_field(
+                name,
+                "contribution_dist_values",
+                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_dist_values"],
+            ),
+        ),
+        f"run_modes.{name}.contribution_dist_values",
+    )
+    if not contrib_dist_values:
+        raise ValueError(f"Config field 'run_modes.{name}.contribution_dist_values' must contain at least one value.")
+    contrib_dist_values = _dedupe_preserve_order(contrib_dist_values)
+
+    if len(contrib_mean_values) != len(mu_values):
+        raise ValueError(
+            f"Config field 'run_modes.{name}.contribution_mean_values' must align with "
+            f"'run_modes.{name}.roi_mu_values' count: {len(contrib_mean_values)} != {len(mu_values)}."
+        )
+    if len(contrib_scale_values) != len(sigma_values):
+        raise ValueError(
+            f"Config field 'run_modes.{name}.contribution_scale_values' must align with "
+            f"'run_modes.{name}.roi_sigma_values' count: {len(contrib_scale_values)} != {len(sigma_values)}."
+        )
+    if len(contrib_dist_values) != len(dist_values):
+        raise ValueError(
+            f"Config field 'run_modes.{name}.contribution_dist_values' must align with "
+            f"'run_modes.{name}.roi_dist_values' count: {len(contrib_dist_values)} != {len(dist_values)}."
+        )
+
     sampler_out: dict[str, int] = {}
     for sampler_key in ["n_chains", "n_adapt", "n_burnin", "n_keep"]:
         try:
@@ -189,6 +266,9 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
         "roi_mu_values": mu_values,
         "roi_sigma_values": sigma_values,
         "roi_dist_values": dist_values,
+        "contribution_mean_values": contrib_mean_values,
+        "contribution_scale_values": contrib_scale_values,
+        "contribution_dist_values": contrib_dist_values,
         **sampler_out,
     }
 
@@ -418,6 +498,12 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Config field 'prior_design.contribution.contribution_dist_values' must contain at least one value.")
     contribution["contribution_dist_values"] = _dedupe_preserve_order(contrib_dist_values)
 
+    # Run mode also drives the active contribution prior grid so both prior paths
+    # stay count-aligned within a given execution mode.
+    contribution["contribution_mean_values"] = list(active_profile["contribution_mean_values"])
+    contribution["contribution_scale_values"] = list(active_profile["contribution_scale_values"])
+    contribution["contribution_dist_values"] = list(active_profile["contribution_dist_values"])
+
     # Keep legacy experiment block synchronized with ROI design.
     exp = config.setdefault("experiment", {})
     exp["roi_mu_values"] = list(roi["roi_mu_values"])
@@ -483,6 +569,16 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     if sweep_type not in {"fixed_full_grid"}:
         raise ValueError("Config field 'sweep.type' currently supports only: fixed_full_grid.")
     sweep["type"] = sweep_type
+    prior_grid_scope = str(sweep.get("prior_grid_scope", "full_grid")).strip().lower()
+    if prior_grid_scope not in {"full_grid", "baseline_only"}:
+        raise ValueError("Config field 'sweep.prior_grid_scope' must be one of: full_grid, baseline_only.")
+    sweep["prior_grid_scope"] = prior_grid_scope
+    structural_grid_scope = str(sweep.get("structural_grid_scope", "full_grid")).strip().lower()
+    if structural_grid_scope not in {"full_grid", "one_at_a_time"}:
+        raise ValueError(
+            "Config field 'sweep.structural_grid_scope' must be one of: full_grid, one_at_a_time."
+        )
+    sweep["structural_grid_scope"] = structural_grid_scope
     # Fixed full-grid is now the only supported workflow path.
     if "enable_two_layer" in sweep:
         sweep.pop("enable_two_layer", None)

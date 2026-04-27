@@ -34,6 +34,7 @@
 
     <nav class="quick-nav card">
       <a href="#overview" data-page-target="overview"{% if (dashboard_page or 'overview') == 'overview' %} class="active"{% endif %}>Overview</a>
+      <a href="#howrun" data-page-target="howrun"{% if (dashboard_page or 'overview') == 'howrun' %} class="active"{% endif %}>How This Was Run</a>
       <a href="#explorer" data-page-target="explorer"{% if (dashboard_page or 'overview') == 'explorer' %} class="active"{% endif %}>Channel Explorer</a>
       <a href="#comparison" data-page-target="comparison"{% if (dashboard_page or 'overview') == 'comparison' %} class="active"{% endif %}>Channel Comparison</a>
       <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}>Structural Assumptions</a>
@@ -146,6 +147,49 @@
             <span id="mh-tier-score"></span>
             <span id="decision-score-note"></span>
             <span id="mh-note"></span>
+          </div>
+        </section>
+
+        <section class="panel card how-run-section" id="section-how-run" data-page-group="howrun">
+          <div class="how-run-head">
+            <div>
+              <div class="how-run-eyebrow">Internal Provenance</div>
+              <h2>How This Was Run</h2>
+              <p class="subhead">Team-facing execution summary for quick review and reproducibility.</p>
+            </div>
+            <div id="how-run-badges" class="how-run-badges"></div>
+          </div>
+
+          <div class="how-run-hero">
+            <div id="how-run-summary" class="how-run-summary"></div>
+          </div>
+
+          <div class="how-run-layout">
+            <section class="how-run-visual">
+              <div class="how-run-block-head">
+                <h3>Workflow Snapshot</h3>
+                <p>Compact run flow mirroring the internal fixed-grid pipeline.</p>
+              </div>
+              <div id="how-run-flow" class="how-run-flow"></div>
+            </section>
+
+            <section class="how-run-sidebar">
+              <article class="how-run-panel">
+                <div class="how-run-block-head">
+                  <h3>Current Settings</h3>
+                  <p>Resolved from the actual run payload, not hand-entered notes.</p>
+                </div>
+                <div id="how-run-settings-grid" class="how-run-settings-grid"></div>
+              </article>
+
+              <article class="how-run-panel">
+                <div class="how-run-block-head">
+                  <h3>Run Notes</h3>
+                  <p>Internal context for interpretation and review.</p>
+                </div>
+                <ul id="how-run-notes-list" class="list how-run-notes"></ul>
+              </article>
+            </section>
           </div>
         </section>
 
@@ -492,7 +536,7 @@
       const navLinks = Array.from(document.querySelectorAll(".quick-nav a[data-page-target]"));
       if (!navLinks.length) return;
 
-      const validPages = new Set(["overview", "explorer", "comparison", "structural", "qc"]);
+      const validPages = new Set(["overview", "howrun", "explorer", "comparison", "structural", "qc"]);
       const normalizePage = (raw) => {
         const cleaned = String(raw || "")
           .replace(/^#/, "")
@@ -579,6 +623,7 @@
       const overview = payload.overview || {};
       const decision = payload.decision_card || {};
       const overviewLines = Array.isArray(payload.quick_overview_lines) ? payload.quick_overview_lines : [];
+      const howRun = payload.how_this_was_run || {};
 
       const byId = (id) => document.getElementById(id);
       const distFilter = byId("dist-filter");
@@ -1671,6 +1716,68 @@
         }
       };
 
+      const renderHowRun = () => {
+        const section = byId("section-how-run");
+        const summary = byId("how-run-summary");
+        const badgeHost = byId("how-run-badges");
+        const flow = byId("how-run-flow");
+        const settings = byId("how-run-settings-grid");
+        const notes = byId("how-run-notes-list");
+        if (!section) return;
+
+        if (!howRun || !howRun.available) {
+          section.style.display = "none";
+          return;
+        }
+
+        section.style.display = "";
+        if (summary) {
+          summary.textContent = String(howRun.summary || "").trim() || "Run provenance available.";
+        }
+        if (badgeHost) {
+          const rows = Array.isArray(howRun.badges) ? howRun.badges : [];
+          badgeHost.innerHTML = rows.length
+            ? rows.map((row) => `
+                <div class="how-run-badge">
+                  <span class="how-run-badge-label">${String(row.label || "Label")}</span>
+                  <span class="how-run-badge-value">${String(row.value || "NA")}</span>
+                </div>
+              `).join("")
+            : "";
+        }
+        if (flow) {
+          const rows = Array.isArray(howRun.flow_cards) ? howRun.flow_cards : [];
+          flow.innerHTML = rows.length
+            ? rows.map((row, idx) => `
+                <article class="how-run-step-card ${idx === rows.length - 1 ? "is-terminal" : ""}">
+                  <div class="how-run-step-top">
+                    <span class="how-run-step-num">${String(row.step || idx + 1)}</span>
+                    <span class="how-run-step-line" aria-hidden="true"></span>
+                  </div>
+                  <h4>${String(row.title || "Step")}</h4>
+                  <p>${String(row.detail || "")}</p>
+                </article>
+              `).join("")
+            : '<div class="empty">No workflow snapshot available.</div>';
+        }
+        if (settings) {
+          const rows = Array.isArray(howRun.settings) ? howRun.settings : [];
+          settings.innerHTML = rows.length
+            ? rows.map((row) => `
+                <div class="how-run-setting">
+                  <div class="how-run-setting-label">${String(row.label || "Setting")}</div>
+                  <div class="how-run-setting-value">${String(row.value || "NA")}</div>
+                </div>
+              `).join("")
+            : '<div class="empty">No current settings available.</div>';
+        }
+        if (notes) {
+          const rows = Array.isArray(howRun.notes) ? howRun.notes : [];
+          notes.innerHTML = rows.length ? rows.map((x) => `<li>${x}</li>`).join("") : "";
+          notes.style.display = rows.length ? "" : "none";
+        }
+      };
+
       const tornadoRoiChartNode = byId("tornado-roi-chart");
       const tornadoDollarChartNode = byId("tornado-dollar-chart");
       const tornadoRoiChart = (window.echarts && tornadoRoiChartNode) ? echarts.init(tornadoRoiChartNode) : null;
@@ -1922,6 +2029,7 @@
         const rows = getFilteredRows();
         renderDecisionCard();
         renderModelHealthCard();
+        renderHowRun();
         renderKpis(rows);
         renderSpendEffect();
         renderQc();
@@ -2019,7 +2127,7 @@
         const navLinks = Array.from(document.querySelectorAll(".quick-nav a[data-page-target]"));
         if (!navLinks.length) return;
 
-        const validPages = new Set(["overview", "explorer", "comparison", "structural", "qc"]);
+        const validPages = new Set(["overview", "howrun", "explorer", "comparison", "structural", "qc"]);
         const normalizePage = (raw) => {
           const cleaned = String(raw || "")
             .replace(/^#/, "")

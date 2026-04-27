@@ -51,8 +51,7 @@ def _ensure_tornado_exists(project_root: str, targets_sorted: list[str], tornado
     os.makedirs(os.path.dirname(tornado_csv), exist_ok=True)
 
     cmd = [sys.executable, "-m", "src.summarize_sensitivity"] + targets_sorted
-    print("Tornado CSV missing; generating it first via:")
-    print(" ".join(cmd))
+    print("Tornado summary missing; building it first.")
     proc = subprocess.run(cmd, cwd=project_root)
     if proc.returncode != 0:
         raise RuntimeError(f"Auto-run of src.summarize_sensitivity failed with exit code {proc.returncode}")
@@ -292,7 +291,8 @@ def _compute_cross_channel_coupling(run_channel_df: pd.DataFrame, target_set: se
             # Target channels should not be penalized by a self-spillover denominator artifact.
             spill_term = np.nan
 
-        coupling[channel] = float(np.nanmean([corr_term, spill_term]))
+        finite_terms = [float(x) for x in (corr_term, spill_term) if pd.notna(x)]
+        coupling[channel] = float(np.mean(finite_terms)) if finite_terms else np.nan
     return coupling
 
 
@@ -681,14 +681,7 @@ def main() -> None:
         baseline_dist=baseline_dist,
     )
 
-    print("Saved per-channel robustness scores to:")
-    print(channel_csv)
-    print("Saved overall model robustness score to:")
-    print(overall_csv)
-    print("Saved run-level diagnostics to:")
-    print(run_diag_csv)
-    print("Saved robustness report to:")
-    print(report_path)
+    print("Robustness scoring complete.")
 
 
 if __name__ == "__main__":

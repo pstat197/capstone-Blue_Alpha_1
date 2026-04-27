@@ -6,14 +6,20 @@ run_modes:
     roi_mu_values: [0.5, 1.0, 1.5, 2.5, 4.0]
     roi_sigma_values: [1.0, 1.5, 2.0]
     roi_dist_values: [LogNormal]
+    contribution_mean_values: [0.005, 0.01, 0.02, 0.05, 0.15]
+    contribution_scale_values: [0.005, 0.02, 0.05]
+    contribution_dist_values: [LogNormal]
     n_chains: 2
     n_adapt: 300
     n_burnin: 300
     n_keep: 150
   audit_research:
     roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
-    roi_sigma_values: [1.0, 1.5, 2.0]
+    roi_sigma_values: [0.5, 1.0, 1.5, 2.0]
     roi_dist_values: [LogNormal]
+    contribution_mean_values: [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15]
+    contribution_scale_values: [0.005, 0.01, 0.02, 0.05]
+    contribution_dist_values: [LogNormal]
     n_chains: 4
     n_adapt: 700
     n_burnin: 500
@@ -38,7 +44,7 @@ outcome:
 
 prior_design:
   # auto | roi | contribution
-  mode: roi
+  mode: auto
   roi:
     roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     roi_sigma_values: [1.0, 1.5, 2.0]
@@ -50,20 +56,24 @@ prior_design:
 
 sweep:
   type: fixed_full_grid
+  # full_grid | baseline_only
+  prior_grid_scope: baseline_only
+  # full_grid | one_at_a_time
+  structural_grid_scope: one_at_a_time
 
 structural:
-  alpha_m_values: [0.3]
-  ec_m_values: [0.5]
-  slope_m_values: [1.2]
-  max_lag_values: [4]
-  adstock_decay_values: [geometric]
+  alpha_m_values: [0.3, 0.2, 0.4]
+  ec_m_values: [0.5, 0.3, 0.7]
+  slope_m_values: [1.2, 1.0, 1.4]
+  max_lag_values: [4, 2, 6]
+  adstock_decay_values: [geometric, binomial]
 
 baseline:
   roi_mu: 1.5
   roi_sigma: 1.5
   roi_dist: LogNormal
-  contribution_mean: null
-  contribution_scale: null
+  contribution_mean: 0.02
+  contribution_scale: 0.02
 
 defaults:
   targets: [google, meta, tiktok]

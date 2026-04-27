@@ -967,6 +967,7 @@ def render_dashboard_output(
         },
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
+        "how_this_was_run": metrics.get("how_this_was_run", {"available": False}),
     }
     dashboard_payload = _json_compatible(dashboard_payload, float_decimals=3)
     if write_report and template is not None:

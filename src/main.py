@@ -247,6 +247,130 @@ def _contribution_grid_from_config(run_cfg: dict) -> dict:
     return {"mean": mean_vals, "scale": scale_vals, "dist": dist_vals}
 
 
+def _resolve_contribution_baseline_from_config(run_cfg: dict) -> tuple[float, float, str]:
+    baseline_cfg = run_cfg.get("baseline", {}) or {}
+    contribution_grid = _contribution_grid_from_config(run_cfg)
+
+    mean_values = [round(float(v), 6) for v in contribution_grid["mean"]]
+    scale_values = [round(float(v), 6) for v in contribution_grid["scale"]]
+    dist_values = [str(v) for v in contribution_grid["dist"]]
+
+    baseline_mean_cfg = baseline_cfg.get("contribution_mean")
+    if baseline_mean_cfg is None:
+        baseline_mean = float(mean_values[len(mean_values) // 2])
+    else:
+        baseline_mean = round(float(baseline_mean_cfg), 6)
+        if not _contains_close(mean_values, baseline_mean):
+            raise ValueError(
+                "Configured baseline.contribution_mean is not in the active contribution mean grid. "
+                f"baseline.contribution_mean={baseline_mean}, active mean grid={mean_values}"
+            )
+
+    baseline_scale_cfg = baseline_cfg.get("contribution_scale")
+    if baseline_scale_cfg is None:
+        baseline_scale = float(scale_values[len(scale_values) // 2])
+    else:
+        baseline_scale = round(float(baseline_scale_cfg), 6)
+        if not _contains_close(scale_values, baseline_scale):
+            raise ValueError(
+                "Configured baseline.contribution_scale is not in the active contribution scale grid. "
+                f"baseline.contribution_scale={baseline_scale}, active scale grid={scale_values}"
+            )
+
+    baseline_dist = str(dist_values[0])
+    return baseline_mean, baseline_scale, baseline_dist
+
+
+def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: list[dict]) -> list[dict]:
+    if not prior_run_points:
+        return []
+
+    roi_baseline: tuple[float, float, str] | None = None
+    contribution_baseline: tuple[float, float, str] | None = None
+
+    if any(point["effective_prior_mode"] == "roi" for point in prior_run_points):
+        roi_grid = _roi_grid_from_config(run_cfg)
+        roi_baseline = _resolve_roi_baseline_from_grid(
+            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+        )
+
+    if any(point["effective_prior_mode"] == "contribution" for point in prior_run_points):
+        contribution_baseline = _resolve_contribution_baseline_from_config(run_cfg)
+
+    filtered: list[dict] = []
+    for point in prior_run_points:
+        if point["effective_prior_mode"] == "roi" and roi_baseline is not None:
+            baseline_mu, baseline_sigma, baseline_dist = roi_baseline
+            if (
+                abs(float(point["roi_mu_display"]) - baseline_mu) <= 1e-9
+                and abs(float(point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
+                and str(point["roi_dist_display"]) == str(baseline_dist)
+            ):
+                filtered.append(point)
+            continue
+
+        if point["effective_prior_mode"] == "contribution" and contribution_baseline is not None:
+            baseline_mean, baseline_scale, baseline_dist = contribution_baseline
+            if (
+                point["contribution_mean"] is not None
+                and point["contribution_scale"] is not None
+                and abs(float(point["contribution_mean"]) - baseline_mean) <= 1e-9
+                and abs(float(point["contribution_scale"]) - baseline_scale) <= 1e-9
+                and str(point["roi_dist_display"]) == str(baseline_dist)
+            ):
+                filtered.append(point)
+
+    if not filtered:
+        raise ValueError("No baseline prior run point matched the active baseline settings.")
+    return filtered
+
+
+def _build_structural_run_points(structural_grids: dict[str, list], structural_grid_scope: str) -> tuple[list[dict], dict]:
+    baseline_structural = {
+        "alpha_m": structural_grids["alpha_m"][0],
+        "ec_m": structural_grids["ec_m"][0],
+        "slope_m": structural_grids["slope_m"][0],
+        "max_lag": structural_grids["max_lag"][0],
+        "adstock_decay_spec": structural_grids["adstock_decay"][0],
+    }
+    if structural_grid_scope == "full_grid":
+        structural_points = [
+            {
+                "alpha_m": alpha_m,
+                "ec_m": ec_m,
+                "slope_m": slope_m,
+                "max_lag": max_lag,
+                "adstock_decay_spec": adstock_decay,
+            }
+            for alpha_m, ec_m, slope_m, max_lag, adstock_decay in product(
+                structural_grids["alpha_m"],
+                structural_grids["ec_m"],
+                structural_grids["slope_m"],
+                structural_grids["max_lag"],
+                structural_grids["adstock_decay"],
+            )
+        ]
+        return structural_points, baseline_structural
+
+    structural_points = [dict(baseline_structural)]
+    axis_order = [
+        ("alpha_m", structural_grids["alpha_m"]),
+        ("ec_m", structural_grids["ec_m"]),
+        ("slope_m", structural_grids["slope_m"]),
+        ("max_lag", structural_grids["max_lag"]),
+        ("adstock_decay_spec", structural_grids["adstock_decay"]),
+    ]
+    for axis_name, values in axis_order:
+        baseline_value = baseline_structural[axis_name]
+        for value in values[1:]:
+            if value == baseline_value:
+                continue
+            point = dict(baseline_structural)
+            point[axis_name] = value
+            structural_points.append(point)
+    return structural_points, baseline_structural
+
+
 def _build_prior_run_points(
     *,
     run_cfg: dict,
@@ -404,46 +528,59 @@ def _contains_close(values: list[float], target: float, tol: float = 1e-9) -> bo
     return any(abs(float(v) - float(target)) <= tol for v in values)
 
 
-def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str]:
+def _resolve_roi_baseline_from_grid(
+    roi_mu_values: list[float],
+    roi_sigma_values: list[float],
+    roi_dist_values: list[str],
+    run_cfg: dict,
+) -> tuple[float, float, str]:
     baseline_cfg = run_cfg.get("baseline", {}) or {}
 
     baseline_mu_cfg = baseline_cfg.get("roi_mu")
     if baseline_mu_cfg is None:
-        baseline_mu = float(cfg.roi_mu_values[0])
+        baseline_mu = float(roi_mu_values[0])
     else:
         baseline_mu = round(float(baseline_mu_cfg), 6)
-        if not _contains_close(cfg.roi_mu_values, baseline_mu):
+        if not _contains_close(roi_mu_values, baseline_mu):
             raise ValueError(
                 "Configured baseline.roi_mu is not in the active mu grid. "
-                f"baseline.roi_mu={baseline_mu}, active mu grid={cfg.roi_mu_values}"
+                f"baseline.roi_mu={baseline_mu}, active mu grid={roi_mu_values}"
             )
 
     baseline_sigma_cfg = baseline_cfg.get("roi_sigma")
     if baseline_sigma_cfg is None:
-        baseline_sigma = float(cfg.roi_sigma_values[0])
+        baseline_sigma = float(roi_sigma_values[0])
     else:
         baseline_sigma = round(float(baseline_sigma_cfg), 6)
-        if not _contains_close(cfg.roi_sigma_values, baseline_sigma):
+        if not _contains_close(roi_sigma_values, baseline_sigma):
             raise ValueError(
                 "Configured baseline.roi_sigma is not in the active sigma grid. "
-                f"baseline.roi_sigma={baseline_sigma}, active sigma grid={cfg.roi_sigma_values}"
+                f"baseline.roi_sigma={baseline_sigma}, active sigma grid={roi_sigma_values}"
             )
 
-    dist_values = [str(x) for x in cfg.roi_dist_values]
     baseline_dist_cfg = baseline_cfg.get("roi_dist")
     if baseline_dist_cfg is None:
-        baseline_dist = str(dist_values[0])
+        baseline_dist = str(roi_dist_values[0])
     else:
         wanted = str(baseline_dist_cfg).strip().lower()
-        mapped = {str(d).strip().lower(): str(d) for d in dist_values}
+        mapped = {str(d).strip().lower(): str(d) for d in roi_dist_values}
         if wanted not in mapped:
             raise ValueError(
                 "Configured baseline.roi_dist is not in the active dist grid. "
-                f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={dist_values}"
+                f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={roi_dist_values}"
             )
         baseline_dist = mapped[wanted]
 
     return round(float(baseline_mu), 6), round(float(baseline_sigma), 6), str(baseline_dist)
+
+
+def _resolve_baseline_from_config(cfg, run_cfg: dict) -> tuple[float, float, str]:
+    return _resolve_roi_baseline_from_grid(
+        [round(float(v), 6) for v in cfg.roi_mu_values],
+        [round(float(v), 6) for v in cfg.roi_sigma_values],
+        [str(v) for v in cfg.roi_dist_values],
+        run_cfg,
+    )
 
 
 def _sanitize_tag_token(raw: str) -> str:
@@ -533,6 +670,8 @@ def main():
     run_mode = str(run_cfg.get("run_mode", "fast_product"))
     parallel_workers = int(run_cfg.get("parallel_workers", 1))
     sweep_type = str((run_cfg.get("sweep", {}) or {}).get("type", "fixed_full_grid"))
+    prior_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("prior_grid_scope", "full_grid"))
+    structural_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("structural_grid_scope", "full_grid"))
     two_layer_enabled = False
 
     model_cfg = run_cfg.get("model", {})
@@ -605,22 +744,24 @@ def main():
         outcome_plan=outcome_plan,
         dataset_ctx=dataset_ctx,
     )
+    prior_run_points_full_count = len(prior_run_points)
+    if prior_grid_scope == "baseline_only":
+        prior_run_points = _filter_prior_run_points_to_baseline_only(run_cfg, prior_run_points)
     if not prior_run_points:
         raise ValueError("No prior run points were generated. Check prior_design/outcome settings.")
 
     channels_json = json.dumps(channels)
-    structural_combo_count = (
-        len(structural_grids["alpha_m"])
-        * len(structural_grids["ec_m"])
-        * len(structural_grids["slope_m"])
-        * len(structural_grids["max_lag"])
-        * len(structural_grids["adstock_decay"])
+    structural_run_points, baseline_structural = _build_structural_run_points(
+        structural_grids, structural_grid_scope
     )
+    structural_combo_count = len(structural_run_points)
     total_runs = len(prior_run_points) * structural_combo_count
 
     print(
         "Run plan:",
-        f"targets={targets_str}; run_mode={run_mode}; prior_points={len(prior_run_points)}; structural combos={structural_combo_count}; total runs={total_runs}",
+        f"targets={targets_str}; run_mode={run_mode}; prior_scope={prior_grid_scope}; prior_points={len(prior_run_points)}"
+        + (f"/{prior_run_points_full_count}" if prior_grid_scope == "baseline_only" else "")
+        + f"; structural_scope={structural_grid_scope}; structural combos={structural_combo_count}; total runs={total_runs}",
     )
     print(
         "Outcome mode:",
@@ -660,13 +801,6 @@ def main():
         baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(roi_cfg, run_cfg)
         has_global_baseline = all(v is not None for v in [baseline_mu, baseline_sigma, baseline_dist])
 
-    baseline_structural = {
-        "alpha_m": structural_grids["alpha_m"][0],
-        "ec_m": structural_grids["ec_m"][0],
-        "slope_m": structural_grids["slope_m"][0],
-        "max_lag": structural_grids["max_lag"][0],
-        "adstock_decay_spec": structural_grids["adstock_decay"][0],
-    }
     official_outdir = os.path.join(
         project_root,
         "data",
@@ -683,6 +817,15 @@ def main():
         print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
     else:
         print("Baseline (effective) = inferred at summarize stage (no explicit global ROI baseline for this mode)")
+    if prior_grid_scope == "baseline_only":
+        if any(point["effective_prior_mode"] == "contribution" for point in prior_run_points):
+            contribution_baseline_mean, contribution_baseline_scale, _ = _resolve_contribution_baseline_from_config(run_cfg)
+            print(
+                "Structural sensitivity Stage 1 = baseline prior only "
+                f"(contribution_mean={contribution_baseline_mean}, contribution_scale={contribution_baseline_scale})"
+            )
+        else:
+            print("Structural sensitivity Stage 1 = baseline prior only")
 
     already_done = load_resume_state(run_output_file)
 
@@ -696,24 +839,19 @@ def main():
     skipped_runs = 0
     executed_runs = 0
     pending_jobs: list[dict] = []
-    grid_iter = product(
-        prior_run_points,
-        structural_grids["alpha_m"],
-        structural_grids["ec_m"],
-        structural_grids["slope_m"],
-        structural_grids["max_lag"],
-        structural_grids["adstock_decay"],
-    )
+    grid_iter = product(prior_run_points, structural_run_points)
 
-    for prior_point, alpha_m, ec_m, slope_m, max_lag, adstock_decay in grid_iter:
+    for prior_point, structural_point in grid_iter:
         mu = round(float(prior_point["roi_mu_display"]), 6)
         sigma = round(float(prior_point["roi_sigma_display"]), 6)
         dist = str(prior_point["roi_dist_display"])
+        alpha_m = structural_point["alpha_m"]
         alpha_m = None if alpha_m is None else round(float(alpha_m), 6)
+        ec_m = structural_point["ec_m"]
         ec_m = None if ec_m is None else round(float(ec_m), 6)
-        slope_m = round(float(slope_m), 6)
-        max_lag = int(max_lag)
-        adstock_decay = str(adstock_decay).strip().lower()
+        slope_m = round(float(structural_point["slope_m"]), 6)
+        max_lag = int(structural_point["max_lag"])
+        adstock_decay = str(structural_point["adstock_decay_spec"]).strip().lower()
 
         roi_overrides = prior_point["roi_overrides"]
         structural_overrides = {

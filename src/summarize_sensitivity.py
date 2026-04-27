@@ -216,8 +216,7 @@ def main():
     if df.empty:
         cmd = [sys.executable, "-m", "src.main", "--targets"] + targets_sorted
 
-        print("Sensitivity outputs missing; generating them first via:")
-        print(" ".join(cmd))
+        print("Sensitivity outputs missing; running sensitivity first.")
 
         proc = subprocess.run(cmd, cwd=project_root)
         if proc.returncode != 0:
@@ -266,7 +265,7 @@ def main():
     baseline_group_cols = _baseline_scope_columns(df)
     baseline_join_cols = [*baseline_group_cols, "channel"]
     baseline_summary = (
-        baseline_df.groupby(baseline_join_cols)[baseline_metric_cols]
+        baseline_df.groupby(baseline_join_cols, dropna=False)[baseline_metric_cols]
         .mean()
         .reset_index()
         .rename(columns=baseline_metric_rename)
@@ -388,8 +387,7 @@ def main():
 
     output_cols = required_cols + [c for c in optional_cols if c in df.columns]
     df[output_cols].to_csv(out_csv, index=False)
-    print("Saved tornado-ready summary to:")
-    print(out_csv)
+    print("Tornado summary ready.")
 
 
 if __name__ == "__main__":

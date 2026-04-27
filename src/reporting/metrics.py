@@ -122,6 +122,222 @@ def _build_scope_info(df: pd.DataFrame) -> dict:
     return scope
 
 
+def _dominant_text(run_level: pd.DataFrame, col: str) -> str | None:
+    if col not in run_level.columns:
+        return None
+    vals = run_level[col].dropna().astype(str).str.strip()
+    vals = vals[vals != ""]
+    if vals.empty:
+        return None
+    return str(vals.value_counts().index[0])
+
+
+def _unique_numeric_values(run_level: pd.DataFrame, col: str) -> list[float]:
+    if col not in run_level.columns:
+        return []
+    vals = pd.to_numeric(run_level[col], errors="coerce").dropna().unique().tolist()
+    return sorted(float(v) for v in vals)
+
+
+def _format_numeric_list(values: list[float], decimals: int = 3) -> str:
+    if not values:
+        return "NA"
+    parts = []
+    for value in values:
+        if float(value).is_integer():
+            parts.append(str(int(value)))
+        else:
+            parts.append(f"{float(value):.{decimals}f}".rstrip("0").rstrip("."))
+    return ", ".join(parts)
+
+
+def _humanize_token(value: str | None, *, uppercase_short: bool = False) -> str:
+    txt = str(value or "").strip()
+    if not txt:
+        return "NA"
+    if uppercase_short and len(txt) <= 4 and txt.isalpha():
+        return txt.upper()
+    txt = txt.replace("_", " ").replace("-", " ")
+    txt = " ".join(txt.split())
+    return txt.title()
+
+
+def _display_path(path_str: str | None) -> str:
+    txt = str(path_str or "").strip()
+    if not txt:
+        return "NA"
+    try:
+        p = Path(txt).resolve()
+        project_root = Path(__file__).resolve().parents[2]
+        return str(p.relative_to(project_root)).replace("\\", "/")
+    except Exception:
+        return txt.replace("\\", "/")
+
+
+def _derive_kpi_path(run_level: pd.DataFrame) -> str:
+    kpi_effective = (_dominant_text(run_level, "kpi_type_effective") or _dominant_text(run_level, "kpi_type") or "").lower()
+    prior_design = (_dominant_text(run_level, "prior_design_mode") or "").lower()
+
+    revenue_per_kpi = None
+    if "revenue_per_kpi" in run_level.columns:
+        revenue_vals = pd.to_numeric(run_level["revenue_per_kpi"], errors="coerce").dropna().unique().tolist()
+        if revenue_vals:
+            revenue_per_kpi = float(revenue_vals[0])
+
+    if kpi_effective == "revenue":
+        return "Revenue KPI -> ROI directly"
+    if revenue_per_kpi is not None:
+        return f"Non-revenue KPI -> revenue-equivalent ROI (value={revenue_per_kpi:.2f})"
+    if prior_design == "contribution":
+        return "Non-revenue KPI -> contribution fallback"
+    if kpi_effective == "non_revenue":
+        return "Non-revenue KPI -> ROI framing"
+    return "KPI path inferred from run metadata"
+
+
+def _build_how_this_was_run(
+    df: pd.DataFrame,
+    cfg: dict,
+    scope: dict,
+    overview: dict,
+    diagnostics: dict,
+    baseline_df: pd.DataFrame,
+) -> dict:
+    run_level = df.drop_duplicates(subset=["run_id"]).copy() if "run_id" in df.columns else df.copy()
+
+    linked_targets = [str(x).strip() for x in (scope.get("linked_targets") or []) if str(x).strip()]
+    target_sets = [str(x).strip() for x in (scope.get("target_sets") or []) if str(x).strip()]
+    target_label = ", ".join(linked_targets if linked_targets else target_sets) or "NA"
+
+    run_mode = _dominant_text(run_level, "run_mode") or "unknown"
+    sweep_type = _dominant_text(run_level, "sweep_type") or "unknown"
+    prior_design_mode = _dominant_text(run_level, "prior_design_mode") or _dominant_text(run_level, "prior_mode_used") or "unknown"
+    kpi_type = _dominant_text(run_level, "kpi_type_effective") or _dominant_text(run_level, "kpi_type") or "unknown"
+    input_data_csv = _dominant_text(run_level, "input_data_csv") or "unknown"
+
+    mu_values = _unique_numeric_values(run_level, "roi_prior_mu")
+    sigma_values = _unique_numeric_values(run_level, "roi_prior_sigma")
+    dist_values = []
+    if "roi_prior_dist" in run_level.columns:
+        vals = run_level["roi_prior_dist"].dropna().astype(str).str.strip()
+        vals = vals[vals != ""]
+        dist_values = sorted(vals.unique().tolist())
+
+    n_runs = int(run_level["run_id"].nunique()) if "run_id" in run_level.columns else 0
+    grid_definition = (
+        f"{len(mu_values)} mu x {len(sigma_values)} sigma x {max(len(dist_values), 1)} dist = {n_runs} runs"
+        if n_runs > 0
+        else "NA"
+    )
+
+    baseline_rule = str((cfg.get("baseline", {}) or {}).get("rule", "median"))
+    baseline_distinct = baseline_df[["baseline_mu", "baseline_sigma"]].drop_duplicates() if {"baseline_mu", "baseline_sigma"}.issubset(baseline_df.columns) else pd.DataFrame()
+    baseline_dist_values = []
+    if "roi_prior_dist" in baseline_df.columns:
+        baseline_dist_values = sorted(baseline_df["roi_prior_dist"].dropna().astype(str).str.strip().unique().tolist())
+    if not baseline_distinct.empty and len(baseline_distinct) == 1 and len(baseline_dist_values) <= 1:
+        row = baseline_distinct.iloc[0]
+        baseline_summary = (
+            f"mu={float(row['baseline_mu']):.3f}, sigma={float(row['baseline_sigma']):.3f}, "
+            f"dist={(baseline_dist_values[0] if baseline_dist_values else 'NA')}"
+        )
+    else:
+        baseline_summary = f"{baseline_rule} baseline per channel/dist"
+
+    qc_gate_cfg = (cfg.get("analysis", {}) or {}).get("qc_gate", {}) or {}
+    qc_gate_mode = str(qc_gate_cfg.get("gate_mode", "auto_from_runs"))
+    pass_runs = int(diagnostics.get("pass_runs", 0) or 0)
+    review_runs = int(diagnostics.get("review_runs", 0) or 0)
+    fail_runs = int(diagnostics.get("fail_runs", 0) or 0)
+    ranking_scope = str(overview.get("ranking_qc_scope", "unknown") or "unknown")
+    kpi_path = _derive_kpi_path(run_level)
+
+    run_mode_label = _humanize_token(run_mode)
+    sweep_label = _humanize_token(sweep_type)
+    kpi_type_label = _humanize_token(kpi_type)
+    prior_design_label = _humanize_token(prior_design_mode, uppercase_short=True)
+    qc_gate_label = _humanize_token(qc_gate_mode)
+    ranking_scope_label = _humanize_token(ranking_scope, uppercase_short=True)
+    dataset_label = _display_path(input_data_csv)
+
+    workflow_steps = [
+        "Load configured dataset, targets, and KPI metadata.",
+        f"Resolve KPI path: {kpi_path}.",
+        f"Run {sweep_label.lower()} prior sweep in {run_mode_label.lower()} mode.",
+        "Apply QC checks and baseline-stability guardrails before ranking percent sensitivity.",
+        "Generate tornado summaries, robustness scoring, and the dashboard payload.",
+    ]
+
+    flow_cards = [
+        {
+            "step": "01",
+            "title": "Dataset Intake",
+            "detail": f"{dataset_label} | targets: {target_label}",
+        },
+        {
+            "step": "02",
+            "title": "KPI Path",
+            "detail": kpi_path,
+        },
+        {
+            "step": "03",
+            "title": "Run Design",
+            "detail": f"{run_mode_label} | {sweep_label} | {grid_definition}",
+        },
+        {
+            "step": "04",
+            "title": "QC Gate",
+            "detail": f"{qc_gate_label} | P {pass_runs} / R {review_runs} / F {fail_runs}",
+        },
+        {
+            "step": "05",
+            "title": "Outputs",
+            "detail": "Tornado summaries, robustness score, and dashboard payload",
+        },
+    ]
+
+    badges = [
+        {"label": "Run Mode", "value": run_mode_label},
+        {"label": "KPI Path", "value": kpi_path},
+        {"label": "Grid", "value": grid_definition},
+        {"label": "QC Gate", "value": f"P {pass_runs} / R {review_runs} / F {fail_runs}"},
+    ]
+
+    settings = [
+        {"label": "Run mode", "value": run_mode_label},
+        {"label": "Targets", "value": target_label},
+        {"label": "KPI type", "value": kpi_type_label},
+        {"label": "Prior design mode", "value": prior_design_label},
+        {"label": "Grid definition", "value": grid_definition},
+        {"label": "Mu grid", "value": _format_numeric_list(mu_values)},
+        {"label": "Sigma grid", "value": _format_numeric_list(sigma_values)},
+        {"label": "Distributions", "value": ", ".join(dist_values) if dist_values else "NA"},
+        {"label": "Baseline rule", "value": baseline_summary},
+        {"label": "QC gate", "value": f"{qc_gate_label} | P {pass_runs} / R {review_runs} / F {fail_runs}"},
+        {"label": "Ranking scope", "value": ranking_scope_label},
+        {"label": "Channel scope", "value": str(scope.get('channel_scope_label', 'All Modeled Channels'))},
+        {"label": "Input dataset", "value": dataset_label},
+        {"label": "Generated at", "value": str(overview.get("generated_at", ""))},
+    ]
+
+    notes = []
+    if scope.get("data_profile_note"):
+        notes.append(str(scope["data_profile_note"]))
+    notes.append(
+        "This panel is internal run provenance for team review and reproducibility, not client-facing narrative."
+    )
+
+    return {
+        "available": True,
+        "summary": f"{run_mode_label} | {grid_definition} | targets: {target_label}",
+        "badges": badges,
+        "flow_cards": flow_cards,
+        "workflow_steps": workflow_steps,
+        "settings": settings,
+        "notes": notes,
+    }
+
+
 
 # _status_bucket, _to_bool, _safe_float are now imported from src.formatting
 
@@ -2337,6 +2553,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "pass_coverage_pct": pass_coverage_pct,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
+    how_this_was_run = _build_how_this_was_run(df, cfg, scope, overview, diagnostics.get("overview", {}), baseline_df)
 
     baseline_df.to_csv(tables_dir / "baseline_table.csv", index=False)
     rank.to_csv(tables_dir / "sensitivity_rank.csv", index=False)
@@ -2361,4 +2578,5 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "merged_df": merged,
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
+        "how_this_was_run": how_this_was_run,
     }
