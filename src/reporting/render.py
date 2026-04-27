@@ -243,6 +243,7 @@ def render_dashboard_output(
     if qc_gate.get("available"):
         appendix_tables.extend(
             [
+                "tables/qc_gate_summary.csv",
                 "tables/qc_gate_run_subset.csv",
                 "tables/qc_gate_status_breakdown.csv",
             ]
@@ -433,6 +434,11 @@ def render_dashboard_output(
         qc_gate_block = {
             "available": True,
             "result": qc_gate.get("result", "REVIEW"),
+            "gate_mode": qc_gate.get("gate_mode"),
+            "gate_mode_requested": qc_gate.get("gate_mode_requested"),
+            "gate_matched_count": qc_gate.get("gate_matched_count"),
+            "gate_missing_count": qc_gate.get("gate_missing_count"),
+            "gate_warning": qc_gate.get("gate_warning"),
             "mu_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("mu_values", [])],
             "sigma_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("sigma_values", [])],
             "dists": qc_gate.get("dists", []),

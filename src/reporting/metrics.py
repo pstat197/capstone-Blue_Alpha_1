@@ -360,6 +360,33 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
             "reason": f"Missing required columns for QC gate: {missing}",
         }
 
+    raw_gate_mode = qc_cfg.get("gate_mode", None)
+    if raw_gate_mode in {None, "", "none", "null", "auto"}:
+        run_mode_hint = None
+        if "run_mode" in run_rows.columns:
+            vals = run_rows["run_mode"].dropna().astype(str).str.strip().str.lower()
+            if not vals.empty:
+                run_mode_hint = vals.value_counts().index[0]
+        prior_modes = set()
+        if "prior_design_mode" in run_rows.columns:
+            prior_modes = set(
+                run_rows["prior_design_mode"]
+                .dropna()
+                .astype(str)
+                .str.strip()
+                .str.lower()
+                .tolist()
+            )
+        if run_mode_hint == "audit_research" and "contribution" not in prior_modes:
+            requested_gate_mode = "configured"
+        else:
+            requested_gate_mode = "auto_from_runs"
+    else:
+        requested_gate_mode = str(raw_gate_mode).strip().lower()
+    if requested_gate_mode not in {"auto_from_runs", "configured"}:
+        requested_gate_mode = "auto_from_runs"
+    fallback_to_auto = bool(qc_cfg.get("fallback_to_auto_from_runs", True))
+
     def _to_float_list(raw_values, defaults: list[float]) -> list[float]:
         vals = raw_values if isinstance(raw_values, list) and raw_values else defaults
         out: list[float] = []
@@ -379,17 +406,6 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
                 out.append(s)
         return sorted(set(out))
 
-    mu_values = _to_float_list(qc_cfg.get("mu_values"), DEFAULT_QC_GATE_MU)
-    sigma_values = _to_float_list(qc_cfg.get("sigma_values"), DEFAULT_QC_GATE_SIGMA)
-    dists = _to_str_list(qc_cfg.get("dists"), DEFAULT_QC_GATE_DISTS)
-
-    if not mu_values or not sigma_values or not dists:
-        return {
-            "available": False,
-            "enabled": True,
-            "reason": "QC gate config has empty mu/sigma/dist lists.",
-        }
-
     if "qc_status_code" in run_rows.columns:
         run_rows["qc_status_bucket"] = run_rows["qc_status_code"].map(_status_bucket)
     elif "qc_summary_short" in run_rows.columns:
@@ -401,17 +417,65 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
     run_rows["_sigma"] = pd.to_numeric(run_rows["roi_prior_sigma"], errors="coerce").round(6)
     run_rows["_dist"] = run_rows["roi_prior_dist"].astype(str).str.strip()
 
+    auto_mu_values = sorted(run_rows["_mu"].dropna().astype(float).round(6).unique().tolist())
+    auto_sigma_values = sorted(run_rows["_sigma"].dropna().astype(float).round(6).unique().tolist())
+    auto_dists = sorted(run_rows["_dist"].dropna().astype(str).str.strip().unique().tolist())
+
+    configured_mu_values = _to_float_list(qc_cfg.get("mu_values"), DEFAULT_QC_GATE_MU)
+    configured_sigma_values = _to_float_list(qc_cfg.get("sigma_values"), DEFAULT_QC_GATE_SIGMA)
+    configured_dists = _to_str_list(qc_cfg.get("dists"), DEFAULT_QC_GATE_DISTS)
+
+    gate_mode_used = requested_gate_mode
+    gate_warning = None
+    if requested_gate_mode == "configured":
+        mu_values = configured_mu_values
+        sigma_values = configured_sigma_values
+        dists = configured_dists
+    else:
+        mu_values = auto_mu_values
+        sigma_values = auto_sigma_values
+        dists = auto_dists
+
+    if not mu_values or not sigma_values or not dists:
+        return {
+            "available": False,
+            "enabled": True,
+            "reason": "QC gate window has no usable values.",
+            "gate_mode": gate_mode_used,
+            "gate_matched_count": 0,
+            "gate_missing_count": int(run_rows.shape[0]),
+            "gate_warning": "No mu/sigma/dist values available for gate matching.",
+        }
+
     subset = run_rows[
         run_rows["_mu"].isin(mu_values)
         & run_rows["_sigma"].isin(sigma_values)
         & run_rows["_dist"].isin(dists)
     ].copy()
 
+    if subset.empty and requested_gate_mode == "configured" and fallback_to_auto:
+        mu_values = auto_mu_values
+        sigma_values = auto_sigma_values
+        dists = auto_dists
+        gate_mode_used = "auto_from_runs"
+        gate_warning = "Configured gate window did not match any run; auto-matched to available run priors."
+        if mu_values and sigma_values and dists:
+            subset = run_rows[
+                run_rows["_mu"].isin(mu_values)
+                & run_rows["_sigma"].isin(sigma_values)
+                & run_rows["_dist"].isin(dists)
+            ].copy()
+
     if subset.empty:
         return {
             "available": False,
             "enabled": True,
-            "reason": "No runs matched configured QC gate window.",
+            "reason": "No runs matched active QC gate window.",
+            "gate_mode": gate_mode_used,
+            "gate_mode_requested": requested_gate_mode,
+            "gate_matched_count": 0,
+            "gate_missing_count": int(run_rows.shape[0]),
+            "gate_warning": gate_warning,
             "mu_values": mu_values,
             "sigma_values": sigma_values,
             "dists": dists,
@@ -424,6 +488,7 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
 
     n_total = int(run_rows.shape[0])
     n_qc = int(subset.shape[0])
+    n_missing = int(max(n_total - n_qc, 0))
     n_pass = int((subset["qc_status_bucket"] == "PASS").sum())
     n_review = int((subset["qc_status_bucket"] == "REVIEW").sum())
     n_fail = int((subset["qc_status_bucket"] == "FAIL").sum())
@@ -480,6 +545,20 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
 
     run_subset_df.to_csv(tables_dir / "qc_gate_run_subset.csv", index=False)
     status_df.to_csv(tables_dir / "qc_gate_status_breakdown.csv", index=False)
+    pd.DataFrame(
+        [
+            {
+                "gate_mode": gate_mode_used,
+                "gate_mode_requested": requested_gate_mode,
+                "gate_matched_count": n_qc,
+                "gate_missing_count": n_missing,
+                "gate_warning": gate_warning,
+                "n_total_runs": n_total,
+                "pass_rate_pct": pass_rate_pct,
+                "gate_result": gate_result,
+            }
+        ]
+    ).to_csv(tables_dir / "qc_gate_summary.csv", index=False)
 
     rank_metric = None
     rank_df = pd.DataFrame()
@@ -527,12 +606,22 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
         "available": True,
         "enabled": True,
         "result": gate_result,
+        "gate_mode": gate_mode_used,
+        "gate_mode_requested": requested_gate_mode,
+        "gate_matched_count": n_qc,
+        "gate_missing_count": n_missing,
+        "gate_warning": gate_warning,
         "mu_values": mu_values,
         "sigma_values": sigma_values,
         "dists": dists,
         "overview": {
             "n_total_runs": n_total,
             "n_qc_runs": n_qc,
+            "gate_matched_count": n_qc,
+            "gate_missing_count": n_missing,
+            "gate_mode": gate_mode_used,
+            "gate_mode_requested": requested_gate_mode,
+            "gate_warning": gate_warning,
             "pass_runs": n_pass,
             "review_runs": n_review,
             "fail_runs": n_fail,
@@ -1043,7 +1132,6 @@ def _compute_decision_card(
         reasons.append(
             f"Robustness score unavailable for this report scope ({robust_reason or 'missing robustness output'})."
         )
-
     if n_unstable_pairs > 0 and n_total_pairs > 0:
         reasons.append(
             f"Percent-change safeguard: {n_unstable_pairs}/{n_total_pairs} channel-prior pair(s) had unstable baseline ROI; "

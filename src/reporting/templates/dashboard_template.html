@@ -1258,7 +1258,6 @@
           short = short.replace(/\s+/g, " ").trim();
           lines.push(short.endsWith(".") ? short : `${short}.`);
         }
-
         const top = getFilteredRows({ limit: 1 })[0] || null;
         if (top) {
           const conf = metricConfig[state.metric] || metricConfig.pct;

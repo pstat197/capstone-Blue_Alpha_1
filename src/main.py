@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from itertools import product
 from pathlib import Path
@@ -97,6 +98,256 @@ def build_experiment_config(
         roi_sigma_values=roi_sigma_values,
         roi_dist_values=roi_dist_values,
     )
+
+
+def _infer_kpi_type_from_name(kpi_col: str) -> str:
+    k = str(kpi_col or "").strip().lower()
+    revenue_tokens = ("revenue", "sales", "gmv", "income", "turnover")
+    return "revenue" if any(tok in k for tok in revenue_tokens) else "non_revenue"
+
+
+def _as_optional_float(raw) -> float | None:
+    if raw is None:
+        return None
+    s = str(raw).strip().lower()
+    if s in {"", "null", "none", "nan"}:
+        return None
+    return float(raw)
+
+
+def _load_dataset_context(data_csv: str, channels: list[str], kpi_col: str) -> dict:
+    df = pd.read_csv(data_csv)
+    if kpi_col not in df.columns:
+        raise ValueError(f"KPI column '{kpi_col}' is missing from dataset: {data_csv}")
+
+    kpi_series = pd.to_numeric(df[kpi_col], errors="coerce")
+    if kpi_series.isna().all():
+        raise ValueError(f"KPI column '{kpi_col}' has no numeric values in dataset: {data_csv}")
+
+    spend_by_channel: dict[str, float] = {}
+    missing_spend_cols: list[str] = []
+    for ch in channels:
+        spend_col = f"{ch}_spend"
+        if spend_col not in df.columns:
+            missing_spend_cols.append(spend_col)
+            continue
+        spend_by_channel[ch] = float(pd.to_numeric(df[spend_col], errors="coerce").fillna(0).sum())
+    if missing_spend_cols:
+        raise ValueError(
+            "Missing spend columns in dataset: "
+            + ", ".join(missing_spend_cols)
+            + ". Expected naming pattern '<channel>_spend'."
+        )
+
+    return {
+        "kpi_sum": float(kpi_series.fillna(0).sum()),
+        "spend_by_channel": spend_by_channel,
+    }
+
+
+def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
+    outcome_cfg = run_cfg.get("outcome", {}) or {}
+    kpi_col = str(outcome_cfg.get("kpi_col") or model_cfg.get("kpi_col") or "subscriptions")
+    raw_kpi_type = str(outcome_cfg.get("kpi_type", "auto")).strip().lower()
+    if raw_kpi_type not in {"auto", "revenue", "non_revenue"}:
+        raise ValueError("outcome.kpi_type must be one of: auto, revenue, non_revenue.")
+
+    revenue_per_kpi = _as_optional_float(outcome_cfg.get("revenue_per_kpi"))
+    if revenue_per_kpi is not None and revenue_per_kpi <= 0:
+        raise ValueError("outcome.revenue_per_kpi must be > 0 when provided.")
+
+    rpk_values_raw = outcome_cfg.get("revenue_per_kpi_values")
+    revenue_per_kpi_values: list[float] = []
+    if isinstance(rpk_values_raw, list):
+        for v in rpk_values_raw:
+            fv = float(v)
+            if fv <= 0:
+                raise ValueError("outcome.revenue_per_kpi_values must contain only > 0 values.")
+            revenue_per_kpi_values.append(round(fv, 6))
+    elif rpk_values_raw not in (None, "", "null", "none"):
+        fv = float(rpk_values_raw)
+        if fv <= 0:
+            raise ValueError("outcome.revenue_per_kpi_values must contain only > 0 values.")
+        revenue_per_kpi_values.append(round(fv, 6))
+
+    if revenue_per_kpi is not None and not any(abs(v - revenue_per_kpi) <= 1e-9 for v in revenue_per_kpi_values):
+        revenue_per_kpi_values = [round(revenue_per_kpi, 6), *revenue_per_kpi_values]
+    revenue_per_kpi_values = sorted(set(revenue_per_kpi_values))
+
+    if raw_kpi_type == "auto":
+        if revenue_per_kpi is not None or revenue_per_kpi_values:
+            kpi_type = "non_revenue"
+        else:
+            kpi_type = _infer_kpi_type_from_name(kpi_col)
+    else:
+        kpi_type = raw_kpi_type
+
+    if kpi_type == "revenue":
+        scenarios = [None]
+    elif revenue_per_kpi_values:
+        scenarios = revenue_per_kpi_values
+    elif revenue_per_kpi is not None:
+        scenarios = [round(revenue_per_kpi, 6)]
+    else:
+        scenarios = [None]
+
+    return {
+        "kpi_col": kpi_col,
+        "kpi_type": kpi_type,
+        "revenue_per_kpi": None if revenue_per_kpi is None else round(revenue_per_kpi, 6),
+        "revenue_per_kpi_values": scenarios,
+    }
+
+
+def _resolve_effective_prior_mode(run_cfg: dict, *, kpi_type: str, revenue_per_kpi: float | None) -> str:
+    prior_design = run_cfg.get("prior_design", {}) or {}
+    mode = str(prior_design.get("mode", "auto")).strip().lower()
+    if mode in {"roi", "contribution"}:
+        return mode
+    if kpi_type == "revenue":
+        return "roi"
+    if revenue_per_kpi is not None:
+        return "roi"
+    return "contribution"
+
+
+def _resolve_prior_label(*, effective_prior_mode: str, kpi_type: str, revenue_per_kpi: float | None) -> str:
+    if effective_prior_mode == "contribution":
+        return "Contribution prior fallback"
+    if kpi_type == "revenue" and revenue_per_kpi is None:
+        return "Revenue ROI"
+    if revenue_per_kpi is not None:
+        return "Revenue-equivalent ROI"
+    return "Revenue ROI"
+
+
+def _roi_grid_from_config(run_cfg: dict) -> dict:
+    prior_design = run_cfg.get("prior_design", {}) or {}
+    roi_cfg = (prior_design.get("roi", {}) or {})
+    mu_vals = [round(float(v), 6) for v in roi_cfg.get("roi_mu_values", run_cfg.get("experiment", {}).get("roi_mu_values", []))]
+    sigma_vals = [round(float(v), 6) for v in roi_cfg.get("roi_sigma_values", run_cfg.get("experiment", {}).get("roi_sigma_values", []))]
+    dist_vals = [str(v) for v in roi_cfg.get("roi_dist_values", run_cfg.get("experiment", {}).get("roi_dist_values", ["LogNormal"]))]
+    if not mu_vals or not sigma_vals or not dist_vals:
+        raise ValueError("ROI prior grid is incomplete. Check prior_design.roi settings.")
+    return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
+
+
+def _contribution_grid_from_config(run_cfg: dict) -> dict:
+    prior_design = run_cfg.get("prior_design", {}) or {}
+    c_cfg = (prior_design.get("contribution", {}) or {})
+    mean_vals = [round(float(v), 6) for v in c_cfg.get("contribution_mean_values", [])]
+    scale_vals = [round(float(v), 6) for v in c_cfg.get("contribution_scale_values", [])]
+    dist_vals = [str(v) for v in c_cfg.get("contribution_dist_values", ["LogNormal"])]
+    if not mean_vals or not scale_vals or not dist_vals:
+        raise ValueError("Contribution prior grid is incomplete. Check prior_design.contribution settings.")
+    if any(v <= 0 for v in mean_vals):
+        raise ValueError("Contribution mean values must be > 0.")
+    if any(v <= 0 for v in scale_vals):
+        raise ValueError("Contribution scale values must be > 0.")
+    return {"mean": mean_vals, "scale": scale_vals, "dist": dist_vals}
+
+
+def _build_prior_run_points(
+    *,
+    run_cfg: dict,
+    targets: list[str],
+    channels: list[str],
+    outcome_plan: dict,
+    dataset_ctx: dict,
+) -> list[dict]:
+    rows: list[dict] = []
+    kpi_sum = float(dataset_ctx["kpi_sum"])
+    spend_by_channel = dataset_ctx["spend_by_channel"]
+    eps = 1e-9
+
+    for revenue_per_kpi in outcome_plan["revenue_per_kpi_values"]:
+        effective_prior_mode = _resolve_effective_prior_mode(
+            run_cfg,
+            kpi_type=outcome_plan["kpi_type"],
+            revenue_per_kpi=revenue_per_kpi,
+        )
+        prior_label = _resolve_prior_label(
+            effective_prior_mode=effective_prior_mode,
+            kpi_type=outcome_plan["kpi_type"],
+            revenue_per_kpi=revenue_per_kpi,
+        )
+        if effective_prior_mode == "roi":
+            roi_grid = _roi_grid_from_config(run_cfg)
+            for mu, sigma, dist in product(roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"]):
+                roi_overrides = {ch: {"mu": float(mu), "sigma": float(sigma), "dist": str(dist)} for ch in targets}
+                rows.append(
+                    {
+                        "effective_prior_mode": "roi",
+                        "prior_grid_type": "roi",
+                        "prior_design_label": prior_label,
+                        "revenue_per_kpi": revenue_per_kpi,
+                        "kpi_type": outcome_plan["kpi_type"],
+                        "kpi_type_effective": "revenue"
+                        if (outcome_plan["kpi_type"] == "revenue" or revenue_per_kpi is not None)
+                        else "non_revenue",
+                        "roi_mu_display": float(mu),
+                        "roi_sigma_display": float(sigma),
+                        "roi_dist_display": str(dist),
+                        "contribution_mean": None,
+                        "contribution_scale": None,
+                        "converted_roi_mu_by_channel": None,
+                        "converted_roi_sigma_by_channel": None,
+                        "roi_overrides": roi_overrides,
+                        "scope_suffix": (
+                            f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
+                            f"mu={float(mu):.6f}|sigma={float(sigma):.6f}|dist={str(dist)}"
+                        ),
+                    }
+                )
+            continue
+
+        contribution_grid = _contribution_grid_from_config(run_cfg)
+        total_outcome = kpi_sum if revenue_per_kpi is None else (kpi_sum * float(revenue_per_kpi))
+        for c_mean, c_scale, c_dist in product(
+            contribution_grid["mean"],
+            contribution_grid["scale"],
+            contribution_grid["dist"],
+        ):
+            converted_mu: dict[str, float] = {}
+            converted_sigma: dict[str, float] = {}
+            roi_overrides = {}
+            for ch in targets:
+                spend_total = float(spend_by_channel.get(ch, 0.0))
+                if spend_total <= eps:
+                    raise ValueError(
+                        f"Cannot convert contribution priors for channel '{ch}' because spend is non-positive: {spend_total}."
+                    )
+                mu = float(c_mean) * float(total_outcome) / spend_total
+                sigma = float(c_scale) * float(total_outcome) / spend_total
+                converted_mu[ch] = float(mu)
+                converted_sigma[ch] = float(sigma)
+                roi_overrides[ch] = {"mu": float(mu), "sigma": float(sigma), "dist": str(c_dist)}
+
+            first_target = targets[0]
+            rows.append(
+                {
+                    "effective_prior_mode": "contribution",
+                    "prior_grid_type": "contribution",
+                    "prior_design_label": prior_label,
+                    "revenue_per_kpi": revenue_per_kpi,
+                    "kpi_type": outcome_plan["kpi_type"],
+                    "kpi_type_effective": "revenue" if revenue_per_kpi is not None else outcome_plan["kpi_type"],
+                    "roi_mu_display": float(converted_mu[first_target]),
+                    "roi_sigma_display": float(converted_sigma[first_target]),
+                    "roi_dist_display": str(c_dist),
+                    "contribution_mean": float(c_mean),
+                    "contribution_scale": float(c_scale),
+                    "converted_roi_mu_by_channel": converted_mu,
+                    "converted_roi_sigma_by_channel": converted_sigma,
+                    "roi_overrides": roi_overrides,
+                    "scope_suffix": (
+                        f"pmode=contribution|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
+                        f"cmean={float(c_mean):.6f}|cscale={float(c_scale):.6f}|dist={str(c_dist)}"
+                    ),
+                }
+            )
+
+    return rows
 
 
 # ---------------------------------------------------------------------------
@@ -234,6 +485,15 @@ def _resolve_runner_python(project_root: str) -> str:
     return current
 
 
+def _run_meridian_job(cmd: list[str], *, project_root: str, env: dict) -> dict:
+    proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
+    return {
+        "returncode": int(proc.returncode),
+        "stdout": str(proc.stdout or ""),
+        "stderr": str(proc.stderr or ""),
+    }
+
+
 def build_run_id(
     scope: str,
     mu: float,
@@ -270,12 +530,13 @@ def main():
 
     run_cfg = load_run_config(config_path)
     sampler = run_cfg["sampler"]
+    run_mode = str(run_cfg.get("run_mode", "fast_product"))
+    parallel_workers = int(run_cfg.get("parallel_workers", 1))
+    sweep_type = str((run_cfg.get("sweep", {}) or {}).get("type", "fixed_full_grid"))
+    two_layer_enabled = False
 
     model_cfg = run_cfg.get("model", {})
     channels = [str(x) for x in model_cfg["channels"]]
-    mu_grid = [float(x) for x in run_cfg["experiment"]["roi_mu_values"]]
-    sigma_grid = [float(x) for x in run_cfg["experiment"]["roi_sigma_values"]]
-    dist_grid = [str(x) for x in run_cfg["experiment"].get("roi_dist_values", ["LogNormal"])]
 
     structural_cfg = run_cfg.get("structural", {})
     structural_grids = {
@@ -286,7 +547,8 @@ def main():
         "adstock_decay": _cast_list(structural_cfg.get("adstock_decay_values"), ["geometric"], lower=True),
     }
 
-    kpi_col = str(model_cfg.get("kpi_col", "subscriptions"))
+    outcome_plan = _resolve_outcome_plan(run_cfg, model_cfg)
+    kpi_col = str(outcome_plan["kpi_col"])
     time_col = str(model_cfg.get("time_col", "date"))
     explicit_data_tag = model_cfg.get("data_tag")
     if explicit_data_tag is not None:
@@ -320,15 +582,7 @@ def main():
         data_csv = data_csv_cli if os.path.isabs(data_csv_cli) else os.path.join(project_root, data_csv_cli)
         if not os.path.exists(data_csv):
             raise FileNotFoundError(f"CLI --csv path does not exist: {data_csv}")
-    cfg = build_experiment_config(
-        channels=channels,
-        roi_mu_values=mu_grid,
-        roi_sigma_values=sigma_grid,
-        roi_dist_values=dist_grid,
-        kpi_col=kpi_col,
-        data_csv=data_csv,
-        output_file="prior_sensitivity_results.csv",
-    )
+
     if not targets:
         raise ValueError("No targets provided. Pass --targets <channel...> or --channels <channel...>.")
 
@@ -343,6 +597,17 @@ def main():
     tmp_dir = os.path.dirname(run_output_file)
     os.makedirs(tmp_dir, exist_ok=True)
 
+    dataset_ctx = _load_dataset_context(data_csv, channels, kpi_col)
+    prior_run_points = _build_prior_run_points(
+        run_cfg=run_cfg,
+        targets=targets,
+        channels=channels,
+        outcome_plan=outcome_plan,
+        dataset_ctx=dataset_ctx,
+    )
+    if not prior_run_points:
+        raise ValueError("No prior run points were generated. Check prior_design/outcome settings.")
+
     channels_json = json.dumps(channels)
     structural_combo_count = (
         len(structural_grids["alpha_m"])
@@ -351,18 +616,50 @@ def main():
         * len(structural_grids["max_lag"])
         * len(structural_grids["adstock_decay"])
     )
-    total_runs = len(cfg.roi_mu_values) * len(cfg.roi_sigma_values) * len(cfg.roi_dist_values) * structural_combo_count
+    total_runs = len(prior_run_points) * structural_combo_count
 
     print(
         "Run plan:",
-        f"targets={targets_str}; mu={len(cfg.roi_mu_values)} vals; sigma={len(cfg.roi_sigma_values)} vals; "
-        f"dist={len(cfg.roi_dist_values)} vals; structural combos={structural_combo_count}; total runs={total_runs}",
+        f"targets={targets_str}; run_mode={run_mode}; prior_points={len(prior_run_points)}; structural combos={structural_combo_count}; total runs={total_runs}",
+    )
+    print(
+        "Outcome mode:",
+        f"kpi_col={kpi_col}; kpi_type={outcome_plan['kpi_type']}; "
+        f"revenue_per_kpi_values={outcome_plan['revenue_per_kpi_values']}",
     )
     print("Input data CSV =", data_csv)
     print("Run output file =", run_output_file)
     print("ROI output file =", roi_output_file)
+    print(f"Execution mode = fixed_full_grid | parallel_workers={parallel_workers}")
 
-    baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(cfg, run_cfg)
+    has_global_baseline = False
+    baseline_mu = baseline_sigma = None
+    baseline_dist = None
+    baseline_revenue_per_kpi = outcome_plan["revenue_per_kpi"]
+    if baseline_revenue_per_kpi is None:
+        scenario_values = outcome_plan.get("revenue_per_kpi_values") or []
+        if scenario_values:
+            baseline_revenue_per_kpi = scenario_values[0]
+
+    baseline_prior_mode = _resolve_effective_prior_mode(
+        run_cfg,
+        kpi_type=outcome_plan["kpi_type"],
+        revenue_per_kpi=baseline_revenue_per_kpi,
+    )
+    if baseline_prior_mode == "roi":
+        roi_grid_cfg = _roi_grid_from_config(run_cfg)
+        roi_cfg = build_experiment_config(
+            channels=channels,
+            roi_mu_values=roi_grid_cfg["mu"],
+            roi_sigma_values=roi_grid_cfg["sigma"],
+            roi_dist_values=roi_grid_cfg["dist"],
+            kpi_col=kpi_col,
+            data_csv=data_csv,
+            output_file="prior_sensitivity_results.csv",
+        )
+        baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(roi_cfg, run_cfg)
+        has_global_baseline = all(v is not None for v in [baseline_mu, baseline_sigma, baseline_dist])
+
     baseline_structural = {
         "alpha_m": structural_grids["alpha_m"][0],
         "ec_m": structural_grids["ec_m"][0],
@@ -382,7 +679,10 @@ def main():
     )
     official_manifest = os.path.join(official_outdir, "manifest.json")
     official_export_done = os.path.exists(official_manifest)
-    print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
+    if has_global_baseline:
+        print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
+    else:
+        print("Baseline (effective) = inferred at summarize stage (no explicit global ROI baseline for this mode)")
 
     already_done = load_resume_state(run_output_file)
 
@@ -395,10 +695,9 @@ def main():
     run_index = 1
     skipped_runs = 0
     executed_runs = 0
+    pending_jobs: list[dict] = []
     grid_iter = product(
-        cfg.roi_mu_values,
-        cfg.roi_sigma_values,
-        cfg.roi_dist_values,
+        prior_run_points,
         structural_grids["alpha_m"],
         structural_grids["ec_m"],
         structural_grids["slope_m"],
@@ -406,17 +705,17 @@ def main():
         structural_grids["adstock_decay"],
     )
 
-    for mu, sigma, dist, alpha_m, ec_m, slope_m, max_lag, adstock_decay in grid_iter:
-        mu = round(float(mu), 6)
-        sigma = round(float(sigma), 6)
-        dist = str(dist)
+    for prior_point, alpha_m, ec_m, slope_m, max_lag, adstock_decay in grid_iter:
+        mu = round(float(prior_point["roi_mu_display"]), 6)
+        sigma = round(float(prior_point["roi_sigma_display"]), 6)
+        dist = str(prior_point["roi_dist_display"])
         alpha_m = None if alpha_m is None else round(float(alpha_m), 6)
         ec_m = None if ec_m is None else round(float(ec_m), 6)
         slope_m = round(float(slope_m), 6)
         max_lag = int(max_lag)
         adstock_decay = str(adstock_decay).strip().lower()
 
-        roi_overrides = {ch: {"mu": mu, "sigma": sigma, "dist": dist} for ch in targets}
+        roi_overrides = prior_point["roi_overrides"]
         structural_overrides = {
             "alpha_m": alpha_m,
             "ec_m": ec_m,
@@ -426,6 +725,18 @@ def main():
         }
         prior_key = json.dumps(
             {
+                "run_mode": run_mode,
+                "sweep_type": sweep_type,
+                "two_layer_enabled": two_layer_enabled,
+                "kpi_type": prior_point["kpi_type"],
+                "kpi_type_effective": prior_point["kpi_type_effective"],
+                "revenue_per_kpi": prior_point["revenue_per_kpi"],
+                "prior_design_mode": prior_point["effective_prior_mode"],
+                "prior_grid_type": prior_point["prior_grid_type"],
+                "contribution_mean": prior_point["contribution_mean"],
+                "contribution_scale": prior_point["contribution_scale"],
+                "converted_roi_mu_by_channel": prior_point["converted_roi_mu_by_channel"],
+                "converted_roi_sigma_by_channel": prior_point["converted_roi_sigma_by_channel"],
                 "roi_prior_overrides": roi_overrides,
                 "structural_overrides": structural_overrides,
             },
@@ -434,6 +745,7 @@ def main():
         scope_key = f"multi|{targets_str}"
         if data_tag:
             scope_key = f"{scope_key}|data={data_tag}"
+        scope_key = f"{scope_key}|{prior_point['scope_suffix']}"
         run_key = build_run_id(
             scope_key,
             mu,
@@ -451,15 +763,10 @@ def main():
             run_index += 1
             continue
 
-        print(
-            f"[run {run_index}/{total_runs}] targets={targets_str}, mu={mu}, sigma={sigma}, dist={dist}, "
-            f"alpha={alpha_m}, ec={ec_m}, slope={slope_m}, max_lag={max_lag}, decay={adstock_decay}"
-        )
-
-        t0 = time.time()
         run_suffix = "_".join(
             [
                 output_tag,
+                f"r{run_index}",
                 str(mu).replace(".", "p"),
                 str(sigma).replace(".", "p"),
                 dist,
@@ -481,6 +788,10 @@ def main():
             data_csv,
             "--kpi_col",
             kpi_col,
+            "--kpi_type",
+            str(prior_point["kpi_type"]),
+            "--revenue_per_kpi",
+            str(prior_point["revenue_per_kpi"]) if prior_point["revenue_per_kpi"] is not None else "",
             "--time_col",
             time_col,
             "--channels_json",
@@ -491,16 +802,32 @@ def main():
             json.dumps(structural_overrides, sort_keys=True),
             "--prior_key",
             prior_key,
+            "--prior_design_mode",
+            str(prior_point["effective_prior_mode"]),
+            "--prior_mode_used",
+            str(prior_point["effective_prior_mode"]),
+            "--prior_grid_type",
+            str(prior_point["prior_grid_type"]),
+            "--prior_design_label",
+            str(prior_point["prior_design_label"]),
+            "--run_mode",
+            run_mode,
+            "--target_channels",
+            targets_str,
+            "--sweep_type",
+            sweep_type,
+            "--two_layer_enabled",
+            "false",
+            "--qc_scope",
+            "target_scoped",
+            "--qc_target_channels",
+            targets_str,
+            "--gate_mode",
+            "configured" if (run_mode == "audit_research" and prior_point["effective_prior_mode"] == "roi") else "auto_from_runs",
             "--out_run_csv",
             tmp_run_out,
             "--out_roi_csv",
             tmp_roi_out,
-            "--baseline_mu",
-            str(baseline_mu),
-            "--baseline_sigma",
-            str(baseline_sigma),
-            "--baseline_dist",
-            str(baseline_dist),
             "--baseline_structural_overrides_json",
             json.dumps(baseline_structural, sort_keys=True),
             "--n_chains",
@@ -514,27 +841,61 @@ def main():
             "--seed",
             str(int(sampler["seed"])),
         ]
+        if prior_point["revenue_per_kpi"] is None:
+            # argparse with float does not accept empty string, so pass only when set.
+            idx = cmd.index("--revenue_per_kpi")
+            del cmd[idx : idx + 2]
+        if prior_point["contribution_mean"] is not None:
+            cmd.extend(["--contribution_mean", str(prior_point["contribution_mean"])])
+        if prior_point["contribution_scale"] is not None:
+            cmd.extend(["--contribution_scale", str(prior_point["contribution_scale"])])
+        if prior_point["converted_roi_mu_by_channel"] is not None:
+            cmd.extend(
+                [
+                    "--converted_roi_mu_by_channel_json",
+                    json.dumps(prior_point["converted_roi_mu_by_channel"], sort_keys=True),
+                ]
+            )
+        if prior_point["converted_roi_sigma_by_channel"] is not None:
+            cmd.extend(
+                [
+                    "--converted_roi_sigma_by_channel_json",
+                    json.dumps(prior_point["converted_roi_sigma_by_channel"], sort_keys=True),
+                ]
+            )
+        if has_global_baseline:
+            cmd.extend(["--baseline_mu", str(baseline_mu), "--baseline_sigma", str(baseline_sigma), "--baseline_dist", str(baseline_dist)])
         if geo_col:
             cmd.extend(["--geo_col", geo_col])
         if population_col:
             cmd.extend(["--population_col", population_col])
 
-        is_baseline_grid_point = (
-            abs(float(mu) - float(baseline_mu)) <= 1e-9
-            and abs(float(sigma) - float(baseline_sigma)) <= 1e-9
-            and str(dist) == str(baseline_dist)
-            and (
-                (alpha_m is None and baseline_structural["alpha_m"] is None)
-                or (alpha_m is not None and baseline_structural["alpha_m"] is not None and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9)
+        is_baseline_grid_point = False
+        if has_global_baseline:
+            is_baseline_grid_point = (
+                abs(float(mu) - float(baseline_mu)) <= 1e-9
+                and abs(float(sigma) - float(baseline_sigma)) <= 1e-9
+                and str(dist) == str(baseline_dist)
+                and (
+                    (alpha_m is None and baseline_structural["alpha_m"] is None)
+                    or (
+                        alpha_m is not None
+                        and baseline_structural["alpha_m"] is not None
+                        and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9
+                    )
+                )
+                and (
+                    (ec_m is None and baseline_structural["ec_m"] is None)
+                    or (
+                        ec_m is not None
+                        and baseline_structural["ec_m"] is not None
+                        and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9
+                    )
+                )
+                and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
+                and int(max_lag) == int(baseline_structural["max_lag"])
+                and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
             )
-            and (
-                (ec_m is None and baseline_structural["ec_m"] is None)
-                or (ec_m is not None and baseline_structural["ec_m"] is not None and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9)
-            )
-            and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
-            and int(max_lag) == int(baseline_structural["max_lag"])
-            and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
-        )
         if is_baseline_grid_point and not official_export_done:
             cmd.extend([
                 "--official_outdir",
@@ -543,20 +904,48 @@ def main():
                 "quarterly",
             ])
 
-        proc = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True, env=env)
-        if proc.returncode != 0:
-            print("\n--- Subprocess STDOUT ---\n", proc.stdout)
-            print("\n--- Subprocess STDERR ---\n", proc.stderr)
-            raise RuntimeError(f"Subprocess failed with code {proc.returncode}")
+        pending_jobs.append(
+            {
+                "index": run_index,
+                "run_key": run_key,
+                "prior_key": prior_key,
+                "targets_str": targets_str,
+                "tmp_run_out": tmp_run_out,
+                "tmp_roi_out": tmp_roi_out,
+                "is_baseline_grid_point": is_baseline_grid_point,
+                "cmd": cmd,
+                "mu": mu,
+                "sigma": sigma,
+                "dist": dist,
+                "t0": time.time(),
+            }
+        )
+        run_index += 1
+
+    pending_total = len(pending_jobs)
+    if pending_total == 0:
+        print("No new runs to execute. All runs already exist in output CSVs.")
+    else:
+        print(f"Executing {pending_total} run(s) with parallel_workers={parallel_workers}...")
+
+    def _finalize_completed_job(job: dict, result: dict, completed_idx: int) -> None:
+        nonlocal executed_runs, official_export_done
+        if result["returncode"] != 0:
+            print("\n--- Subprocess STDOUT ---\n", result["stdout"])
+            print("\n--- Subprocess STDERR ---\n", result["stderr"])
+            raise RuntimeError(
+                f"Subprocess failed with code {result['returncode']} "
+                f"(run_index={job['index']}, mu={job['mu']}, sigma={job['sigma']}, dist={job['dist']})"
+            )
 
         ensure_cols = {
-            "run_id": run_key,
-            "prior_key": prior_key,
-            "targets": targets_str,
-            "target_channel": targets_str,
+            "run_id": job["run_key"],
+            "prior_key": job["prior_key"],
+            "targets": job["targets_str"],
+            "target_channel": job["targets_str"],
         }
         append_tmp_to_output(
-            tmp_out=tmp_run_out,
+            tmp_out=job["tmp_run_out"],
             output_file=run_output_file,
             ensure_cols=ensure_cols,
             expected_columns=RUN_OUTPUT_COLUMNS,
@@ -564,24 +953,46 @@ def main():
             normalize_part=True,
         )
         append_tmp_to_output(
-            tmp_out=tmp_roi_out,
+            tmp_out=job["tmp_roi_out"],
             output_file=roi_output_file,
             ensure_cols=ensure_cols,
             expected_columns=ROI_OUTPUT_COLUMNS,
             cast_single_target=False,
             normalize_part=False,
         )
-
-        already_done.add(run_key)
-        os.remove(tmp_run_out)
-        os.remove(tmp_roi_out)
-        if is_baseline_grid_point:
+        already_done.add(job["run_key"])
+        if os.path.exists(job["tmp_run_out"]):
+            os.remove(job["tmp_run_out"])
+        if os.path.exists(job["tmp_roi_out"]):
+            os.remove(job["tmp_roi_out"])
+        if job["is_baseline_grid_point"]:
             official_export_done = True
 
-        elapsed_sec = round(time.time() - t0, 2)
+        elapsed_sec = round(time.time() - float(job["t0"]), 2)
         executed_runs += 1
-        print(f"[done {run_index}/{total_runs}] {elapsed_sec} sec")
-        run_index += 1
+        print(
+            f"[done {completed_idx}/{pending_total}] "
+            f"run_index={job['index']} mu={job['mu']} sigma={job['sigma']} dist={job['dist']} ({elapsed_sec}s)"
+        )
+
+    if pending_total > 0:
+        max_workers = max(1, int(parallel_workers))
+        if max_workers == 1:
+            for completed_idx, job in enumerate(pending_jobs, start=1):
+                result = _run_meridian_job(job["cmd"], project_root=project_root, env=env)
+                _finalize_completed_job(job, result, completed_idx)
+        else:
+            with ThreadPoolExecutor(max_workers=max_workers) as pool:
+                future_map = {
+                    pool.submit(_run_meridian_job, job["cmd"], project_root=project_root, env=env): job
+                    for job in pending_jobs
+                }
+                completed_idx = 0
+                for future in as_completed(future_map):
+                    completed_idx += 1
+                    job = future_map[future]
+                    result = future.result()
+                    _finalize_completed_job(job, result, completed_idx)
 
     print("\nALL RUNS COMPLETED.")
     print(f"Run summary: total={total_runs}, executed={executed_runs}, skipped_existing={skipped_runs}")

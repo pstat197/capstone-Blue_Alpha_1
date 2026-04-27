@@ -1,12 +1,57 @@
-experiment:
-  # Explicit prior grid only.
-  # 6 x 3 x 1 = 18 runs total with the fixed structural profile below.
-  roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-  roi_sigma_values: [1.0, 1.5, 2.0]
-  roi_dist_values: [LogNormal]
+run_mode: fast_product
+parallel_workers: 4
+
+run_modes:
+  fast_product:
+    roi_mu_values: [0.5, 1.0, 1.5, 2.5, 4.0]
+    roi_sigma_values: [1.0, 1.5, 2.0]
+    roi_dist_values: [LogNormal]
+    n_chains: 2
+    n_adapt: 300
+    n_burnin: 300
+    n_keep: 150
+  audit_research:
+    roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0]
+    roi_sigma_values: [1.0, 1.5, 2.0]
+    roi_dist_values: [LogNormal]
+    n_chains: 4
+    n_adapt: 700
+    n_burnin: 500
+    n_keep: 300
+
+model:
+  channels: [meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon]
+  data_csv: data/raw/monthly_mocha.csv
+  data_tag: null
+  time_col: date
+  geo_col: null
+  population_col: null
+
+outcome:
+  kpi_col: subscriptions
+  # auto | revenue | non_revenue
+  kpi_type: non_revenue
+  # Optional single value for revenue-equivalent conversion.
+  revenue_per_kpi: null
+  # Optional list for sensitivity across multiple assumptions.
+  revenue_per_kpi_values: null
+
+prior_design:
+  # auto | roi | contribution
+  mode: roi
+  roi:
+    roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+    roi_sigma_values: [1.0, 1.5, 2.0]
+    roi_dist_values: [LogNormal]
+  contribution:
+    contribution_mean_values: [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15]
+    contribution_scale_values: [0.005, 0.01, 0.02, 0.05]
+    contribution_dist_values: [LogNormal]
+
+sweep:
+  type: fixed_full_grid
 
 structural:
-  # Fixed structural profile for full-grid prior sensitivity run.
   alpha_m_values: [0.3]
   ec_m_values: [0.5]
   slope_m_values: [1.2]
@@ -14,45 +59,18 @@ structural:
   adstock_decay_values: [geometric]
 
 baseline:
-  # Deterministic baseline anchor for this explicit grid.
   roi_mu: 1.5
   roi_sigma: 1.5
   roi_dist: LogNormal
-
-two_layer:
-  enabled: true
-  clean_between_layers: true
-  layer1:
-    # Fixed coarse scan across datasets.
-    roi_mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-    roi_sigma_values: [1.0, 1.5, 2.0]
-    roi_dist_values: [LogNormal]
-  layer2:
-    # Auto-refine around the best local neighborhood from Layer 1.
-    mode: auto_refine
-    top_n_mu: 3
-    top_n_sigma: 2
-    mu_step: 0.25
-    sigma_step: 0.25
-    fallback:
-      roi_mu_values: [0.5, 1.0, 1.5, 2.0]
-      roi_sigma_values: [1.0, 1.5]
-      roi_dist_values: [LogNormal]
+  contribution_mean: null
+  contribution_scale: null
 
 defaults:
-  # Active target set when running pipeline without CLI targets.
-  # One-channel: [google]
-  # Two-channel: [google, meta]
-  # Three-channel: [google, meta, tiktok]
   targets: [google, meta, tiktok]
-  # Optional batch mode (run multiple sets in one command):
-  # target_sets:
-  #   - [google]
-  #   - [google, meta]
-  #   - [google, meta, tiktok]
   target_sets: null
 
 sampler:
+  # n_chains/n_adapt/n_burnin/n_keep are injected from run_modes[run_mode].
   n_chains: 4
   n_adapt: 700
   n_burnin: 500

@@ -5,16 +5,21 @@ This folder contains the runnable MMM prior-sensitivity code.
 ## Minimal Flow
 
 ```powershell
-# 1) End-to-end pipeline (always two-layer)
+# 1) End-to-end pipeline (default fixed full-grid sweep)
 python -m src.pipeline google meta tiktok --config config/sensitivity.yaml
 ```
 
+Run mode is controlled from `config/sensitivity.yaml`:
+
+- `run_mode: fast_product` (default, 15-run quick ROI grid: `mu=[0.5,1.0,1.5,2.5,4.0]`, `sigma=[0.8,1.5,2.5]`)
+- `run_mode: audit_research` (fuller grid + stronger sampler)
+
 ## Core Modules
 
-- `main.py`: runs experiment grid (includes experiment config + baseline stats).
+- `main.py`: resolves outcome/prior-design mode, runs fixed full-grid, writes run/ROI outputs.
 - `run_meridian_once.py`: one model fit + diagnostics + ROI extraction (includes ModelSpec building).
 - `summarize_sensitivity.py`: merges split outputs, writes tornado table.
-- `pipeline.py`: one-command orchestrator.
+- `pipeline.py`: one-command orchestrator for fixed full-grid workflow.
 - `formatting.py`: shared formatting, value-safety, and QC status helpers.
 - `reporting/make_dashboard.py`: builds dashboard artifacts (includes CSV loading).
 - `viz/tornado_plots.py`: tornado sensitivity visualizations.
@@ -22,7 +27,7 @@ python -m src.pipeline google meta tiktok --config config/sensitivity.yaml
 ## Input Contract (minimum)
 
 - time column (`date` or configured `model.time_col`)
-- KPI column (`model.kpi_col`)
+- KPI column (`outcome.kpi_col` / legacy `model.kpi_col`)
 - for each channel `c`:
   - `{c}_impressions`
   - `{c}_spend`
@@ -36,7 +41,12 @@ For tag `<tag>`:
 - `data/output/02_tables/<tag>/tornado_<tag>.csv`
 - `data/output/03_reports/report/<tag>/dashboard.html`
 
-Two-layer mode keeps dashboard inputs clean by removing Layer 1 artifacts before Layer 2 final run.
+Default workflow is fixed full-grid sweep (`sweep.type: fixed_full_grid`).
+
+`LogNormal` prior parameterization note:
+
+- `roi_mu` / `roi_sigma` are treated as natural-scale mean and std targets.
+- Code converts them to log-space parameters before creating `tfd.LogNormal(...)`.
 
 ## Troubleshooting
 

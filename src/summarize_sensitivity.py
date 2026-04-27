@@ -16,7 +16,7 @@ from src.output_paths import (
     run_csv_path,
     tornado_csv_path,
 )
-from src.io_utils import STRUCTURAL_COLUMNS
+from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 
 
 def _pick_center(values):
@@ -26,10 +26,27 @@ def _pick_center(values):
     return vals[len(vals) // 2]
 
 
+def _baseline_scope_columns(df: pd.DataFrame) -> list[str]:
+    cols = ["targets"]
+    scenario_cols = [
+        "kpi_type",
+        "kpi_type_effective",
+        "outcome_col_used",
+        "revenue_per_kpi",
+        "prior_design_mode",
+        "prior_grid_type",
+        "prior_design_label",
+        "input_data_csv",
+    ]
+    cols.extend([c for c in scenario_cols if c in df.columns])
+    return cols
+
+
 def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Fallback baseline inference when is_baseline flag is missing/empty.
 
-    Uses center-point prior values (middle mu, middle sigma, preferred dist) per targets group.
+    Uses center-point prior values (middle mu, middle sigma, preferred dist)
+    per baseline scope group.
     """
     if df.empty:
         return df.copy()
@@ -39,11 +56,14 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
         return df.iloc[0:0].copy()
 
     picked = []
-    for t, g in df.groupby("targets", dropna=False):
+    group_cols = _baseline_scope_columns(df)
+    for _, g in df.groupby(group_cols, dropna=False):
         mu0 = _pick_center(g["roi_prior_mu"])
         sigma0 = _pick_center(g["roi_prior_sigma"])
         dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
         dist0 = "LogNormal" if "LogNormal" in dists else (_pick_center(dists) if dists else None)
+        if mu0 is None or sigma0 is None:
+            continue
 
         mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
         mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
@@ -109,8 +129,16 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
-    data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+def _load_channel_spend(project_root: str, channels: list[str], data_csv: str | None = None) -> pd.DataFrame:
+    if data_csv is None:
+        data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+    if not os.path.isabs(data_csv):
+        data_csv = os.path.join(project_root, data_csv)
+    if not os.path.exists(data_csv):
+        raise FileNotFoundError(
+            f"Data CSV for channel spend totals not found: {data_csv}. "
+            "Set input_data_csv metadata or provide the expected dataset path."
+        )
     raw_df = pd.read_csv(data_csv)
 
     records = []
@@ -146,6 +174,7 @@ def _load_current_results(paths: dict[str, Path]) -> pd.DataFrame:
             "roi_prior_sigma",
             "roi_prior_dist",
             *STRUCTURAL_COLUMNS,
+            *EXPERIMENT_METADATA_COLUMNS,
             "is_baseline",
             "qc_status_code",
             "qc_summary_short",
@@ -234,14 +263,16 @@ def main():
     baseline_metric_cols = [c for c in baseline_metric_rename if c in baseline_df.columns]
     if not baseline_metric_cols:
         raise ValueError("Baseline rows are missing ROI metrics needed for tornado summarization.")
+    baseline_group_cols = _baseline_scope_columns(df)
+    baseline_join_cols = [*baseline_group_cols, "channel"]
     baseline_summary = (
-        baseline_df.groupby(["targets", "channel"])[baseline_metric_cols]
+        baseline_df.groupby(baseline_join_cols)[baseline_metric_cols]
         .mean()
         .reset_index()
         .rename(columns=baseline_metric_rename)
     )
 
-    df = df.merge(baseline_summary, on=["targets", "channel"], how="left")
+    df = df.merge(baseline_summary, on=baseline_join_cols, how="left")
     df["roi_new"] = df["estimated_roi"]
     df["delta_abs"] = (df["roi_new"] - df["roi_baseline"]).abs()
     df["delta_pct"] = np.where(
@@ -268,7 +299,17 @@ def main():
         union = np.maximum(hi_base, hi_new) - np.minimum(lo_base, lo_new)
         df["ci_overlap_baseline_new"] = np.where(union > 0, overlap / union, np.nan)
 
-    spend_df = _load_channel_spend(project_root, sorted(df["channel"].dropna().astype(str).unique().tolist()))
+    input_data_csv = None
+    if "input_data_csv" in df.columns:
+        non_null = df["input_data_csv"].dropna().astype(str).str.strip()
+        non_null = non_null[non_null != ""]
+        if not non_null.empty:
+            input_data_csv = non_null.iloc[0]
+    spend_df = _load_channel_spend(
+        project_root,
+        sorted(df["channel"].dropna().astype(str).unique().tolist()),
+        data_csv=input_data_csv,
+    )
     if not spend_df.empty:
         df = df.merge(spend_df, on="channel", how="left")
         df["channel_total_spend"] = pd.to_numeric(df["channel_total_spend"], errors="coerce")
@@ -312,6 +353,7 @@ def main():
     ]
     optional_cols = [
         *STRUCTURAL_COLUMNS,
+        *EXPERIMENT_METADATA_COLUMNS,
         "roi_prior_mu",
         "roi_prior_sigma",
         "roi_prior_dist",

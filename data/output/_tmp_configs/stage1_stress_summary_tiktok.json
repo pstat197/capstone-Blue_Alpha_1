@@ -1,0 +1,53 @@
+{
+  "available": true,
+  "tag": "tiktok",
+  "targets": [
+    "tiktok"
+  ],
+  "n_runs": 18,
+  "n_extreme_runs": 14,
+  "mu_range": [
+    0.5,
+    3.0
+  ],
+  "sigma_range": [
+    1.0,
+    2.0
+  ],
+  "dists": [
+    "LogNormal"
+  ],
+  "qc_status_counts": {
+    "PASS": 0,
+    "REVIEW": 18,
+    "FAIL": 0,
+    "UNKNOWN": 0
+  },
+  "baseline_source": "is_baseline",
+  "n_baseline_runs": 1,
+  "extreme_window": {
+    "definition": "mu in {min,max} or sigma in {min,max}",
+    "max_abs_pct_change": 162.4300705944517,
+    "max_abs_delta_roi": 0.10224234701134269
+  },
+  "top_channels_by_extreme_pct": [
+    {
+      "channel": "tiktok",
+      "max_abs_pct_change": 162.4300705944517,
+      "max_abs_delta_roi": 0.10224234701134269,
+      "n_points": 14
+    },
+    {
+      "channel": "meta",
+      "max_abs_pct_change": 29.648947820837435,
+      "max_abs_delta_roi": 0.007625490791203199,
+      "n_points": 14
+    },
+    {
+      "channel": "moloco",
+      "max_abs_pct_change": 24.95232724256023,
+      "max_abs_delta_roi": 0.0196547313050056,
+      "n_points": 14
+    }
+  ]
+}

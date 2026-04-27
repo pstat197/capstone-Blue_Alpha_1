@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import copy
 import shutil
 import subprocess
 import sys
@@ -10,7 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from src.io_utils import STRUCTURAL_COLUMNS
+from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 from src.output_paths import (
     OUTPUT_ROOT,
     RUNS_DIR,
@@ -20,7 +19,7 @@ from src.output_paths import (
     run_csv_path,
     tornado_csv_path,
 )
-from src.run_config import dump_run_config, load_run_config
+from src.run_config import load_run_config
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -197,7 +196,12 @@ def _safe_remove(path: Path, *, allowed_root: Path) -> bool:
         return False
 
 
-def _cleanup_tag_outputs(tag: str, project_root: Path, dashboard_outdir_base: Path, tornado_outdir_base: Path) -> None:
+def _cleanup_tag_outputs(
+    tag: str,
+    project_root: Path,
+    dashboard_outdir_base: Path,
+    tornado_outdir_base: Path,
+) -> None:
     tag_paths = [
         RUNS_DIR / tag,
         Path("data/output/02_tables") / tag,
@@ -216,7 +220,7 @@ def _cleanup_tag_outputs(tag: str, project_root: Path, dashboard_outdir_base: Pa
         if not ok and p.exists():
             locked_paths.append(str(p))
 
-    # Remove temporary two-layer config files for this tag.
+    # Remove temporary config files for this tag.
     tmp_cfg_dir = project_root / "data" / "output" / "_tmp_configs"
     if tmp_cfg_dir.exists():
         for p in tmp_cfg_dir.glob(f"sensitivity_{tag}_*.yaml"):
@@ -232,212 +236,6 @@ def _cleanup_tag_outputs(tag: str, project_root: Path, dashboard_outdir_base: Pa
             "Close browser tabs / Excel / file previews using output files, then rerun.\n"
             f"Locked paths:\n{preview}{more}"
         )
-
-
-def _coerce_numeric_list(raw: Any) -> list[float]:
-    if raw is None:
-        return []
-    if isinstance(raw, (list, tuple, set, pd.Series, pd.Index)):
-        items = list(raw)
-    else:
-        items = [raw]
-    out: list[float] = []
-    seen: set[float] = set()
-    for v in items:
-        val = round(float(v), 6)
-        if val in seen:
-            continue
-        seen.add(val)
-        out.append(val)
-    return out
-
-
-def _coerce_string_list(raw: Any) -> list[str]:
-    if raw is None:
-        return []
-    if isinstance(raw, (list, tuple, set, pd.Series, pd.Index)):
-        items = list(raw)
-    else:
-        items = [raw]
-    out: list[str] = []
-    seen: set[str] = set()
-    for v in items:
-        s = str(v).strip()
-        if s and s not in seen:
-            seen.add(s)
-            out.append(s)
-    return out
-
-
-def _resolve_layer_grid(layer_cfg: dict[str, Any] | None, base_grid: dict[str, Any], label: str) -> dict[str, list[Any]]:
-    cfg = layer_cfg if isinstance(layer_cfg, dict) else {}
-    mu = _coerce_numeric_list(cfg.get("roi_mu_values"))
-    sigma = _coerce_numeric_list(cfg.get("roi_sigma_values"))
-    dist = _coerce_string_list(cfg.get("roi_dist_values"))
-    if not mu:
-        mu = _coerce_numeric_list(base_grid.get("roi_mu_values"))
-    if not sigma:
-        sigma = _coerce_numeric_list(base_grid.get("roi_sigma_values"))
-    if not dist:
-        dist = _coerce_string_list(base_grid.get("roi_dist_values"))
-    if not mu or not sigma or not dist:
-        raise ValueError(f"{label} grid is incomplete. Require roi_mu_values, roi_sigma_values, roi_dist_values.")
-    return {
-        "roi_mu_values": mu,
-        "roi_sigma_values": sigma,
-        "roi_dist_values": dist,
-    }
-
-
-def _center(values: list[float]) -> float:
-    vals = sorted(values)
-    return vals[len(vals) // 2]
-
-
-def _build_layer_config(base_cfg: dict[str, Any], grid: dict[str, list[Any]]) -> dict[str, Any]:
-    cfg = copy.deepcopy(base_cfg)
-    cfg.setdefault("experiment", {})
-    cfg["experiment"]["roi_mu_values"] = [float(v) for v in grid["roi_mu_values"]]
-    cfg["experiment"]["roi_sigma_values"] = [float(v) for v in grid["roi_sigma_values"]]
-    cfg["experiment"]["roi_dist_values"] = [str(v) for v in grid["roi_dist_values"]]
-    cfg.setdefault("baseline", {})
-    cfg["baseline"]["roi_mu"] = _center(cfg["experiment"]["roi_mu_values"])
-    cfg["baseline"]["roi_sigma"] = _center(cfg["experiment"]["roi_sigma_values"])
-    cfg["baseline"]["roi_dist"] = str(cfg["experiment"]["roi_dist_values"][0])
-    return cfg
-
-
-def _write_layer_config(project_root: Path, tag: str, layer_name: str, run_cfg: dict[str, Any]) -> Path:
-    tmp_dir = project_root / "data" / "output" / "_tmp_configs"
-    tmp_dir.mkdir(parents=True, exist_ok=True)
-    out_path = tmp_dir / f"sensitivity_{tag}_{layer_name}.yaml"
-    dump_run_config(run_cfg, str(out_path))
-    return out_path
-
-
-def _dense_between(lo: float, hi: float, step: float) -> list[float]:
-    lo = round(float(lo), 6)
-    hi = round(float(hi), 6)
-    step = float(step)
-    if step <= 0:
-        raise ValueError("Step must be > 0 for dense grid generation.")
-    if hi < lo:
-        lo, hi = hi, lo
-    out: list[float] = []
-    v = lo
-    guard = 0
-    while v <= hi + 1e-9:
-        out.append(round(v, 6))
-        v += step
-        guard += 1
-        if guard > 10000:
-            break
-    if out and abs(out[-1] - hi) > 1e-6:
-        out.append(round(hi, 6))
-    return sorted(set(out))
-
-
-def _best_local_points(all_values: list[float], best_value: float, top_n: int) -> list[float]:
-    if not all_values:
-        return []
-    n = max(1, min(int(top_n), len(all_values)))
-    picked = sorted(all_values, key=lambda v: (abs(float(v) - float(best_value)), float(v)))[:n]
-    return sorted(set(round(float(x), 6) for x in picked))
-
-
-def _derive_layer2_grid(
-    *,
-    layer1_run_csv: Path | None,
-    targets: list[str],
-    layer2_cfg: dict[str, Any] | None,
-    fallback_grid: dict[str, list[Any]],
-) -> dict[str, list[Any]]:
-    cfg = layer2_cfg if isinstance(layer2_cfg, dict) else {}
-
-    explicit_mu = _coerce_numeric_list(cfg.get("roi_mu_values"))
-    explicit_sigma = _coerce_numeric_list(cfg.get("roi_sigma_values"))
-    explicit_dist = _coerce_string_list(cfg.get("roi_dist_values"))
-    if explicit_mu and explicit_sigma:
-        return {
-            "roi_mu_values": explicit_mu,
-            "roi_sigma_values": explicit_sigma,
-            "roi_dist_values": explicit_dist or list(fallback_grid["roi_dist_values"]),
-        }
-
-    fallback_cfg = cfg.get("fallback", {}) if isinstance(cfg.get("fallback"), dict) else {}
-    fallback = _resolve_layer_grid(fallback_cfg, fallback_grid, "two_layer.layer2.fallback")
-    if layer1_run_csv is None or not layer1_run_csv.exists():
-        return fallback
-
-    run_df = pd.read_csv(layer1_run_csv)
-    targets_str = ",".join(sorted(str(x) for x in targets))
-    if "targets" in run_df.columns:
-        run_df = run_df[run_df["targets"].astype(str) == targets_str].copy()
-
-    if run_df.empty or "roi_prior_mu" not in run_df.columns or "roi_prior_sigma" not in run_df.columns:
-        return fallback
-
-    run_df["roi_prior_mu"] = pd.to_numeric(run_df["roi_prior_mu"], errors="coerce")
-    run_df["roi_prior_sigma"] = pd.to_numeric(run_df["roi_prior_sigma"], errors="coerce")
-    run_df = run_df.dropna(subset=["roi_prior_mu", "roi_prior_sigma"]).copy()
-    if run_df.empty:
-        return fallback
-
-    run_df["qc_status_code"] = run_df.get("qc_status_code", "REVIEW").astype(str).str.upper()
-    run_df["qc_baseline_status"] = run_df.get("qc_baseline_status", "REVIEW").astype(str).str.upper()
-
-    status_score = {"PASS": 2.0, "REVIEW": 1.0, "FAIL": 0.0}
-    baseline_score = {"PASS": 1.0, "REVIEW": 0.5, "FAIL": -1.0}
-    run_df["row_score"] = run_df["qc_status_code"].map(status_score).fillna(0.0) + run_df["qc_baseline_status"].map(
-        baseline_score
-    ).fillna(0.0)
-
-    non_fail = run_df["qc_status_code"] != "FAIL"
-    baseline_non_fail = run_df["qc_baseline_status"] != "FAIL"
-    candidate = run_df[non_fail & baseline_non_fail].copy()
-    if candidate.empty:
-        candidate = run_df[non_fail].copy()
-    if candidate.empty:
-        candidate = run_df.copy()
-
-    mu_scores = candidate.groupby("roi_prior_mu")["row_score"].mean()
-    sigma_scores = candidate.groupby("roi_prior_sigma")["row_score"].mean()
-    if mu_scores.empty or sigma_scores.empty:
-        return fallback
-
-    best_mu = float(mu_scores.sort_values(ascending=False).index[0])
-    best_sigma = float(sigma_scores.sort_values(ascending=False).index[0])
-    all_mu = sorted(float(x) for x in run_df["roi_prior_mu"].dropna().unique().tolist())
-    all_sigma = sorted(float(x) for x in run_df["roi_prior_sigma"].dropna().unique().tolist())
-    top_n_mu = int(cfg.get("top_n_mu", 3))
-    top_n_sigma = int(cfg.get("top_n_sigma", 2))
-    picked_mu = _best_local_points(all_mu, best_mu, top_n_mu)
-    picked_sigma = _best_local_points(all_sigma, best_sigma, top_n_sigma)
-    if not picked_mu or not picked_sigma:
-        return fallback
-
-    mu_step = float(cfg.get("mu_step", 0.25))
-    sigma_step = float(cfg.get("sigma_step", 0.25))
-    refined_mu = _dense_between(min(picked_mu), max(picked_mu), mu_step)
-    refined_sigma = _dense_between(min(picked_sigma), max(picked_sigma), sigma_step)
-    if not refined_mu or not refined_sigma:
-        return fallback
-
-    dist_values = _coerce_string_list(cfg.get("roi_dist_values"))
-    if not dist_values:
-        dist_values = _coerce_string_list(candidate.get("roi_prior_dist"))
-    if not dist_values:
-        dist_values = list(fallback["roi_dist_values"])
-
-    return {
-        "roi_mu_values": refined_mu,
-        "roi_sigma_values": refined_sigma,
-        "roi_dist_values": dist_values,
-    }
-
-
-def _fmt_grid(values: list[Any]) -> str:
-    return "[" + ", ".join(str(v) for v in values) + "]"
 
 
 def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
@@ -477,6 +275,7 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
             "targets",
             "is_baseline",
             *STRUCTURAL_COLUMNS,
+            *EXPERIMENT_METADATA_COLUMNS,
         ]
         if c in run_df.columns
     ]
@@ -582,11 +381,6 @@ def main() -> None:
         config_path = str((project_root / config_path).resolve())
     run_cfg = load_run_config(config_path)
     target_sets = _resolve_target_sets(args, run_cfg)
-    two_layer_cfg = run_cfg.get("two_layer", {}) if isinstance(run_cfg.get("two_layer"), dict) else {}
-    two_layer_enabled = bool(two_layer_cfg.get("enabled", False))
-    if not two_layer_enabled:
-        raise ValueError("two_layer.enabled must be true. Old one-layer mode has been removed.")
-    clean_between_layers = bool(two_layer_cfg.get("clean_between_layers", True))
 
     dashboard_outdir_base_abs = Path(args.dashboard_outdir)
     if not dashboard_outdir_base_abs.is_absolute():
@@ -606,47 +400,9 @@ def main() -> None:
         tornado_outdir = Path(args.tornado_outdir) / tag
 
         if not args.skip_main:
-            layer1_grid = _resolve_layer_grid(
-                two_layer_cfg.get("layer1"),
-                run_cfg.get("experiment", {}),
-                "two_layer.layer1",
-            )
-            layer1_cfg = _build_layer_config(run_cfg, layer1_grid)
-            layer1_cfg_path = _write_layer_config(project_root, tag, "layer1", layer1_cfg)
-
-            print(f"[clean] Removing existing outputs for tag={tag} before Layer 1.")
+            print(f"[clean] Removing existing outputs for tag={tag} before fixed full-grid run.")
             _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs, tornado_outdir_base_abs)
-
-            print(
-                "[layer1] grid:",
-                f"mu={_fmt_grid(layer1_grid['roi_mu_values'])}; "
-                f"sigma={_fmt_grid(layer1_grid['roi_sigma_values'])}; "
-                f"dist={_fmt_grid(layer1_grid['roi_dist_values'])}",
-            )
-            cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(layer1_cfg_path)]
-            _run_step(cmd, project_root)
-
-            layer1_run_csv = run_csv_path(tag)
-            layer2_grid = _derive_layer2_grid(
-                layer1_run_csv=layer1_run_csv,
-                targets=targets,
-                layer2_cfg=two_layer_cfg.get("layer2"),
-                fallback_grid=layer1_grid,
-            )
-            print(
-                "[layer2] grid:",
-                f"mu={_fmt_grid(layer2_grid['roi_mu_values'])}; "
-                f"sigma={_fmt_grid(layer2_grid['roi_sigma_values'])}; "
-                f"dist={_fmt_grid(layer2_grid['roi_dist_values'])}",
-            )
-
-            if clean_between_layers:
-                print(f"[clean] Removing Layer 1 outputs for tag={tag} before Layer 2.")
-                _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs, tornado_outdir_base_abs)
-
-            layer2_cfg = _build_layer_config(run_cfg, layer2_grid)
-            layer2_cfg_path = _write_layer_config(project_root, tag, "layer2", layer2_cfg)
-            cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(layer2_cfg_path)]
+            cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(config_path)]
             _run_step(cmd, project_root)
 
         if not args.skip_summarize:
