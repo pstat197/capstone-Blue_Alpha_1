@@ -174,6 +174,19 @@ def _display_path(path_str: str | None) -> str:
         return txt.replace("\\", "/")
 
 
+def _split_analysis_stage(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    if "analysis_stage" not in df.columns:
+        return df.copy(), df.copy()
+
+    stage_norm = df["analysis_stage"].astype(str).str.strip().str.lower()
+    prior_df = df.loc[stage_norm == "prior_sweep"].copy()
+    structural_df = df.loc[stage_norm == "structural_oat"].copy()
+
+    if prior_df.empty:
+        prior_df = df.copy()
+    return prior_df, structural_df
+
+
 def _derive_kpi_path(run_level: pd.DataFrame) -> str:
     kpi_effective = (_dominant_text(run_level, "kpi_type_effective") or _dominant_text(run_level, "kpi_type") or "").lower()
     prior_design = (_dominant_text(run_level, "prior_design_mode") or "").lower()
@@ -193,6 +206,49 @@ def _derive_kpi_path(run_level: pd.DataFrame) -> str:
     if kpi_effective == "non_revenue":
         return "Non-revenue KPI -> ROI framing"
     return "KPI path inferred from run metadata"
+
+
+def _build_execution_context(cfg: dict, run_level: pd.DataFrame | None = None) -> dict:
+    sweep_cfg = cfg.get("sweep", {}) or {}
+    prior_grid_scope = str(sweep_cfg.get("prior_grid_scope", "full_grid") or "full_grid").strip().lower()
+    structural_grid_scope = str(sweep_cfg.get("structural_grid_scope", "full_grid") or "full_grid").strip().lower()
+    structural_screen_only = prior_grid_scope == "baseline_only"
+
+    if run_level is not None and not run_level.empty:
+        mu_values = _unique_numeric_values(run_level, "roi_prior_mu")
+        sigma_values = _unique_numeric_values(run_level, "roi_prior_sigma")
+        dist_values: list[str] = []
+        if "roi_prior_dist" in run_level.columns:
+            vals = run_level["roi_prior_dist"].dropna().astype(str).str.strip()
+            vals = vals[vals != ""]
+            dist_values = sorted(vals.unique().tolist())
+
+        fixed_prior = len(mu_values) <= 1 and len(sigma_values) <= 1 and len(dist_values) <= 1
+        structural_unique_counts: list[int] = []
+        for col in STRUCTURAL_COLS:
+            if col not in run_level.columns:
+                continue
+            vals = run_level[col].dropna().astype(str).str.strip()
+            vals = vals[vals != ""]
+            structural_unique_counts.append(int(vals.nunique()))
+        varying_structural = any(count > 1 for count in structural_unique_counts)
+        structural_screen_only = structural_screen_only or (fixed_prior and varying_structural)
+
+        if structural_screen_only and prior_grid_scope == "full_grid":
+            prior_grid_scope = "baseline_only"
+
+        if structural_screen_only and structural_grid_scope == "full_grid" and structural_unique_counts:
+            inferred_one_at_a_time_runs = 1 + sum(max(count - 1, 0) for count in structural_unique_counts)
+            observed_runs = int(run_level["run_id"].nunique()) if "run_id" in run_level.columns else 0
+            structural_grid_scope = "one_at_a_time" if observed_runs == inferred_one_at_a_time_runs else "full_grid"
+
+    return {
+        "prior_grid_scope": prior_grid_scope,
+        "structural_grid_scope": structural_grid_scope,
+        "structural_screen_only": structural_screen_only,
+        "tornado_expected": not structural_screen_only,
+        "robustness_expected": not structural_screen_only,
+    }
 
 
 def _build_how_this_was_run(
@@ -246,6 +302,10 @@ def _build_how_this_was_run(
 
     qc_gate_cfg = (cfg.get("analysis", {}) or {}).get("qc_gate", {}) or {}
     qc_gate_mode = str(qc_gate_cfg.get("gate_mode", "auto_from_runs"))
+    execution_context = _build_execution_context(cfg, run_level)
+    prior_grid_scope = str(execution_context.get("prior_grid_scope", "full_grid"))
+    structural_grid_scope = str(execution_context.get("structural_grid_scope", "full_grid"))
+    structural_screen_only = bool(execution_context.get("structural_screen_only"))
     pass_runs = int(diagnostics.get("pass_runs", 0) or 0)
     review_runs = int(diagnostics.get("review_runs", 0) or 0)
     fail_runs = int(diagnostics.get("fail_runs", 0) or 0)
@@ -263,9 +323,18 @@ def _build_how_this_was_run(
     workflow_steps = [
         "Load configured dataset, targets, and KPI metadata.",
         f"Resolve KPI path: {kpi_path}.",
-        f"Run {sweep_label.lower()} prior sweep in {run_mode_label.lower()} mode.",
+        (
+            f"Hold the baseline prior fixed and vary structural settings ({_humanize_token(structural_grid_scope)}) in "
+            f"{run_mode_label.lower()} mode."
+            if structural_screen_only
+            else f"Run {sweep_label.lower()} prior sweep in {run_mode_label.lower()} mode."
+        ),
         "Apply QC checks and baseline-stability guardrails before ranking percent sensitivity.",
-        "Generate tornado summaries, robustness scoring, and the dashboard payload.",
+        (
+            "Generate structural diagnostics and the dashboard payload."
+            if structural_screen_only
+            else "Generate tornado summaries, robustness scoring, and the dashboard payload."
+        ),
     ]
 
     flow_cards = [
@@ -282,7 +351,11 @@ def _build_how_this_was_run(
         {
             "step": "03",
             "title": "Run Design",
-            "detail": f"{run_mode_label} | {sweep_label} | {grid_definition}",
+            "detail": (
+                f"{run_mode_label} | baseline prior only | structural {_humanize_token(structural_grid_scope).lower()} | {grid_definition}"
+                if structural_screen_only
+                else f"{run_mode_label} | {sweep_label} | {grid_definition}"
+            ),
         },
         {
             "step": "04",
@@ -292,7 +365,11 @@ def _build_how_this_was_run(
         {
             "step": "05",
             "title": "Outputs",
-            "detail": "Tornado summaries, robustness score, and dashboard payload",
+            "detail": (
+                "Structural diagnostics and dashboard payload"
+                if structural_screen_only
+                else "Tornado summaries, robustness score, and dashboard payload"
+            ),
         },
     ]
 
@@ -300,6 +377,7 @@ def _build_how_this_was_run(
         {"label": "Run Mode", "value": run_mode_label},
         {"label": "KPI Path", "value": kpi_path},
         {"label": "Grid", "value": grid_definition},
+        {"label": "Sweep Scope", "value": _humanize_token(prior_grid_scope)},
         {"label": "QC Gate", "value": f"P {pass_runs} / R {review_runs} / F {fail_runs}"},
     ]
 
@@ -309,6 +387,8 @@ def _build_how_this_was_run(
         {"label": "KPI type", "value": kpi_type_label},
         {"label": "Prior design mode", "value": prior_design_label},
         {"label": "Grid definition", "value": grid_definition},
+        {"label": "Prior grid scope", "value": _humanize_token(prior_grid_scope)},
+        {"label": "Structural sweep scope", "value": _humanize_token(structural_grid_scope)},
         {"label": "Mu grid", "value": _format_numeric_list(mu_values)},
         {"label": "Sigma grid", "value": _format_numeric_list(sigma_values)},
         {"label": "Distributions", "value": ", ".join(dist_values) if dist_values else "NA"},
@@ -323,6 +403,25 @@ def _build_how_this_was_run(
     notes = []
     if scope.get("data_profile_note"):
         notes.append(str(scope["data_profile_note"]))
+    if "analysis_stage" in run_level.columns:
+        stage_counts = (
+            run_level["analysis_stage"]
+            .dropna()
+            .astype(str)
+            .str.strip()
+            .value_counts()
+            .to_dict()
+        )
+        if stage_counts:
+            parts = [f"{k}={int(v)}" for k, v in stage_counts.items()]
+            notes.append("Analysis stages in this report input: " + ", ".join(parts) + ".")
+    if structural_screen_only:
+        notes.append(
+            "This run is a structural-only screen: the baseline prior is fixed while structural settings vary."
+        )
+        notes.append(
+            "Prior tornado charts and robustness scores are intentionally omitted in baseline-only structural screens."
+        )
     notes.append(
         "This panel is internal run provenance for team review and reproducibility, not client-facing narrative."
     )
@@ -1133,6 +1232,7 @@ def _compute_decision_card(
     prior_guardrail: dict | None = None,
     pass_coverage: dict | None = None,
     robustness_score: dict | None = None,
+    execution_context: dict | None = None,
 ) -> dict:
     hi = float(cfg["thresholds"]["high_sensitivity_pct"])
     med = float(cfg["thresholds"]["medium_sensitivity_pct"])
@@ -1157,6 +1257,8 @@ def _compute_decision_card(
     red_on_robustness_low = bool(policy_cfg.get("red_on_robustness_low", False))
 
     robust = robustness_score or {}
+    exec_ctx = execution_context or {}
+    structural_screen_only = bool(exec_ctx.get("structural_screen_only", False))
     robust_enabled = bool(robust.get("enabled", False))
     robust_available = bool(robust.get("available", False))
     robust_reason = str(robust.get("reason", "") or "").strip()
@@ -1388,8 +1490,12 @@ def _compute_decision_card(
         actions.append("Escalate to 8-run/18-run only if gate status drops below PASS.")
     elif tier == "YELLOW":
         actions.append("Keep conclusions directional; avoid hard budget shifts from single-run snapshots.")
-        actions.append("Prioritize reruns around the most sensitive channel-prior combinations.")
-        actions.append("Require QC gate PASS plus robustness score before production decision workflow.")
+        if structural_screen_only:
+            actions.append("Prioritize reruns around the structural settings that triggered FAIL checks.")
+            actions.append("Use the Structural Assumptions view before widening the prior grid.")
+        else:
+            actions.append("Prioritize reruns around the most sensitive channel-prior combinations.")
+            actions.append("Require QC gate PASS plus robustness score before production decision workflow.")
     else:
         actions.append("Do not use this result set for budget decisions yet.")
         actions.append("Run a broader prior sweep and recompute diagnostics/QC gate.")
@@ -1411,6 +1517,10 @@ def _compute_decision_card(
         score_note = f"src={source_name} | w={robust_weighting} | n={robust_runs}"
     elif robust_enabled and robust_reason:
         score_note = f"Robustness score unavailable: {robust_reason}."
+    if structural_screen_only and not robust_available:
+        score_label = "Structural Screen Mode"
+        score_value = "Baseline prior fixed"
+        score_note = "Robustness scoring is intentionally skipped in baseline-only structural screens."
 
     score_subscores: list[dict] = []
     if robust_available:
@@ -2180,16 +2290,23 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         if mask.any():
             df = df.loc[mask].copy()
 
-    diagnostics = _compute_diagnostics(df, tables_dir)
-    scope = _build_scope_info(df)
-    scope["n_channels_before"] = int(df["channel"].nunique())
-    scope["n_rows_before"] = int(df.shape[0])
+    full_df = df.copy()
+    prior_df, structural_stage_df = _split_analysis_stage(full_df)
+
+    diagnostics = _compute_diagnostics(prior_df, tables_dir)
+    scope = _build_scope_info(prior_df)
+    scope["n_channels_before"] = int(prior_df["channel"].nunique())
+    scope["n_rows_before"] = int(prior_df.shape[0])
+    scope["n_rows_total_input"] = int(full_df.shape[0])
+    scope["n_rows_structural_stage"] = int(structural_stage_df.shape[0])
     channel_scope = str(cfg.get("analysis", {}).get("channel_scope", "all")).strip().lower()
     target_tokens = _parse_linked_targets(scope.get("target_sets", []))
     if channel_scope == "targets_only":
         keep = {str(x).strip().lower() for x in target_tokens}
         if keep:
-            df = df[df["channel"].astype(str).str.lower().isin(keep)].copy()
+            full_df = full_df[full_df["channel"].astype(str).str.lower().isin(keep)].copy()
+            prior_df = prior_df[prior_df["channel"].astype(str).str.lower().isin(keep)].copy()
+            structural_stage_df = structural_stage_df[structural_stage_df["channel"].astype(str).str.lower().isin(keep)].copy()
             scope["channel_scope"] = "targets_only"
             scope["channel_scope_label"] = "Targets Only"
             scope["note"] += (
@@ -2204,10 +2321,10 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         scope["channel_scope"] = "all"
         scope["channel_scope_label"] = "All Modeled Channels"
 
-    if df.empty:
+    if prior_df.empty:
         raise ValueError("No rows left for report after applying channel scope filter.")
-    scope["n_channels_after"] = int(df["channel"].nunique())
-    scope["n_rows_after"] = int(df.shape[0])
+    scope["n_channels_after"] = int(prior_df["channel"].nunique())
+    scope["n_rows_after"] = int(prior_df.shape[0])
 
     baseline_rule = cfg["baseline"]["rule"]
 
@@ -2225,12 +2342,12 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     baselines = []
     status_col_for_baseline = None
-    if "qc_status_code" in df.columns:
+    if "qc_status_code" in prior_df.columns:
         status_col_for_baseline = "qc_status_code"
-    elif "qc_summary_short" in df.columns:
+    elif "qc_summary_short" in prior_df.columns:
         status_col_for_baseline = "qc_summary_short"
 
-    for (channel, dist), g in df.groupby(["channel", "roi_prior_dist"], as_index=False):
+    for (channel, dist), g in prior_df.groupby(["channel", "roi_prior_dist"], as_index=False):
         mu0, s0 = _pick_baseline(g, baseline_rule)
 
         g2 = g.assign(d=(g["roi_prior_mu"] - mu0).abs() + (g["roi_prior_sigma"] - s0).abs()).sort_values("d")
@@ -2308,91 +2425,95 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     baseline_df = pd.DataFrame(baselines)
 
-    merged = df.merge(baseline_df, on=["channel", "roi_prior_dist"], how="left")
+    merged = full_df.merge(baseline_df, on=["channel", "roi_prior_dist"], how="left")
+    merged_prior = prior_df.merge(baseline_df, on=["channel", "roi_prior_dist"], how="left")
     pct_source = "median_grid_baseline"
 
     # Always compute a robust fallback from the report baseline table first.
     # This keeps baseline/non-baseline runs usable even when tornado columns have gaps.
-    fallback_baseline = pd.to_numeric(merged["baseline_roi"], errors="coerce")
-    fallback_estimated = pd.to_numeric(merged["estimated_roi"], errors="coerce")
-    fallback_safe = fallback_baseline.abs() >= 1e-9
-    merged["pct_change_raw"] = np.where(
-        fallback_safe,
-        100.0 * (fallback_estimated - fallback_baseline) / fallback_baseline,
-        np.nan,
-    )
-    merged["baseline_roi_for_rank"] = fallback_baseline
-
-    # Prefer tornado ROI columns only when they are compatible with the
-    # dist-specific fallback baseline. This avoids cross-dist baseline leakage
-    # (e.g., LogNormal rows accidentally carrying Normal baselines).
-    merged["pct_source_row"] = "fallback_baseline"
-    if {"roi_baseline", "roi_new"}.issubset(merged.columns):
-        tb = pd.to_numeric(merged["roi_baseline"], errors="coerce")
-        tn = pd.to_numeric(merged["roi_new"], errors="coerce")
-        tol_abs = float(cfg.get("analysis", {}).get("tornado_baseline_abs_tol", 1e-8))
-        tol_rel = float(cfg.get("analysis", {}).get("tornado_baseline_rel_tol", 1e-3))
-
-        fallback_missing = fallback_baseline.isna()
-        compatible_tb = tb.notna() & (
-            fallback_missing
-            | ((tb - fallback_baseline).abs() <= (tol_abs + tol_rel * fallback_baseline.abs()))
+    def _apply_baseline_metrics(frame: pd.DataFrame) -> tuple[pd.DataFrame, str]:
+        out = frame.copy()
+        pct_source_local = "median_grid_baseline"
+        fallback_baseline = pd.to_numeric(out["baseline_roi"], errors="coerce")
+        fallback_estimated = pd.to_numeric(out["estimated_roi"], errors="coerce")
+        fallback_safe = fallback_baseline.abs() >= 1e-9
+        out["pct_change_raw"] = np.where(
+            fallback_safe,
+            100.0 * (fallback_estimated - fallback_baseline) / fallback_baseline,
+            np.nan,
         )
-        valid_pct = compatible_tb & tn.notna() & (tb.abs() >= 1e-9)
+        out["baseline_roi_for_rank"] = fallback_baseline
+        out["pct_source_row"] = "fallback_baseline"
+        if {"roi_baseline", "roi_new"}.issubset(out.columns):
+            tb = pd.to_numeric(out["roi_baseline"], errors="coerce")
+            tn = pd.to_numeric(out["roi_new"], errors="coerce")
+            tol_abs = float(cfg.get("analysis", {}).get("tornado_baseline_abs_tol", 1e-8))
+            tol_rel = float(cfg.get("analysis", {}).get("tornado_baseline_rel_tol", 1e-3))
 
-        if compatible_tb.any():
-            merged.loc[compatible_tb, "baseline_roi_for_rank"] = tb.loc[compatible_tb]
-        if valid_pct.any():
-            merged.loc[valid_pct, "pct_change_raw"] = (
-                100.0 * (tn.loc[valid_pct] - tb.loc[valid_pct]) / tb.loc[valid_pct]
+            fallback_missing = fallback_baseline.isna()
+            compatible_tb = tb.notna() & (
+                fallback_missing
+                | ((tb - fallback_baseline).abs() <= (tol_abs + tol_rel * fallback_baseline.abs()))
             )
-            merged.loc[valid_pct, "pct_source_row"] = "tornado_compatible"
+            valid_pct = compatible_tb & tn.notna() & (tb.abs() >= 1e-9)
 
-        rejected_tb = tb.notna() & (~compatible_tb)
-        if rejected_tb.any():
-            merged.loc[rejected_tb, "pct_source_row"] = "tornado_rejected_incompatible_baseline"
+            if compatible_tb.any():
+                out.loc[compatible_tb, "baseline_roi_for_rank"] = tb.loc[compatible_tb]
+            if valid_pct.any():
+                out.loc[valid_pct, "pct_change_raw"] = (
+                    100.0 * (tn.loc[valid_pct] - tb.loc[valid_pct]) / tb.loc[valid_pct]
+                )
+                out.loc[valid_pct, "pct_source_row"] = "tornado_compatible"
 
-        if valid_pct.any() and rejected_tb.any():
-            pct_source = "mixed_tornado_compatible_with_fallback"
-        elif valid_pct.any():
-            pct_source = "tornado_compatible_only"
+            rejected_tb = tb.notna() & (~compatible_tb)
+            if rejected_tb.any():
+                out.loc[rejected_tb, "pct_source_row"] = "tornado_rejected_incompatible_baseline"
 
-    merged["abs_pct_change_raw"] = merged["pct_change_raw"].abs()
-    merged["abs_delta_roi"] = (fallback_estimated - fallback_baseline).abs()
+            if valid_pct.any() and rejected_tb.any():
+                pct_source_local = "mixed_tornado_compatible_with_fallback"
+            elif valid_pct.any():
+                pct_source_local = "tornado_compatible_only"
 
-    if "pct_metric_reliable" in merged.columns:
-        reliable_mask = merged["pct_metric_reliable"].fillna(False).map(bool)
-        merged["pct_change"] = merged["pct_change_raw"].where(reliable_mask, np.nan)
-    else:
-        merged["pct_change"] = merged["pct_change_raw"]
+        out["abs_pct_change_raw"] = out["pct_change_raw"].abs()
+        out["abs_delta_roi"] = (fallback_estimated - fallback_baseline).abs()
 
-    merged["abs_pct_change"] = merged["pct_change"].abs()
+        if "pct_metric_reliable" in out.columns:
+            reliable_mask = out["pct_metric_reliable"].fillna(False).map(bool)
+            out["pct_change"] = out["pct_change_raw"].where(reliable_mask, np.nan)
+        else:
+            out["pct_change"] = out["pct_change_raw"]
 
-    prior_guardrail = _compute_prior_guardrail(merged, cfg, tables_dir)
-    dollar = _compute_dollar_sensitivity(merged, cfg, tables_dir)
-    scenario_snapshot = _compute_scenario_snapshot(merged, cfg, tables_dir)
-    spend_effect = _compute_spend_effect_onepager(merged, scenario_snapshot, tables_dir)
+        out["abs_pct_change"] = out["pct_change"].abs()
+        return out, pct_source_local
+
+    merged, _ = _apply_baseline_metrics(merged)
+    merged_prior, pct_source = _apply_baseline_metrics(merged_prior)
+
+    prior_guardrail = _compute_prior_guardrail(merged_prior, cfg, tables_dir)
+    dollar = _compute_dollar_sensitivity(merged_prior, cfg, tables_dir)
+    scenario_snapshot = _compute_scenario_snapshot(merged_prior, cfg, tables_dir)
+    spend_effect = _compute_spend_effect_onepager(merged_prior, scenario_snapshot, tables_dir)
     structural = _compute_structural_block(merged, scenario_snapshot, cfg, tables_dir)
-    qc_gate = _compute_qc_gate(df, merged, cfg, tables_dir)
-    workbench = build_workbench_artifacts(merged, cfg, tables_dir)
+    qc_gate = _compute_qc_gate(prior_df, merged_prior, cfg, tables_dir)
+    workbench = build_workbench_artifacts(merged_prior, cfg, tables_dir)
 
     analysis_cfg = (cfg.get("analysis", {}) or {})
     ranking_qc_scope = str(analysis_cfg.get("ranking_qc_scope", "all")).strip().lower()
     if ranking_qc_scope not in {"all", "pass_only", "non_fail"}:
         ranking_qc_scope = "all"
 
-    rank_input = merged.copy()
+    rank_input = merged_prior.copy()
     rank_scope_fallback = False
 
     status_col = None
-    if "qc_status_code" in merged.columns:
+    if "qc_status_code" in merged_prior.columns:
         status_col = "qc_status_code"
-    elif "qc_summary_short" in merged.columns:
+    elif "qc_summary_short" in merged_prior.columns:
         status_col = "qc_summary_short"
 
-    status_bucket = merged[status_col].map(_status_bucket) if status_col else None
+    status_bucket = merged_prior[status_col].map(_status_bucket) if status_col else None
     pass_rows_for_coverage = int((status_bucket == "PASS").sum()) if status_bucket is not None else 0
-    total_rows_for_coverage = int(len(merged))
+    total_rows_for_coverage = int(len(merged_prior))
     pass_coverage_pct = (
         100.0 * pass_rows_for_coverage / total_rows_for_coverage
         if total_rows_for_coverage > 0 and status_bucket is not None
@@ -2401,12 +2522,12 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     if ranking_qc_scope != "all" and status_bucket is not None:
         if ranking_qc_scope == "pass_only":
-            rank_input = merged[status_bucket == "PASS"].copy()
+            rank_input = merged_prior[status_bucket == "PASS"].copy()
         else:
-            rank_input = merged[status_bucket != "FAIL"].copy()
+            rank_input = merged_prior[status_bucket != "FAIL"].copy()
 
     if rank_input.empty:
-        rank_input = merged.copy()
+        rank_input = merged_prior.copy()
         rank_scope_fallback = True
 
     rank = (
@@ -2529,13 +2650,15 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         prior_guardrail=prior_guardrail,
         pass_coverage=pass_coverage,
         robustness_score=robustness_score,
+        execution_context=_build_execution_context(cfg, prior_df.drop_duplicates(subset=["run_id"]).copy() if "run_id" in prior_df.columns else prior_df.copy()),
     )
 
     overview = {
-        "n_rows": int(df.shape[0]),
-        "n_target_sets": int(df["target_channel"].nunique()),
-        "n_channels": int(df["channel"].nunique()),
-        "n_dists": int(df["roi_prior_dist"].nunique()),
+        "n_rows": int(prior_df.shape[0]),
+        "n_target_sets": int(prior_df["target_channel"].nunique()),
+        "n_channels": int(prior_df["channel"].nunique()),
+        "n_dists": int(prior_df["roi_prior_dist"].nunique()),
+        "n_rows_structural_stage": int(structural_stage_df.shape[0]),
         "pct_source": pct_source,
         "pct_guardrail_min_abs_baseline_roi": min_abs_baseline_for_pct,
         "pct_guardrail_require_positive_baseline": require_positive_baseline_for_pct,
@@ -2553,11 +2676,12 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "pass_coverage_pct": pass_coverage_pct,
         "generated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }
-    how_this_was_run = _build_how_this_was_run(df, cfg, scope, overview, diagnostics.get("overview", {}), baseline_df)
+    how_this_was_run = _build_how_this_was_run(prior_df, cfg, scope, overview, diagnostics.get("overview", {}), baseline_df)
+    execution_context = _build_execution_context(cfg, prior_df.drop_duplicates(subset=["run_id"]).copy() if "run_id" in prior_df.columns else prior_df.copy())
 
     baseline_df.to_csv(tables_dir / "baseline_table.csv", index=False)
     rank.to_csv(tables_dir / "sensitivity_rank.csv", index=False)
-    merged.to_csv(tables_dir / "merged_with_pct_change.csv", index=False)
+    merged_prior.to_csv(tables_dir / "merged_with_pct_change.csv", index=False)
 
     return {
         "overview": overview,
@@ -2575,8 +2699,9 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "baseline_df": baseline_df,
         "rank_df": rank,
         "rank_top_df": rank_top,
-        "merged_df": merged,
+        "merged_df": merged_prior,
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
         "how_this_was_run": how_this_was_run,
+        "execution_context": execution_context,
     }

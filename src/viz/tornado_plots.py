@@ -739,7 +739,15 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
     csv_stem = csv_path.stem
     df = pd.read_csv(csv_path)
     if df.empty:
-        raise ValueError(f"CSV has no rows: {csv_path.name}")
+        return {
+            "csv_name": csv_path.name,
+            "plot_path": None,
+            "summ_csv": None,
+            "html_report_path": None,
+            "html_fragment_path": None,
+            "scenario_summary": pd.DataFrame(),
+            "skipped_empty": True,
+        }
 
     needed = {CHANNEL_COL}
     missing = needed - set(df.columns)
@@ -909,6 +917,9 @@ def main():
     for csv_path in csv_paths:
         try:
             result = process_single_csv(csv_path=csv_path, out_dir=out_dir)
+            if bool(result.get("skipped_empty")):
+                print(f"[{result['csv_name']}] No tornado rows available; skipped tornado outputs.")
+                continue
             scenario_summaries.append(result["scenario_summary"])
             print(f"[{result['csv_name']}] Tornado outputs ready.")
         except Exception as exc:
@@ -916,7 +927,10 @@ def main():
             print(f"\n[{csv_path.name}] ERROR: {exc}")
 
     if not scenario_summaries:
-        raise RuntimeError("No scenario reports were produced.")
+        if failures:
+            raise RuntimeError("No scenario reports were produced.")
+        print("No tornado scenario rows available; finished without tornado outputs.")
+        return
 
     all_summ = pd.concat(scenario_summaries, ignore_index=True)
     global_agg = aggregate_global_channel_sensitivity(all_summ)

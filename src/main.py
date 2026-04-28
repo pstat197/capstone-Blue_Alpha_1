@@ -200,8 +200,7 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
 
 
 def _resolve_effective_prior_mode(run_cfg: dict, *, kpi_type: str, revenue_per_kpi: float | None) -> str:
-    prior_design = run_cfg.get("prior_design", {}) or {}
-    mode = str(prior_design.get("mode", "auto")).strip().lower()
+    mode = str(run_cfg.get("prior_mode", "auto")).strip().lower()
     if mode in {"roi", "contribution"}:
         return mode
     if kpi_type == "revenue":
@@ -222,24 +221,24 @@ def _resolve_prior_label(*, effective_prior_mode: str, kpi_type: str, revenue_pe
 
 
 def _roi_grid_from_config(run_cfg: dict) -> dict:
-    prior_design = run_cfg.get("prior_design", {}) or {}
-    roi_cfg = (prior_design.get("roi", {}) or {})
+    active_prior = run_cfg.get("active_prior_grids", {}) or {}
+    roi_cfg = (active_prior.get("roi", {}) or {})
     mu_vals = [round(float(v), 6) for v in roi_cfg.get("roi_mu_values", run_cfg.get("experiment", {}).get("roi_mu_values", []))]
     sigma_vals = [round(float(v), 6) for v in roi_cfg.get("roi_sigma_values", run_cfg.get("experiment", {}).get("roi_sigma_values", []))]
     dist_vals = [str(v) for v in roi_cfg.get("roi_dist_values", run_cfg.get("experiment", {}).get("roi_dist_values", ["LogNormal"]))]
     if not mu_vals or not sigma_vals or not dist_vals:
-        raise ValueError("ROI prior grid is incomplete. Check prior_design.roi settings.")
+        raise ValueError("ROI prior grid is incomplete. Check run_mode grid settings.")
     return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
 
 
 def _contribution_grid_from_config(run_cfg: dict) -> dict:
-    prior_design = run_cfg.get("prior_design", {}) or {}
-    c_cfg = (prior_design.get("contribution", {}) or {})
+    active_prior = run_cfg.get("active_prior_grids", {}) or {}
+    c_cfg = (active_prior.get("contribution", {}) or {})
     mean_vals = [round(float(v), 6) for v in c_cfg.get("contribution_mean_values", [])]
     scale_vals = [round(float(v), 6) for v in c_cfg.get("contribution_scale_values", [])]
     dist_vals = [str(v) for v in c_cfg.get("contribution_dist_values", ["LogNormal"])]
     if not mean_vals or not scale_vals or not dist_vals:
-        raise ValueError("Contribution prior grid is incomplete. Check prior_design.contribution settings.")
+        raise ValueError("Contribution prior grid is incomplete. Check run_mode grid settings.")
     if any(v <= 0 for v in mean_vals):
         raise ValueError("Contribution mean values must be > 0.")
     if any(v <= 0 for v in scale_vals):
@@ -369,6 +368,60 @@ def _build_structural_run_points(structural_grids: dict[str, list], structural_g
             point[axis_name] = value
             structural_points.append(point)
     return structural_points, baseline_structural
+
+
+def _structural_signature(point: dict) -> tuple:
+    alpha_m = point.get("alpha_m")
+    ec_m = point.get("ec_m")
+    return (
+        None if alpha_m is None else round(float(alpha_m), 6),
+        None if ec_m is None else round(float(ec_m), 6),
+        round(float(point.get("slope_m", 1.0)), 6),
+        int(point.get("max_lag", 8)),
+        str(point.get("adstock_decay_spec", "geometric")).strip().lower(),
+    )
+
+
+def _build_execution_pairs(
+    *,
+    run_cfg: dict,
+    prior_run_points: list[dict],
+    structural_run_points: list[dict],
+    baseline_structural: dict,
+    structural_grid_scope: str,
+) -> tuple[list[tuple[dict, dict, str]], dict]:
+    if structural_grid_scope != "one_at_a_time":
+        pairs = [
+            (prior_point, structural_point, "prior_sweep")
+            for prior_point, structural_point in product(prior_run_points, structural_run_points)
+        ]
+        return pairs, {
+            "mode": "cartesian",
+            "stage1_prior_points": len(prior_run_points),
+            "stage2_baseline_prior_points": 0,
+            "stage2_structural_points": 0,
+        }
+
+    baseline_prior_points = _filter_prior_run_points_to_baseline_only(run_cfg, prior_run_points)
+    baseline_signature = _structural_signature(baseline_structural)
+    non_baseline_structural = [
+        structural_point
+        for structural_point in structural_run_points
+        if _structural_signature(structural_point) != baseline_signature
+    ]
+
+    pairs = [(prior_point, dict(baseline_structural), "prior_sweep") for prior_point in prior_run_points]
+    pairs.extend(
+        (prior_point, structural_point, "structural_oat")
+        for prior_point in baseline_prior_points
+        for structural_point in non_baseline_structural
+    )
+    return pairs, {
+        "mode": "staged_additive",
+        "stage1_prior_points": len(prior_run_points),
+        "stage2_baseline_prior_points": len(baseline_prior_points),
+        "stage2_structural_points": len(non_baseline_structural),
+    }
 
 
 def _build_prior_run_points(
@@ -669,6 +722,12 @@ def main():
     sampler = run_cfg["sampler"]
     run_mode = str(run_cfg.get("run_mode", "fast_product"))
     parallel_workers = int(run_cfg.get("parallel_workers", 1))
+    if os.name == "nt" and parallel_workers > 1:
+        print(
+            "[warn] Windows + TensorFlow/Meridian multi-process runs can crash with access violations. "
+            f"Capping parallel_workers from {parallel_workers} to 1 for stability."
+        )
+        parallel_workers = 1
     sweep_type = str((run_cfg.get("sweep", {}) or {}).get("type", "fixed_full_grid"))
     prior_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("prior_grid_scope", "full_grid"))
     structural_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("structural_grid_scope", "full_grid"))
@@ -748,20 +807,27 @@ def main():
     if prior_grid_scope == "baseline_only":
         prior_run_points = _filter_prior_run_points_to_baseline_only(run_cfg, prior_run_points)
     if not prior_run_points:
-        raise ValueError("No prior run points were generated. Check prior_design/outcome settings.")
+        raise ValueError("No prior run points were generated. Check prior_mode/outcome settings.")
 
     channels_json = json.dumps(channels)
     structural_run_points, baseline_structural = _build_structural_run_points(
         structural_grids, structural_grid_scope
     )
     structural_combo_count = len(structural_run_points)
-    total_runs = len(prior_run_points) * structural_combo_count
+    execution_pairs, execution_plan = _build_execution_pairs(
+        run_cfg=run_cfg,
+        prior_run_points=prior_run_points,
+        structural_run_points=structural_run_points,
+        baseline_structural=baseline_structural,
+        structural_grid_scope=structural_grid_scope,
+    )
+    total_runs = len(execution_pairs)
 
     print(
         "Run plan:",
         f"targets={targets_str}; run_mode={run_mode}; prior_scope={prior_grid_scope}; prior_points={len(prior_run_points)}"
         + (f"/{prior_run_points_full_count}" if prior_grid_scope == "baseline_only" else "")
-        + f"; structural_scope={structural_grid_scope}; structural combos={structural_combo_count}; total runs={total_runs}",
+        + f"; structural_scope={structural_grid_scope}; structural combos={structural_combo_count}; execution={execution_plan['mode']}; total runs={total_runs}",
     )
     print(
         "Outcome mode:",
@@ -771,7 +837,16 @@ def main():
     print("Input data CSV =", data_csv)
     print("Run output file =", run_output_file)
     print("ROI output file =", roi_output_file)
-    print(f"Execution mode = fixed_full_grid | parallel_workers={parallel_workers}")
+    if execution_plan["mode"] == "staged_additive":
+        print(
+            "Execution mode = staged_additive | "
+            f"stage1: {execution_plan['stage1_prior_points']} prior points @ baseline structural; "
+            f"stage2: {execution_plan['stage2_baseline_prior_points']} baseline prior point(s) x "
+            f"{execution_plan['stage2_structural_points']} non-baseline structural variants; "
+            f"parallel_workers={parallel_workers}"
+        )
+    else:
+        print(f"Execution mode = fixed_full_grid | parallel_workers={parallel_workers}")
 
     has_global_baseline = False
     baseline_mu = baseline_sigma = None
@@ -839,9 +914,9 @@ def main():
     skipped_runs = 0
     executed_runs = 0
     pending_jobs: list[dict] = []
-    grid_iter = product(prior_run_points, structural_run_points)
+    grid_iter = iter(execution_pairs)
 
-    for prior_point, structural_point in grid_iter:
+    for prior_point, structural_point, analysis_stage in grid_iter:
         mu = round(float(prior_point["roi_mu_display"]), 6)
         sigma = round(float(prior_point["roi_sigma_display"]), 6)
         dist = str(prior_point["roi_dist_display"])
@@ -1044,6 +1119,7 @@ def main():
 
         pending_jobs.append(
             {
+                "analysis_stage": analysis_stage,
                 "index": run_index,
                 "run_key": run_key,
                 "prior_key": prior_key,
@@ -1081,6 +1157,7 @@ def main():
             "prior_key": job["prior_key"],
             "targets": job["targets_str"],
             "target_channel": job["targets_str"],
+            "analysis_stage": job["analysis_stage"],
         }
         append_tmp_to_output(
             tmp_out=job["tmp_run_out"],

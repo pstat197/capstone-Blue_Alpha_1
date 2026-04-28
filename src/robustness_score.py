@@ -550,6 +550,77 @@ def _write_report(
     return _safe_text_write(report_path, "\n".join(lines) + "\n")
 
 
+def _write_placeholder_outputs(
+    *,
+    out_dir: str,
+    tag: str,
+    targets_str: str,
+    overall_weighting: str,
+    reason: str,
+    n_runs_used: int = 0,
+) -> None:
+    os.makedirs(out_dir, exist_ok=True)
+
+    channel_df = pd.DataFrame(
+        columns=[
+            "channel",
+            "in_target_set",
+            "n_runs_used",
+            "channel_total_spend",
+            "overall_channel_robustness_score",
+            "robustness_band",
+            "targets",
+        ]
+    )
+    overall_df = pd.DataFrame(
+        [
+            {
+                "targets": targets_str,
+                "n_channels": 0,
+                "n_runs_used": int(n_runs_used),
+                "excluded_fail_runs": True,
+                "overall_weighting": overall_weighting,
+                "baseline_mu": np.nan,
+                "baseline_sigma": np.nan,
+                "baseline_dist": "",
+                "overall_model_robustness_score": np.nan,
+                "overall_model_robustness_band": "",
+                "overall_prior_sensitivity_subscore": np.nan,
+                "overall_data_influence_subscore": np.nan,
+                "overall_cross_channel_subscore": np.nan,
+                "overall_adstock_proxy_subscore": np.nan,
+                "target_subset_robustness_score": np.nan,
+                "empirical_low_cutoff_q33": np.nan,
+                "empirical_high_cutoff_q67": np.nan,
+                "adstock_note": reason,
+            }
+        ]
+    )
+    run_diag_df = pd.DataFrame()
+
+    channel_csv = os.path.join(out_dir, f"robustness_channel_{tag}.csv")
+    overall_csv = os.path.join(out_dir, f"robustness_model_{tag}.csv")
+    run_diag_csv = os.path.join(out_dir, f"robustness_run_channel_metrics_{tag}.csv")
+    report_path = os.path.join(out_dir, f"robustness_report_{tag}.md")
+
+    _safe_csv_write(channel_df, channel_csv)
+    _safe_csv_write(overall_df, overall_csv)
+    _safe_csv_write(run_diag_df, run_diag_csv)
+    _safe_text_write(
+        report_path,
+        "\n".join(
+            [
+                f"# Robustness Score Report ({targets_str})",
+                "",
+                "Robustness scoring was skipped for this run.",
+                "",
+                f"Reason: {reason}",
+            ]
+        )
+        + "\n",
+    )
+
+
 def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
@@ -560,6 +631,7 @@ def main() -> None:
     targets_str = ",".join(targets_sorted)
     target_set = set(targets_sorted)
     tag = _tag_for_targets(targets_sorted)
+    out_dir = args.out_dir or str(tables_tag_dir(tag))
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     paths = _paths_for_tag(tag)
@@ -567,11 +639,35 @@ def main() -> None:
 
     tornado_df = pd.read_csv(tornado_csv)
     if tornado_df.empty:
-        raise ValueError(f"Tornado CSV is empty: {tornado_csv}")
+        run_df = pd.DataFrame()
+        run_csv = _pick_run_csv(paths["run_csv"])
+        if run_csv is not None and os.path.exists(run_csv):
+            run_df = pd.read_csv(run_csv)
+            if "targets" in run_df.columns:
+                run_df = run_df[run_df["targets"].astype(str) == targets_str].copy()
+        _write_placeholder_outputs(
+            out_dir=out_dir,
+            tag=tag,
+            targets_str=targets_str,
+            overall_weighting=args.overall_weighting,
+            reason="No non-baseline tornado rows were available; this is expected for baseline-only structural sweeps.",
+            n_runs_used=int(run_df["run_id"].nunique()) if "run_id" in run_df.columns else 0,
+        )
+        print("Robustness scoring skipped: no tornado rows available for this sweep design.")
+        return
     if "targets" in tornado_df.columns:
         tornado_df = tornado_df[tornado_df["targets"].astype(str) == targets_str].copy()
     if tornado_df.empty:
-        raise ValueError("No rows found for the requested target set in tornado CSV.")
+        _write_placeholder_outputs(
+            out_dir=out_dir,
+            tag=tag,
+            targets_str=targets_str,
+            overall_weighting=args.overall_weighting,
+            reason="No tornado rows matched the requested target set.",
+            n_runs_used=0,
+        )
+        print("Robustness scoring skipped: no target-matched tornado rows.")
+        return
 
     run_df = pd.DataFrame()
     run_csv = _pick_run_csv(paths["run_csv"])
@@ -596,7 +692,16 @@ def main() -> None:
     if not args.include_fail and "qc_status_code" in tornado_df.columns:
         tornado_df = tornado_df[tornado_df["qc_status_code"].astype(str) != "FAIL"].copy()
     if tornado_df.empty:
-        raise ValueError("No rows available after QC filtering.")
+        _write_placeholder_outputs(
+            out_dir=out_dir,
+            tag=tag,
+            targets_str=targets_str,
+            overall_weighting=args.overall_weighting,
+            reason="No tornado rows remained after QC filtering.",
+            n_runs_used=int(run_df["run_id"].nunique()) if "run_id" in run_df.columns else 0,
+        )
+        print("Robustness scoring skipped: no rows remained after QC filtering.")
+        return
 
     numeric_cols = [
         "roi_prior_mu",
@@ -660,7 +765,6 @@ def main() -> None:
     channel_df["targets"] = targets_str
     channel_df = channel_df.sort_values("overall_channel_robustness_score", ascending=True).reset_index(drop=True)
 
-    out_dir = args.out_dir or str(tables_tag_dir(tag))
     os.makedirs(out_dir, exist_ok=True)
 
     channel_csv = os.path.join(out_dir, f"robustness_channel_{tag}.csv")

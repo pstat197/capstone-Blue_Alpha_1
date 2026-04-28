@@ -499,6 +499,12 @@
           </section>
         </section>
 
+        <section class="panel card structural-screen-note" id="section-structural-screen-note" data-page-group="overview" style="display:none;">
+          <h2>Structural Screen Summary</h2>
+          <p class="subhead">This run held the baseline prior fixed and varied structural settings only.</p>
+          <ul id="structural-screen-note-list" class="list"></ul>
+        </section>
+
 
         <section class="split" id="section-allocation" data-page-group="qc">
           <section class="panel card">
@@ -624,6 +630,7 @@
       const decision = payload.decision_card || {};
       const overviewLines = Array.isArray(payload.quick_overview_lines) ? payload.quick_overview_lines : [];
       const howRun = payload.how_this_was_run || {};
+      const executionContext = payload.execution_context || {};
 
       const byId = (id) => document.getElementById(id);
       const distFilter = byId("dist-filter");
@@ -664,6 +671,9 @@
       const lagValue = byId("lag-value");
       const structResetBtn = byId("struct-reset-btn");
       const structKpiGrid = byId("struct-kpi-grid");
+      const tornadoSection = byId("section-tornado");
+      const structuralScreenNoteSection = byId("section-structural-screen-note");
+      const structuralScreenNoteList = byId("structural-screen-note-list");
 
       const state = {
         dist: "lognormal",
@@ -1466,8 +1476,8 @@
 
         const tier = String(decision.tier || "NA").toUpperCase();
         let statusText = "MONITOR";
-        if (fail > 0 || tier === "RED") statusText = "ATTENTION";
-        else if (review === 0 && tier === "GREEN") statusText = "HEALTHY";
+        if (tier === "RED") statusText = "ATTENTION";
+        else if (review === 0 && fail === 0 && tier === "GREEN") statusText = "HEALTHY";
 
         mhStatusChip.textContent = statusText;
         mhStatusChip.classList.remove("tier-green", "tier-yellow", "tier-red");
@@ -1480,6 +1490,24 @@
         const scoreTxt = String(decision.score_value || "NA");
         mhTierScore.textContent = `${tier} | ${scoreTxt}`;
         mhNote.textContent = `Runs=${nRuns} (unknown=${unknown}). Policy: ${String(decision.policy_name || "Traffic-Light Policy")}.`;
+      };
+
+      const renderExecutionModeNote = () => {
+        const structuralOnly = !!executionContext.structural_screen_only;
+        if (tornadoSection) {
+          tornadoSection.style.display = structuralOnly ? "none" : "";
+        }
+        if (!structuralScreenNoteSection || !structuralScreenNoteList) return;
+        if (!structuralOnly) {
+          structuralScreenNoteSection.style.display = "none";
+          return;
+        }
+        structuralScreenNoteSection.style.display = "";
+        structuralScreenNoteList.innerHTML = [
+          "Prior tornado charts are intentionally omitted in this baseline-only structural screen because there are no non-baseline prior comparisons.",
+          "Robustness scoring is intentionally skipped in this mode; the decision card is reading QC outcomes from the 10 structural runs instead.",
+          "Use the Structural Assumptions tab to compare how alpha, ec, slope, lag, and decay move ROI across the screened runs.",
+        ].map((line) => `<li>${line}</li>`).join("");
       };
 
       const renderSpendEffect = () => {
@@ -1987,6 +2015,19 @@
       };
 
       const renderTornadoCharts = () => {
+        if (executionContext.structural_screen_only) {
+          if (tornadoRoiChart) tornadoRoiChart.clear();
+          if (tornadoDollarChart) tornadoDollarChart.clear();
+          const roiNote = byId("tornado-roi-note");
+          const dollarNote = byId("tornado-dollar-note");
+          if (roiNote) {
+            roiNote.textContent = "ROI tornado is intentionally omitted in structural-only screen mode.";
+          }
+          if (dollarNote) {
+            dollarNote.textContent = "Dollar tornado is intentionally omitted in structural-only screen mode.";
+          }
+          return;
+        }
         const roiRender = renderTornadoBar(tornadoRoiChart, roiTornadoRows, {
           leftKey: "left",
           rightKey: "right",
@@ -2026,6 +2067,7 @@
       };
 
       const renderAll = () => {
+        renderExecutionModeNote();
         const rows = getFilteredRows();
         renderDecisionCard();
         renderModelHealthCard();

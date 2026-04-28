@@ -14,6 +14,7 @@ STRUCTURAL_COLUMNS = [
 ]
 
 EXPERIMENT_METADATA_COLUMNS = [
+    "analysis_stage",
     "run_mode",
     "prior_mode_used",
     "kpi_type",

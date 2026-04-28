@@ -186,6 +186,14 @@ def _load_current_results(paths: dict[str, Path]) -> pd.DataFrame:
     return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
 
 
+def _filter_to_prior_stage(df: pd.DataFrame) -> pd.DataFrame:
+    if "analysis_stage" not in df.columns:
+        return df.copy()
+    mask = df["analysis_stage"].astype(str).str.strip().str.lower() == "prior_sweep"
+    filtered = df.loc[mask].copy()
+    return filtered if not filtered.empty else df.copy()
+
+
 def main():
     parser = _build_parser()
     args = parser.parse_args()
@@ -235,6 +243,7 @@ def main():
     if "targets" not in df.columns:
         raise ValueError("Input CSV has no 'targets' column; cannot summarize multi-prior results.")
     df = df[df["targets"] == targets_str].copy()
+    df = _filter_to_prior_stage(df)
 
     if "is_baseline" not in df.columns:
         raise ValueError("Missing column 'is_baseline' in results CSV. Cannot identify baseline reliably.")

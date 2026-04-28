@@ -47,6 +47,22 @@ from meridian.data import data_frame_input_data_builder
 from meridian.model import model, prior_distribution, spec
 import tensorflow_probability as tfp
 
+
+def _configure_tensorflow_runtime() -> None:
+    # TensorFlow + XLA can be unstable under repeated Windows subprocess runs.
+    # Prefer a conservative runtime profile so long sweeps finish reliably.
+    if os.name != "nt":
+        return
+    try:
+        tf.config.optimizer.set_jit(False)
+    except Exception:
+        pass
+    try:
+        tf.config.threading.set_intra_op_parallelism_threads(1)
+        tf.config.threading.set_inter_op_parallelism_threads(1)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Meridian ModelSpec construction (inlined from former meridian_spec.py)
 # ---------------------------------------------------------------------------
@@ -957,6 +973,7 @@ def _export_meridian_official_outputs(
 
 def main():
     args = _build_parser().parse_args()
+    _configure_tensorflow_runtime()
     if args.out_roi_csv is None:
         if args.out_csv is None:
             raise ValueError("Provide --out_roi_csv (preferred) or legacy --out_csv.")

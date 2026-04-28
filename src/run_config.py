@@ -49,19 +49,7 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "revenue_per_kpi": None,
         "revenue_per_kpi_values": None,
     },
-    "prior_design": {
-        "mode": "auto",  # auto | roi | contribution
-        "roi": {
-            "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
-            "roi_sigma_values": [1.0, 1.5, 2.0],
-            "roi_dist_values": ["LogNormal"],
-        },
-        "contribution": {
-            "contribution_mean_values": [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15],
-            "contribution_scale_values": [0.005, 0.01, 0.02, 0.05],
-            "contribution_dist_values": ["LogNormal"],
-        },
-    },
+    "prior_mode": "auto",  # auto | roi | contribution
     # Backward-compatible materialized ROI grid used by existing internals.
     "experiment": {
         "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
@@ -192,7 +180,7 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
             _default_run_mode_field(
                 name,
                 "contribution_mean_values",
-                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_mean_values"],
+                [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15],
             ),
         ),
         f"run_modes.{name}.contribution_mean_values",
@@ -209,7 +197,7 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
             _default_run_mode_field(
                 name,
                 "contribution_scale_values",
-                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_scale_values"],
+                [0.005, 0.01, 0.02, 0.05],
             ),
         ),
         f"run_modes.{name}.contribution_scale_values",
@@ -226,7 +214,7 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
             _default_run_mode_field(
                 name,
                 "contribution_dist_values",
-                DEFAULT_RUN_CONFIG["prior_design"]["contribution"]["contribution_dist_values"],
+                ["LogNormal"],
             ),
         ),
         f"run_modes.{name}.contribution_dist_values",
@@ -433,82 +421,34 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     else:
         outcome["revenue_per_kpi_values"] = None
 
-    prior_design = config.setdefault("prior_design", {})
-    prior_mode = str(prior_design.get("mode", "auto")).strip().lower()
+    legacy_prior_design = config.get("prior_design", {}) or {}
+    if legacy_prior_design and not isinstance(legacy_prior_design, dict):
+        raise ValueError("Config field 'prior_design' must be a mapping/object when provided.")
+
+    prior_mode = str(config.get("prior_mode", legacy_prior_design.get("mode", "auto"))).strip().lower()
     if prior_mode not in {"auto", "roi", "contribution"}:
-        raise ValueError("Config field 'prior_design.mode' must be one of: auto, roi, contribution.")
-    prior_design["mode"] = prior_mode
+        raise ValueError("Config field 'prior_mode' must be one of: auto, roi, contribution.")
+    config["prior_mode"] = prior_mode
+    config.pop("prior_design", None)
 
-    roi = prior_design.setdefault("roi", {})
-    roi_mu_values = _as_numeric_list(
-        roi.get("roi_mu_values", config.get("experiment", {}).get("roi_mu_values", [])),
-        "prior_design.roi.roi_mu_values",
-    )
-    if not roi_mu_values:
-        raise ValueError("Config field 'prior_design.roi.roi_mu_values' must contain at least one value.")
-    roi["roi_mu_values"] = [round(float(v), 6) for v in roi_mu_values]
+    config["active_prior_grids"] = {
+        "roi": {
+            "roi_mu_values": list(active_profile["roi_mu_values"]),
+            "roi_sigma_values": list(active_profile["roi_sigma_values"]),
+            "roi_dist_values": list(active_profile["roi_dist_values"]),
+        },
+        "contribution": {
+            "contribution_mean_values": list(active_profile["contribution_mean_values"]),
+            "contribution_scale_values": list(active_profile["contribution_scale_values"]),
+            "contribution_dist_values": list(active_profile["contribution_dist_values"]),
+        },
+    }
 
-    roi_sigma_values = _as_numeric_list(
-        roi.get("roi_sigma_values", config.get("experiment", {}).get("roi_sigma_values", [])),
-        "prior_design.roi.roi_sigma_values",
-    )
-    if not roi_sigma_values:
-        raise ValueError("Config field 'prior_design.roi.roi_sigma_values' must contain at least one value.")
-    roi["roi_sigma_values"] = _normalize_positive_list(roi_sigma_values, "prior_design.roi.roi_sigma_values")
-
-    roi_dist_values = _as_string_list(
-        roi.get("roi_dist_values", config.get("experiment", {}).get("roi_dist_values", ["LogNormal"])),
-        "prior_design.roi.roi_dist_values",
-    )
-    if not roi_dist_values:
-        raise ValueError("Config field 'prior_design.roi.roi_dist_values' must contain at least one value.")
-    roi["roi_dist_values"] = _dedupe_preserve_order(roi_dist_values)
-
-    # Run mode drives active ROI prior grid for fixed full-grid sweeps.
-    roi["roi_mu_values"] = list(active_profile["roi_mu_values"])
-    roi["roi_sigma_values"] = list(active_profile["roi_sigma_values"])
-    roi["roi_dist_values"] = list(active_profile["roi_dist_values"])
-
-    contribution = prior_design.setdefault("contribution", {})
-    contrib_mean_values = _as_numeric_list(
-        contribution.get("contribution_mean_values", [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15]),
-        "prior_design.contribution.contribution_mean_values",
-    )
-    if not contrib_mean_values:
-        raise ValueError("Config field 'prior_design.contribution.contribution_mean_values' must contain at least one value.")
-    contribution["contribution_mean_values"] = _normalize_positive_list(
-        contrib_mean_values, "prior_design.contribution.contribution_mean_values"
-    )
-
-    contrib_scale_values = _as_numeric_list(
-        contribution.get("contribution_scale_values", [0.005, 0.01, 0.02, 0.05]),
-        "prior_design.contribution.contribution_scale_values",
-    )
-    if not contrib_scale_values:
-        raise ValueError("Config field 'prior_design.contribution.contribution_scale_values' must contain at least one value.")
-    contribution["contribution_scale_values"] = _normalize_positive_list(
-        contrib_scale_values, "prior_design.contribution.contribution_scale_values"
-    )
-
-    contrib_dist_values = _as_string_list(
-        contribution.get("contribution_dist_values", ["LogNormal"]),
-        "prior_design.contribution.contribution_dist_values",
-    )
-    if not contrib_dist_values:
-        raise ValueError("Config field 'prior_design.contribution.contribution_dist_values' must contain at least one value.")
-    contribution["contribution_dist_values"] = _dedupe_preserve_order(contrib_dist_values)
-
-    # Run mode also drives the active contribution prior grid so both prior paths
-    # stay count-aligned within a given execution mode.
-    contribution["contribution_mean_values"] = list(active_profile["contribution_mean_values"])
-    contribution["contribution_scale_values"] = list(active_profile["contribution_scale_values"])
-    contribution["contribution_dist_values"] = list(active_profile["contribution_dist_values"])
-
-    # Keep legacy experiment block synchronized with ROI design.
+    # Keep legacy experiment block synchronized with the active run_mode ROI grid.
     exp = config.setdefault("experiment", {})
-    exp["roi_mu_values"] = list(roi["roi_mu_values"])
-    exp["roi_sigma_values"] = list(roi["roi_sigma_values"])
-    exp["roi_dist_values"] = list(roi["roi_dist_values"])
+    exp["roi_mu_values"] = list(config["active_prior_grids"]["roi"]["roi_mu_values"])
+    exp["roi_sigma_values"] = list(config["active_prior_grids"]["roi"]["roi_sigma_values"])
+    exp["roi_dist_values"] = list(config["active_prior_grids"]["roi"]["roi_dist_values"])
 
     baseline = config.setdefault("baseline", {})
     for baseline_key in ["roi_mu", "roi_sigma", "contribution_mean", "contribution_scale"]:
