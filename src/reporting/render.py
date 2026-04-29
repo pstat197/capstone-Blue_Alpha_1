@@ -479,6 +479,15 @@ def render_dashboard_output(
             "triggered_rules": decision_card.get("triggered_rules", []),
             "reasons": decision_card.get("reasons", []),
             "actions": decision_card.get("actions", []),
+            "score_meta": {
+                "higher_is_better": bool((decision_card.get("score_meta", {}) or {}).get("higher_is_better", True)),
+                "overall_weighting": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("overall_weighting"), ""),
+                "band_low_cutoff_q33": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_low_cutoff_q33")),
+                "band_high_cutoff_q67": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_high_cutoff_q67")),
+                "band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("band_method"), ""),
+                "adstock_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("adstock_note"), ""),
+                "subscore_weights": (decision_card.get("score_meta", {}) or {}).get("subscore_weights", {}) or {},
+            },
         }
 
     spend_effect_block = {"available": False}
@@ -631,6 +640,38 @@ def render_dashboard_output(
                 }
             )
 
+        response_rows = []
+        for row in structural.get("response_rows", []):
+            response_rows.append(
+                {
+                    "run_id": row.get("run_id"),
+                    "channel": row.get("channel"),
+                    "target_channel": row.get("target_channel"),
+                    "analysis_stage": row.get("analysis_stage"),
+                    "struct_profile_id": row.get("struct_profile_id"),
+                    "roi_prior_mu": _to_float_safe(row.get("roi_prior_mu")),
+                    "roi_prior_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+                    "roi_prior_dist": row.get("roi_prior_dist"),
+                    "estimated_roi": _to_float_safe(row.get("estimated_roi")),
+                    "baseline_roi": _to_float_safe(row.get("baseline_roi")),
+                    "pct_change": _to_float_safe(row.get("pct_change")),
+                    "abs_pct_change": _to_float_safe(row.get("abs_pct_change")),
+                    "contribution_value": _to_float_safe(row.get("contribution_value")),
+                    "contribution_share": _to_float_safe(row.get("contribution_share")),
+                    "effect_value": _to_float_safe(row.get("effect_value")),
+                    "effect_share": _to_float_safe(row.get("effect_share")),
+                    "channel_total_spend": _to_float_safe(row.get("channel_total_spend")),
+                    "spend_share": _to_float_safe(row.get("spend_share")),
+                    "adstock_alpha_m": _to_float_safe(row.get("adstock_alpha_m")),
+                    "saturation_ec_m": _to_float_safe(row.get("saturation_ec_m")),
+                    "saturation_slope_m": _to_float_safe(row.get("saturation_slope_m")),
+                    "max_lag": _to_float_safe(row.get("max_lag")),
+                    "adstock_decay_spec": row.get("adstock_decay_spec"),
+                    "qc_status_code": row.get("qc_status_code"),
+                    "qc_summary_short": row.get("qc_summary_short"),
+                }
+            )
+
         selected_profile = structural.get("selected_profile") or {}
         structural_block = {
             "available": True,
@@ -639,6 +680,7 @@ def render_dashboard_output(
             "notes": structural.get("notes", []),
             "profile_rows": profile_rows,
             "run_rows": run_rows,
+            "response_rows": response_rows,
         }
 
     diagnostics_focus = []

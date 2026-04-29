@@ -1,0 +1,16 @@
+run_id,roi_prior_mu,roi_prior_sigma,roi_prior_dist,qc_status_code,qc_primary_review_check,qc_flagged_channels
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.005000|dist=LogNormal|0.002615|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.002615,0.002615,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.020000|dist=LogNormal|0.002615|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.002615,0.01046,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.050000|dist=LogNormal|0.002615|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.002615,0.026151,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.005000|dist=LogNormal|0.005230|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00523,0.002615,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.020000|dist=LogNormal|0.005230|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00523,0.01046,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.050000|dist=LogNormal|0.005230|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00523,0.026151,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.005000|dist=LogNormal|0.010460|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.01046,0.002615,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.01046,0.01046,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.050000|dist=LogNormal|0.010460|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.01046,0.026151,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.005000|dist=LogNormal|0.026151|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.026151,0.002615,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.020000|dist=LogNormal|0.026151|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.026151,0.01046,LogNormal,FAIL,Convergence,"max_r_hat,mu_t"
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.050000|dist=LogNormal|0.026151|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.026151,0.026151,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.005000|dist=LogNormal|0.078453|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.078453,0.002615,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.020000|dist=LogNormal|0.078453|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.078453,0.01046,LogNormal,PASS,,
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.050000|dist=LogNormal|0.078453|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.078453,0.026151,LogNormal,PASS,,

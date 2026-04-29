@@ -30,37 +30,6 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
-multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.005000|dist=LogNormal|0.002615|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.005, ""contribution_scale"": 0.005, ""converted_roi_mu_by_channel"": {""tiktok"": 0.002615101958494606}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.002615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.002615101958494606, ""sigma"": 0.002615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.002615,0.002615,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.002615,0.002615,LogNormal,0.005,0.005,"{""tiktok"": 0.002615101958494606}","{""tiktok"": 0.002615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8915,0.0532,0.0525,0.9,0.0,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed with reviews: Review is needed.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 0.90. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.8915, MAPE = 0.0532, and wMAPE = 0.0525. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: REVIEW
-  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
 multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.050000|dist=LogNormal|0.002615|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.005, ""contribution_scale"": 0.05, ""converted_roi_mu_by_channel"": {""tiktok"": 0.002615101958494606}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.02615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.002615101958494606, ""sigma"": 0.02615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.002615,0.026151,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.002615,0.026151,LogNormal,0.005,0.05,"{""tiktok"": 0.002615101958494606}","{""tiktok"": 0.02615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8919,0.0533,0.0527,0.93,0.0,"========================================
 Model Quality Checks
 ========================================
@@ -84,6 +53,37 @@ BayesianPPP Check:
 GoodnessOfFit Check:
   Status: PASS
   Recommendation: R-squared = 0.8919, MAPE = 0.0533, and wMAPE = 0.0527. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.005000|dist=LogNormal|0.002615|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.005, ""contribution_scale"": 0.005, ""converted_roi_mu_by_channel"": {""tiktok"": 0.002615101958494606}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.002615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.002615101958494606, ""sigma"": 0.002615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.002615,0.002615,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.002615,0.002615,LogNormal,0.005,0.005,"{""tiktok"": 0.002615101958494606}","{""tiktok"": 0.002615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8915,0.0532,0.0525,0.9,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.90. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8915, MAPE = 0.0532, and wMAPE = 0.0525. These goodness-of-fit metrics are intended for guidance and relative comparison.
 ----------------------------------------
 PriorPosteriorShift Check:
   Status: PASS
@@ -154,6 +154,37 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.020000|dist=LogNormal|0.005230|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.01, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.005230203916989212}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.005230203916989212, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.00523,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.00523,0.01046,LogNormal,0.01,0.02,"{""tiktok"": 0.005230203916989212}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8914,0.0533,0.0526,0.91,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.91. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8914, MAPE = 0.0533, and wMAPE = 0.0526. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
 multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8914,0.0532,0.0525,0.91,0.0,"========================================
 Model Quality Checks
 ========================================
@@ -216,37 +247,6 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
-multi|tiktok|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.020000|dist=LogNormal|0.005230|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.01, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.005230203916989212}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.005230203916989212, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.00523,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.00523,0.01046,LogNormal,0.01,0.02,"{""tiktok"": 0.005230203916989212}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8914,0.0533,0.0526,0.91,0.0,"========================================
-Model Quality Checks
-========================================
-Overall Status: PASS
-Summary: Passed with reviews: Review is needed.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: PASS
-  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 0.91. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.8914, MAPE = 0.0533, and wMAPE = 0.0526. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: REVIEW
-  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
 multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.050000|dist=LogNormal|0.010460|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.05, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.02615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.02615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.026151,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.026151,LogNormal,0.02,0.05,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.02615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8917,0.0532,0.0525,0.91,0.0,"========================================
 Model Quality Checks
 ========================================
@@ -270,37 +270,6 @@ BayesianPPP Check:
 GoodnessOfFit Check:
   Status: PASS
   Recommendation: R-squared = 0.8917, MAPE = 0.0532, and wMAPE = 0.0525. These goodness-of-fit metrics are intended for guidance and relative comparison.
-----------------------------------------
-PriorPosteriorShift Check:
-  Status: PASS
-  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
-----------------------------------------
-ROIConsistency Check:
-  Status: REVIEW
-  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
-multi|tiktok|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.020000|dist=LogNormal|0.026151|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.05, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.02615101958494606}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.02615101958494606, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.026151,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.026151,0.01046,LogNormal,0.05,0.02,"{""tiktok"": 0.02615101958494606}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,mu_t","The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.22. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.",FAIL,PASS,PASS,PASS,PASS,PASS,0.8883,0.0537,0.0531,0.98,0.0,"========================================
-Model Quality Checks
-========================================
-Overall Status: FAIL
-Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
-
-Check Results:
-----------------------------------------
-Convergence Check:
-  Status: FAIL
-  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.22. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
-----------------------------------------
-Baseline Check:
-  Status: PASS
-  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
-----------------------------------------
-BayesianPPP Check:
-  Status: PASS
-  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
-----------------------------------------
-GoodnessOfFit Check:
-  Status: PASS
-  Recommendation: R-squared = 0.8883, MAPE = 0.0537, and wMAPE = 0.0531. These goodness-of-fit metrics are intended for guidance and relative comparison.
 ----------------------------------------
 PriorPosteriorShift Check:
   Status: PASS
@@ -371,3 +340,386 @@ PriorPosteriorShift Check:
 ROIConsistency Check:
   Status: REVIEW
   Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.020000|dist=LogNormal|0.026151|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.05, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.02615101958494606}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.02615101958494606, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.026151,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.026151,0.01046,LogNormal,0.05,0.02,"{""tiktok"": 0.02615101958494606}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,mu_t","The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.22. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.",FAIL,PASS,PASS,PASS,PASS,PASS,0.8883,0.0537,0.0531,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.22. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8883, MAPE = 0.0537, and wMAPE = 0.0531. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.005000|dist=LogNormal|0.078453|0.002615|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.15, ""contribution_scale"": 0.005, ""converted_roi_mu_by_channel"": {""tiktok"": 0.07845305875483818}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.002615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.07845305875483818, ""sigma"": 0.002615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.078453,0.002615,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.078453,0.002615,LogNormal,0.15,0.005,"{""tiktok"": 0.07845305875483818}","{""tiktok"": 0.002615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8675,0.0582,0.0573,0.86,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.86. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8675, MAPE = 0.0582, and wMAPE = 0.0573. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.020000|dist=LogNormal|0.078453|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.15, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.07845305875483818}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.07845305875483818, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.078453,0.01046,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.078453,0.01046,LogNormal,0.15,0.02,"{""tiktok"": 0.07845305875483818}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8723,0.0572,0.0564,0.92,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.92. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8723, MAPE = 0.0572, and wMAPE = 0.0564. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p2|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.2, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.2,0.5,1.2,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,mu_t","The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.25. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.",FAIL,PASS,PASS,PASS,PASS,PASS,0.8886,0.054,0.0533,1.0,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Quality issues were detected in your model. Follow recommendations to address any failed checks and review results to determine if further action is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't fully converged, and the `max_r_hat` for parameter `mu_t` is 1.25. Manually inspect the parameters with high R-hat values to determine if the results are acceptable for your use case, and consider increasing MCMC iterations or investigating model misspecification.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8886, MAPE = 0.0540, and wMAPE = 0.0533. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.050000|dist=LogNormal|0.078453|0.026151|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.15, ""contribution_scale"": 0.05, ""converted_roi_mu_by_channel"": {""tiktok"": 0.07845305875483818}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.02615101958494606}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.07845305875483818, ""sigma"": 0.02615101958494606}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.078453,0.026151,LogNormal,0.3,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.078453,0.026151,LogNormal,0.15,0.05,"{""tiktok"": 0.07845305875483818}","{""tiktok"": 0.02615101958494606}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.881,0.0554,0.0547,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8810, MAPE = 0.0554, and wMAPE = 0.0547. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p0|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.0}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.0,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,FAIL,2,False,FAIL:Convergence,Convergence,"max_r_hat,knot_values","The model hasn't converged, and the `max_r_hat` for parameter `knot_values` is inf. We recommend increasing MCMC iterations or investigating model misspecification (e.g., priors, multicollinearity) before proceeding.",FAIL,,,,,,,,,,,"========================================
+Model Quality Checks
+========================================
+Overall Status: FAIL
+Summary: Failed: Model did not converge. Other checks were skipped.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: FAIL
+  Recommendation: The model hasn't converged, and the `max_r_hat` for parameter `knot_values` is inf. We recommend increasing MCMC iterations or investigating model misspecification (e.g., priors, multicollinearity) before proceeding."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p4|ec=0p5|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.4, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.4,0.5,1.2,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8924,0.0525,0.0521,0.9,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.90. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8924, MAPE = 0.0525, and wMAPE = 0.0521. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p3|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.3, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.3,1.2,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8922,0.0528,0.0522,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8922, MAPE = 0.0528, and wMAPE = 0.0522. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p7|slope=1p2|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.7, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.7,1.2,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8904,0.0538,0.0531,0.93,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.93. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8904, MAPE = 0.0538, and wMAPE = 0.0531. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p4|lag=4|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.4}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.4,4,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8897,0.0538,0.0531,0.88,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.88. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8897, MAPE = 0.0538, and wMAPE = 0.0531. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=2|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 2, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.2,2,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8902,0.0538,0.0531,0.9,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.90. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8902, MAPE = 0.0538, and wMAPE = 0.0531. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=6|decay=geometric,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 6, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.2,6,geometric,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8912,0.0536,0.0529,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8912, MAPE = 0.0536, and wMAPE = 0.0529. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channels `meta`, `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."
+multi|tiktok|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.010460|0.010460|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=binomial,"{""contribution_mean"": 0.02, ""contribution_scale"": 0.02, ""converted_roi_mu_by_channel"": {""tiktok"": 0.010460407833978424}, ""converted_roi_sigma_by_channel"": {""tiktok"": 0.010460407833978424}, ""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""non_revenue"", ""prior_design_mode"": ""contribution"", ""prior_grid_type"": ""contribution"", ""revenue_per_kpi"": null, ""roi_prior_overrides"": {""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.010460407833978424, ""sigma"": 0.010460407833978424}}, ""run_mode"": ""fast_product"", ""structural_overrides"": {""adstock_decay_spec"": ""binomial"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""two_layer_enabled"": false}",tiktok,tiktok,0.01046,0.01046,LogNormal,0.3,0.5,1.2,4,binomial,False,national,date,,,74,74,1,structural_oat,fast_product,contribution,non_revenue,non_revenue,subscriptions,,tiktok,fixed_full_grid,False,contribution,contribution,Contribution prior fallback,0.01046,0.01046,LogNormal,0.02,0.02,"{""tiktok"": 0.010460407833978424}","{""tiktok"": 0.010460407833978424}",target_channels,tiktok,auto_from_runs,,,,D:\Intern\BlueAlpha\data\raw\monthly_mocha.csv,PASS,0,False,PASS,,,,PASS,PASS,PASS,PASS,PASS,PASS,0.8937,0.0521,0.0519,0.87,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.87. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8937, MAPE = 0.0521, and wMAPE = 0.0519. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: PASS
+  Recommendation: The model has successfully learned from the data. This is a positive sign that your data was informative.
+----------------------------------------
+ROIConsistency Check:
+  Status: REVIEW
+  Recommendation: We've detected an unusually low ROI estimate (for channel `google`) where the posterior point estimate falls into the extreme tail of your custom prior. Please review this result to determine if it is reasonable within your business context."

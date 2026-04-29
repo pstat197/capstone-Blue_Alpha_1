@@ -1,0 +1,16 @@
+run_id,roi_prior_mu,roi_prior_sigma,roi_prior_dist,qc_status_code,qc_primary_review_check,qc_flagged_channels
+multi|google|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.005000|dist=LogNormal|0.000445|0.000445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.000445,0.000445,LogNormal,REVIEW,PriorPosteriorShift,google
+multi|google|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.020000|dist=LogNormal|0.000445|0.001780|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.000445,0.00178,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.005000|cscale=0.050000|dist=LogNormal|0.000445|0.004451|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.000445,0.004451,LogNormal,FAIL,Convergence,"max_r_hat,mu_t"
+multi|google|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.005000|dist=LogNormal|0.000890|0.000445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00089,0.000445,LogNormal,FAIL,Convergence,"max_r_hat,mu_t"
+multi|google|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.020000|dist=LogNormal|0.000890|0.001780|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00089,0.00178,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.010000|cscale=0.050000|dist=LogNormal|0.000890|0.004451|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00089,0.004451,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.005000|dist=LogNormal|0.001780|0.000445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00178,0.000445,LogNormal,REVIEW,PriorPosteriorShift,google
+multi|google|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.020000|dist=LogNormal|0.001780|0.001780|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00178,0.00178,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.020000|cscale=0.050000|dist=LogNormal|0.001780|0.004451|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.00178,0.004451,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.005000|dist=LogNormal|0.004451|0.000445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.004451,0.000445,LogNormal,REVIEW,PriorPosteriorShift,google
+multi|google|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.020000|dist=LogNormal|0.004451|0.001780|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.004451,0.00178,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.050000|cscale=0.050000|dist=LogNormal|0.004451|0.004451|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.004451,0.004451,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.005000|dist=LogNormal|0.013352|0.000445|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.013352,0.000445,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.020000|dist=LogNormal|0.013352|0.001780|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.013352,0.00178,LogNormal,PASS,,
+multi|google|pmode=contribution|rpk=none|cmean=0.150000|cscale=0.050000|dist=LogNormal|0.013352|0.004451|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,0.013352,0.004451,LogNormal,PASS,,

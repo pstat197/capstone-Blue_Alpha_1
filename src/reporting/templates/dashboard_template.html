@@ -118,27 +118,41 @@
           </div>
 
           <div id="decision-guidance-layer" class="decision-layer decision-layer-guidance">
-            <article id="decision-subscore-panel" class="decision-summary-card decision-subscore-card">
-              <div class="k">Subscore View</div>
-              <div class="field" style="margin:6px 0 0;">
-                <select id="decision-subscore-select" style="margin-top:4px;">
-                  <option value="">Overall Robustness</option>
-                </select>
-              </div>
-              <div id="decision-subscore-note" class="decision-subscore-feedback"></div>
-            </article>
-            <details id="decision-rules-panel" class="decision-compact decision-compact--dense">
-              <summary>Key Rules</summary>
-              <ul id="decision-triggered-list" class="list"></ul>
-            </details>
-            <details id="decision-why-panel" class="decision-compact decision-compact--dense">
-              <summary>Why This Tier</summary>
-              <ul id="decision-reasons-list" class="list"></ul>
-            </details>
-            <details id="decision-actions-panel" class="decision-compact" open>
-              <summary>Recommended Actions</summary>
-              <ul id="decision-actions-list" class="list"></ul>
-            </details>
+            <div class="decision-guidance-stack decision-guidance-stack--left">
+              <article id="decision-subscore-panel" class="decision-summary-card decision-subscore-card">
+                <div class="decision-subscore-head">
+                  <div class="k">Subscore View</div>
+                  <button id="decision-score-guide-btn" type="button" class="decision-info-btn" aria-expanded="false" aria-controls="decision-score-guide-popover" aria-label="Explain current robustness score">
+                    i
+                  </button>
+                </div>
+                <div class="field" style="margin:6px 0 0;">
+                  <select id="decision-subscore-select" style="margin-top:4px;">
+                    <option value="">Overall Robustness</option>
+                  </select>
+                </div>
+                <div id="decision-subscore-note" class="decision-subscore-feedback"></div>
+                <div id="decision-score-guide-popover" class="decision-score-guide-popover" hidden>
+                  <div id="decision-score-guide-title" class="decision-score-guide-title">Score Guide</div>
+                  <div id="decision-score-guide-value" class="decision-score-guide-value"></div>
+                  <div id="decision-score-guide-body" class="decision-score-guide-body"></div>
+                </div>
+              </article>
+              <details id="decision-rules-panel" class="decision-compact decision-compact--dense">
+                <summary>Key Rules</summary>
+                <ul id="decision-triggered-list" class="list"></ul>
+              </details>
+              <details id="decision-why-panel" class="decision-compact decision-compact--dense">
+                <summary>Why This Tier</summary>
+                <ul id="decision-reasons-list" class="list"></ul>
+              </details>
+            </div>
+            <div class="decision-guidance-stack decision-guidance-stack--right">
+              <article id="decision-explainer-panel" class="decision-compact decision-explainer-panel">
+                <div class="decision-explainer-head">Current Score Explanation</div>
+                <div id="decision-explainer-body" class="decision-explainer-body"></div>
+              </article>
+            </div>
           </div>
 
           <div class="decision-hidden-metrics" aria-hidden="true">
@@ -641,8 +655,6 @@
       const scrollProgress = byId("scroll-progress");
       const decisionHeadline = byId("decision-headline");
       const decisionTriggeredList = byId("decision-triggered-list");
-      const decisionActionsList = byId("decision-actions-list");
-      const decisionActionsPanel = byId("decision-actions-panel");
       const decisionRulesPanel = byId("decision-rules-panel");
       const decisionWhyPanel = byId("decision-why-panel");
       const decisionSubscorePanel = byId("decision-subscore-panel");
@@ -655,6 +667,16 @@
       const decisionSubscoreSelect = byId("decision-subscore-select");
       const decisionSubscoreNote = byId("decision-subscore-note");
       const decisionReasonsList = byId("decision-reasons-list");
+      const decisionExplainerPanel = byId("decision-explainer-panel");
+      const decisionExplainerBody = byId("decision-explainer-body");
+      const decisionScoreGuideBtn = byId("decision-score-guide-btn");
+      const decisionScoreGuidePopover = byId("decision-score-guide-popover");
+      const decisionScoreGuideTitle = byId("decision-score-guide-title");
+      const decisionScoreGuideValue = byId("decision-score-guide-value");
+      const decisionScoreGuideBody = byId("decision-score-guide-body");
+      const scoreMeta = (decision && typeof decision.score_meta === "object" && decision.score_meta)
+        ? decision.score_meta
+        : {};
       const mhStatusChip = byId("mh-status-chip");
       const mhPassRate = byId("mh-pass-rate");
       const mhStatusBreakdown = byId("mh-status-breakdown");
@@ -823,6 +845,16 @@
         const span = maxAbs + pad;
         return { min: -span, max: span };
       };
+      const dataInterval = (minVal, maxVal, padRatio = 0.05) => {
+        const loRaw = Number(minVal);
+        const hiRaw = Number(maxVal);
+        if (!Number.isFinite(loRaw) || !Number.isFinite(hiRaw)) return { min: -1, max: 1 };
+        const lo = Math.min(loRaw, 0);
+        const hi = Math.max(hiRaw, 0);
+        const span = Math.max(1e-9, hi - lo);
+        const pad = span * Math.max(0, padRatio);
+        return { min: lo - pad, max: hi + pad };
+      };
       const decodeTokenFloat = (token) => {
         if (token == null) return null;
         const cleaned = String(token).trim().replace(/[^0-9p.+-]/gi, "");
@@ -871,7 +903,68 @@
         };
       };
 
-      const buildStructuralProfiles = () => {
+      const structuralPayload = (payload && payload.structural && typeof payload.structural === "object")
+        ? payload.structural
+        : {};
+      const structuralResponseRows = Array.isArray(structuralPayload.response_rows)
+        ? structuralPayload.response_rows.map((row) => ({
+          run_id: String((row && row.run_id) || ""),
+          channel: String((row && row.channel) || ""),
+          target_channel: String((row && row.target_channel) || ""),
+          analysis_stage: String((row && row.analysis_stage) || ""),
+          struct_profile_id: String((row && row.struct_profile_id) || ""),
+          roi_prior_mu: toNum(row && row.roi_prior_mu),
+          roi_prior_sigma: toNum(row && row.roi_prior_sigma),
+          roi_prior_dist: String((row && row.roi_prior_dist) || ""),
+          estimated_roi: toNum(row && row.estimated_roi),
+          baseline_roi: toNum(row && row.baseline_roi),
+          pct_change: toNum(row && row.pct_change),
+          abs_pct_change: toNum(row && row.abs_pct_change),
+          contribution_value: toNum(row && row.contribution_value),
+          contribution_share: toNum(row && row.contribution_share),
+          effect_value: toNum(row && row.effect_value),
+          effect_share: toNum(row && row.effect_share),
+          channel_total_spend: toNum(row && row.channel_total_spend),
+          spend_share: toNum(row && row.spend_share),
+          adstock_alpha_m: toNum(row && row.adstock_alpha_m),
+          saturation_ec_m: toNum(row && row.saturation_ec_m),
+          saturation_slope_m: toNum(row && row.saturation_slope_m),
+          max_lag: toNum(row && row.max_lag),
+          adstock_decay_spec: String((row && row.adstock_decay_spec) || ""),
+          qc_status_code: String((row && row.qc_status_code) || ""),
+          qc_summary_short: String((row && row.qc_summary_short) || ""),
+        }))
+        : [];
+
+      const buildStructuralProfilesFromPayload = () => {
+        const rows = Array.isArray(structuralPayload.profile_rows) ? structuralPayload.profile_rows : [];
+        const profiles = rows
+          .map((row) => {
+            const alpha = toNum(row && row.adstock_alpha_m);
+            const ec = toNum(row && row.saturation_ec_m);
+            const slope = toNum(row && row.saturation_slope_m);
+            const lag = toNum(row && row.max_lag);
+            const decay = String((row && row.adstock_decay_spec) || "geometric").toLowerCase();
+            const key = String((row && row.struct_profile_id) || "").trim();
+            if (!key || !Number.isFinite(alpha) || !Number.isFinite(ec) || !Number.isFinite(slope) || !Number.isFinite(lag)) {
+              return null;
+            }
+            return {
+              key,
+              alpha,
+              ec,
+              slope,
+              lag: Math.max(1, Math.round(lag)),
+              decay,
+              label: `a=${alpha.toFixed(3)}, ec=${ec.toFixed(3)}, s=${slope.toFixed(3)}, lag=${Math.max(1, Math.round(lag))}, ${decay}`,
+              nRuns: Number(row && row.n_runs) || 0,
+            };
+          })
+          .filter(Boolean);
+        return profiles;
+      };
+
+      const buildStructuralProfilesFromScenarios = () => {
         const map = new Map();
 
         scenarioItems.forEach((item) => {
@@ -899,7 +992,10 @@
 
       let structuralProfiles = [];
       try {
-        structuralProfiles = buildStructuralProfiles();
+        structuralProfiles = buildStructuralProfilesFromPayload();
+        if (!Array.isArray(structuralProfiles) || !structuralProfiles.length) {
+          structuralProfiles = buildStructuralProfilesFromScenarios();
+        }
       } catch (_) {
         structuralProfiles = [];
       }
@@ -917,13 +1013,19 @@
           },
         ];
       }
+      const selectedStructuralProfileKey = String(structuralPayload.selected_profile_id || "").trim();
+      const initialStructuralProfile = (
+        selectedStructuralProfileKey
+          ? (structuralProfiles.find((p) => p.key === selectedStructuralProfileKey) || structuralProfiles[0])
+          : structuralProfiles[0]
+      );
       const structState = {
-        profileKey: structuralProfiles[0].key,
-        alpha: structuralProfiles[0].alpha,
-        ec: structuralProfiles[0].ec,
-        slope: structuralProfiles[0].slope,
-        lag: structuralProfiles[0].lag,
-        decay: structuralProfiles[0].decay,
+        profileKey: initialStructuralProfile.key,
+        alpha: initialStructuralProfile.alpha,
+        ec: initialStructuralProfile.ec,
+        slope: initialStructuralProfile.slope,
+        lag: initialStructuralProfile.lag,
+        decay: initialStructuralProfile.decay,
       };
 
       const getFilteredRows = (opts) => {
@@ -1328,6 +1430,199 @@
         decisionGuidanceLayer.style.setProperty("--decision-left-rows", String(Math.max(1, visibleCount)));
       };
 
+      const scoreGuideLibrary = {
+        overall: {
+          label: "Overall Model Robustness",
+          meaning: "Single summary of overall model reliability for decision support.",
+          high: "Model behavior is comparatively stable, so planning recommendations are more dependable.",
+          low: "Model behavior is fragile enough that recommendations should be treated as scenario guidance, not hard prescriptions.",
+          whatToDo: "Use larger reallocations only when score, QC, and tornado diagnostics agree; otherwise keep guardrails and iterate.",
+        },
+        prior: {
+          label: "Prior Sensitivity",
+          meaning: "How much ROI or contribution estimates move when prior assumptions change.",
+          high: "Estimates move relatively little under prior perturbation, so the channel is stable to prior choice.",
+          low: "Small prior changes cause large output movement, so the channel is assumption-dependent.",
+          whatToDo: "If low, use caution in budget decisions, run finer prior grids, and stress test recommendations before acting.",
+        },
+        data: {
+          label: "Data Influence",
+          meaning: "How much the posterior appears to be driven by observed data rather than by the prior.",
+          high: "Posterior behavior is learning more from data than from prior assumptions.",
+          low: "Posterior behavior tracks the prior too closely, which signals weaker data learning.",
+          whatToDo: "If low, treat channel conclusions as provisional, consider more data or cleaner features, and avoid overconfident optimization.",
+        },
+        cross: {
+          label: "Cross-Channel",
+          meaning: "How isolated channel estimates remain when one channel prior is perturbed.",
+          high: "Channel estimates stay relatively separated, so attribution is cleaner.",
+          low: "Perturbing one channel shifts others noticeably, which signals structural coupling or identifiability risk.",
+          whatToDo: "If low, interpret channel rankings cautiously, emphasize portfolio-level decisions, and review the model structure/specification.",
+        },
+        adstock: {
+          label: "Adstock Proxy",
+          meaning: "Secondary stability diagnostic based on sign consistency and dispersion proxies.",
+          high: "Directional behavior is more stable, with fewer sign flips and less noisy posterior movement.",
+          low: "Directional behavior is unstable or noisy, which weakens practical reliability.",
+          whatToDo: "If low, keep recommendations conservative and consider extra temporal or adstock-focused diagnostics before major spend shifts.",
+        },
+        target_subset: {
+          label: "Target Subset",
+          meaning: "Robustness summary restricted to the requested target channels instead of the full modeled portfolio.",
+          high: "The requested target set is comparatively dependable within the explored scenario set.",
+          low: "The requested target set remains fragile even if the broader model looks more stable.",
+          whatToDo: "Use it as a target-specific cross-check before acting on a narrow set of channels.",
+        },
+      };
+
+      const parseBandFromScoreText = (txt) => {
+        const raw = String(txt || "");
+        const m = raw.match(/\((High|Medium|Low|Unknown)\)/i);
+        return m ? String(m[1] || "").toUpperCase() : "";
+      };
+
+      const scoreRuleLines = (selectedId) => {
+        const weights = (scoreMeta && typeof scoreMeta.subscore_weights === "object" && scoreMeta.subscore_weights)
+          ? scoreMeta.subscore_weights
+          : {};
+        const lines = [];
+        const weighting = String(scoreMeta.overall_weighting || "").trim();
+        if (selectedId === "overall") {
+          const parts = [
+            Number.isFinite(Number(weights.prior)) ? `${fmtNum(100 * Number(weights.prior), 1)}% prior sensitivity` : null,
+            Number.isFinite(Number(weights.data)) ? `${fmtNum(100 * Number(weights.data), 1)}% data influence` : null,
+            Number.isFinite(Number(weights.cross)) ? `${fmtNum(100 * Number(weights.cross), 1)}% cross-channel` : null,
+            Number.isFinite(Number(weights.adstock)) ? `${fmtNum(100 * Number(weights.adstock), 1)}% adstock proxy` : null,
+          ].filter(Boolean);
+          if (parts.length) lines.push(`Weighted composite: ${parts.join(", ")}.`);
+          if (weighting) lines.push(`Overall model score uses ${weighting} weighting across channels.`);
+        } else {
+          lines.push("Higher is better; lower values indicate more fragility for this specific failure mode.");
+        }
+        const lowCut = Number(scoreMeta.band_low_cutoff_q33);
+        const highCut = Number(scoreMeta.band_high_cutoff_q67);
+        if (Number.isFinite(lowCut) && Number.isFinite(highCut)) {
+          lines.push(`Band labels use empirical run-set cutoffs: Low < ${fmtNum(lowCut, 3)}, High >= ${fmtNum(highCut, 3)}.`);
+        } else {
+          lines.push("Band labels are relative within the current run set: High is strongest, Medium is usable with uncertainty, Low needs caution.");
+        }
+        if (selectedId === "adstock" && String(scoreMeta.adstock_note || "").trim()) {
+          lines.push(`Adstock note: ${String(scoreMeta.adstock_note).trim()}.`);
+        }
+        const triggers = Array.isArray(decision.triggered_rules) ? decision.triggered_rules : [];
+        triggers.slice(0, 2).forEach((line) => {
+          const clean = String(line || "").trim();
+          if (clean) lines.push(`Policy trigger: ${clean}`);
+        });
+        return lines;
+      };
+
+      const buildScoreWhyLines = (selectedId, currentLabel, currentValueText) => {
+        const guide = scoreGuideLibrary[selectedId] || scoreGuideLibrary.overall;
+        const lines = [
+          `${guide.label}: ${guide.meaning}`,
+          `High: ${guide.high}`,
+          `Low: ${guide.low}`,
+          `What to do: ${guide.whatToDo}`,
+        ];
+        const currentBits = [];
+        if (currentLabel) currentBits.push(currentLabel);
+        if (currentValueText) currentBits.push(currentValueText);
+        if (currentBits.length) lines.push(`Current read: ${currentBits.join(" | ")}.`);
+        const tierReasons = buildWhyThisTierHighlights();
+        tierReasons.slice(0, 2).forEach((line) => {
+          const clean = String(line || "").trim();
+          if (clean) lines.push(`Tier evidence: ${clean}`);
+        });
+        return lines;
+      };
+
+      const renderDecisionExplainer = (selectedId, currentLabel, currentValueText) => {
+        if (!decisionExplainerPanel || !decisionExplainerBody) return;
+        const guide = scoreGuideLibrary[selectedId] || scoreGuideLibrary.overall;
+        const tierEvidence = buildWhyThisTierHighlights().filter((x) => String(x || "").trim());
+        const weighting = String(scoreMeta.overall_weighting || "").trim();
+        const blocks = [
+          {
+            h: "Meaning",
+            t: `${guide.meaning}${currentLabel || currentValueText ? ` Current read: ${[currentLabel, currentValueText].filter(Boolean).join(" | ")}.` : ""}`,
+          },
+          {
+            h: "Why It Looks This Way",
+            t: tierEvidence.length
+              ? tierEvidence.slice(0, 2).join(" ")
+              : (selectedId === "overall" && weighting
+                ? `Overall model score is aggregated with ${weighting} weighting across channels.`
+                : "This score is relative to the current run set and the explored perturbations."),
+          },
+          {
+            h: "What To Do",
+            t: guide.whatToDo,
+          },
+        ];
+        decisionExplainerBody.innerHTML = blocks.map((block) => `
+          <div class="decision-explainer-block">
+            <b>${block.h}</b>
+            <span>${block.t}</span>
+          </div>
+        `).join("");
+        decisionExplainerPanel.style.display = "";
+      };
+
+      const setScoreGuidePopoverOpen = (open) => {
+        if (!decisionScoreGuideBtn || !decisionScoreGuidePopover) return;
+        decisionScoreGuideBtn.setAttribute("aria-expanded", open ? "true" : "false");
+        decisionScoreGuidePopover.hidden = !open;
+      };
+
+      const renderScoreGuidePopover = (selectedId, currentLabel, currentValueText) => {
+        if (!decisionScoreGuideTitle || !decisionScoreGuideValue || !decisionScoreGuideBody) return;
+        const guide = scoreGuideLibrary[selectedId] || scoreGuideLibrary.overall;
+        const weights = (scoreMeta && typeof scoreMeta.subscore_weights === "object" && scoreMeta.subscore_weights)
+          ? scoreMeta.subscore_weights
+          : {};
+        decisionScoreGuideTitle.textContent = guide.label;
+        const valueBits = [];
+        if (currentValueText) valueBits.push(currentValueText);
+        const band = selectedId === "overall" ? parseBandFromScoreText(String(decision.score_value || "")) : "";
+        if (band) valueBits.push(`Band ${band}`);
+        decisionScoreGuideValue.textContent = valueBits.join(" | ");
+        const blocks = [
+          { h: "Meaning", t: guide.meaning },
+          { h: "High", t: guide.high },
+          { h: "Low", t: guide.low },
+          { h: "What To Do", t: guide.whatToDo },
+        ];
+        if (selectedId === "overall") {
+          const parts = [
+            Number.isFinite(Number(weights.prior)) ? `${fmtNum(100 * Number(weights.prior), 1)}% prior sensitivity` : null,
+            Number.isFinite(Number(weights.data)) ? `${fmtNum(100 * Number(weights.data), 1)}% data influence` : null,
+            Number.isFinite(Number(weights.cross)) ? `${fmtNum(100 * Number(weights.cross), 1)}% cross-channel` : null,
+            Number.isFinite(Number(weights.adstock)) ? `${fmtNum(100 * Number(weights.adstock), 1)}% adstock proxy` : null,
+          ].filter(Boolean);
+          if (parts.length) {
+            blocks.push({ h: "Construction", t: `Weighted composite using ${parts.join(", ")}.` });
+          }
+        }
+        if (selectedId === "adstock" && String(scoreMeta.adstock_note || "").trim()) {
+          blocks.push({ h: "Note", t: String(scoreMeta.adstock_note).trim() });
+        }
+        const lowCut = Number(scoreMeta.band_low_cutoff_q33);
+        const highCut = Number(scoreMeta.band_high_cutoff_q67);
+        const footer = (Number.isFinite(lowCut) && Number.isFinite(highCut))
+          ? `Band labels for this run set: Low < ${fmtNum(lowCut, 3)}, High >= ${fmtNum(highCut, 3)}.`
+          : "Band labels are relative within the current run set.";
+        decisionScoreGuideBody.innerHTML = [
+          ...blocks.map((block) => `
+            <div class="decision-score-guide-block">
+              <b>${block.h}</b>
+              <span>${block.t}</span>
+            </div>
+          `),
+          `<div class="decision-score-guide-footer">${footer}</div>`,
+        ].join("");
+      };
+
       const renderDecisionCard = () => {
         const tier = String(decision.tier || "NA").toUpperCase();
         const setNodeVisible = (node, visible) => {
@@ -1350,28 +1645,6 @@
         if (decisionHeadline) {
           decisionHeadline.textContent = String(decision.headline || "Decision summary unavailable.");
         }
-        renderCompactList(
-          decisionRulesPanel,
-          decisionTriggeredList,
-          Array.isArray(decision.triggered_rules) ? decision.triggered_rules : [],
-          "No triggered rules available.",
-          { hideIfEmpty: true },
-        );
-        renderCompactList(
-          decisionWhyPanel,
-          decisionReasonsList,
-          buildWhyThisTierHighlights(),
-          "No why-this-tier evidence available.",
-          { hideIfEmpty: true },
-        );
-        renderCompactList(
-          decisionActionsPanel,
-          decisionActionsList,
-          Array.isArray(decision.actions) ? decision.actions : [],
-          "No action lines available.",
-          { hideIfEmpty: false },
-        );
-
         if (decisionScoreLabel) {
           decisionScoreLabel.textContent = String(decision.score_label || "Robustness Score");
         }
@@ -1385,33 +1658,51 @@
         }
         if (decisionSubscoreSelect && decisionSubscoreNote) {
           const subs = Array.isArray(decision.score_subscores) ? decision.score_subscores : [];
-          const options = ['<option value="">Overall Robustness</option>'];
+          const options = ['<option value="overall">Overall Model Robustness</option>'];
           subs.forEach((item, idx) => {
             const label = String(item.label || `Subscore ${idx + 1}`);
-            options.push(`<option value="${idx}">${label}</option>`);
+            const id = String(item.id || `subscore_${idx + 1}`);
+            options.push(`<option value="${id}">${label}</option>`);
           });
           decisionSubscoreSelect.innerHTML = options.join("");
-          decisionSubscoreSelect.value = "";
-          decisionSubscoreNote.textContent = subs.length
-            ? "Pick a subscore."
-            : "No subscores available.";
+          decisionSubscoreSelect.value = "overall";
           if (decisionSubscorePanel) {
-            decisionSubscorePanel.style.display = subs.length ? "" : "none";
+            decisionSubscorePanel.style.display = (subs.length || String(decision.score_value || "").trim()) ? "" : "none";
           }
+          const renderSelectedScoreGuide = () => {
+            const selectedId = String(decisionSubscoreSelect.value || "overall");
+            const row = selectedId === "overall"
+              ? null
+              : (subs.find((item) => String(item.id || "") === selectedId) || null);
+            const label = row ? String(row.label || "Subscore") : String(decision.score_label || "Overall Model Robustness");
+            const value = row ? Number(row.value) : NaN;
+            const currentValueText = row
+              ? (Number.isFinite(value) ? `${fmtNum(value, 3)} / 100` : "NA")
+              : String(decision.score_value || "NA");
+            const band = row ? "" : parseBandFromScoreText(String(decision.score_value || ""));
+            decisionSubscoreNote.textContent = row
+              ? `${label}: ${currentValueText}`
+              : `${label}: ${currentValueText}${band ? ` | Band ${band}` : ""}`;
+            renderScoreGuidePopover(selectedId, label, currentValueText);
+            renderDecisionExplainer(selectedId, label, currentValueText);
+            renderCompactList(
+              decisionRulesPanel,
+              decisionTriggeredList,
+              scoreRuleLines(selectedId),
+              "No score rules available.",
+              { hideIfEmpty: false },
+            );
+            renderCompactList(
+              decisionWhyPanel,
+              decisionReasonsList,
+              buildScoreWhyLines(selectedId, label, currentValueText),
+              "No score explanation available.",
+              { hideIfEmpty: false },
+            );
+          };
+          renderSelectedScoreGuide();
           decisionSubscoreSelect.onchange = () => {
-            const idx = Number(decisionSubscoreSelect.value);
-            if (!Number.isFinite(idx) || idx < 0 || idx >= subs.length) {
-              decisionSubscoreNote.textContent = subs.length
-                ? "Pick a subscore."
-                : "No subscores available.";
-              return;
-            }
-            const row = subs[idx] || {};
-            const label = String(row.label || "Subscore");
-            const value = Number(row.value);
-            decisionSubscoreNote.textContent = Number.isFinite(value)
-              ? `${label}: ${fmtNum(value, 3)} / 100`
-              : `${label}: NA`;
+            renderSelectedScoreGuide();
           };
         }
 
@@ -1857,64 +2148,90 @@
         if (a >= 1) return `${sign}${fmtNum(v, 3)}%`;
         return `${sign}${fmtNum(v, 3)}%`;
       };
+      const tornadoTooltipHtml = (title, lines) => {
+        const cleanTitle = escapeHtml(String(title || "").toUpperCase());
+        const cleanLines = Array.isArray(lines) ? lines.filter(Boolean) : [];
+        return `
+          <div class="tornado-tooltip">
+            <div class="tornado-tooltip__title">${cleanTitle}</div>
+            ${cleanLines.map((line) => `<div class="tornado-tooltip__line">${escapeHtml(String(line))}</div>`).join("")}
+          </div>
+        `;
+      };
 
       const renderTornadoBar = (chart, rowsRaw, opts) => {
         if (!chart) return null;
-        const leftKey = opts.leftKey;
-        const rightKey = opts.rightKey;
-        const valueFormatter = opts.valueFormatter;
-        const axisFormatter = opts.axisFormatter;
-        const intervalFormatter = opts.intervalFormatter || valueFormatter;
-        const barColor = opts.barColor || opts.upsideColor || "#4f8fb9";
-        const topLimit = Number.isFinite(opts.topN) ? opts.topN : 10;
-        const selectedChannel = state.selectedChannel;
+        try {
+          const leftKey = opts.leftKey;
+          const rightKey = opts.rightKey;
+          const valueFormatter = opts.valueFormatter;
+          const axisFormatter = opts.axisFormatter;
+          const intervalFormatter = opts.intervalFormatter || valueFormatter;
+          const barColor = opts.barColor || opts.upsideColor || "#4f8fb9";
+          const topLimit = Number.isFinite(opts.topN) ? opts.topN : 10;
+          const selectedChannel = state.selectedChannel;
 
-        const rows = rowsRaw
-          .map((r) => ({
-            channel: String(r.channel || ""),
-            left: Number(r[leftKey]),
-            right: Number(r[rightKey]),
-          }))
-          .filter((r) => r.channel && Number.isFinite(r.left) && Number.isFinite(r.right))
-          .sort((a, b) => Math.max(Math.abs(b.left), Math.abs(b.right)) - Math.max(Math.abs(a.left), Math.abs(a.right)))
-          .slice(0, topLimit)
-          .sort((a, b) => Math.max(Math.abs(a.left), Math.abs(a.right)) - Math.max(Math.abs(b.left), Math.abs(b.right)));
+          const rows = rowsRaw
+            .map((r) => ({
+              channel: String(r.channel || ""),
+              left: Number(r[leftKey]),
+              right: Number(r[rightKey]),
+            }))
+            .filter((r) => r.channel && Number.isFinite(r.left) && Number.isFinite(r.right))
+            .sort((a, b) => Math.max(Math.abs(b.left), Math.abs(b.right)) - Math.max(Math.abs(a.left), Math.abs(a.right)))
+            .slice(0, topLimit)
+            .sort((a, b) => Math.max(Math.abs(a.left), Math.abs(a.right)) - Math.max(Math.abs(b.left), Math.abs(b.right)));
 
-        if (!rows.length) {
-          chart.clear();
-          return null;
-        }
+          if (!rows.length) {
+            chart.clear();
+            return null;
+          }
 
-        const labels = rows.map((r) => channelUpper(r.channel));
-        const opacityForIndex = (i) => {
-          const row = rows[i] || {};
-          if (!selectedChannel) return 1;
-          return channelUpper(row.channel) === selectedChannel ? 1 : 0.3;
-        };
-        const xMinRaw = Math.min(...rows.map((r) => Math.min(r.left, r.right)), 0);
-        const xMaxRaw = Math.max(...rows.map((r) => Math.max(r.left, r.right)), 0);
-        const centeredAxis = symmetricInterval(xMinRaw, xMaxRaw, 0.04);
-        const axisMin = centeredAxis.min;
-        const axisMax = centeredAxis.max;
-        const intervalLabel = (row) => `[${intervalFormatter(row.left)}, ${intervalFormatter(row.right)}]`;
+          const labels = rows.map((r) => channelUpper(r.channel));
+          const opacityForIndex = (i) => {
+            const row = rows[i] || {};
+            if (!selectedChannel) return 1;
+            return channelUpper(row.channel) === selectedChannel ? 1 : 0.3;
+          };
+          const xMinRaw = Math.min(...rows.map((r) => Math.min(r.left, r.right)), 0);
+          const xMaxRaw = Math.max(...rows.map((r) => Math.max(r.left, r.right)), 0);
+          const maxChannelPx = labels.reduce((acc, text) => Math.max(acc, estimateTextPx(text, 11, 400)), 0);
+          const axisRange = dataInterval(xMinRaw, xMaxRaw, 0.05);
+          const axisMin = axisRange.min;
+          const axisMax = axisRange.max;
+          const labelFontSize = 9;
+          const intervalLabel = (row) => `[${intervalFormatter(row.left)}, ${intervalFormatter(row.right)}]`;
+          const gridLeft = clampNum(Math.ceil(maxChannelPx + 26), 96, 170);
+          const gridRight = 34;
+          const labelDistance = 6;
+          const labelBoundaryPadding = 10;
 
-        chart.setOption({
+          chart.setOption({
           animationDuration: 420,
           tooltip: {
             trigger: "item",
+            backgroundColor: "rgba(255,255,255,0.98)",
+            borderColor: "#6f93e9",
+            borderWidth: 1.5,
+            padding: 0,
+            extraCssText: "border-radius:14px; box-shadow:0 12px 28px rgba(27,54,99,0.18);",
+            textStyle: { color: "#355a84" },
             formatter: (p) => {
               const i = p && p.dataIndex != null ? p.dataIndex : -1;
               const row = rows[i];
               if (!row) return "";
-              return [
-                `<b>${channelUpper(row.channel)}</b>`,
+              return tornadoTooltipHtml(channelUpper(row.channel), [
                 `downside: ${valueFormatter(row.left)}`,
                 `upside: ${valueFormatter(row.right)}`,
                 `range: ${valueFormatter(row.right - row.left)}`,
-              ].join("<br>");
+              ]);
             },
           },
-          grid: makeGrid("tornado", { left: 14, right: 20, top: 24, bottom: 34 }),
+          grid: makeGrid(
+            "tornado",
+            { left: gridLeft, right: gridRight, top: 24, bottom: 34 },
+            { forceRight: gridRight, minRight: gridRight, mirrorRatio: 0 },
+          ),
           xAxis: {
             type: "value",
             min: axisMin,
@@ -1975,43 +2292,122 @@
               },
             },
             {
-              type: "scatter",
-              data: rows.map((r, i) => [r.right, i, r.left, r.right]),
-              symbolSize: 6,
+              type: "custom",
+              name: "interval-label",
+              data: rows.map((r, i) => [i, r.left, r.right]),
               silent: true,
-              clip: false,
               tooltip: { show: false },
-              itemStyle: { color: "rgba(0,0,0,0)" },
-              labelLayout: { hideOverlap: true },
-              label: {
-                show: true,
-                position: "right",
-                distance: 6,
-                color: "#355a84",
-                fontSize: 9,
-                formatter: (p) => {
-                  const i = p && p.dataIndex != null ? p.dataIndex : -1;
-                  const row = rows[i];
-                  return row ? intervalLabel(row) : "";
-                },
+              clip: false,
+              renderItem: (params, api) => {
+                const idx = api.value(0);
+                const row = rows[idx];
+                if (!row) return null;
+                const rightPt = api.coord([api.value(2), idx]);
+                const labelText = intervalLabel(row);
+                if (!labelText) return null;
+                const labelWidth = estimateTextPx(labelText, labelFontSize, 400);
+                const labelX = rightPt[0] + labelDistance;
+                const plotRight = params.coordSys.x + params.coordSys.width - labelBoundaryPadding;
+                if ((labelX + labelWidth) > plotRight) return null;
+                return {
+                  type: "text",
+                  silent: true,
+                  style: {
+                    x: labelX,
+                    y: rightPt[1],
+                    text: labelText,
+                    fill: "#355a84",
+                    font: `${labelFontSize}px Arial, sans-serif`,
+                    textAlign: "left",
+                    textVerticalAlign: "middle",
+                    opacity: opacityForIndex(idx),
+                  },
+                };
               },
               z: 4,
             },
           ],
-        }, true);
+          }, true);
 
-        chart.off("click");
-        chart.on("click", (params) => {
-          const i = params && params.dataIndex != null ? params.dataIndex : -1;
-          const row = rows[i];
-          if (!row) return;
-          setSelectedChannel(row.channel);
-        });
-        return {
-          axisMin: axisMin,
-          axisMax: axisMax,
-          count: rows.length,
-        };
+          chart.off("click");
+          chart.on("click", (params) => {
+            const i = params && params.dataIndex != null ? params.dataIndex : -1;
+            const row = rows[i];
+            if (!row) return;
+            setSelectedChannel(row.channel);
+          });
+          return {
+            axisMin: axisMin,
+            axisMax: axisMax,
+            count: rows.length,
+          };
+        } catch (_) {
+          const leftKey = opts.leftKey;
+          const rightKey = opts.rightKey;
+          const valueFormatter = opts.valueFormatter;
+          const axisFormatter = opts.axisFormatter;
+          const barColor = opts.barColor || "#4f8fb9";
+          const rows = rowsRaw
+            .map((r) => ({
+              channel: String(r.channel || ""),
+              left: Number(r[leftKey]),
+              right: Number(r[rightKey]),
+            }))
+            .filter((r) => r.channel && Number.isFinite(r.left) && Number.isFinite(r.right))
+            .slice(0, Number.isFinite(opts.topN) ? opts.topN : 10);
+          if (!rows.length) {
+            chart.clear();
+            return null;
+          }
+          const xMinRaw = Math.min(...rows.map((r) => Math.min(r.left, r.right)), 0);
+          const xMaxRaw = Math.max(...rows.map((r) => Math.max(r.left, r.right)), 0);
+          const axisRange = dataInterval(xMinRaw, xMaxRaw, 0.05);
+          chart.setOption({
+            animationDuration: 320,
+            tooltip: {
+              trigger: "item",
+              axisPointer: { type: "shadow" },
+              backgroundColor: "rgba(255,255,255,0.98)",
+              borderColor: "#6f93e9",
+              borderWidth: 1.5,
+              padding: 0,
+              extraCssText: "border-radius:14px; box-shadow:0 12px 28px rgba(27,54,99,0.18);",
+              textStyle: { color: "#355a84" },
+              formatter: (p) => {
+                const row = rows[p.dataIndex];
+                if (!row) return "";
+                return tornadoTooltipHtml(channelUpper(row.channel), [
+                  `downside: ${valueFormatter(row.left)}`,
+                  `upside: ${valueFormatter(row.right)}`,
+                  `range: ${valueFormatter(row.right - row.left)}`,
+                ]);
+              },
+            },
+            grid: makeGrid(
+              "tornado",
+              { left: 110, right: 22, top: 24, bottom: 34 },
+              { forceRight: 22, minRight: 22, mirrorRatio: 0 },
+            ),
+            xAxis: {
+              type: "value",
+              min: axisRange.min,
+              max: axisRange.max,
+              axisLabel: { formatter: axisFormatter, hideOverlap: true },
+              splitLine: { lineStyle: { color: "rgba(31,70,127,0.12)", type: "dashed" } },
+            },
+            yAxis: {
+              type: "category",
+              data: rows.map((r) => channelUpper(r.channel)),
+              axisLabel: { color: "#365983", margin: 6 },
+            },
+            series: [{
+              type: "bar",
+              data: rows.map((r) => Number(r.right) - Number(r.left)),
+              itemStyle: { color: barColor },
+            }],
+          }, true);
+          return { axisMin: axisRange.min, axisMax: axisRange.max, count: rows.length };
+        }
       };
 
       const renderTornadoCharts = () => {
@@ -2040,7 +2436,7 @@
         const roiNote = byId("tornado-roi-note");
         if (roiNote) {
           roiNote.textContent = (roiTornadoRows.length && roiRender)
-            ? `Axis interval: [${fmtPctAxisCompact(roiRender.axisMin)}, ${fmtPctAxisCompact(roiRender.axisMax)}] (centered at 0).`
+            ? `Axis interval: [${fmtPctAxisCompact(roiRender.axisMin)}, ${fmtPctAxisCompact(roiRender.axisMax)}]. Hover a bar to inspect the downside-to-upside interval.`
             : "ROI tornado data unavailable.";
         }
 
@@ -2059,7 +2455,7 @@
             dollarNote.textContent = "Dollar tornado data unavailable.";
           } else {
             const intervalPart = dollarRender
-              ? `Axis interval: [${fmtMoneyAxisCompact(dollarRender.axisMin)}, ${fmtMoneyAxisCompact(dollarRender.axisMax)}] (centered at 0).`
+              ? `Axis interval: [${fmtMoneyAxisCompact(dollarRender.axisMin)}, ${fmtMoneyAxisCompact(dollarRender.axisMax)}]. Hover a bar to inspect the downside-to-upside interval.`
               : "";
             dollarNote.textContent = intervalPart;
           }
@@ -2147,6 +2543,29 @@
           if (!base) return;
           setStructuralProfile(base, true);
           try { renderStructuralLab(); } catch (_) {}
+        });
+      }
+
+      if (decisionScoreGuideBtn && decisionScoreGuidePopover) {
+        decisionScoreGuideBtn.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const nextOpen = decisionScoreGuidePopover.hidden;
+          setScoreGuidePopoverOpen(nextOpen);
+        });
+        document.addEventListener("click", (event) => {
+          if (decisionScoreGuidePopover.hidden) return;
+          const target = event.target;
+          if (!(target instanceof Node)) return;
+          const insidePopover = decisionScoreGuidePopover.contains(target);
+          const insideButton = decisionScoreGuideBtn.contains(target);
+          if (!insidePopover && !insideButton) {
+            setScoreGuidePopoverOpen(false);
+          }
+        });
+        document.addEventListener("keydown", (event) => {
+          if (event.key === "Escape") {
+            setScoreGuidePopoverOpen(false);
+          }
         });
       }
 
@@ -2307,7 +2726,154 @@
       const meridianChartSpecs = meridianOfficial.chart_specs || {};
       const meridianRunChartSpecs = meridianOfficial.run_chart_specs || {};
       const diagnostics = payload.diagnostics_overview || {};
-      const mountMeridianSpec = (containerId, spec, emptyText) => {
+      let textMeasureCanvas = null;
+      const getTextMeasureContext = () => {
+        if (!textMeasureCanvas) textMeasureCanvas = document.createElement("canvas");
+        return textMeasureCanvas.getContext("2d");
+      };
+      const estimateTextPx = (value, fontSize = 12, fontWeight = 400, fontFamily = "Arial, sans-serif") => {
+        const text = String(value ?? "");
+        if (!text) return 0;
+        const ctx = getTextMeasureContext();
+        if (!ctx) return text.length * fontSize * 0.62;
+        ctx.font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        const measured = ctx.measureText(text).width;
+        return Number.isFinite(measured) ? measured : text.length * fontSize * 0.62;
+      };
+      const clampNum = (value, lo, hi) => Math.max(lo, Math.min(hi, value));
+      const mergePadding = (specObj, patch) => {
+        if (!specObj || typeof specObj !== "object" || !patch || typeof patch !== "object") return;
+        const current = (specObj.padding && typeof specObj.padding === "object")
+          ? { ...specObj.padding }
+          : { top: 8, right: 8, bottom: 8, left: 8 };
+        Object.entries(patch).forEach(([k, v]) => {
+          if (Number.isFinite(Number(v))) current[k] = Math.max(Number(current[k] || 0), Number(v));
+        });
+        specObj.padding = current;
+      };
+      const setLayerXDomainMax = (specObj, domainMax) => {
+        if (!specObj || !Array.isArray(specObj.layer) || !Number.isFinite(domainMax)) return;
+        specObj.layer.forEach((layer) => {
+          if (!layer || typeof layer !== "object" || !layer.encoding || !layer.encoding.x) return;
+          const encX = layer.encoding.x;
+          encX.scale = encX.scale && typeof encX.scale === "object" ? { ...encX.scale } : {};
+          if (!Number.isFinite(Number(encX.scale.domainMax)) || Number(encX.scale.domainMax) < domainMax) {
+            encX.scale.domainMax = domainMax;
+          }
+        });
+      };
+      const detectSvgTextOverflow = (hostNode) => {
+        const svg = hostNode ? hostNode.querySelector("svg") : null;
+        if (!svg) return null;
+        const svgRect = svg.getBoundingClientRect();
+        if (!svgRect || !svgRect.width || !svgRect.height) return null;
+        const textNodes = Array.from(svg.querySelectorAll("text"));
+        if (!textNodes.length) return null;
+        let maxRight = svgRect.right;
+        let minLeft = svgRect.left;
+        let maxBottom = svgRect.bottom;
+        let minTop = svgRect.top;
+        textNodes.forEach((node) => {
+          const rect = node.getBoundingClientRect();
+          if (!rect || !rect.width) return;
+          maxRight = Math.max(maxRight, rect.right);
+          minLeft = Math.min(minLeft, rect.left);
+          maxBottom = Math.max(maxBottom, rect.bottom);
+          minTop = Math.min(minTop, rect.top);
+        });
+        return {
+          left: Math.max(0, svgRect.left - minLeft),
+          right: Math.max(0, maxRight - svgRect.right),
+          top: Math.max(0, svgRect.top - minTop),
+          bottom: Math.max(0, maxBottom - svgRect.bottom),
+        };
+      };
+      const adaptMeridianSpecForContainer = (spec, chartKey, containerNode, overflowInfo = null) => {
+        const cloned = cloneObj(spec);
+        if (!cloned || typeof cloned !== "object") return null;
+        const hostWidth = Math.max(320, Number(containerNode && containerNode.clientWidth) || 0);
+        const innerWidth = Math.max(320, hostWidth - 24);
+        if (chartKey !== "spend_vs_contribution" && Number.isFinite(innerWidth) && Number.isFinite(Number(cloned.width))) {
+          cloned.width = Math.max(Number(cloned.width), innerWidth);
+        }
+        if (cloned.title && typeof cloned.title === "object" && innerWidth < 760) {
+          cloned.title = {
+            ...cloned.title,
+            fontSize: Math.max(15, Number(cloned.title.fontSize || 18) - 2),
+          };
+        }
+
+        if (chartKey === "contribution_waterfall") {
+          const rows = firstDatasetRows(cloned);
+          const maxOutcomeTextPx = rows.reduce((acc, row) => Math.max(acc, estimateTextPx(row && row.outcome_text, 14, 400)), 0);
+          const overflowRight = Number(overflowInfo && overflowInfo.right || 0);
+          const scaledInnerWidth = Math.max(420, Math.floor(innerWidth * 0.88));
+          const extraWidth = clampNum(Math.ceil(maxOutcomeTextPx * 0.35 + overflowRight * 1.05), 48, 120);
+          if (Number.isFinite(Number(cloned.width))) {
+            cloned.width = Math.max(Math.min(Number(cloned.width), scaledInnerWidth), scaledInnerWidth - 10) + extraWidth;
+          }
+          const rightPad = clampNum(Math.ceil(maxOutcomeTextPx + 40 + overflowRight), 118, 220);
+          const domainPad = clampNum(rightPad / Math.max(240, scaledInnerWidth) * 1.1, 0.12, 0.34);
+          mergePadding(cloned, { right: rightPad, left: 22, top: 18, bottom: 18 });
+          setLayerXDomainMax(cloned, 1 + domainPad);
+          if (cloned.title && typeof cloned.title === "object") {
+            cloned.title = { ...cloned.title, fontSize: 16 };
+          }
+          if (Array.isArray(cloned.layer) && cloned.layer[1] && cloned.layer[1].mark && typeof cloned.layer[1].mark === "object" && maxOutcomeTextPx > 110) {
+            cloned.layer[1].mark = {
+              ...cloned.layer[1].mark,
+              fontSize: maxOutcomeTextPx > 150 ? 11 : 12,
+            };
+          }
+        } else if (chartKey === "contribution_over_time") {
+          const legendCount = firstDatasetRows(cloned).reduce((acc, row) => acc.add(String(row && row.channel || "")), new Set()).size;
+          const overflowRight = Number(overflowInfo && overflowInfo.right || 0);
+          const overflowBottom = Number(overflowInfo && overflowInfo.bottom || 0);
+          const scaledInnerWidth = Math.max(480, Math.floor(innerWidth * 0.88));
+          if (Number.isFinite(Number(cloned.width))) {
+            cloned.width = Math.max(Math.min(Number(cloned.width), scaledInnerWidth), scaledInnerWidth);
+          }
+          mergePadding(cloned, {
+            left: 24,
+            right: clampNum(30 + overflowRight, 30, 90),
+            bottom: legendCount > 6 ? clampNum(82 + overflowBottom, 82, 140) : clampNum(48 + overflowBottom, 48, 96),
+            top: 18,
+          });
+          if (cloned.title && typeof cloned.title === "object") {
+            cloned.title = { ...cloned.title, fontSize: 16 };
+          }
+          if (cloned.encoding && cloned.encoding.x && cloned.encoding.x.axis) {
+            cloned.encoding.x.axis = {
+              ...cloned.encoding.x.axis,
+              labelFlush: false,
+              labelBound: true,
+              labelLimit: 96,
+              labelFontSize: 11,
+            };
+          }
+          if (cloned.encoding && cloned.encoding.y && cloned.encoding.y.axis) {
+            cloned.encoding.y.axis = {
+              ...cloned.encoding.y.axis,
+              labelFontSize: 11,
+              titleFontSize: 11,
+            };
+          }
+          if (legendCount > 6 && cloned.encoding && cloned.encoding.color && cloned.encoding.color.legend) {
+            cloned.encoding.color.legend = {
+              ...cloned.encoding.color.legend,
+              columns: Math.max(3, Math.ceil(legendCount / 2)),
+              symbolLimit: legendCount,
+              labelFontSize: 10,
+            };
+          }
+        } else if (chartKey === "roi_vs_mroi" || chartKey === "roi_vs_effectiveness" || chartKey === "roi_by_channel") {
+          mergePadding(cloned, { left: 20, right: 20, top: 18, bottom: 24 });
+        } else {
+          mergePadding(cloned, { left: 16, right: 16, top: 16, bottom: 20 });
+        }
+        return cloned;
+      };
+      const mountMeridianSpec = (containerId, chartKey, spec, emptyText) => {
         const node = byId(containerId);
         if (!node) return null;
         if (node.offsetParent === null || node.clientWidth <= 0) {
@@ -2324,8 +2890,38 @@
         const hostId = `${containerId}-vega`;
         node.innerHTML = `<div id="${hostId}" class="meridian-vega-host"></div>`;
         const embedOpts = { mode: "vega-lite", actions: false, renderer: "svg" };
-        const specSafe = JSON.parse(JSON.stringify(spec));
-        return window.vegaEmbed(`#${hostId}`, specSafe, embedOpts).catch((err) => {
+        const renderAttempt = (overflowInfo = null, useFallbackOriginal = false, rerendered = false) => {
+          const specSafe = useFallbackOriginal
+            ? cloneObj(spec)
+            : (adaptMeridianSpecForContainer(spec, chartKey, node, overflowInfo) || cloneObj(spec));
+          if (!specSafe) {
+            node.innerHTML = `<div class="empty">${emptyText || "Not generated yet."}</div>`;
+            return Promise.resolve(null);
+          }
+          return window.vegaEmbed(`#${hostId}`, specSafe, embedOpts).then((result) => {
+            if (rerendered || (chartKey !== "contribution_waterfall" && chartKey !== "contribution_over_time")) {
+              return result;
+            }
+            const hostNode = byId(hostId);
+            if (!hostNode) return result;
+            return new Promise((resolve) => {
+              window.requestAnimationFrame(() => {
+                const overflow = detectSvgTextOverflow(hostNode);
+                const needsRetry = overflow && (overflow.right > 3 || overflow.bottom > 3);
+                if (!needsRetry) {
+                  resolve(result);
+                  return;
+                }
+                node.innerHTML = `<div id="${hostId}" class="meridian-vega-host"></div>`;
+                renderAttempt(overflow, false, true).then(resolve).catch(() => resolve(result));
+              });
+            });
+          });
+        };
+        return renderAttempt().catch(() => {
+          node.innerHTML = `<div id="${hostId}" class="meridian-vega-host"></div>`;
+          return renderAttempt(null, true);
+        }).catch((err) => {
           const msg = err && err.message ? err.message : String(err || "unknown error");
           node.innerHTML = `<div class="empty">Failed to render chart: ${escapeHtml(msg)}</div>`;
           return null;
@@ -2954,12 +3550,12 @@
           return meridianChartSpecs[key];
         };
 
-        mountMeridianSpec("wb2-meridian-chart-spend-contrib", pickSpec("spend_vs_contribution"), "Official spend-vs-contribution chart not found yet.");
-        mountMeridianSpec("wb2-meridian-chart-roi-channel", pickSpec("roi_by_channel"), "Official ROI-by-channel chart not found yet.");
-        mountMeridianSpec("wb2-meridian-chart-roi-mroi", pickSpec("roi_vs_mroi"), "Official ROI-vs-mROI chart not found yet.");
-        mountMeridianSpec("wb2-meridian-chart-roi-eff", pickSpec("roi_vs_effectiveness"), "Official ROI-vs-effectiveness chart not found yet.");
-        mountMeridianSpec("wb2-meridian-chart-waterfall", pickSpec("contribution_waterfall"), "Official contribution-waterfall chart not found yet.");
-        mountMeridianSpec("wb2-meridian-chart-contrib-time", pickSpec("contribution_over_time"), "Official contribution-over-time chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-spend-contrib", "spend_vs_contribution", pickSpec("spend_vs_contribution"), "Official spend-vs-contribution chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-channel", "roi_by_channel", pickSpec("roi_by_channel"), "Official ROI-by-channel chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-mroi", "roi_vs_mroi", pickSpec("roi_vs_mroi"), "Official ROI-vs-mROI chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-roi-eff", "roi_vs_effectiveness", pickSpec("roi_vs_effectiveness"), "Official ROI-vs-effectiveness chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-waterfall", "contribution_waterfall", pickSpec("contribution_waterfall"), "Official contribution-waterfall chart not found yet.");
+        mountMeridianSpec("wb2-meridian-chart-contrib-time", "contribution_over_time", pickSpec("contribution_over_time"), "Official contribution-over-time chart not found yet.");
         setMeridianHealthMeta(manifest.health_score_baseline, manifest.health_status_baseline);
         lastMeridianRunId = runId;
       }
@@ -3000,6 +3596,7 @@
         lag: readSliderInt("lag-slider", 4),
       });
       const channelRows = () => allPrimaryRows().filter((r) => r.channel === state.channel);
+      const structuralChannelRows = () => structuralResponseRows.filter((r) => channelUpper(r.channel) === channelUpper(state.channel));
       const baselineRow = (rowsSel) => rowsSel.find((r) => !!r.is_baseline) || rowsSel[0] || null;
       const rowDistance = (row, struct, muVals, sigmaVals) => {
         const muRange = Math.max(1e-9, (muVals[muVals.length - 1] || 1) - (muVals[0] || 0));
@@ -4023,7 +4620,7 @@
       };
 
       const structuralAxes = () => {
-        const chRows = channelRows();
+        const chRows = structuralChannelRows();
         return {
           alpha: uniqueSorted(chRows.map((r) => r.adstock_alpha_m)),
           ec: uniqueSorted(chRows.map((r) => r.saturation_ec_m)),
@@ -4037,7 +4634,14 @@
 
       const renderStructuralResponseChart = (muVals, sigmaVals) => {
         if (!structResponseChart) return;
-        const rowsSel = channelRows();
+        const rowsSel = structuralChannelRows();
+        if (!rowsSel.length) {
+          renderNoDataChart(
+            structResponseChart,
+            "No structural-stage rows found for the selected channel.",
+          );
+          return;
+        }
         const axes = structuralAxes();
         const struct = currentStruct();
 
@@ -4060,8 +4664,14 @@
           return;
         }
 
-        const sigmaFixed = Number.isFinite(state.sigma) ? state.sigma : (sigmaVals[0] || 0);
-        const muFixed = Number.isFinite(state.mu) ? state.mu : (muVals[0] || 0);
+        const structMuVals = uniqueSorted(rowsSel.map((r) => r.roi_prior_mu));
+        const structSigmaVals = uniqueSorted(rowsSel.map((r) => r.roi_prior_sigma));
+        const sigmaFixed = Number.isFinite(selectNearest(state.sigma, structSigmaVals))
+          ? selectNearest(state.sigma, structSigmaVals)
+          : (structSigmaVals[0] || sigmaVals[0] || 0);
+        const muFixed = Number.isFinite(selectNearest(state.mu, structMuVals))
+          ? selectNearest(state.mu, structMuVals)
+          : (structMuVals[0] || muVals[0] || 0);
 
         const otherTolerant = (row, ignoreKey) => {
           return paramSpec.every((p) => {
@@ -4114,7 +4724,7 @@
         if (!series.length) {
           renderNoDataChart(
             structResponseChart,
-            "No matching structural points for current mu/sigma selection.",
+            "No structural-stage matches for the selected channel and baseline prior.",
           );
           return;
         }

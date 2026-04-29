@@ -324,6 +324,34 @@ def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: l
     return filtered
 
 
+def _is_baseline_prior_point(run_cfg: dict, prior_point: dict) -> bool:
+    mode = str(prior_point.get("effective_prior_mode", "") or "").strip().lower()
+    if mode == "roi":
+        roi_grid = _roi_grid_from_config(run_cfg)
+        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+        )
+        return (
+            abs(float(prior_point["roi_mu_display"]) - baseline_mu) <= 1e-9
+            and abs(float(prior_point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
+            and str(prior_point["roi_dist_display"]) == str(baseline_dist)
+        )
+
+    if mode == "contribution":
+        baseline_mean, baseline_scale, baseline_dist = _resolve_contribution_baseline_from_config(run_cfg)
+        c_mean = prior_point.get("contribution_mean")
+        c_scale = prior_point.get("contribution_scale")
+        if c_mean is None or c_scale is None:
+            return False
+        return (
+            abs(float(c_mean) - baseline_mean) <= 1e-9
+            and abs(float(c_scale) - baseline_scale) <= 1e-9
+            and str(prior_point["roi_dist_display"]) == str(baseline_dist)
+        )
+
+    return False
+
+
 def _build_structural_run_points(structural_grids: dict[str, list], structural_grid_scope: str) -> tuple[list[dict], dict]:
     baseline_structural = {
         "alpha_m": structural_grids["alpha_m"][0],
@@ -724,10 +752,9 @@ def main():
     parallel_workers = int(run_cfg.get("parallel_workers", 1))
     if os.name == "nt" and parallel_workers > 1:
         print(
-            "[warn] Windows + TensorFlow/Meridian multi-process runs can crash with access violations. "
-            f"Capping parallel_workers from {parallel_workers} to 1 for stability."
+            "[warn] Windows + TensorFlow/Meridian multi-process runs may crash with access violations. "
+            f"Proceeding with configured parallel_workers={parallel_workers}."
         )
-        parallel_workers = 1
     sweep_type = str((run_cfg.get("sweep", {}) or {}).get("type", "fixed_full_grid"))
     prior_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("prior_grid_scope", "full_grid"))
     structural_grid_scope = str((run_cfg.get("sweep", {}) or {}).get("structural_grid_scope", "full_grid"))
@@ -1083,32 +1110,28 @@ def main():
         if population_col:
             cmd.extend(["--population_col", population_col])
 
-        is_baseline_grid_point = False
-        if has_global_baseline:
-            is_baseline_grid_point = (
-                abs(float(mu) - float(baseline_mu)) <= 1e-9
-                and abs(float(sigma) - float(baseline_sigma)) <= 1e-9
-                and str(dist) == str(baseline_dist)
-                and (
-                    (alpha_m is None and baseline_structural["alpha_m"] is None)
-                    or (
-                        alpha_m is not None
-                        and baseline_structural["alpha_m"] is not None
-                        and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9
-                    )
+        is_baseline_grid_point = (
+            _is_baseline_prior_point(run_cfg, prior_point)
+            and (
+                (alpha_m is None and baseline_structural["alpha_m"] is None)
+                or (
+                    alpha_m is not None
+                    and baseline_structural["alpha_m"] is not None
+                    and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9
                 )
-                and (
-                    (ec_m is None and baseline_structural["ec_m"] is None)
-                    or (
-                        ec_m is not None
-                        and baseline_structural["ec_m"] is not None
-                        and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9
-                    )
-                )
-                and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
-                and int(max_lag) == int(baseline_structural["max_lag"])
-                and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
             )
+            and (
+                (ec_m is None and baseline_structural["ec_m"] is None)
+                or (
+                    ec_m is not None
+                    and baseline_structural["ec_m"] is not None
+                    and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9
+                )
+            )
+            and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
+            and int(max_lag) == int(baseline_structural["max_lag"])
+            and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
+        )
         if is_baseline_grid_point and not official_export_done:
             cmd.extend([
                 "--official_outdir",

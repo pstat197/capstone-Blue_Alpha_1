@@ -1221,6 +1221,9 @@ def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
         "overall_data_influence_subscore": _safe_float(row.get("overall_data_influence_subscore")),
         "overall_cross_channel_subscore": _safe_float(row.get("overall_cross_channel_subscore")),
         "overall_adstock_proxy_subscore": _safe_float(row.get("overall_adstock_proxy_subscore")),
+        "empirical_low_cutoff_q33": _safe_float(row.get("empirical_low_cutoff_q33")),
+        "empirical_high_cutoff_q67": _safe_float(row.get("empirical_high_cutoff_q67")),
+        "adstock_note": str(row.get("adstock_note", "") or "").strip(),
     }
 
 
@@ -1523,6 +1526,20 @@ def _compute_decision_card(
         score_note = "Robustness scoring is intentionally skipped in baseline-only structural screens."
 
     score_subscores: list[dict] = []
+    score_meta: dict = {
+        "higher_is_better": True,
+        "overall_weighting": None,
+        "band_low_cutoff_q33": None,
+        "band_high_cutoff_q67": None,
+        "band_method": "empirical_tertiles_within_run_set",
+        "subscore_weights": {
+            "prior": 0.50,
+            "data": 0.30,
+            "cross": 0.15,
+            "adstock": 0.05,
+        },
+        "adstock_note": None,
+    }
     if robust_available:
         score_subscores = [
             {
@@ -1552,6 +1569,14 @@ def _compute_decision_card(
             },
         ]
         score_subscores = [x for x in score_subscores if x.get("value") is not None]
+        score_meta.update(
+            {
+                "overall_weighting": str(robust.get("overall_weighting", "") or "").strip() or None,
+                "band_low_cutoff_q33": _safe_float(robust.get("empirical_low_cutoff_q33")),
+                "band_high_cutoff_q67": _safe_float(robust.get("empirical_high_cutoff_q67")),
+                "adstock_note": str(robust.get("adstock_note", "") or "").strip() or None,
+            }
+        )
 
     return {
         "available": True,
@@ -1566,6 +1591,7 @@ def _compute_decision_card(
         "reasons": reasons,
         "actions": actions,
         "score_subscores": score_subscores,
+        "score_meta": score_meta,
     }
 def _compute_dollar_sensitivity(merged: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     source = None
@@ -2186,6 +2212,7 @@ def _compute_structural_block(
 
     carryover_df = pd.DataFrame(columns=["channel", "spend_reference", "immediate_component", "carryover_component"])
     selected_profile = None
+    selected_profile_id = ""
     if not selected_run_row.empty:
         selected_profile_id = str(selected_run_row.iloc[0]["struct_profile_id"])
         selected_profile_df = profile_df.loc[profile_df["struct_profile_id"] == selected_profile_id].head(1).copy()
@@ -2234,6 +2261,100 @@ def _compute_structural_block(
                 )
             carryover_df = pd.DataFrame(carry_rows).sort_values("spend_reference", ascending=False).reset_index(drop=True)
 
+    reference_profile_id = selected_profile_id
+    if not reference_profile_id and not profile_df.empty:
+        ref_profile_df = profile_df.sort_values(
+            ["n_runs", "max_total_abs_pct_change"],
+            ascending=[False, False],
+            na_position="last",
+        ).head(1)
+        if not ref_profile_df.empty:
+            reference_profile_id = str(ref_profile_df.iloc[0]["struct_profile_id"])
+
+    response_display: list[dict] = []
+    response_cols = [
+        "run_id",
+        "channel",
+        "target_channel",
+        "analysis_stage",
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "roi_prior_dist",
+        "estimated_roi",
+        "baseline_roi",
+        "pct_change",
+        "abs_pct_change",
+        "contribution_value",
+        "contribution_share",
+        "effect_value",
+        "effect_share",
+        "channel_total_spend",
+        "spend_share",
+        "qc_status_code",
+        "qc_summary_short",
+        *STRUCTURAL_COLS,
+    ]
+    response_cols = [c for c in response_cols if c in merged.columns]
+    if response_cols:
+        response_df = merged[response_cols].copy()
+        if "run_id" in response_df.columns:
+            response_df = response_df.merge(
+                run_df[["run_id", "struct_profile_id"]].drop_duplicates(subset=["run_id"]),
+                on="run_id",
+                how="left",
+            )
+        else:
+            response_df["struct_profile_id"] = np.nan
+
+        structural_mask = pd.Series([False] * len(response_df), index=response_df.index)
+        if "analysis_stage" in response_df.columns:
+            structural_mask = response_df["analysis_stage"].astype(str).str.strip().str.lower() == "structural_oat"
+
+        ref_mu = ref_sigma = None
+        ref_dist = None
+        if structural_mask.any():
+            structural_runs = response_df.loc[structural_mask].copy()
+            if "roi_prior_mu" in structural_runs.columns:
+                ref_mu = pd.to_numeric(structural_runs["roi_prior_mu"], errors="coerce").dropna().round(6).iloc[0] if not pd.to_numeric(structural_runs["roi_prior_mu"], errors="coerce").dropna().empty else None
+            if "roi_prior_sigma" in structural_runs.columns:
+                ref_sigma = pd.to_numeric(structural_runs["roi_prior_sigma"], errors="coerce").dropna().round(6).iloc[0] if not pd.to_numeric(structural_runs["roi_prior_sigma"], errors="coerce").dropna().empty else None
+            if "roi_prior_dist" in structural_runs.columns:
+                ref_dist_series = structural_runs["roi_prior_dist"].dropna().astype(str).str.strip()
+                ref_dist = ref_dist_series.iloc[0] if not ref_dist_series.empty else None
+
+        ref_mask = pd.Series([False] * len(response_df), index=response_df.index)
+        if reference_profile_id:
+            ref_mask = response_df["struct_profile_id"].astype(str) == reference_profile_id
+            if ref_mu is not None and "roi_prior_mu" in response_df.columns:
+                ref_mask = ref_mask & (pd.to_numeric(response_df["roi_prior_mu"], errors="coerce").round(6) == float(ref_mu))
+            if ref_sigma is not None and "roi_prior_sigma" in response_df.columns:
+                ref_mask = ref_mask & (pd.to_numeric(response_df["roi_prior_sigma"], errors="coerce").round(6) == float(ref_sigma))
+            if ref_dist is not None and "roi_prior_dist" in response_df.columns:
+                ref_mask = ref_mask & (response_df["roi_prior_dist"].astype(str).str.strip() == str(ref_dist))
+
+        response_df = response_df.loc[structural_mask | ref_mask].copy()
+        response_df = response_df.drop_duplicates(
+            subset=[
+                c
+                for c in [
+                    "run_id",
+                    "channel",
+                    "roi_prior_mu",
+                    "roi_prior_sigma",
+                    "roi_prior_dist",
+                    "struct_profile_id",
+                ]
+                if c in response_df.columns
+            ]
+        )
+        if not response_df.empty:
+            response_df = response_df.sort_values(
+                ["channel", "roi_prior_mu", "roi_prior_sigma", "struct_profile_id"],
+                ascending=[True, True, True, True],
+                na_position="last",
+            ).reset_index(drop=True)
+            response_display = response_df.to_dict(orient="records")
+
     run_df.sort_values("total_abs_pct_change", ascending=False, na_position="last").to_csv(
         tables_dir / "structural_run_table.csv",
         index=False,
@@ -2243,15 +2364,12 @@ def _compute_structural_block(
     saturation_curve_df.to_csv(tables_dir / "structural_saturation_curve_table.csv", index=False)
     carryover_df.to_csv(tables_dir / "structural_carryover_by_channel.csv", index=False)
 
-    top_runs = int(cfg.get("figures", {}).get("structural_top_runs", 12))
-    top_profiles = int(cfg.get("figures", {}).get("structural_top_profiles", 4))
     run_display = (
         run_df.sort_values("total_abs_pct_change", ascending=False, na_position="last")
-        .head(top_runs)
         .copy()
         .to_dict(orient="records")
     )
-    profile_display = profile_df.head(top_profiles).copy().to_dict(orient="records")
+    profile_display = profile_df.copy().to_dict(orient="records")
 
     notes = [
         "Immediate vs carryover shares are derived from normalized adstock decay weights.",
@@ -2272,6 +2390,7 @@ def _compute_structural_block(
         "carryover_df": carryover_df,
         "run_rows": run_display,
         "profile_rows": profile_display,
+        "response_rows": response_display,
         "selected_run_id": selected_run_id,
         "selected_profile": selected_profile,
         "notes": notes,
@@ -2326,7 +2445,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     scope["n_channels_after"] = int(prior_df["channel"].nunique())
     scope["n_rows_after"] = int(prior_df.shape[0])
 
-    baseline_rule = cfg["baseline"]["rule"]
+    baseline_rule = str((cfg.get("baseline", {}) or {}).get("rule", "median"))
 
     pct_guard_cfg = (cfg.get("analysis", {}) or {}).get("pct_change_guardrail", {}) or {}
     min_abs_baseline_for_pct = float(pct_guard_cfg.get("min_abs_baseline_roi", 0.05))
