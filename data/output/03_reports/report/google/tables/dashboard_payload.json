@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-04-28 17:15:45",
+    "generated_at": "2026-05-04 22:22:14",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -653,7 +653,8 @@
       "right": 769.099,
       "impact": 769.099,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "liveintent",
@@ -661,7 +662,8 @@
       "right": 0.692,
       "impact": 19.327,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "beehiiv",
@@ -669,7 +671,8 @@
       "right": 1.273,
       "impact": 14.624,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "snapchat",
@@ -677,7 +680,8 @@
       "right": 1.488,
       "impact": 7.341,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "tiktok",
@@ -685,7 +689,8 @@
       "right": 2.114,
       "impact": 6.935,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "amazon",
@@ -693,7 +698,8 @@
       "right": 2.895,
       "impact": 6.164,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "meta",
@@ -701,7 +707,8 @@
       "right": 0.456,
       "impact": 5.762,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "moloco",
@@ -709,79 +716,93 @@
       "right": 0.349,
       "impact": 5.675,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     }
   ],
-  "dollar_tornado_rows": [
+  "contribution_tornado_rows": [
     {
       "channel": "google",
-      "left_dollar": -1261838.191,
-      "right_dollar": 11895176.682,
-      "max_abs_dollar_change": 11895176.682,
-      "median_dollar_change": -125631.717,
-      "n": 14
+      "left": -2.769,
+      "right": 22.234,
+      "impact": 22.234,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "liveintent",
-      "left_dollar": -1892692.069,
-      "right_dollar": -256740.932,
-      "max_abs_dollar_change": 1892692.069,
-      "median_dollar_change": -1062584.517,
-      "n": 14
+      "left": -6.561,
+      "right": 0.405,
+      "impact": 6.561,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "snapchat",
-      "left_dollar": -1021111.21,
-      "right_dollar": 239387.563,
-      "max_abs_dollar_change": 1021111.21,
-      "median_dollar_change": -493964.328,
-      "n": 14
+      "left": -6.222,
+      "right": 1.757,
+      "impact": 6.222,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "beehiiv",
-      "left_dollar": -926302.823,
-      "right_dollar": 88029.855,
-      "max_abs_dollar_change": 926302.823,
-      "median_dollar_change": -456227.189,
-      "n": 14
+      "left": -3.579,
+      "right": 0.903,
+      "impact": 3.579,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "moloco",
-      "left_dollar": -366386.215,
-      "right_dollar": -62850.371,
-      "max_abs_dollar_change": 366386.215,
-      "median_dollar_change": -212807.598,
-      "n": 14
+      "left": -2.656,
+      "right": 0.56,
+      "impact": 2.656,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "tiktok",
-      "left_dollar": -364710.276,
-      "right_dollar": 110736.683,
-      "max_abs_dollar_change": 364710.276,
-      "median_dollar_change": -83479.861,
-      "n": 14
+      "left": -2.318,
+      "right": 0.944,
+      "impact": 2.318,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "meta",
-      "left_dollar": -111925.142,
-      "right_dollar": 8313.403,
-      "max_abs_dollar_change": 111925.142,
-      "median_dollar_change": -52442.905,
-      "n": 14
+      "left": -0.615,
+      "right": 0.15,
+      "impact": 0.615,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "amazon",
-      "left_dollar": -14789.689,
-      "right_dollar": 6992.92,
-      "max_abs_dollar_change": 14789.689,
-      "median_dollar_change": -3962.458,
-      "n": 14
+      "left": -0.096,
+      "right": 0.049,
+      "impact": 0.096,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     }
   ],
+  "tornado_primary_metric": "contribution_pct",
+  "tornado_primary_label": "Contribution Share Change (pp)",
+  "dollar_tornado_rows": [],
   "dollar_meta": {
-    "available": true,
+    "available": false,
     "dollars_per_subscription_note": "100.00",
-    "range_mode": "p05p95"
+    "range_mode": "p05p95",
+    "source": "delta_value",
+    "reason": "Dollar impact hidden because this non-revenue KPI is using contribution fallback without a revenue-equivalent conversion."
   },
   "structural": {
     "available": true,
@@ -18468,7 +18489,7 @@
       {
         "step": "01",
         "title": "Dataset Intake",
-        "detail": "data/raw/monthly_mocha.csv | targets: google"
+        "detail": "D:/Intern/BlueAlpha/data/raw/monthly_mocha.csv | targets: google"
       },
       {
         "step": "02",
@@ -18557,11 +18578,11 @@
       },
       {
         "label": "Input dataset",
-        "value": "data/raw/monthly_mocha.csv"
+        "value": "D:/Intern/BlueAlpha/data/raw/monthly_mocha.csv"
       },
       {
         "label": "Generated at",
-        "value": "2026-04-28 17:15:45"
+        "value": "2026-05-04 22:22:14"
       }
     ],
     "notes": [

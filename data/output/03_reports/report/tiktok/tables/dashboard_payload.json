@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-04-28 17:18:50",
+    "generated_at": "2026-05-04 22:22:14",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -652,7 +652,8 @@
       "right": 932.593,
       "impact": 932.593,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "moloco",
@@ -660,7 +661,8 @@
       "right": 24.786,
       "impact": 24.786,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "meta",
@@ -668,7 +670,8 @@
       "right": 19.298,
       "impact": 19.298,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "amazon",
@@ -676,7 +679,8 @@
       "right": 0.328,
       "impact": 18.956,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "beehiiv",
@@ -684,7 +688,8 @@
       "right": 14.198,
       "impact": 14.198,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "google",
@@ -692,7 +697,8 @@
       "right": 3.453,
       "impact": 12.227,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     },
     {
       "channel": "liveintent",
@@ -700,7 +706,8 @@
       "right": 10.777,
       "impact": 10.777,
       "n": 15,
-      "source": "pct_change"
+      "source": "pct_change",
+      "unit": "pct"
     },
     {
       "channel": "snapchat",
@@ -708,79 +715,93 @@
       "right": 8.392,
       "impact": 8.392,
       "n": 15,
-      "source": "pct_change_raw"
+      "source": "pct_change_raw",
+      "unit": "pct"
     }
   ],
-  "dollar_tornado_rows": [
+  "contribution_tornado_rows": [
     {
       "channel": "tiktok",
-      "left_dollar": -963692.217,
-      "right_dollar": 11305720.375,
-      "max_abs_dollar_change": 11305720.375,
-      "median_dollar_change": 98628.536,
-      "n": 14
+      "left": -1.953,
+      "right": 18.04,
+      "impact": 18.04,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "google",
-      "left_dollar": -1872381.202,
-      "right_dollar": 549954.959,
-      "max_abs_dollar_change": 1872381.202,
-      "median_dollar_change": -358790.431,
-      "n": 14
-    },
-    {
-      "channel": "moloco",
-      "left_dollar": 72251.353,
-      "right_dollar": 1371629.8,
-      "max_abs_dollar_change": 1371629.8,
-      "median_dollar_change": 257243.227,
-      "n": 14
-    },
-    {
-      "channel": "snapchat",
-      "left_dollar": 436585.294,
-      "right_dollar": 1032080.387,
-      "max_abs_dollar_change": 1032080.387,
-      "median_dollar_change": 818325.034,
-      "n": 14
+      "left": -8.814,
+      "right": 0.197,
+      "impact": 8.814,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "liveintent",
-      "left_dollar": -428674.869,
-      "right_dollar": 850063.427,
-      "max_abs_dollar_change": 850063.427,
-      "median_dollar_change": 467541.686,
-      "n": 14
+      "left": -3.63,
+      "right": 0.972,
+      "impact": 3.63,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
+    },
+    {
+      "channel": "snapchat",
+      "left": -2.905,
+      "right": 1.213,
+      "impact": 2.905,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "beehiiv",
-      "left_dollar": -373550.973,
-      "right_dollar": 799287.274,
-      "max_abs_dollar_change": 799287.274,
-      "median_dollar_change": 194537.263,
-      "n": 14
+      "left": -2.613,
+      "right": 1.063,
+      "impact": 2.613,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
-      "channel": "meta",
-      "left_dollar": 21217.842,
-      "right_dollar": 349377.868,
-      "max_abs_dollar_change": 349377.868,
-      "median_dollar_change": 72464.174,
-      "n": 14
+      "channel": "moloco",
+      "left": -0.182,
+      "right": 0.204,
+      "impact": 0.204,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     },
     {
       "channel": "amazon",
-      "left_dollar": -46341.269,
-      "right_dollar": -24.163,
-      "max_abs_dollar_change": 46341.269,
-      "median_dollar_change": -5985.227,
-      "n": 14
+      "left": -0.167,
+      "right": -0.008,
+      "impact": 0.167,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
+    },
+    {
+      "channel": "meta",
+      "left": -0.118,
+      "right": 0.044,
+      "impact": 0.118,
+      "n": 14,
+      "source": "incremental_value_share",
+      "unit": "pp"
     }
   ],
+  "tornado_primary_metric": "contribution_pct",
+  "tornado_primary_label": "Contribution Share Change (pp)",
+  "dollar_tornado_rows": [],
   "dollar_meta": {
-    "available": true,
+    "available": false,
     "dollars_per_subscription_note": "100.00",
-    "range_mode": "p05p95"
+    "range_mode": "p05p95",
+    "source": "delta_value",
+    "reason": "Dollar impact hidden because this non-revenue KPI is using contribution fallback without a revenue-equivalent conversion."
   },
   "structural": {
     "available": true,
@@ -8225,7 +8246,7 @@
       {
         "step": "01",
         "title": "Dataset Intake",
-        "detail": "data/raw/monthly_mocha.csv | targets: tiktok"
+        "detail": "D:/Intern/BlueAlpha/data/raw/monthly_mocha.csv | targets: tiktok"
       },
       {
         "step": "02",
@@ -8314,11 +8335,11 @@
       },
       {
         "label": "Input dataset",
-        "value": "data/raw/monthly_mocha.csv"
+        "value": "D:/Intern/BlueAlpha/data/raw/monthly_mocha.csv"
       },
       {
         "label": "Generated at",
-        "value": "2026-04-28 17:18:50"
+        "value": "2026-05-04 22:22:14"
       }
     ],
     "notes": [
