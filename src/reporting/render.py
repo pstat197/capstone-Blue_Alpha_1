@@ -143,7 +143,15 @@ def render_dashboard_output(
     env = Environment(loader=FileSystemLoader(str(template_dir)))
     output_cfg = cfg.get("output", {}) or {}
     write_report = bool(output_cfg.get("write_report", False))
-    template = env.get_template("report_template.html") if write_report else None
+    report_template_name = "report_template.html"
+    report_template_path = template_dir / report_template_name
+    template = (
+        env.get_template(report_template_name)
+        if write_report and report_template_path.exists()
+        else None
+    )
+    if write_report and template is None:
+        write_report = False
 
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
@@ -857,6 +865,7 @@ def render_dashboard_output(
         }
 
     import numpy as _np
+    import pandas as _pd
     merged_df_for_tornado = metrics.get("merged_df")
     roi_tornado_rows: list[dict] = []
     if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
@@ -885,11 +894,152 @@ def render_dashboard_output(
                 "impact": max(abs(left_v), abs(right_v)),
                 "n": int(vals.size),
                 "source": source,
+                "unit": "pct",
             })
         roi_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
 
+    contribution_tornado_rows: list[dict] = []
+    tornado_primary_metric = "roi_pct"
+    tornado_primary_label = "ROI Change (%)"
+    active_prior_design_mode = ""
+    active_kpi_type = ""
+    active_revenue_conversion_available = False
+    if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
+        def _dominant_text_value(columns: list[str]) -> str:
+            values: list[str] = []
+            for col in columns:
+                if col not in merged_df_for_tornado.columns:
+                    continue
+                values.extend(
+                    merged_df_for_tornado[col]
+                    .dropna()
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    .replace({"": _np.nan, "nan": _np.nan, "none": _np.nan, "null": _np.nan})
+                    .dropna()
+                    .tolist()
+                )
+            return max(set(values), key=values.count) if values else ""
+
+        def _has_positive_number(columns: list[str]) -> bool:
+            for col in columns:
+                if col not in merged_df_for_tornado.columns:
+                    continue
+                vals = _pd.to_numeric(merged_df_for_tornado[col], errors="coerce").dropna()
+                if bool((vals > 0).any()):
+                    return True
+            return False
+
+        def _cfg_has_revenue_conversion() -> bool:
+            outcome_cfg = cfg.get("outcome", {}) or {}
+            single = _to_float_safe(outcome_cfg.get("revenue_per_kpi"))
+            if single is not None and single > 0:
+                return True
+            values = outcome_cfg.get("revenue_per_kpi_values")
+            if isinstance(values, (list, tuple)):
+                return any((_to_float_safe(v) is not None and float(_to_float_safe(v)) > 0) for v in values)
+            value = _to_float_safe(values)
+            return value is not None and value > 0
+
+        active_prior_design_mode = (
+            _dominant_text_value(["prior_design_mode", "prior_mode_used"])
+            or str(cfg.get("prior_mode", "") or "").strip().lower()
+        )
+        active_kpi_type = (
+            _dominant_text_value(["kpi_type_effective", "kpi_type"])
+            or str((cfg.get("outcome", {}) or {}).get("kpi_type", "") or "").strip().lower()
+        )
+        active_revenue_conversion_available = _has_positive_number(["revenue_per_kpi"]) or _cfg_has_revenue_conversion()
+
+        value_source = None
+        baseline_values = new_values = None
+        if {"incremental_value_baseline", "incremental_value_new"}.issubset(merged_df_for_tornado.columns):
+            baseline_values = merged_df_for_tornado["incremental_value_baseline"]
+            new_values = merged_df_for_tornado["incremental_value_new"]
+            value_source = "incremental_value"
+        elif {"incremental_outcome_baseline", "incremental_outcome_new"}.issubset(merged_df_for_tornado.columns):
+            baseline_values = merged_df_for_tornado["incremental_outcome_baseline"]
+            new_values = merged_df_for_tornado["incremental_outcome_new"]
+            value_source = "incremental_outcome"
+
+        if baseline_values is not None and new_values is not None:
+            work = merged_df_for_tornado.copy()
+            work["_contribution_base_value"] = _pd.to_numeric(baseline_values, errors="coerce")
+            work["_contribution_new_value"] = _pd.to_numeric(new_values, errors="coerce")
+            if "run_id" in work.columns:
+                run_groups = work.groupby("run_id", dropna=False)
+                work["_contribution_base_sum"] = run_groups["_contribution_base_value"].transform("sum")
+                work["_contribution_new_sum"] = run_groups["_contribution_new_value"].transform("sum")
+            else:
+                work["_contribution_base_sum"] = work["_contribution_base_value"].sum()
+                work["_contribution_new_sum"] = work["_contribution_new_value"].sum()
+            base_valid = work["_contribution_base_sum"].abs() >= 1e-9
+            new_valid = work["_contribution_new_sum"].abs() >= 1e-9
+            work["_contribution_base_share"] = _np.where(
+                base_valid,
+                work["_contribution_base_value"] / work["_contribution_base_sum"],
+                _np.nan,
+            )
+            work["_contribution_new_share"] = _np.where(
+                new_valid,
+                work["_contribution_new_value"] / work["_contribution_new_sum"],
+                _np.nan,
+            )
+            work["_contribution_share_delta_pp"] = 100.0 * (
+                work["_contribution_new_share"] - work["_contribution_base_share"]
+            )
+            tornado_range_mode = str(cfg.get("figures", {}).get("tornado_range_mode", "p05p95")).strip().lower()
+            for channel, g in work.groupby("channel", as_index=False):
+                vals = g["_contribution_share_delta_pp"].dropna().to_numpy(dtype=float)
+                if vals.size == 0:
+                    continue
+                if tornado_range_mode == "minmax":
+                    left_v = float(_np.min(vals))
+                    right_v = float(_np.max(vals))
+                else:
+                    left_v = float(_np.quantile(vals, 0.05))
+                    right_v = float(_np.quantile(vals, 0.95))
+                contribution_tornado_rows.append({
+                    "channel": str(channel),
+                    "left": left_v,
+                    "right": right_v,
+                    "impact": max(abs(left_v), abs(right_v)),
+                    "n": int(vals.size),
+                    "source": f"{value_source}_share",
+                    "unit": "pp",
+                })
+            contribution_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
+
+    contribution_fallback_active = (
+        active_prior_design_mode == "contribution"
+        or (active_kpi_type == "non_revenue" and not active_revenue_conversion_available and bool(contribution_tornado_rows))
+    )
+    if contribution_fallback_active:
+        tornado_primary_metric = "contribution_pct"
+        tornado_primary_label = "Contribution Share Change (pp)"
+
     dollar_tornado_rows: list[dict] = []
-    if dollar.get("available") and dollar.get("rank_df") is not None:
+    dollar_reason = str(dollar.get("reason", "") or "")
+    dollar_source = str(dollar.get("source", "") or "")
+    dps_note = str(dollar.get("dollars_per_subscription_note", "unknown"))
+    dps_value = _to_float_safe(dps_note)
+    default_subscription_dollars = dps_value is not None and abs(float(dps_value) - 100.0) <= 1e-9
+    dollar_values_meaningful = bool(dollar.get("available"))
+    if contribution_fallback_active and not active_revenue_conversion_available:
+        dollar_values_meaningful = False
+        dollar_reason = (
+            "Dollar impact hidden because this non-revenue KPI is using contribution fallback "
+            "without a revenue-equivalent conversion."
+        )
+    elif default_subscription_dollars and not active_revenue_conversion_available:
+        dollar_values_meaningful = False
+        dollar_reason = (
+            "Dollar impact hidden because dollars_per_subscription=100 is the default assumption, "
+            "not a reliable revenue conversion."
+        )
+
+    if dollar_values_meaningful and dollar.get("rank_df") is not None:
         for row in dollar["rank_df"].to_dict(orient="records"):
             left_v = _to_float_safe(row.get("left_dollar"))
             right_v = _to_float_safe(row.get("right_dollar"))
@@ -993,11 +1143,16 @@ def render_dashboard_output(
         "spend_effect_rows": spend_effect_dashboard_rows,
         "scenario_items": scenario_dashboard_items,
         "roi_tornado_rows": roi_tornado_rows,
+        "contribution_tornado_rows": contribution_tornado_rows,
+        "tornado_primary_metric": tornado_primary_metric,
+        "tornado_primary_label": tornado_primary_label,
         "dollar_tornado_rows": dollar_tornado_rows,
         "dollar_meta": {
-            "available": bool(dollar.get("available")),
-            "dollars_per_subscription_note": str(dollar.get("dollars_per_subscription_note", "unknown")),
+            "available": bool(dollar_values_meaningful and dollar_tornado_rows),
+            "dollars_per_subscription_note": dps_note,
             "range_mode": str(dollar.get("range_mode", "p05p95")),
+            "source": dollar_source,
+            "reason": dollar_reason,
         },
         "structural": structural_block,
         "workbench": workbench_block,
@@ -1111,24 +1266,5 @@ def render_dashboard_output(
                 (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
                 kept_files.add(page_filename)
 
-            # Legacy multi-page dashboard outputs from older template generations.
-            stale_candidates = [
-                "dashboard_sensitivity.html",
-                "dashboard_allocation.html",
-                "dashboard_scenarios.html",
-                "dashboard_actions.html",
-                "dashboard_decision.html",
-            ]
-            for stale_name in stale_candidates:
-                if stale_name in kept_files:
-                    continue
-                stale_path = outdir / stale_name
-                if stale_path.exists() and stale_path.is_file():
-                    stale_path.unlink()
-
-
 # Backward-compatible alias for older imports.
 render_html_report = render_dashboard_output
-
-
-

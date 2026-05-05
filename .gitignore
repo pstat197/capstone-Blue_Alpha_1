@@ -44,3 +44,6 @@ docs/reports/
 !data/output/01_runs/.gitkeep
 !data/output/02_tables/.gitkeep
 !data/output/03_reports/.gitkeep
+
+#Prompt
+AGENTS.md

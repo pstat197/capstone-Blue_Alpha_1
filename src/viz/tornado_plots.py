@@ -13,7 +13,7 @@ from src.formatting import fmt_money as _fmt_money
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-CSV_NAME = "data/output/02_tables/google_meta_tiktok/tornado_google_meta_tiktok.csv"
+CSV_NAME = "data/output/02_tables/google/tornado_google.csv"
 CSV_GLOB = "data/output/02_tables/*/tornado_*.csv"
 INPUT_MODE = "all"  # "single" or "all"
 OUT_DIR = "data/output/03_reports/tornado_outputs"
