@@ -903,9 +903,14 @@ def render_dashboard_output(
     contribution_tornado_rows: list[dict] = []
     tornado_primary_metric = "roi_pct"
     tornado_primary_label = "ROI Change (%)"
-    active_prior_design_mode = ""
     active_kpi_type = ""
     active_revenue_conversion_available = False
+    outcome_context = {
+        "metric_label": "ROI",
+        "kpi_type": "",
+        "kpi_type_effective": "",
+        "revenue_per_kpi": None,
+    }
     if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
         def _dominant_text_value(columns: list[str]) -> str:
             values: list[str] = []
@@ -944,15 +949,29 @@ def render_dashboard_output(
             value = _to_float_safe(values)
             return value is not None and value > 0
 
-        active_prior_design_mode = (
-            _dominant_text_value(["prior_design_mode", "prior_mode_used"])
-            or str(cfg.get("prior_mode", "") or "").strip().lower()
-        )
-        active_kpi_type = (
-            _dominant_text_value(["kpi_type_effective", "kpi_type"])
-            or str((cfg.get("outcome", {}) or {}).get("kpi_type", "") or "").strip().lower()
-        )
+        active_kpi_type = _dominant_text_value(["kpi_type_effective", "kpi_type"])
+        configured_kpi_type = str((cfg.get("outcome", {}) or {}).get("kpi_type", "") or "").strip().lower()
+        source_kpi_type = _dominant_text_value(["kpi_type"]) or configured_kpi_type
+        effective_kpi_type = _dominant_text_value(["kpi_type_effective"]) or active_kpi_type or configured_kpi_type
+        active_kpi_type = active_kpi_type or configured_kpi_type
         active_revenue_conversion_available = _has_positive_number(["revenue_per_kpi"]) or _cfg_has_revenue_conversion()
+        revenue_per_kpi_value = None
+        if "revenue_per_kpi" in merged_df_for_tornado.columns:
+            revenue_vals = _pd.to_numeric(merged_df_for_tornado["revenue_per_kpi"], errors="coerce").dropna()
+            revenue_vals = revenue_vals[revenue_vals > 0]
+            if not revenue_vals.empty:
+                revenue_per_kpi_value = float(revenue_vals.iloc[0])
+        if revenue_per_kpi_value is None:
+            outcome_cfg = cfg.get("outcome", {}) or {}
+            single_value = _to_float_safe(outcome_cfg.get("revenue_per_kpi"))
+            if single_value is not None and single_value > 0:
+                revenue_per_kpi_value = float(single_value)
+        outcome_context = {
+            "metric_label": "Revenue-equivalent ROI" if revenue_per_kpi_value is not None else "ROI",
+            "kpi_type": source_kpi_type,
+            "kpi_type_effective": effective_kpi_type,
+            "revenue_per_kpi": revenue_per_kpi_value,
+        }
 
         value_source = None
         baseline_values = new_values = None
@@ -1013,11 +1032,8 @@ def render_dashboard_output(
                 })
             contribution_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
 
-    contribution_fallback_active = (
-        active_prior_design_mode == "contribution"
-        or (active_kpi_type == "non_revenue" and not active_revenue_conversion_available and bool(contribution_tornado_rows))
-    )
-    if contribution_fallback_active:
+    use_contribution_tornado = active_kpi_type == "non_revenue" and not active_revenue_conversion_available and bool(contribution_tornado_rows)
+    if use_contribution_tornado:
         tornado_primary_metric = "contribution_pct"
         tornado_primary_label = "Contribution Share Change (pp)"
 
@@ -1028,11 +1044,10 @@ def render_dashboard_output(
     dps_value = _to_float_safe(dps_note)
     default_subscription_dollars = dps_value is not None and abs(float(dps_value) - 100.0) <= 1e-9
     dollar_values_meaningful = bool(dollar.get("available"))
-    if contribution_fallback_active and not active_revenue_conversion_available:
+    if use_contribution_tornado and not active_revenue_conversion_available:
         dollar_values_meaningful = False
         dollar_reason = (
-            "Dollar impact hidden because this non-revenue KPI is using contribution fallback "
-            "without a revenue-equivalent conversion."
+            "Dollar impact hidden because this non-revenue KPI does not have a revenue-equivalent conversion."
         )
     elif default_subscription_dollars and not active_revenue_conversion_available:
         dollar_values_meaningful = False
@@ -1138,6 +1153,7 @@ def render_dashboard_output(
             "n_dists": int(overview.get("n_dists", 0) or 0),
             "n_target_sets": int(overview.get("n_target_sets", 0) or 0),
         },
+        "outcome_context": outcome_context,
         "thresholds": cfg.get("thresholds", {}),
         "decision_card": decision_card_block,
         "diagnostics_overview": diagnostics.get("overview", {}),

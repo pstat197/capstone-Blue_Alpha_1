@@ -1,33 +1,31 @@
+from __future__ import annotations
+
 import copy
 import os
 from typing import Any
 
 import yaml
 
+ROI_PRIOR_POLICY_ERROR = (
+    "ROI prior mode for non-revenue KPI requires outcome.revenue_per_kpi. "
+    "Please add a business-defined revenue_per_kpi value to config/sensitivity.yaml "
+    "to run revenue-equivalent ROI analysis."
+)
+
+FIXED_ROI_MU_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0]
+FIXED_ROI_SIGMA_VALUES = [0.5, 1.0, 1.5]
+FIXED_ROI_DIST_VALUES = ["LogNormal"]
+CONTRIBUTION_PRIOR_MODE = "contribution"
+
 
 DEFAULT_RUN_CONFIG: dict[str, Any] = {
-    "run_mode": "fast_product",
+    "run_mode": "roi_full",
     "parallel_workers": 4,
     "run_modes": {
-        "fast_product": {
-            "roi_mu_values": [0.5, 1.0, 1.5, 2.5, 4.0],
-            "roi_sigma_values": [1.0, 1.5, 2.0],
+        "roi_full": {
+            "roi_mu_values": FIXED_ROI_MU_VALUES,
+            "roi_sigma_values": FIXED_ROI_SIGMA_VALUES,
             "roi_dist_values": ["LogNormal"],
-            "contribution_mean_values": [0.005, 0.01, 0.02, 0.05, 0.15],
-            "contribution_scale_values": [0.005, 0.02, 0.05],
-            "contribution_dist_values": ["LogNormal"],
-            "n_chains": 2,
-            "n_adapt": 300,
-            "n_burnin": 300,
-            "n_keep": 150,
-        },
-        "audit_research": {
-            "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.0],
-            "roi_sigma_values": [0.5, 1.0, 1.5, 2.0],
-            "roi_dist_values": ["LogNormal"],
-            "contribution_mean_values": [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15],
-            "contribution_scale_values": [0.005, 0.01, 0.02, 0.05],
-            "contribution_dist_values": ["LogNormal"],
             "n_chains": 4,
             "n_adapt": 700,
             "n_burnin": 500,
@@ -49,7 +47,7 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "revenue_per_kpi": None,
         "revenue_per_kpi_values": None,
     },
-    "prior_mode": "auto",  # auto | roi | contribution
+    "prior_mode": "roi",
     # Backward-compatible materialized ROI grid used by existing internals.
     "experiment": {
         "roi_mu_values": [0.5, 1.0, 1.5, 2.0, 2.5, 3.0],
@@ -71,8 +69,6 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "roi_mu": None,
         "roi_sigma": None,
         "roi_dist": None,
-        "contribution_mean": None,
-        "contribution_scale": None,
     },
     "sweep": {
         "type": "fixed_full_grid",
@@ -135,6 +131,23 @@ def _dedupe_preserve_order(values: list[str]) -> list[str]:
     return out
 
 
+def _require_fixed_roi_prior_grid(active_profile: dict[str, Any]) -> None:
+    mu_values = [round(float(v), 6) for v in active_profile.get("roi_mu_values", [])]
+    sigma_values = [round(float(v), 6) for v in active_profile.get("roi_sigma_values", [])]
+    dist_values = [str(v) for v in active_profile.get("roi_dist_values", [])]
+    if (
+        mu_values != FIXED_ROI_MU_VALUES
+        or sigma_values != FIXED_ROI_SIGMA_VALUES
+        or dist_values != FIXED_ROI_DIST_VALUES
+    ):
+        raise ValueError(
+            "This one-channel prior sensitivity workflow requires the fixed ROI prior grid: "
+            f"roi_mu_values={FIXED_ROI_MU_VALUES}, "
+            f"roi_sigma_values={FIXED_ROI_SIGMA_VALUES}, "
+            f"roi_dist_values={FIXED_ROI_DIST_VALUES}."
+        )
+
+
 def _as_optional_float(raw: Any, field_name: str) -> float | None:
     if raw is None or str(raw).strip().lower() in {"", "null", "none", "nan"}:
         return None
@@ -149,10 +162,6 @@ def _normalize_positive_list(values: list[float], field_name: str) -> list[float
     if any(v <= 0 for v in rounded):
         raise ValueError(f"Config field '{field_name}' must contain strictly positive values.")
     return rounded
-
-
-def _default_run_mode_field(name: str, field_name: str, fallback: Any) -> Any:
-    return DEFAULT_RUN_CONFIG.get("run_modes", {}).get(name, {}).get(field_name, fallback)
 
 
 def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
@@ -174,71 +183,6 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
         raise ValueError(f"Config field 'run_modes.{name}.roi_dist_values' must contain at least one value.")
     dist_values = _dedupe_preserve_order(dist_values)
 
-    contrib_mean_values = _as_numeric_list(
-        raw_profile.get(
-            "contribution_mean_values",
-            _default_run_mode_field(
-                name,
-                "contribution_mean_values",
-                [0.005, 0.01, 0.02, 0.05, 0.075, 0.10, 0.15],
-            ),
-        ),
-        f"run_modes.{name}.contribution_mean_values",
-    )
-    if not contrib_mean_values:
-        raise ValueError(f"Config field 'run_modes.{name}.contribution_mean_values' must contain at least one value.")
-    contrib_mean_values = _normalize_positive_list(
-        contrib_mean_values, f"run_modes.{name}.contribution_mean_values"
-    )
-
-    contrib_scale_values = _as_numeric_list(
-        raw_profile.get(
-            "contribution_scale_values",
-            _default_run_mode_field(
-                name,
-                "contribution_scale_values",
-                [0.005, 0.01, 0.02, 0.05],
-            ),
-        ),
-        f"run_modes.{name}.contribution_scale_values",
-    )
-    if not contrib_scale_values:
-        raise ValueError(f"Config field 'run_modes.{name}.contribution_scale_values' must contain at least one value.")
-    contrib_scale_values = _normalize_positive_list(
-        contrib_scale_values, f"run_modes.{name}.contribution_scale_values"
-    )
-
-    contrib_dist_values = _as_string_list(
-        raw_profile.get(
-            "contribution_dist_values",
-            _default_run_mode_field(
-                name,
-                "contribution_dist_values",
-                ["LogNormal"],
-            ),
-        ),
-        f"run_modes.{name}.contribution_dist_values",
-    )
-    if not contrib_dist_values:
-        raise ValueError(f"Config field 'run_modes.{name}.contribution_dist_values' must contain at least one value.")
-    contrib_dist_values = _dedupe_preserve_order(contrib_dist_values)
-
-    if len(contrib_mean_values) != len(mu_values):
-        raise ValueError(
-            f"Config field 'run_modes.{name}.contribution_mean_values' must align with "
-            f"'run_modes.{name}.roi_mu_values' count: {len(contrib_mean_values)} != {len(mu_values)}."
-        )
-    if len(contrib_scale_values) != len(sigma_values):
-        raise ValueError(
-            f"Config field 'run_modes.{name}.contribution_scale_values' must align with "
-            f"'run_modes.{name}.roi_sigma_values' count: {len(contrib_scale_values)} != {len(sigma_values)}."
-        )
-    if len(contrib_dist_values) != len(dist_values):
-        raise ValueError(
-            f"Config field 'run_modes.{name}.contribution_dist_values' must align with "
-            f"'run_modes.{name}.roi_dist_values' count: {len(contrib_dist_values)} != {len(dist_values)}."
-        )
-
     sampler_out: dict[str, int] = {}
     for sampler_key in ["n_chains", "n_adapt", "n_burnin", "n_keep"]:
         try:
@@ -254,9 +198,6 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
         "roi_mu_values": mu_values,
         "roi_sigma_values": sigma_values,
         "roi_dist_values": dist_values,
-        "contribution_mean_values": contrib_mean_values,
-        "contribution_scale_values": contrib_scale_values,
-        "contribution_dist_values": contrib_dist_values,
         **sampler_out,
     }
 
@@ -424,11 +365,19 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     legacy_prior_design = config.get("prior_design", {}) or {}
     if legacy_prior_design and not isinstance(legacy_prior_design, dict):
         raise ValueError("Config field 'prior_design' must be a mapping/object when provided.")
+    legacy_prior_mode = str(legacy_prior_design.get("mode", "")).strip().lower()
+    if legacy_prior_mode == CONTRIBUTION_PRIOR_MODE:
+        raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
 
-    prior_mode = str(config.get("prior_mode", legacy_prior_design.get("mode", "auto"))).strip().lower()
-    if prior_mode not in {"auto", "roi", "contribution"}:
-        raise ValueError("Config field 'prior_mode' must be one of: auto, roi, contribution.")
-    config["prior_mode"] = prior_mode
+    prior_mode = str(config.get("prior_mode", legacy_prior_design.get("mode", "roi"))).strip().lower()
+    if prior_mode == CONTRIBUTION_PRIOR_MODE:
+        raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
+    if prior_mode not in {"auto", "roi"}:
+        raise ValueError("Config field 'prior_mode' must be one of: auto, roi.")
+    if kpi_type == "non_revenue" and outcome["revenue_per_kpi"] is None:
+        raise ValueError(ROI_PRIOR_POLICY_ERROR)
+    _require_fixed_roi_prior_grid(active_profile)
+    config["prior_mode"] = "roi"
     config.pop("prior_design", None)
 
     config["active_prior_grids"] = {
@@ -436,11 +385,6 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
             "roi_mu_values": list(active_profile["roi_mu_values"]),
             "roi_sigma_values": list(active_profile["roi_sigma_values"]),
             "roi_dist_values": list(active_profile["roi_dist_values"]),
-        },
-        "contribution": {
-            "contribution_mean_values": list(active_profile["contribution_mean_values"]),
-            "contribution_scale_values": list(active_profile["contribution_scale_values"]),
-            "contribution_dist_values": list(active_profile["contribution_dist_values"]),
         },
     }
 
@@ -451,14 +395,10 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     exp["roi_dist_values"] = list(config["active_prior_grids"]["roi"]["roi_dist_values"])
 
     baseline = config.setdefault("baseline", {})
-    for baseline_key in ["roi_mu", "roi_sigma", "contribution_mean", "contribution_scale"]:
+    for baseline_key in ["roi_mu", "roi_sigma"]:
         baseline[baseline_key] = _as_optional_float(baseline.get(baseline_key), f"baseline.{baseline_key}")
     if baseline["roi_sigma"] is not None and baseline["roi_sigma"] <= 0:
         raise ValueError("Config field 'baseline.roi_sigma' must be > 0 when provided.")
-    if baseline["contribution_mean"] is not None and baseline["contribution_mean"] <= 0:
-        raise ValueError("Config field 'baseline.contribution_mean' must be > 0 when provided.")
-    if baseline["contribution_scale"] is not None and baseline["contribution_scale"] <= 0:
-        raise ValueError("Config field 'baseline.contribution_scale' must be > 0 when provided.")
 
     raw_dist = baseline.get("roi_dist")
     if raw_dist is None or str(raw_dist).strip().lower() in {"", "null", "none"}:

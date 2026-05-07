@@ -1,4 +1,6 @@
 # src/main.py
+from __future__ import annotations
+
 import json
 import os
 import subprocess
@@ -25,7 +27,9 @@ from src.output_paths import (
     roi_csv_path,
     run_csv_path,
 )
-from src.run_config import load_run_config
+from src.run_config import ROI_PRIOR_POLICY_ERROR, load_run_config
+
+CONTRIBUTION_PRIOR_MODE = "contribution"
 
 
 # ---------------------------------------------------------------------------
@@ -201,23 +205,21 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
 
 def _resolve_effective_prior_mode(run_cfg: dict, *, kpi_type: str, revenue_per_kpi: float | None) -> str:
     mode = str(run_cfg.get("prior_mode", "auto")).strip().lower()
-    if mode in {"roi", "contribution"}:
-        return mode
-    if kpi_type == "revenue":
-        return "roi"
-    if revenue_per_kpi is not None:
-        return "roi"
-    return "contribution"
+    if mode == CONTRIBUTION_PRIOR_MODE:
+        raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
+    if mode not in {"auto", "roi"}:
+        raise ValueError("prior_mode must be one of: auto, roi.")
+    if kpi_type == "non_revenue" and revenue_per_kpi is None:
+        raise ValueError(ROI_PRIOR_POLICY_ERROR)
+    return "roi"
 
 
 def _resolve_prior_label(*, effective_prior_mode: str, kpi_type: str, revenue_per_kpi: float | None) -> str:
-    if effective_prior_mode == "contribution":
-        return "Contribution prior fallback"
-    if kpi_type == "revenue" and revenue_per_kpi is None:
-        return "Revenue ROI"
+    if effective_prior_mode != "roi":
+        raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only.")
     if revenue_per_kpi is not None:
         return "Revenue-equivalent ROI"
-    return "Revenue ROI"
+    return "ROI"
 
 
 def _roi_grid_from_config(run_cfg: dict) -> dict:
@@ -231,93 +233,23 @@ def _roi_grid_from_config(run_cfg: dict) -> dict:
     return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
 
 
-def _contribution_grid_from_config(run_cfg: dict) -> dict:
-    active_prior = run_cfg.get("active_prior_grids", {}) or {}
-    c_cfg = (active_prior.get("contribution", {}) or {})
-    mean_vals = [round(float(v), 6) for v in c_cfg.get("contribution_mean_values", [])]
-    scale_vals = [round(float(v), 6) for v in c_cfg.get("contribution_scale_values", [])]
-    dist_vals = [str(v) for v in c_cfg.get("contribution_dist_values", ["LogNormal"])]
-    if not mean_vals or not scale_vals or not dist_vals:
-        raise ValueError("Contribution prior grid is incomplete. Check run_mode grid settings.")
-    if any(v <= 0 for v in mean_vals):
-        raise ValueError("Contribution mean values must be > 0.")
-    if any(v <= 0 for v in scale_vals):
-        raise ValueError("Contribution scale values must be > 0.")
-    return {"mean": mean_vals, "scale": scale_vals, "dist": dist_vals}
-
-
-def _resolve_contribution_baseline_from_config(run_cfg: dict) -> tuple[float, float, str]:
-    baseline_cfg = run_cfg.get("baseline", {}) or {}
-    contribution_grid = _contribution_grid_from_config(run_cfg)
-
-    mean_values = [round(float(v), 6) for v in contribution_grid["mean"]]
-    scale_values = [round(float(v), 6) for v in contribution_grid["scale"]]
-    dist_values = [str(v) for v in contribution_grid["dist"]]
-
-    baseline_mean_cfg = baseline_cfg.get("contribution_mean")
-    if baseline_mean_cfg is None:
-        baseline_mean = float(mean_values[len(mean_values) // 2])
-    else:
-        baseline_mean = round(float(baseline_mean_cfg), 6)
-        if not _contains_close(mean_values, baseline_mean):
-            raise ValueError(
-                "Configured baseline.contribution_mean is not in the active contribution mean grid. "
-                f"baseline.contribution_mean={baseline_mean}, active mean grid={mean_values}"
-            )
-
-    baseline_scale_cfg = baseline_cfg.get("contribution_scale")
-    if baseline_scale_cfg is None:
-        baseline_scale = float(scale_values[len(scale_values) // 2])
-    else:
-        baseline_scale = round(float(baseline_scale_cfg), 6)
-        if not _contains_close(scale_values, baseline_scale):
-            raise ValueError(
-                "Configured baseline.contribution_scale is not in the active contribution scale grid. "
-                f"baseline.contribution_scale={baseline_scale}, active scale grid={scale_values}"
-            )
-
-    baseline_dist = str(dist_values[0])
-    return baseline_mean, baseline_scale, baseline_dist
-
-
 def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: list[dict]) -> list[dict]:
     if not prior_run_points:
         return []
 
-    roi_baseline: tuple[float, float, str] | None = None
-    contribution_baseline: tuple[float, float, str] | None = None
-
-    if any(point["effective_prior_mode"] == "roi" for point in prior_run_points):
-        roi_grid = _roi_grid_from_config(run_cfg)
-        roi_baseline = _resolve_roi_baseline_from_grid(
-            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-        )
-
-    if any(point["effective_prior_mode"] == "contribution" for point in prior_run_points):
-        contribution_baseline = _resolve_contribution_baseline_from_config(run_cfg)
+    roi_grid = _roi_grid_from_config(run_cfg)
+    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+    )
 
     filtered: list[dict] = []
     for point in prior_run_points:
-        if point["effective_prior_mode"] == "roi" and roi_baseline is not None:
-            baseline_mu, baseline_sigma, baseline_dist = roi_baseline
-            if (
-                abs(float(point["roi_mu_display"]) - baseline_mu) <= 1e-9
-                and abs(float(point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
-                and str(point["roi_dist_display"]) == str(baseline_dist)
-            ):
-                filtered.append(point)
-            continue
-
-        if point["effective_prior_mode"] == "contribution" and contribution_baseline is not None:
-            baseline_mean, baseline_scale, baseline_dist = contribution_baseline
-            if (
-                point["contribution_mean"] is not None
-                and point["contribution_scale"] is not None
-                and abs(float(point["contribution_mean"]) - baseline_mean) <= 1e-9
-                and abs(float(point["contribution_scale"]) - baseline_scale) <= 1e-9
-                and str(point["roi_dist_display"]) == str(baseline_dist)
-            ):
-                filtered.append(point)
+        if (
+            abs(float(point["roi_mu_display"]) - baseline_mu) <= 1e-9
+            and abs(float(point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
+            and str(point["roi_dist_display"]) == str(baseline_dist)
+        ):
+            filtered.append(point)
 
     if not filtered:
         raise ValueError("No baseline prior run point matched the active baseline settings.")
@@ -326,30 +258,17 @@ def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: l
 
 def _is_baseline_prior_point(run_cfg: dict, prior_point: dict) -> bool:
     mode = str(prior_point.get("effective_prior_mode", "") or "").strip().lower()
-    if mode == "roi":
-        roi_grid = _roi_grid_from_config(run_cfg)
-        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-        )
-        return (
-            abs(float(prior_point["roi_mu_display"]) - baseline_mu) <= 1e-9
-            and abs(float(prior_point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
-            and str(prior_point["roi_dist_display"]) == str(baseline_dist)
-        )
-
-    if mode == "contribution":
-        baseline_mean, baseline_scale, baseline_dist = _resolve_contribution_baseline_from_config(run_cfg)
-        c_mean = prior_point.get("contribution_mean")
-        c_scale = prior_point.get("contribution_scale")
-        if c_mean is None or c_scale is None:
-            return False
-        return (
-            abs(float(c_mean) - baseline_mean) <= 1e-9
-            and abs(float(c_scale) - baseline_scale) <= 1e-9
-            and str(prior_point["roi_dist_display"]) == str(baseline_dist)
-        )
-
-    return False
+    if mode != "roi":
+        return False
+    roi_grid = _roi_grid_from_config(run_cfg)
+    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+    )
+    return (
+        abs(float(prior_point["roi_mu_display"]) - baseline_mu) <= 1e-9
+        and abs(float(prior_point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
+        and str(prior_point["roi_dist_display"]) == str(baseline_dist)
+    )
 
 
 def _build_structural_run_points(structural_grids: dict[str, list], structural_grid_scope: str) -> tuple[list[dict], dict]:
@@ -456,14 +375,9 @@ def _build_prior_run_points(
     *,
     run_cfg: dict,
     targets: list[str],
-    channels: list[str],
     outcome_plan: dict,
-    dataset_ctx: dict,
 ) -> list[dict]:
     rows: list[dict] = []
-    kpi_sum = float(dataset_ctx["kpi_sum"])
-    spend_by_channel = dataset_ctx["spend_by_channel"]
-    eps = 1e-9
 
     for revenue_per_kpi in outcome_plan["revenue_per_kpi_values"]:
         effective_prior_mode = _resolve_effective_prior_mode(
@@ -476,12 +390,28 @@ def _build_prior_run_points(
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
         )
-        if effective_prior_mode == "roi":
-            roi_grid = _roi_grid_from_config(run_cfg)
+        roi_grid = _roi_grid_from_config(run_cfg)
+        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+        )
+        for target_channel in targets:
             for mu, sigma, dist in product(roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"]):
-                roi_overrides = {ch: {"mu": float(mu), "sigma": float(sigma), "dist": str(dist)} for ch in targets}
+                roi_overrides = {
+                    ch: {
+                        "mu": float(baseline_mu),
+                        "sigma": float(baseline_sigma),
+                        "dist": str(baseline_dist),
+                    }
+                    for ch in targets
+                }
+                roi_overrides[target_channel] = {
+                    "mu": float(mu),
+                    "sigma": float(sigma),
+                    "dist": str(dist),
+                }
                 rows.append(
                     {
+                        "target_channel": target_channel,
                         "effective_prior_mode": "roi",
                         "prior_grid_type": "roi",
                         "prior_design_label": prior_label,
@@ -493,64 +423,13 @@ def _build_prior_run_points(
                         "roi_mu_display": float(mu),
                         "roi_sigma_display": float(sigma),
                         "roi_dist_display": str(dist),
-                        "contribution_mean": None,
-                        "contribution_scale": None,
-                        "converted_roi_mu_by_channel": None,
-                        "converted_roi_sigma_by_channel": None,
                         "roi_overrides": roi_overrides,
                         "scope_suffix": (
                             f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
-                            f"mu={float(mu):.6f}|sigma={float(sigma):.6f}|dist={str(dist)}"
+                            f"target={target_channel}|mu={float(mu):.6f}|sigma={float(sigma):.6f}|dist={str(dist)}"
                         ),
                     }
                 )
-            continue
-
-        contribution_grid = _contribution_grid_from_config(run_cfg)
-        total_outcome = kpi_sum if revenue_per_kpi is None else (kpi_sum * float(revenue_per_kpi))
-        for c_mean, c_scale, c_dist in product(
-            contribution_grid["mean"],
-            contribution_grid["scale"],
-            contribution_grid["dist"],
-        ):
-            converted_mu: dict[str, float] = {}
-            converted_sigma: dict[str, float] = {}
-            roi_overrides = {}
-            for ch in targets:
-                spend_total = float(spend_by_channel.get(ch, 0.0))
-                if spend_total <= eps:
-                    raise ValueError(
-                        f"Cannot convert contribution priors for channel '{ch}' because spend is non-positive: {spend_total}."
-                    )
-                mu = float(c_mean) * float(total_outcome) / spend_total
-                sigma = float(c_scale) * float(total_outcome) / spend_total
-                converted_mu[ch] = float(mu)
-                converted_sigma[ch] = float(sigma)
-                roi_overrides[ch] = {"mu": float(mu), "sigma": float(sigma), "dist": str(c_dist)}
-
-            first_target = targets[0]
-            rows.append(
-                {
-                    "effective_prior_mode": "contribution",
-                    "prior_grid_type": "contribution",
-                    "prior_design_label": prior_label,
-                    "revenue_per_kpi": revenue_per_kpi,
-                    "kpi_type": outcome_plan["kpi_type"],
-                    "kpi_type_effective": "revenue" if revenue_per_kpi is not None else outcome_plan["kpi_type"],
-                    "roi_mu_display": float(converted_mu[first_target]),
-                    "roi_sigma_display": float(converted_sigma[first_target]),
-                    "roi_dist_display": str(c_dist),
-                    "contribution_mean": float(c_mean),
-                    "contribution_scale": float(c_scale),
-                    "converted_roi_mu_by_channel": converted_mu,
-                    "converted_roi_sigma_by_channel": converted_sigma,
-                    "roi_overrides": roi_overrides,
-                    "scope_suffix": (
-                        f"pmode=contribution|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
-                        f"cmean={float(c_mean):.6f}|cscale={float(c_scale):.6f}|dist={str(c_dist)}"
-                    ),
-                }
-            )
 
     return rows
 
@@ -748,7 +627,7 @@ def main():
 
     run_cfg = load_run_config(config_path)
     sampler = run_cfg["sampler"]
-    run_mode = str(run_cfg.get("run_mode", "fast_product"))
+    run_mode = str(run_cfg.get("run_mode", "roi_full"))
     parallel_workers = int(run_cfg.get("parallel_workers", 1))
     if os.name == "nt" and parallel_workers > 1:
         print(
@@ -822,13 +701,10 @@ def main():
     tmp_dir = os.path.dirname(run_output_file)
     os.makedirs(tmp_dir, exist_ok=True)
 
-    dataset_ctx = _load_dataset_context(data_csv, channels, kpi_col)
     prior_run_points = _build_prior_run_points(
         run_cfg=run_cfg,
         targets=targets,
-        channels=channels,
         outcome_plan=outcome_plan,
-        dataset_ctx=dataset_ctx,
     )
     prior_run_points_full_count = len(prior_run_points)
     if prior_grid_scope == "baseline_only":
@@ -920,14 +796,7 @@ def main():
     else:
         print("Baseline (effective) = inferred at summarize stage (no explicit global ROI baseline for this mode)")
     if prior_grid_scope == "baseline_only":
-        if any(point["effective_prior_mode"] == "contribution" for point in prior_run_points):
-            contribution_baseline_mean, contribution_baseline_scale, _ = _resolve_contribution_baseline_from_config(run_cfg)
-            print(
-                "Structural sensitivity Stage 1 = baseline prior only "
-                f"(contribution_mean={contribution_baseline_mean}, contribution_scale={contribution_baseline_scale})"
-            )
-        else:
-            print("Structural sensitivity Stage 1 = baseline prior only")
+        print("Structural sensitivity Stage 1 = baseline prior only")
 
     already_done = load_resume_state(run_output_file)
 
@@ -947,6 +816,7 @@ def main():
         mu = round(float(prior_point["roi_mu_display"]), 6)
         sigma = round(float(prior_point["roi_sigma_display"]), 6)
         dist = str(prior_point["roi_dist_display"])
+        target_channel = str(prior_point.get("target_channel") or targets[0])
         alpha_m = structural_point["alpha_m"]
         alpha_m = None if alpha_m is None else round(float(alpha_m), 6)
         ec_m = structural_point["ec_m"]
@@ -973,10 +843,7 @@ def main():
                 "revenue_per_kpi": prior_point["revenue_per_kpi"],
                 "prior_design_mode": prior_point["effective_prior_mode"],
                 "prior_grid_type": prior_point["prior_grid_type"],
-                "contribution_mean": prior_point["contribution_mean"],
-                "contribution_scale": prior_point["contribution_scale"],
-                "converted_roi_mu_by_channel": prior_point["converted_roi_mu_by_channel"],
-                "converted_roi_sigma_by_channel": prior_point["converted_roi_sigma_by_channel"],
+                "target_channel": target_channel,
                 "roi_prior_overrides": roi_overrides,
                 "structural_overrides": structural_overrides,
             },
@@ -1007,6 +874,7 @@ def main():
             [
                 output_tag,
                 f"r{run_index}",
+                target_channel,
                 str(mu).replace(".", "p"),
                 str(sigma).replace(".", "p"),
                 dist,
@@ -1036,6 +904,14 @@ def main():
             time_col,
             "--channels_json",
             channels_json,
+            "--target_channel",
+            target_channel,
+            "--mu",
+            str(mu),
+            "--sigma",
+            str(sigma),
+            "--dist",
+            dist,
             "--roi_prior_overrides_json",
             json.dumps(roi_overrides, sort_keys=True),
             "--structural_overrides_json",
@@ -1053,7 +929,7 @@ def main():
             "--run_mode",
             run_mode,
             "--target_channels",
-            targets_str,
+            target_channel,
             "--sweep_type",
             sweep_type,
             "--two_layer_enabled",
@@ -1061,9 +937,11 @@ def main():
             "--qc_scope",
             "target_scoped",
             "--qc_target_channels",
-            targets_str,
+            target_channel,
             "--gate_mode",
-            "configured" if (run_mode == "audit_research" and prior_point["effective_prior_mode"] == "roi") else "auto_from_runs",
+            "configured" if prior_point["effective_prior_mode"] == "roi" else "auto_from_runs",
+            "--data_tag",
+            data_tag or Path(data_csv).stem,
             "--out_run_csv",
             tmp_run_out,
             "--out_roi_csv",
@@ -1085,24 +963,6 @@ def main():
             # argparse with float does not accept empty string, so pass only when set.
             idx = cmd.index("--revenue_per_kpi")
             del cmd[idx : idx + 2]
-        if prior_point["contribution_mean"] is not None:
-            cmd.extend(["--contribution_mean", str(prior_point["contribution_mean"])])
-        if prior_point["contribution_scale"] is not None:
-            cmd.extend(["--contribution_scale", str(prior_point["contribution_scale"])])
-        if prior_point["converted_roi_mu_by_channel"] is not None:
-            cmd.extend(
-                [
-                    "--converted_roi_mu_by_channel_json",
-                    json.dumps(prior_point["converted_roi_mu_by_channel"], sort_keys=True),
-                ]
-            )
-        if prior_point["converted_roi_sigma_by_channel"] is not None:
-            cmd.extend(
-                [
-                    "--converted_roi_sigma_by_channel_json",
-                    json.dumps(prior_point["converted_roi_sigma_by_channel"], sort_keys=True),
-                ]
-            )
         if has_global_baseline:
             cmd.extend(["--baseline_mu", str(baseline_mu), "--baseline_sigma", str(baseline_sigma), "--baseline_dist", str(baseline_dist)])
         if geo_col:
@@ -1147,6 +1007,7 @@ def main():
                 "run_key": run_key,
                 "prior_key": prior_key,
                 "targets_str": targets_str,
+                "target_channel": target_channel,
                 "tmp_run_out": tmp_run_out,
                 "tmp_roi_out": tmp_roi_out,
                 "is_baseline_grid_point": is_baseline_grid_point,
@@ -1179,7 +1040,7 @@ def main():
             "run_id": job["run_key"],
             "prior_key": job["prior_key"],
             "targets": job["targets_str"],
-            "target_channel": job["targets_str"],
+            "target_channel": job["target_channel"],
             "analysis_stage": job["analysis_stage"],
         }
         append_tmp_to_output(

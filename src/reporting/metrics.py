@@ -189,7 +189,6 @@ def _split_analysis_stage(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]
 
 def _derive_kpi_path(run_level: pd.DataFrame) -> str:
     kpi_effective = (_dominant_text(run_level, "kpi_type_effective") or _dominant_text(run_level, "kpi_type") or "").lower()
-    prior_design = (_dominant_text(run_level, "prior_design_mode") or "").lower()
 
     revenue_per_kpi = None
     if "revenue_per_kpi" in run_level.columns:
@@ -197,12 +196,10 @@ def _derive_kpi_path(run_level: pd.DataFrame) -> str:
         if revenue_vals:
             revenue_per_kpi = float(revenue_vals[0])
 
-    if kpi_effective == "revenue":
-        return "Revenue KPI -> ROI directly"
     if revenue_per_kpi is not None:
         return f"Non-revenue KPI -> revenue-equivalent ROI (value={revenue_per_kpi:.2f})"
-    if prior_design == "contribution":
-        return "Non-revenue KPI -> contribution fallback"
+    if kpi_effective == "revenue":
+        return "Revenue KPI -> ROI directly"
     if kpi_effective == "non_revenue":
         return "Non-revenue KPI -> ROI framing"
     return "KPI path inferred from run metadata"
@@ -683,16 +680,14 @@ def _compute_qc_gate(run_level_df: pd.DataFrame, merged_df: pd.DataFrame, cfg: d
             if not vals.empty:
                 run_mode_hint = vals.value_counts().index[0]
         prior_modes = set()
-        if "prior_design_mode" in run_rows.columns:
-            prior_modes = set(
-                run_rows["prior_design_mode"]
-                .dropna()
-                .astype(str)
-                .str.strip()
-                .str.lower()
-                .tolist()
-            )
-        if run_mode_hint == "audit_research" and "contribution" not in prior_modes:
+        for col in ["prior_mode_used", "prior_design_mode", "prior_grid_type"]:
+            if col in run_rows.columns:
+                prior_modes.update(
+                    str(v).strip().lower()
+                    for v in run_rows[col].dropna().tolist()
+                    if str(v).strip()
+                )
+        if run_mode_hint is not None and prior_modes and prior_modes.issubset({"roi"}):
             requested_gate_mode = "configured"
         else:
             requested_gate_mode = "auto_from_runs"

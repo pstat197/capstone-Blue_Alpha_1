@@ -239,7 +239,7 @@
         <section class="panel card" id="section-workbench-v2" data-page-group="analysis">
           <div class="workbench-page-head" data-wb-pages="explorer">
             <h2>Prior Scenario Studio</h2>
-            <p class="subhead">Explore how selected prior assumptions affect one channel.</p>
+            <p class="subhead" id="wb2-prior-assumption">Explore how selected ROI prior assumptions affect one channel.</p>
           </div>
           <div class="workbench-page-head model-output-head" data-wb-pages="modeloutputs">
             <h2>Model Outputs</h2>
@@ -269,7 +269,7 @@
               </div>
               <div class="field">
                 <label for="wb2-mu-range">
-                  <b>Mu (selected scenario)</b>
+                  <b>ROI Mu (selected scenario)</b>
                   <span id="wb2-mu-value" class="range-value" style="margin-left:6px;">-</span>
                   <span id="wb2-mu-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
                 </label>
@@ -280,7 +280,7 @@
               </div>
               <div class="field">
                 <label for="wb2-sigma-range">
-                  <b>Sigma (selected scenario)</b>
+                  <b>ROI Sigma (selected scenario)</b>
                   <span id="wb2-sigma-value" class="range-value" style="margin-left:6px;">-</span>
                   <span id="wb2-sigma-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
                 </label>
@@ -296,7 +296,7 @@
 
             <div class="wb2-kpi-grid wb2-kpi-grid--combined" data-wb-pages="explorer">
               <article class="kpi wb2-metric-card">
-                <div class="k">ROI</div>
+                <div class="k" id="wb2-roi-metric-label">ROI</div>
                 <div class="wb2-metric-primary">
                   <span>Selected</span>
                   <strong id="wb2-kpi-roi">-</strong>
@@ -334,7 +334,7 @@
                   <strong><span id="wb2-baseline-mu">-</span> / <span id="wb2-baseline-sigma">-</span></strong>
                 </div>
                 <div class="wb2-metric-subgrid">
-                  <span>Mu / Sigma baseline</span>
+                  <span>ROI Mu / ROI Sigma baseline</span>
                 </div>
               </article>
             </div>
@@ -705,6 +705,7 @@
       const howRun = payload.how_this_was_run || {};
       const workbench = payload.workbench || {};
       const executionContext = payload.execution_context || {};
+      const outcomeContext = payload.outcome_context || {};
 
       const byId = (id) => document.getElementById(id);
       const distFilter = byId("dist-filter");
@@ -728,6 +729,8 @@
       const decisionReasonsList = byId("decision-reasons-list");
       const decisionExplainerPanel = byId("decision-explainer-panel");
       const decisionExplainerBody = byId("decision-explainer-body");
+      const priorAssumption = byId("wb2-prior-assumption");
+      const roiMetricLabel = byId("wb2-roi-metric-label");
       const decisionScoreGuideBtn = byId("decision-score-guide-btn");
       const decisionScoreGuidePopover = byId("decision-score-guide-popover");
       const decisionScoreGuideTitle = byId("decision-score-guide-title");
@@ -847,6 +850,15 @@
       const channelUpper = (v) => String(v || "").toUpperCase();
       const trimFixed = (v, d = 3) => Number(v).toFixed(d).replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "");
       const fmtNum = (v, d = 3) => (Number.isFinite(v) ? trimFixed(v, d) : "NA");
+      if (priorAssumption) {
+        const rpk = toNum(outcomeContext.revenue_per_kpi);
+        priorAssumption.textContent = Number.isFinite(rpk)
+          ? `Revenue-equivalent ROI based on revenue_per_kpi = ${fmtNum(rpk, 1)}`
+          : "Explore how selected ROI prior assumptions affect one channel.";
+      }
+      if (roiMetricLabel && outcomeContext.metric_label) {
+        roiMetricLabel.textContent = String(outcomeContext.metric_label);
+      }
       const escapeHtml = (raw) => String(raw ?? "")
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
