@@ -1,120 +1,143 @@
-﻿# BlueAlpha Capstone 1: MMM Prior Sensitivity
+# BlueAlpha Capstone 1: MMM ROI Prior Sensitivity
 
-Bayesian prior-sensitivity workflow for Google Meridian MMM.  
-We perturb ROI priors (`mu`, `sigma`, `dist`) and evaluate how conclusions move under different assumptions.
+Bayesian prior-sensitivity workflow for Google Meridian MMM.
 
-[![Try Demo - Local](https://img.shields.io/badge/Try%20Demo-Local%20Private%20Repo-2f5dc6?style=for-the-badge)](#run-demo-private-repo-safe)
-[![Open Google Data Contract](https://img.shields.io/badge/Open-google%20dashboard_payload.json-475569?style=for-the-badge)](data/output/03_reports/report/google/tables/dashboard_payload.json)
+The current workflow runs an ROI-only prior sweep one target channel at a time. For each run, the pipeline varies the ROI prior for a single `target_channel`, fits Meridian, and keeps the primary output row where `channel == target_channel`. Other posterior model metrics may still be generated for reporting context, but contribution-prior mode has been removed.
 
-Private repo note: external HTML hosts (for example `raw.githack`) may return 404 for private content.  
-Use the local demo launcher below.
+For non-revenue KPIs, ROI analysis requires an explicit `outcome.revenue_per_kpi` assumption. In that case, ROI is interpreted and labeled as Revenue-equivalent ROI.
 
 ## What This Project Delivers
 
-- End-to-end prior sensitivity runs for MMM.
-- QC tagging at run level (`PASS` / `REVIEW` / `FAIL`).
-- Sensitivity tables (ROI % and Delta ROI).
-- Client-facing interactive dashboard HTML output.
+- ROI-only, one-channel-at-a-time prior sensitivity sweeps for Meridian MMM.
+- Revenue-equivalent ROI support for non-revenue KPIs through `outcome.revenue_per_kpi`.
+- Primary ROI outputs scoped to rows where `channel == target_channel`.
+- Run-level QC/status outputs for reviewing model fit and sensitivity reliability.
+- Robustness scoring and dashboard/report generation after the pipeline runs.
+- Tornado/sensitivity tables and visualizations for prior robustness review.
+- ROI prior vs posterior plot helper for the primary one-channel ROI CSV.
+- Dashboard artifacts generated under `data/output/03_reports/report/<tag>/` after running the pipeline.
 
 ## Quickstart
 
 From repo root:
 
-```powershell
-# 1) Run pipeline (runs sensitivity + summarize + tornado + robustness + dashboard)
+```bash
 python -m src.pipeline --config config/sensitivity.yaml
 ```
 
-Open:
+The active YAML config currently uses:
 
-- `data/output/03_reports/report/google/dashboard.html`
-- `data/output/03_reports/report/tiktok/dashboard.html`
-
-## Run Demo (Private Repo Safe)
-
-```powershell
-# Open default target dashboard
-powershell -ExecutionPolicy Bypass -File scripts/open_demo.ps1
-
-# Optional: custom tag/port
-powershell -ExecutionPolicy Bypass -File scripts/open_demo.ps1 -Tag tiktok -Port 8766
+```yaml
+run_mode: roi_full
+parallel_workers: 4
+prior_mode: roi
+outcome:
+  kpi_col: subscriptions
+  kpi_type: non_revenue
+  revenue_per_kpi: 40.0
 ```
 
-## Output You Can Share
+Because `subscriptions` is configured as a non-revenue KPI, reported ROI is Revenue-equivalent ROI based on the explicit `revenue_per_kpi: 40.0` assumption.
 
-For a target tag `<tag>` (examples: `google`, `tiktok`):
+## Target Selection
+
+Active target selection is configured in `config/sensitivity.yaml`:
+
+- `defaults.targets`: one linked target set.
+- `defaults.target_sets`: optional batch run of multiple target sets.
+
+`src.pipeline` uses YAML defaults when positional targets are omitted. CLI targets still work as an override:
+
+```bash
+python -m src.pipeline google --config config/sensitivity.yaml
+python -m src.pipeline google tiktok --config config/sensitivity.yaml
+```
+
+Each target channel is swept one at a time. The primary ROI CSV should contain only the target-channel posterior row for each run.
+
+## Outputs
+
+Pipeline artifacts are generated under `data/output/` after a run. For a target tag `<tag>`:
 
 - Runs CSV: `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
-- ROI CSV: `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
+- Primary ROI CSV: `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 - Tornado CSV: `data/output/02_tables/<tag>/tornado_<tag>.csv`
+- Report input CSV: `data/output/02_tables/<tag>/prior_sensitivity_report_input_<tag>.csv`
 - Robustness CSVs: `data/output/02_tables/<tag>/robustness_*_<tag>.csv`
 - Dashboard folder: `data/output/03_reports/report/<tag>/`
+- Tornado plot folder: `data/output/03_reports/tornado_outputs/<tag>/`
+
+Generated Google/Tiktok dashboard artifacts are not committed as current outputs. Run the pipeline to create fresh dashboard files for the configured target tag.
 
 ## Main Commands
 
-```powershell
-# Sensitivity run only for a single dashboard target
+```bash
+# End-to-end YAML-first workflow
+python -m src.pipeline --config config/sensitivity.yaml
+
+# Sensitivity run only for selected target channels
 python -m src.main --targets google --config config/sensitivity.yaml
 
-# Build merged sensitivity table
+# Build merged sensitivity/tornado table
 python -m src.summarize_sensitivity google
-
-# Build dashboard
-python -m src.reporting.make_dashboard --input data/output/02_tables/google/prior_sensitivity_report_input_google.csv --outdir data/output/03_reports/report/google --clean-output
-python -m src.reporting.make_dashboard --input data/output/02_tables/tiktok/prior_sensitivity_report_input_tiktok.csv --outdir data/output/03_reports/report/tiktok --clean-output
 
 # Compute robustness score
 python -m src.robustness_score google
+
+# Build dashboard after report input exists
+python -m src.reporting.make_dashboard \
+  --input data/output/02_tables/google/prior_sensitivity_report_input_google.csv \
+  --outdir data/output/03_reports/report/google \
+  --config config/dashboard.yaml \
+  --clean-output
+
+# Plot ROI prior vs posterior for primary one-channel rows
+python -m src.viz.roi_prior_vs_posterior \
+  --input data/output/01_runs/google/prior_sensitivity_roi_multi_google.csv \
+  --output data/output/03_reports/tornado_outputs/google/roi_prior_vs_posterior_google.png
 ```
-
-### Target Selection (YAML-first)
-
-- Active target selection is configured in `config/sensitivity.yaml` under:
-  - `defaults.targets` (single linked target-set)
-  - optional `defaults.target_sets` (batch run of multiple target-sets)
-- `src.pipeline` now uses YAML defaults when positional targets are omitted.
-- CLI targets still work as an override when needed.
 
 ## Repo Map
 
-```
+```text
 BLUEALPHA/
   config/          sensitivity + dashboard YAML configs
   data/
-    raw/           input CSVs (mocha, geo, test)
+    raw/           input CSVs
     output/
-      01_runs/     raw Meridian run outputs per channel group
-      02_tables/   merged sensitivity tables, tornado CSVs
-      03_reports/  client-facing HTML dashboards, figures, tables
+      01_runs/     raw Meridian run outputs and primary ROI outputs per target tag
+      02_tables/   merged sensitivity tables, tornado CSVs, robustness CSVs
+      03_reports/  generated dashboards, figures, and tables
   docs/            theory, slides, interim reports, project management
-  docs/notebooks/  Jupyter notebooks (prior-sensitivity experiments)
-  scripts/         utility scripts (demo launcher)
+  docs/notebooks/  Jupyter notebooks
+  scripts/         utility scripts
   src/
-    main.py              grid orchestrator + experiment config + baseline stats
-    run_meridian_once.py single Meridian fit + QC + ROI + ModelSpec building
-    pipeline.py          one-command end-to-end runner with skip flags
+    main.py                   ROI-only one-channel grid orchestrator
+    run_meridian_once.py      single Meridian fit + QC + ROI extraction
+    pipeline.py               one-command end-to-end runner
     summarize_sensitivity.py  post-run merge, baseline detection, tornado table
-    run_config.py        YAML config loading, defaults, validation
-    io_utils.py          CSV I/O, resume logic, column normalization
-    output_paths.py      centralized output path management
-    formatting.py        shared formatting and value-safety helpers
-    reporting/           dashboard + report generation (metrics, figures, render)
-    viz/                 tornado plots
+    robustness_score.py       robustness scoring
+    run_config.py             YAML config loading, defaults, validation
+    io_utils.py               CSV I/O, resume logic, column normalization
+    output_paths.py           centralized output path management
+    reporting/                dashboard + report generation
+    viz/                      tornado and ROI prior/posterior plots
 ```
 
-### Pipeline flow
+## Pipeline Flow
 
-```
-config/*.yaml  -->  src/main.py  --(subprocess)-->  src/run_meridian_once.py
-                                                        |
-                    src/summarize_sensitivity.py  <------+  (merge CSVs)
-                                |
-                +---------------+---------------+
-                |                               |
-        src/viz/tornado_plots.py    src/reporting/make_dashboard.py
-                                        |-- metrics.py
-                                        |-- figures.py
-                                        +-- render.py --> HTML dashboard
+```text
+config/sensitivity.yaml
+        |
+        v
+src/main.py  -- one-channel ROI prior sweep -->  src/run_meridian_once.py
+        |
+        v
+src/summarize_sensitivity.py
+        |
+        +--> src/viz/tornado_plots.py
+        +--> src/robustness_score.py
+        +--> src/reporting/make_dashboard.py --> dashboard artifacts
 ```
 
 ## Input Data (`data/raw/`)
@@ -130,20 +153,21 @@ config/*.yaml  -->  src/main.py  --(subprocess)-->  src/run_meridian_once.py
 
 | File | Purpose |
 |------|---------|
-| `sensitivity.yaml` | Active sensitivity config (single source of truth for run grid/baseline) |
+| `sensitivity.yaml` | Active ROI-only sensitivity config and single source of truth for the run grid/baseline |
 | `dashboard.yaml` | Dashboard generation config (branding, thresholds, figure flags) |
 
-## Geo-Level Note
+## Notes
 
-If dataset has no valid geo column, run is treated as national-level sensitivity.
-This is still useful for prior robustness, but not a true geo MMM experiment.
+- Contribution-prior mode is no longer supported. If a config requests it, validation should fail.
+- Posterior contribution metrics may still appear as Meridian outputs or dashboard context; they are not contribution-prior sensitivity mode.
+- If the dataset has no valid geo column, the run is treated as national-level sensitivity. This is still useful for prior robustness, but not a true geo MMM experiment.
 
 ## Team
 
 BlueAlpha Capstone Project 1 Group
 
 - Jasper Luo
-- Jimmy Wu
-- Coraline Zhu
-- Aidan Frazier
 - Quinlan Wilson
+- Jimmy Wu
+- Aidan Frazier
+- Coraline Zhu
