@@ -1510,10 +1510,14 @@ def _compute_decision_card(
     score_label = "Pending Robustness Score"
     score_value = "N/A (awaiting score pipeline)"
     score_note = "Placeholder: robustness score pipeline not integrated yet."
+    score_numeric = None
+    score_band = None
     if robust_available and robust_score_value is not None:
-        score_label = "Robustness Score (Model)"
+        score_label = "Model Robustness Score"
         band_text = robust_band.title() if robust_band != "UNKNOWN" else "Unknown"
         score_value = f"{robust_score_value:.2f} / 100 ({band_text})"
+        score_numeric = robust_score_value
+        score_band = band_text
         robust_weighting = str(robust.get("overall_weighting", "") or "").strip() or "unknown"
         robust_runs = int(robust.get("n_runs_used", 0) or 0)
         source_name = Path(str(robust.get("model_csv", "") or "")).name
@@ -1584,6 +1588,8 @@ def _compute_decision_card(
         "headline": headline,
         "score_label": score_label,
         "score_value": score_value,
+        "score_numeric": score_numeric,
+        "score_band": score_band,
         "score_note": score_note,
         "policy_name": policy_name,
         "policy_rules": policy_rules,

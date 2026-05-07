@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-05-04 22:22:14",
+    "generated_at": "2026-05-06 18:31:14",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -26,8 +26,10 @@
     "tier": "YELLOW",
     "tier_class": "review",
     "headline": "Directional only; resolve QC or stability risks before budget-level decisions.",
-    "score_label": "Robustness Score (Model)",
+    "score_label": "Model Robustness Score",
     "score_value": "31.36 / 100 (Low)",
+    "score_numeric": 31.358,
+    "score_band": "Low",
     "score_note": "src=robustness_model_google.csv | w=spend | n=12",
     "score_subscores": [
       {
@@ -18582,7 +18584,7 @@
       },
       {
         "label": "Generated at",
-        "value": "2026-05-04 22:22:14"
+        "value": "2026-05-06 18:31:14"
       }
     ],
     "notes": [

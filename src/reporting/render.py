@@ -473,6 +473,8 @@ def render_dashboard_output(
             "headline": _clean_text_safe(decision_card.get("headline"), ""),
             "score_label": _clean_text_safe(decision_card.get("score_label"), ""),
             "score_value": _clean_text_safe(decision_card.get("score_value"), ""),
+            "score_numeric": _to_float_safe(decision_card.get("score_numeric")),
+            "score_band": _clean_text_safe(decision_card.get("score_band"), ""),
             "score_note": _clean_text_safe(decision_card.get("score_note"), ""),
             "score_subscores": [
                 {

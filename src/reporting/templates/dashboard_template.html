@@ -176,7 +176,7 @@
           </article>
 
           <article class="overview-card overview-diagnostic-card">
-            <h2>Diagnostic Context</h2>
+            <h2>Diagnostic + Robustness Context</h2>
             <div class="overview-diag-stack">
               <div>
                 <span>QC pass rate</span>
@@ -191,6 +191,23 @@
                 <strong id="mh-status-chip" class="overview-status-chip">-</strong>
               </div>
             </div>
+            <div id="overview-robustness-card" class="overview-robustness-card">
+              <div class="overview-robustness-head">
+                <div>
+                  <span class="overview-info-label">
+                    Robustness Score Breakdown
+                    <button class="overview-info-btn" type="button" aria-label="What is the overall model robustness score?" data-tooltip-title="Overall Model Robustness Score" data-tooltip-body="Spend-weighted reliability of the full model for decision support. Higher means the model is broadly stable and more suitable for confident optimization. Lower means recommendations should be treated as scenario guidance, not hard prescriptions.">i</button>
+                  </span>
+                  <strong id="overview-robustness-score">-</strong>
+                </div>
+                <span id="overview-robustness-band" class="overview-band-chip">-</span>
+              </div>
+              <p>Spend-weighted reliability of the full model for decision support.</p>
+              <div class="overview-robustness-hint">Higher is better</div>
+              <div id="overview-robustness-rows" class="overview-robustness-rows"></div>
+              <div class="overview-robustness-foot">Bands are relative to empirical cutoffs within this run set.</div>
+            </div>
+            <div id="overview-tooltip" class="overview-tooltip" role="tooltip" hidden></div>
             <p id="decision-headline" class="overview-diag-summary">Sensitivity interpretation pending diagnostics.</p>
           </article>
 
@@ -744,6 +761,11 @@
       const overviewLargestCaption = byId("overview-largest-caption");
       const overviewDiagPassRate = byId("overview-diag-pass-rate");
       const overviewDiagStatusMix = byId("overview-diag-status-mix");
+      const overviewRobustnessCard = byId("overview-robustness-card");
+      const overviewRobustnessScore = byId("overview-robustness-score");
+      const overviewRobustnessBand = byId("overview-robustness-band");
+      const overviewRobustnessRows = byId("overview-robustness-rows");
+      const overviewTooltip = byId("overview-tooltip");
       const overviewExperimentList = byId("overview-experiment-list");
       const overviewTornadoTitle = byId("overview-tornado-title");
       const overviewTornadoInterp = byId("overview-tornado-interpretation");
@@ -1493,37 +1515,37 @@
       const scoreGuideLibrary = {
         overall: {
           label: "Overall Model Robustness",
-          meaning: "Single summary of overall model reliability for interpretation support.",
-          high: "Model behavior is comparatively stable, so planning recommendations are more dependable.",
-          low: "Model behavior is fragile enough that recommendations should be treated as scenario guidance, not hard prescriptions.",
+          meaning: "Spend-weighted across channels.",
+          high: "The model is broadly stable and more suitable for confident optimization.",
+          low: "Recommendations should be treated as scenario guidance, not hard prescriptions.",
           whatToDo: "Use stronger interpretation only when score, QC, and tornado diagnostics agree; otherwise keep guardrails and iterate.",
         },
         prior: {
-          label: "Prior Sensitivity",
-          meaning: "How much ROI or contribution estimates move when prior assumptions change.",
-          high: "Estimates move relatively little under prior perturbation, so the channel is stable to prior choice.",
-          low: "Small prior changes cause large output movement, so the channel is assumption-dependent.",
-          whatToDo: "If low, treat the channel as assumption-dependent, run finer prior grids, and stress test the interpretation before acting.",
+          label: "Prior Sensitivity Subscore",
+          meaning: "How much ROI/contribution estimates move when prior assumptions change.",
+          high: "Estimates do not move much when prior assumptions change.",
+          low: "Small prior changes cause large output changes, so the channel is fragile and assumption-dependent.",
+          whatToDo: "If low, use caution in budget decisions, run finer prior grids, and stress test recommendations.",
         },
         data: {
-          label: "Data Influence",
-          meaning: "How much the posterior appears to be driven by observed data rather than by the prior.",
-          high: "Posterior behavior is learning more from data than from prior assumptions.",
-          low: "Posterior behavior tracks the prior too closely, which signals weaker data learning.",
+          label: "Data Influence Subscore",
+          meaning: "Whether posterior behavior is driven more by data than by prior assumptions.",
+          high: "The posterior is being driven more by data than by prior assumptions.",
+          low: "Posterior behavior tracks prior assumptions too closely, suggesting a weaker data signal.",
           whatToDo: "If low, treat channel conclusions as provisional, consider more data or cleaner features, and avoid overconfident optimization.",
         },
         cross: {
-          label: "Cross-Channel",
+          label: "Cross-Channel Subscore",
           meaning: "How isolated channel estimates remain when one channel prior is perturbed.",
-          high: "Channel estimates stay relatively separated, so attribution is cleaner.",
-          low: "Perturbing one channel shifts others noticeably, which signals structural coupling or identifiability risk.",
-          whatToDo: "If low, interpret channel rankings cautiously, emphasize portfolio-level readouts, and review the model structure/specification.",
+          high: "Channel estimates stay relatively isolated, so attribution separation is cleaner.",
+          low: "Perturbing one channel shifts other channels noticeably, indicating coupling or identifiability risk.",
+          whatToDo: "If low, interpret channel rankings cautiously and emphasize portfolio-level decisions.",
         },
         adstock: {
-          label: "Adstock Proxy",
-          meaning: "Secondary stability diagnostic based on sign consistency and dispersion proxies.",
-          high: "Directional behavior is more stable, with fewer sign flips and less noisy posterior movement.",
-          low: "Directional behavior is unstable or noisy, which weakens practical reliability.",
+          label: "Adstock Proxy Subscore",
+          meaning: "Secondary diagnostic for sign flips, interval stability, and dispersion proxy.",
+          high: "Estimates are directionally stable with fewer sign flips, better interval stability, and lower dispersion proxy.",
+          low: "Unstable directional behavior and noisier posterior shape.",
           whatToDo: "If low, keep recommendations conservative and consider extra temporal or adstock-focused diagnostics before stronger interpretation.",
         },
         target_subset: {
@@ -1539,6 +1561,122 @@
         const raw = String(txt || "");
         const m = raw.match(/\((High|Medium|Low|Unknown)\)/i);
         return m ? String(m[1] || "").toUpperCase() : "";
+      };
+
+      const robustnessTooltipCopy = {
+        prior: {
+          title: "Prior Sensitivity",
+          body: "Higher is better. Measures whether ROI/contribution estimates stay stable when prior assumptions change. Low means small prior changes cause large output changes, so use caution, run finer prior grids, and stress test recommendations.",
+        },
+        data: {
+          title: "Data Influence",
+          body: "Higher is better. Measures whether the posterior is driven more by data than by prior assumptions. Low means the posterior tracks the prior too closely, suggesting weaker data signal. Treat conclusions as provisional.",
+        },
+        cross: {
+          title: "Cross-Channel",
+          body: "Higher is better. Measures whether perturbing one channel's prior shifts other channels. Low means stronger coupling or identifiability risk, so interpret channel rankings cautiously and emphasize portfolio-level decisions.",
+        },
+        adstock: {
+          title: "Adstock Proxy",
+          body: "Higher is better. Secondary diagnostic for directional and interval stability. Low means unstable direction/sign behavior or noisy posterior shape. Use conservative recommendations and consider temporal/adstock-focused diagnostics.",
+        },
+        band: {
+          title: "Band Labels",
+          body: "Low / Medium / High are relative classifications from empirical cutoffs within this run set. Low means highest fragility and requires caution; Medium is usable with uncertainty; High is strongest relative robustness.",
+        },
+      };
+
+      const infoButtonHtml = (title, body, label) => `
+        <button class="overview-info-btn" type="button" aria-label="${escapeHtml(label || title)}" data-tooltip-title="${escapeHtml(title)}" data-tooltip-body="${escapeHtml(body)}">i</button>
+      `;
+
+      const positionOverviewTooltip = (trigger) => {
+        if (!overviewTooltip || !trigger || overviewTooltip.hidden) return;
+        const rect = trigger.getBoundingClientRect();
+        const gap = 10;
+        const width = Math.min(340, Math.max(280, overviewTooltip.offsetWidth || 320));
+        let left = rect.right + gap;
+        if (left + width > window.innerWidth - 12) {
+          left = rect.left - width - gap;
+        }
+        left = Math.max(12, Math.min(left, window.innerWidth - width - 12));
+        const top = Math.max(12, Math.min(rect.top - 8, window.innerHeight - overviewTooltip.offsetHeight - 12));
+        overviewTooltip.style.left = `${left}px`;
+        overviewTooltip.style.top = `${top}px`;
+      };
+
+      const showOverviewTooltip = (trigger) => {
+        if (!overviewTooltip || !trigger) return;
+        const title = String(trigger.getAttribute("data-tooltip-title") || "").trim();
+        const body = String(trigger.getAttribute("data-tooltip-body") || "").trim();
+        if (!title && !body) return;
+        overviewTooltip.innerHTML = `${title ? `<strong>${escapeHtml(title)}</strong>` : ""}${body ? `<span>${escapeHtml(body)}</span>` : ""}`;
+        overviewTooltip.hidden = false;
+        positionOverviewTooltip(trigger);
+      };
+
+      const hideOverviewTooltip = () => {
+        if (!overviewTooltip) return;
+        overviewTooltip.hidden = true;
+      };
+
+      document.addEventListener("mouseover", (event) => {
+        const trigger = event.target && event.target.closest ? event.target.closest("[data-tooltip-body]") : null;
+        if (trigger) showOverviewTooltip(trigger);
+      });
+      document.addEventListener("mouseout", (event) => {
+        const trigger = event.target && event.target.closest ? event.target.closest("[data-tooltip-body]") : null;
+        if (trigger && !trigger.contains(event.relatedTarget)) hideOverviewTooltip();
+      });
+      document.addEventListener("focusin", (event) => {
+        const trigger = event.target && event.target.closest ? event.target.closest("[data-tooltip-body]") : null;
+        if (trigger) showOverviewTooltip(trigger);
+      });
+      document.addEventListener("focusout", (event) => {
+        const trigger = event.target && event.target.closest ? event.target.closest("[data-tooltip-body]") : null;
+        if (trigger) hideOverviewTooltip();
+      });
+      window.addEventListener("scroll", hideOverviewTooltip, { passive: true });
+      window.addEventListener("resize", hideOverviewTooltip);
+
+      const renderOverviewRobustness = () => {
+        if (!overviewRobustnessCard) return;
+        const score = toNum(decision.score_numeric);
+        const scoreText = Number.isFinite(score)
+          ? `${fmtNum(score, 2)} / 100`
+          : String(decision.score_value || "NA").replace(/\s*\([^)]*\)\s*$/u, "").trim();
+        const band = String(decision.score_band || parseBandFromScoreText(String(decision.score_value || "")) || "").trim();
+        if (overviewRobustnessScore) overviewRobustnessScore.textContent = scoreText || "Not available";
+        if (overviewRobustnessBand) {
+          overviewRobustnessBand.innerHTML = `
+            <span>${escapeHtml(band || "Not available")}</span>
+            ${infoButtonHtml(robustnessTooltipCopy.band.title, robustnessTooltipCopy.band.body, "What do robustness band labels mean?")}
+          `;
+          overviewRobustnessBand.classList.remove("band-low", "band-medium", "band-high");
+          if (band.toLowerCase() === "low") overviewRobustnessBand.classList.add("band-low");
+          else if (band.toLowerCase() === "medium") overviewRobustnessBand.classList.add("band-medium");
+          else if (band.toLowerCase() === "high") overviewRobustnessBand.classList.add("band-high");
+        }
+        if (!overviewRobustnessRows) return;
+        const subs = Array.isArray(decision.score_subscores) ? decision.score_subscores : [];
+        const rows = ["prior", "data", "cross", "adstock"].map((id) => {
+          const row = subs.find((item) => String(item.id || "") === id) || null;
+          const value = row ? toNum(row.value) : null;
+          const label = row ? String(row.label || id) : (scoreGuideLibrary[id] || {}).label || id;
+          const pct = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
+          const display = Number.isFinite(value) ? `${fmtNum(value, 2)}` : "Not available";
+          const tip = robustnessTooltipCopy[id] || { title: label, body: "Higher is better." };
+          return `
+            <div class="overview-robustness-row">
+              <div>
+                <span class="overview-info-label">${escapeHtml(label)}${infoButtonHtml(tip.title, tip.body, `What does ${label} mean?`)}</span>
+                <b>${display}</b>
+              </div>
+              <div class="overview-robustness-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
+            </div>
+          `;
+        });
+        overviewRobustnessRows.innerHTML = rows.join("");
       };
 
       const scoreRuleLines = (selectedId) => {
@@ -1711,14 +1849,13 @@
           decisionScoreLabel.textContent = String(decision.score_label || "Robustness level");
         }
         if (decisionScoreValue) {
-          const scoreLabelText = String(decision.score_label || "Robustness Score")
-            .replace(/\s*\(Model\)\s*/i, "")
-            .trim();
+          const scoreLabelText = String(decision.score_label || "Model Robustness Score").trim();
           const scoreValueText = String(decision.score_value || "NA").trim();
-          decisionScoreValue.textContent = scoreValueText && scoreValueText !== "NA"
-            ? `${scoreLabelText || "Robustness Score"}: ${scoreValueText}`
-            : "Robustness Score: NA";
+          decisionScoreValue.innerHTML = scoreValueText && scoreValueText !== "NA"
+            ? `<span>${escapeHtml(scoreLabelText || "Model Robustness Score")}</span><strong>${escapeHtml(scoreValueText)}</strong>`
+            : "<span>Model Robustness Score</span><strong>NA</strong>";
         }
+        renderOverviewRobustness();
         if (decisionScoreNote) {
           const note = String(decision.score_note || "").trim();
           decisionScoreNote.textContent = note || "";
