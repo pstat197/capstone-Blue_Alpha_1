@@ -170,7 +170,9 @@ def extract_roi_mean(mmm, channels):
     mean_roi = np.nanmean(roi_flat, axis=0)
     sd_roi = np.nanstd(roi_flat, axis=0, ddof=0)
     p05_roi = np.nanpercentile(roi_flat, 5, axis=0)
+    p25_roi = np.nanpercentile(roi_flat, 25, axis=0)
     p50_roi = np.nanpercentile(roi_flat, 50, axis=0)
+    p75_roi = np.nanpercentile(roi_flat, 75, axis=0)
     p95_roi = np.nanpercentile(roi_flat, 95, axis=0)
 
     return pd.DataFrame(
@@ -179,7 +181,9 @@ def extract_roi_mean(mmm, channels):
             "estimated_roi": mean_roi,
             "posterior_roi_sd": sd_roi,
             "posterior_roi_p05": p05_roi,
+            "posterior_roi_p25": p25_roi,
             "posterior_roi_p50": p50_roi,
+            "posterior_roi_p75": p75_roi,
             "posterior_roi_p95": p95_roi,
         }
     )
@@ -566,10 +570,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gate_matched_count", type=int, default=None)
     parser.add_argument("--gate_missing_count", type=int, default=None)
     parser.add_argument("--gate_warning", default=None)
-    parser.add_argument("--contribution_mean", type=float, default=None)
-    parser.add_argument("--contribution_scale", type=float, default=None)
-    parser.add_argument("--converted_roi_mu_by_channel_json", default=None)
-    parser.add_argument("--converted_roi_sigma_by_channel_json", default=None)
+    parser.add_argument("--data_tag", default=None)
     parser.add_argument(
         "--official_outdir",
         default=None,
@@ -739,12 +740,18 @@ def _resolve_mode(args, channels: list[str], normalized_structural: dict) -> dic
         overrides = json.loads(args.roi_prior_overrides_json)
         model_spec = build_model_spec(channels=channels, roi_prior_overrides=overrides, structural_overrides=normalized_structural)
         targets = sorted(overrides.keys())
-        first = overrides[targets[0]]
+        target_channel = str(args.target_channel).strip() if args.target_channel else targets[0]
+        if target_channel not in overrides:
+            raise ValueError(
+                f"--target_channel '{target_channel}' must be present in roi_prior_overrides_json."
+            )
+        first = overrides[target_channel]
         return {
             "multiprior": True,
             "overrides": overrides,
             "model_spec": model_spec,
-            "targets_str": ",".join(targets),
+            "targets_str": target_channel,
+            "target_set_str": ",".join(targets),
             "shared_mu": first.get("mu"),
             "shared_sigma": first.get("sigma"),
             "shared_dist": first.get("dist"),
@@ -763,6 +770,7 @@ def _resolve_mode(args, channels: list[str], normalized_structural: dict) -> dic
             structural_overrides=normalized_structural,
         ),
         "targets_str": args.target_channel,
+        "target_set_str": args.target_channel,
         "shared_mu": args.mu,
         "shared_sigma": args.sigma,
         "shared_dist": args.dist,
@@ -1036,24 +1044,6 @@ def main():
     shared_slope = normalized_structural["slope_m"]
     shared_max_lag = normalized_structural["max_lag"]
     shared_decay = normalized_structural["adstock_decay_spec"]
-    converted_roi_mu_by_channel = None
-    converted_roi_sigma_by_channel = None
-    if args.converted_roi_mu_by_channel_json:
-        try:
-            converted_roi_mu_by_channel = json.dumps(
-                json.loads(args.converted_roi_mu_by_channel_json),
-                sort_keys=True,
-            )
-        except Exception:
-            converted_roi_mu_by_channel = str(args.converted_roi_mu_by_channel_json)
-    if args.converted_roi_sigma_by_channel_json:
-        try:
-            converted_roi_sigma_by_channel = json.dumps(
-                json.loads(args.converted_roi_sigma_by_channel_json),
-                sort_keys=True,
-            )
-        except Exception:
-            converted_roi_sigma_by_channel = str(args.converted_roi_sigma_by_channel_json)
 
     two_layer_enabled = str(args.two_layer_enabled).strip().lower() in {"1", "true", "yes"}
     target_channels_value = args.target_channels or mode["targets_str"]
@@ -1073,16 +1063,13 @@ def main():
         "roi_mu": _round_or_none(shared_mu),
         "roi_sigma": _round_or_none(shared_sigma),
         "roi_dist": str(shared_dist) if shared_dist is not None else None,
-        "contribution_mean": args.contribution_mean,
-        "contribution_scale": args.contribution_scale,
-        "converted_roi_mu_by_channel": converted_roi_mu_by_channel,
-        "converted_roi_sigma_by_channel": converted_roi_sigma_by_channel,
         "qc_scope": str(qc_scope),
         "qc_target_channels": ",".join(qc_target_channels),
         "gate_mode": str(args.gate_mode) if args.gate_mode else None,
         "gate_matched_count": args.gate_matched_count,
         "gate_missing_count": args.gate_missing_count,
         "gate_warning": str(args.gate_warning) if args.gate_warning else None,
+        "data_tag": str(args.data_tag) if args.data_tag else None,
         "input_data_csv": data_profile.get("input_data_csv"),
     }
 
@@ -1172,6 +1159,14 @@ def main():
     for k, v in qc_metrics.items():
         roi_df[k] = v
 
+    primary_target_channel = str(mode["targets_str"])
+    roi_df = roi_df[roi_df["channel"].astype(str) == primary_target_channel].copy()
+    if roi_df.empty:
+        raise ValueError(
+            f"No ROI posterior row matched target_channel='{primary_target_channel}'. "
+            f"Available channels: {channels}"
+        )
+
     roi_df.to_csv(args.out_roi_csv, index=False)
 
     is_baseline = False
@@ -1216,16 +1211,13 @@ def main():
         "roi_mu": metadata.get("roi_mu"),
         "roi_sigma": metadata.get("roi_sigma"),
         "roi_dist": metadata.get("roi_dist"),
-        "contribution_mean": metadata.get("contribution_mean"),
-        "contribution_scale": metadata.get("contribution_scale"),
-        "converted_roi_mu_by_channel": metadata.get("converted_roi_mu_by_channel"),
-        "converted_roi_sigma_by_channel": metadata.get("converted_roi_sigma_by_channel"),
         "qc_scope": metadata.get("qc_scope"),
         "qc_target_channels": metadata.get("qc_target_channels"),
         "gate_mode": metadata.get("gate_mode"),
         "gate_matched_count": metadata.get("gate_matched_count"),
         "gate_missing_count": metadata.get("gate_missing_count"),
         "gate_warning": metadata.get("gate_warning"),
+        "data_tag": metadata.get("data_tag"),
         "input_data_csv": metadata.get("input_data_csv"),
         "qc_status_code": qc_rollup["qc_status_code"],
         "qc_severity_rank": qc_rollup["qc_severity_rank"],

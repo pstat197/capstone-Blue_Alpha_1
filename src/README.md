@@ -11,8 +11,7 @@ python -m src.pipeline google meta tiktok --config config/sensitivity.yaml
 
 Run mode is controlled from `config/sensitivity.yaml`:
 
-- `run_mode: fast_product` (default, 15-run quick ROI grid: `mu=[0.5,1.0,1.5,2.5,4.0]`, `sigma=[0.8,1.5,2.5]`)
-- `run_mode: audit_research` (fuller grid + stronger sampler)
+- `run_mode: roi_full` (fixed full ROI grid with the configured production sampler)
 
 ## Core Modules
 
@@ -58,6 +57,5 @@ Default workflow is fixed full-grid sweep (`sweep.type: fixed_full_grid`).
 
 - Extremely large `%` changes  
   Often near-zero baseline ROI; check `Delta ROI` and stability flags.
-
 
 

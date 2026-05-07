@@ -337,7 +337,7 @@ def _build_marginal_tables(run_level_df: pd.DataFrame) -> tuple[pd.DataFrame, pd
             roi_max=("estimated_roi", "max"),
             pct_change_median=("pct_change", "median"),
             contribution_median=("contribution_value", "median"),
-            contribution_mean=("contribution_value", "mean"),
+            contribution_value_mean=("contribution_value", "mean"),
         )
     )
     mu_marginal["roi_range_over_sigma"] = mu_marginal["roi_max"] - mu_marginal["roi_min"]
@@ -352,7 +352,7 @@ def _build_marginal_tables(run_level_df: pd.DataFrame) -> tuple[pd.DataFrame, pd
             roi_max=("estimated_roi", "max"),
             pct_change_median=("pct_change", "median"),
             contribution_median=("contribution_value", "median"),
-            contribution_mean=("contribution_value", "mean"),
+            contribution_value_mean=("contribution_value", "mean"),
         )
     )
     sigma_marginal["roi_range_over_mu"] = sigma_marginal["roi_max"] - sigma_marginal["roi_min"]
