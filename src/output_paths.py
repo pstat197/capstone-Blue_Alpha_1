@@ -10,9 +10,6 @@ RUNS_DIR = OUTPUT_ROOT / "01_runs"
 TABLES_DIR = OUTPUT_ROOT / "02_tables"
 REPORTS_DIR = OUTPUT_ROOT / "03_reports"
 
-# Backward-compatible legacy location used before folder split.
-LEGACY_OUTPUT_DIR = OUTPUT_ROOT
-
 
 def ensure_output_dirs() -> None:
     for d in (RUNS_DIR, TABLES_DIR, REPORTS_DIR):
@@ -55,56 +52,9 @@ def roi_csv_path(tag: str, base_dir: Path = RUNS_DIR) -> Path:
     return runs_tag_dir(tag, base_dir) / _roi_csv_name(tag)
 
 
-def legacy_combined_csv_path(tag: str, base_dir: Path = LEGACY_OUTPUT_DIR) -> Path:
-    return base_dir / f"prior_sensitivity_results_multi_{tag}.csv"
-
-
 def tornado_csv_path(tag: str, base_dir: Path = TABLES_DIR) -> Path:
     return tables_tag_dir(tag, base_dir) / _tornado_csv_name(tag)
 
 
 def report_input_csv_path(tag: str, base_dir: Path = TABLES_DIR) -> Path:
     return tables_tag_dir(tag, base_dir) / _report_input_csv_name(tag)
-
-
-def _flat_run_csv_path(tag: str, base_dir: Path) -> Path:
-    return base_dir / _run_csv_name(tag)
-
-
-def _flat_roi_csv_path(tag: str, base_dir: Path) -> Path:
-    return base_dir / _roi_csv_name(tag)
-
-
-def _flat_tornado_csv_path(tag: str, base_dir: Path) -> Path:
-    return base_dir / _tornado_csv_name(tag)
-
-
-def candidate_run_csv_paths(tag: str) -> list[Path]:
-    return [
-        run_csv_path(tag, RUNS_DIR),
-        _flat_run_csv_path(tag, RUNS_DIR),
-        _flat_run_csv_path(tag, LEGACY_OUTPUT_DIR),
-    ]
-
-
-def candidate_roi_csv_paths(tag: str) -> list[Path]:
-    return [
-        roi_csv_path(tag, RUNS_DIR),
-        _flat_roi_csv_path(tag, RUNS_DIR),
-        _flat_roi_csv_path(tag, LEGACY_OUTPUT_DIR),
-    ]
-
-
-def candidate_tornado_csv_paths(tag: str) -> list[Path]:
-    return [
-        tornado_csv_path(tag, TABLES_DIR),
-        _flat_tornado_csv_path(tag, TABLES_DIR),
-        _flat_tornado_csv_path(tag, LEGACY_OUTPUT_DIR),
-    ]
-
-
-def first_existing(paths: list[Path]) -> Path | None:
-    for p in paths:
-        if p.exists():
-            return p
-    return None

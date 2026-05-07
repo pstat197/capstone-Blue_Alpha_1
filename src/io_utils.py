@@ -13,6 +13,33 @@ STRUCTURAL_COLUMNS = [
     "adstock_decay_spec",
 ]
 
+EXPERIMENT_METADATA_COLUMNS = [
+    "analysis_stage",
+    "run_mode",
+    "prior_mode_used",
+    "kpi_type",
+    "kpi_type_effective",
+    "outcome_col_used",
+    "revenue_per_kpi",
+    "target_channels",
+    "sweep_type",
+    "two_layer_enabled",
+    "prior_design_mode",
+    "prior_grid_type",
+    "prior_design_label",
+    "roi_mu",
+    "roi_sigma",
+    "roi_dist",
+    "qc_scope",
+    "qc_target_channels",
+    "gate_mode",
+    "gate_matched_count",
+    "gate_missing_count",
+    "gate_warning",
+    "data_tag",
+    "input_data_csv",
+]
+
 RUN_OUTPUT_COLUMNS = [
     "run_id",
     "prior_key",
@@ -30,6 +57,7 @@ RUN_OUTPUT_COLUMNS = [
     "data_n_rows",
     "data_n_time_periods",
     "data_n_geos",
+    *EXPERIMENT_METADATA_COLUMNS,
     "qc_status_code",
     "qc_severity_rank",
     "qc_needs_review",
@@ -62,10 +90,13 @@ ROI_OUTPUT_COLUMNS = [
     "roi_prior_dist",
     *STRUCTURAL_COLUMNS,
     "is_baseline",
+    *EXPERIMENT_METADATA_COLUMNS,
     "estimated_roi",
     "posterior_roi_sd",
     "posterior_roi_p05",
+    "posterior_roi_p25",
     "posterior_roi_p50",
+    "posterior_roi_p75",
     "posterior_roi_p95",
     "prior_roi_mu_channel",
     "prior_roi_sigma_channel",
@@ -188,9 +219,8 @@ def _read_header_columns(path: str) -> List[str]:
 
 def load_resume_state(output_file: str) -> AlreadyDone:
     """
-    Load existing output CSV (if it exists) and return already_done.
-    - If output contains 'run_id' -> return Set[str] of completed run ids
-    - Else preserve legacy resume behavior for older combined output files
+    Load existing run CSV (if it exists) and return completed run ids.
+    Only the current split schema with 'run_id' is supported.
     """
 
     if not os.path.exists(output_file):
@@ -207,30 +237,16 @@ def load_resume_state(output_file: str) -> AlreadyDone:
         return set()
     print("Existing results found. Loading...")
 
-    if "run_id" in results_df.columns:
-        results_df["run_id"] = results_df["run_id"].astype(str)
-        return set(results_df["run_id"].tolist())
-
-    results_df = normalize_columns(results_df)
-
-    # multiprior resume-safe
-    if "prior_key" in results_df.columns:
-        results_df["prior_key"] = results_df["prior_key"].astype(str)
-        return set(results_df["prior_key"].tolist())
-
-    # single-target resume-safe
-    results_df["roi_prior_mu"] = pd.to_numeric(results_df["roi_prior_mu"], errors="coerce").round(6)
-    results_df["roi_prior_sigma"] = pd.to_numeric(results_df["roi_prior_sigma"], errors="coerce").round(6)
-    results_df["roi_prior_dist"] = results_df["roi_prior_dist"].astype(str)
-
-    return set(
-        zip(
-            results_df["target_channel"].astype(str),
-            results_df["roi_prior_mu"],
-            results_df["roi_prior_sigma"],
-            results_df["roi_prior_dist"],
+    if "run_id" not in results_df.columns:
+        backup = _backup_file(output_file, "unsupported_schema_backup")
+        print(
+            "[warn] Existing resume CSV does not match current schema (missing run_id). "
+            f"Moved to backup: {backup}"
         )
-    )
+        return set()
+
+    results_df["run_id"] = results_df["run_id"].astype(str)
+    return set(results_df["run_id"].tolist())
 
 
 def append_tmp_to_output(

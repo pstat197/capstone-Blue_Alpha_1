@@ -60,8 +60,11 @@ analysis:
     max_local_sensitivity_ratio: 1.0
   qc_gate:
     enabled: true
-    mu_values: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-    sigma_values: [0.5, 1.0, 1.5]
+    # auto_from_runs | configured
+    gate_mode: auto_from_runs
+    fallback_to_auto_from_runs: true
+    mu_values: [0.5, 0.75, 1.0, 1.25, 1.5]
+    sigma_values: [1.0, 1.25, 1.5]
     dists: [LogNormal]
   workbench:
     primary_dist: LogNormal

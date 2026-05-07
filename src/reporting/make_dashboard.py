@@ -205,11 +205,11 @@ def main():
         _cleanup_legacy_report_outputs(outdir, report_filename)
 
     if write_dashboard:
-        print(f"Dashboard written to: {outdir / output_cfg.get('dashboard_filename', 'dashboard.html')}")
+        print("Dashboard updated.")
     elif write_report:
-        print(f"Legacy report mode wrote: {outdir / report_filename}")
+        print("Report updated.")
     else:
-        print(f"Tables written to: {tables_dir}")
+        print("Dashboard tables updated.")
 
 
 if __name__ == "__main__":

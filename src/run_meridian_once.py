@@ -47,6 +47,22 @@ from meridian.data import data_frame_input_data_builder
 from meridian.model import model, prior_distribution, spec
 import tensorflow_probability as tfp
 
+
+def _configure_tensorflow_runtime() -> None:
+    # TensorFlow + XLA can be unstable under repeated Windows subprocess runs.
+    # Prefer a conservative runtime profile so long sweeps finish reliably.
+    if os.name != "nt":
+        return
+    try:
+        tf.config.optimizer.set_jit(False)
+    except Exception:
+        pass
+    try:
+        tf.config.threading.set_intra_op_parallelism_threads(1)
+        tf.config.threading.set_inter_op_parallelism_threads(1)
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Meridian ModelSpec construction (inlined from former meridian_spec.py)
 # ---------------------------------------------------------------------------
@@ -154,7 +170,9 @@ def extract_roi_mean(mmm, channels):
     mean_roi = np.nanmean(roi_flat, axis=0)
     sd_roi = np.nanstd(roi_flat, axis=0, ddof=0)
     p05_roi = np.nanpercentile(roi_flat, 5, axis=0)
+    p25_roi = np.nanpercentile(roi_flat, 25, axis=0)
     p50_roi = np.nanpercentile(roi_flat, 50, axis=0)
+    p75_roi = np.nanpercentile(roi_flat, 75, axis=0)
     p95_roi = np.nanpercentile(roi_flat, 95, axis=0)
 
     return pd.DataFrame(
@@ -163,7 +181,9 @@ def extract_roi_mean(mmm, channels):
             "estimated_roi": mean_roi,
             "posterior_roi_sd": sd_roi,
             "posterior_roi_p05": p05_roi,
+            "posterior_roi_p25": p25_roi,
             "posterior_roi_p50": p50_roi,
+            "posterior_roi_p75": p75_roi,
             "posterior_roi_p95": p95_roi,
         }
     )
@@ -320,10 +340,61 @@ def extract_flagged_channels(text: Optional[str]) -> str:
     return ",".join(_dedupe_preserve_order(channels))
 
 
+def _parse_target_channels(raw: Optional[str]) -> list[str]:
+    if raw is None:
+        return []
+    out: list[str] = []
+    seen: set[str] = set()
+    for token in str(raw).split(","):
+        t = token.strip().lower()
+        if t and t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def _apply_target_scoped_roi_consistency(
+    check_details: dict,
+    *,
+    report_text: str,
+    target_channels: list[str],
+) -> tuple[dict, str]:
+    scoped = dict(check_details or {})
+    target_set = {str(x).strip().lower() for x in target_channels if str(x).strip()}
+    if not target_set:
+        return scoped, "all_channels"
+
+    roi_col = "qc_roi_consistency_status"
+    roi_status = _normalize_status_token(scoped.get(roi_col))
+    if roi_status in {None, "PASS"}:
+        return scoped, "target_channels"
+
+    roi_reco = _extract_check_recommendation(report_text, "ROIConsistency")
+    flagged = _parse_target_channels(extract_flagged_channels(roi_reco))
+    if not flagged:
+        return scoped, "target_channels"
+
+    if target_set.isdisjoint(set(flagged)):
+        scoped[roi_col] = "PASS"
+    return scoped, "target_channels"
+
+
 def derive_qc_rollup(qc_status: Optional[str], needs_review: bool, check_details: dict, report_text: str) -> dict:
     overall = _normalize_status_token(qc_status)
-    if overall == "FAIL":
+    check_states: list[tuple[str, str]] = []
+    for check_name, status_col in CHECK_ORDER:
+        st = _normalize_status_token(check_details.get(status_col))
+        if st:
+            check_states.append((check_name, st))
+
+    if any(st == "FAIL" for _, st in check_states):
         code, severity = "FAIL", 2
+    elif any(st == "REVIEW" for _, st in check_states):
+        code, severity = "REVIEW", 1
+    elif overall == "FAIL":
+        code, severity = "FAIL", 2
+    elif check_states:
+        code, severity = "PASS", 0
     elif needs_review:
         code, severity = "REVIEW", 1
     elif overall == "PASS":
@@ -456,6 +527,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("--csv", required=True)
     parser.add_argument("--kpi_col", default="subscriptions")
+    parser.add_argument("--kpi_type", default="non_revenue", choices=["revenue", "non_revenue"])
+    parser.add_argument("--revenue_per_kpi", type=float, default=None)
     parser.add_argument("--time_col", default="date")
     parser.add_argument("--geo_col", default=None)
     parser.add_argument("--population_col", default=None)
@@ -483,6 +556,21 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--baseline_sigma", type=float, default=None)
     parser.add_argument("--baseline_dist", type=str, default=None)
     parser.add_argument("--baseline_structural_overrides_json", default=None)
+    parser.add_argument("--prior_design_mode", default="roi")
+    parser.add_argument("--prior_mode_used", default=None)
+    parser.add_argument("--prior_grid_type", default="roi")
+    parser.add_argument("--prior_design_label", default=None)
+    parser.add_argument("--run_mode", default=None)
+    parser.add_argument("--target_channels", default=None)
+    parser.add_argument("--sweep_type", default="fixed_full_grid")
+    parser.add_argument("--two_layer_enabled", default="false")
+    parser.add_argument("--qc_scope", default="target_channels")
+    parser.add_argument("--qc_target_channels", default=None)
+    parser.add_argument("--gate_mode", default=None)
+    parser.add_argument("--gate_matched_count", type=int, default=None)
+    parser.add_argument("--gate_missing_count", type=int, default=None)
+    parser.add_argument("--gate_warning", default=None)
+    parser.add_argument("--data_tag", default=None)
     parser.add_argument(
         "--official_outdir",
         default=None,
@@ -544,6 +632,8 @@ def _load_input_data(
     channels: list[str],
     *,
     kpi_col: str,
+    kpi_type: str,
+    revenue_per_kpi: float | None,
     time_col: Optional[str],
     geo_col: Optional[str],
     population_col: Optional[str],
@@ -553,24 +643,63 @@ def _load_input_data(
     resolved_geo_col = _resolve_geo_column(df, geo_col)
     resolved_population_col = _resolve_population_column(df, population_col)
 
+    if kpi_col not in df.columns:
+        raise ValueError(f"KPI column '{kpi_col}' is not present in input CSV: {csv_path}")
     df[resolved_time_col] = pd.to_datetime(df[resolved_time_col])
+    df[kpi_col] = pd.to_numeric(df[kpi_col], errors="coerce")
+    if df[kpi_col].isna().all():
+        raise ValueError(f"KPI column '{kpi_col}' has no numeric values after parsing.")
+
+    spend_cols = [f"{c}_spend" for c in channels]
+    missing_spend = [c for c in spend_cols if c not in df.columns]
+    if missing_spend:
+        raise ValueError(
+            "Missing spend columns for configured channels: "
+            + ", ".join(missing_spend)
+            + ". Ensure the dataset includes '<channel>_spend' for each channel."
+        )
+
+    media_cols = []
+    missing_impressions = []
+    for c in channels:
+        imp_col = f"{c}_impressions"
+        spend_col = f"{c}_spend"
+        if imp_col in df.columns:
+            media_cols.append(imp_col)
+        else:
+            media_cols.append(spend_col)
+            missing_impressions.append(imp_col)
+
+    kpi_type_norm = str(kpi_type or "non_revenue").strip().lower()
+    if kpi_type_norm not in {"revenue", "non_revenue"}:
+        raise ValueError("kpi_type must be 'revenue' or 'non_revenue'.")
+
+    outcome_col_used = kpi_col
+    kpi_type_effective = kpi_type_norm
+    revenue_per_kpi_value = None if revenue_per_kpi is None else float(revenue_per_kpi)
+    if kpi_type_norm == "non_revenue" and revenue_per_kpi_value is not None:
+        if revenue_per_kpi_value <= 0:
+            raise ValueError("revenue_per_kpi must be > 0 when provided.")
+        outcome_col_used = "__revenue_equiv__"
+        df[outcome_col_used] = pd.to_numeric(df[kpi_col], errors="coerce") * revenue_per_kpi_value
+        kpi_type_effective = "revenue"
 
     builder = data_frame_input_data_builder.DataFrameInputDataBuilder(
-        kpi_type="non_revenue",
-        default_kpi_column=kpi_col,
+        kpi_type=kpi_type_effective,
+        default_kpi_column=outcome_col_used,
         default_time_column=resolved_time_col,
         default_geo_column=(resolved_geo_col or "geo"),
     )
     builder = builder.with_kpi(
         df,
-        kpi_col=kpi_col,
+        kpi_col=outcome_col_used,
         time_col=resolved_time_col,
         geo_col=resolved_geo_col,
     )
     builder = builder.with_media(
         df,
-        media_cols=[f"{c}_impressions" for c in channels],
-        media_spend_cols=[f"{c}_spend" for c in channels],
+        media_cols=media_cols,
+        media_spend_cols=spend_cols,
         media_channels=channels,
         time_col=resolved_time_col,
         geo_col=resolved_geo_col,
@@ -589,6 +718,12 @@ def _load_input_data(
         "data_n_rows": int(len(df)),
         "data_n_time_periods": int(df[resolved_time_col].nunique(dropna=True)),
         "data_n_geos": int(df[resolved_geo_col].nunique(dropna=True)) if resolved_geo_col else 1,
+        "kpi_type": kpi_type_norm,
+        "kpi_type_effective": kpi_type_effective,
+        "outcome_col_used": outcome_col_used,
+        "revenue_per_kpi": revenue_per_kpi_value,
+        "input_data_csv": str(Path(csv_path).resolve()),
+        "media_impressions_fallback_count": int(len(missing_impressions)),
     }
     return builder.build(), data_profile
 
@@ -605,12 +740,18 @@ def _resolve_mode(args, channels: list[str], normalized_structural: dict) -> dic
         overrides = json.loads(args.roi_prior_overrides_json)
         model_spec = build_model_spec(channels=channels, roi_prior_overrides=overrides, structural_overrides=normalized_structural)
         targets = sorted(overrides.keys())
-        first = overrides[targets[0]]
+        target_channel = str(args.target_channel).strip() if args.target_channel else targets[0]
+        if target_channel not in overrides:
+            raise ValueError(
+                f"--target_channel '{target_channel}' must be present in roi_prior_overrides_json."
+            )
+        first = overrides[target_channel]
         return {
             "multiprior": True,
             "overrides": overrides,
             "model_spec": model_spec,
-            "targets_str": ",".join(targets),
+            "targets_str": target_channel,
+            "target_set_str": ",".join(targets),
             "shared_mu": first.get("mu"),
             "shared_sigma": first.get("sigma"),
             "shared_dist": first.get("dist"),
@@ -629,6 +770,7 @@ def _resolve_mode(args, channels: list[str], normalized_structural: dict) -> dic
             structural_overrides=normalized_structural,
         ),
         "targets_str": args.target_channel,
+        "target_set_str": args.target_channel,
         "shared_mu": args.mu,
         "shared_sigma": args.sigma,
         "shared_dist": args.dist,
@@ -839,6 +981,7 @@ def _export_meridian_official_outputs(
 
 def main():
     args = _build_parser().parse_args()
+    _configure_tensorflow_runtime()
     if args.out_roi_csv is None:
         if args.out_csv is None:
             raise ValueError("Provide --out_roi_csv (preferred) or legacy --out_csv.")
@@ -852,6 +995,8 @@ def main():
         args.csv,
         channels,
         kpi_col=str(args.kpi_col),
+        kpi_type=str(args.kpi_type),
+        revenue_per_kpi=args.revenue_per_kpi,
         time_col=(None if args.time_col is None else str(args.time_col)),
         geo_col=(None if args.geo_col is None else str(args.geo_col)),
         population_col=(None if args.population_col is None else str(args.population_col)),
@@ -871,7 +1016,13 @@ def main():
     qc_report_full, qc_status, qc_summary = normalize_qc_payload(qc)
     review_needed = qc_needs_review(qc_summary, qc_report_full)
     qc_metrics = extract_qc_metrics_from_text(qc_report_full)
-    check_details = extract_check_details(qc_report_full)
+    check_details_raw = extract_check_details(qc_report_full)
+    qc_target_channels = _parse_target_channels(args.qc_target_channels or args.target_channels or mode.get("targets_str"))
+    check_details, qc_scope = _apply_target_scoped_roi_consistency(
+        check_details_raw,
+        report_text=qc_report_full,
+        target_channels=qc_target_channels,
+    )
     qc_rollup = derive_qc_rollup(qc_status, review_needed, check_details, qc_report_full)
     if args.official_outdir:
         try:
@@ -894,6 +1045,34 @@ def main():
     shared_max_lag = normalized_structural["max_lag"]
     shared_decay = normalized_structural["adstock_decay_spec"]
 
+    two_layer_enabled = str(args.two_layer_enabled).strip().lower() in {"1", "true", "yes"}
+    target_channels_value = args.target_channels or mode["targets_str"]
+    metadata = {
+        "run_mode": str(args.run_mode) if args.run_mode is not None else None,
+        "prior_mode_used": str(args.prior_mode_used or args.prior_design_mode),
+        "kpi_type": str(data_profile.get("kpi_type", args.kpi_type)),
+        "kpi_type_effective": str(data_profile.get("kpi_type_effective", args.kpi_type)),
+        "outcome_col_used": str(data_profile.get("outcome_col_used", args.kpi_col)),
+        "revenue_per_kpi": data_profile.get("revenue_per_kpi"),
+        "target_channels": str(target_channels_value),
+        "sweep_type": str(args.sweep_type),
+        "two_layer_enabled": bool(two_layer_enabled),
+        "prior_design_mode": str(args.prior_design_mode),
+        "prior_grid_type": str(args.prior_grid_type),
+        "prior_design_label": str(args.prior_design_label) if args.prior_design_label else None,
+        "roi_mu": _round_or_none(shared_mu),
+        "roi_sigma": _round_or_none(shared_sigma),
+        "roi_dist": str(shared_dist) if shared_dist is not None else None,
+        "qc_scope": str(qc_scope),
+        "qc_target_channels": ",".join(qc_target_channels),
+        "gate_mode": str(args.gate_mode) if args.gate_mode else None,
+        "gate_matched_count": args.gate_matched_count,
+        "gate_missing_count": args.gate_missing_count,
+        "gate_warning": str(args.gate_warning) if args.gate_warning else None,
+        "data_tag": str(args.data_tag) if args.data_tag else None,
+        "input_data_csv": data_profile.get("input_data_csv"),
+    }
+
     channel_prior_df = _build_channel_prior_params(
         channels=channels,
         multiprior=bool(mode["multiprior"]),
@@ -915,6 +1094,8 @@ def main():
         max_lag=shared_max_lag,
         adstock_decay_spec=shared_decay,
     )
+    for k, v in metadata.items():
+        roi_df[k] = v
     roi_df = roi_df.merge(channel_prior_df, on="channel", how="left")
 
     roi_df["prior_posterior_kl_gaussian"] = _kl_gaussian_from_moments(
@@ -969,13 +1150,22 @@ def main():
         roi_df["roi_prior_overrides_json"] = json.dumps(mode["overrides"], sort_keys=True)
         roi_df["structural_overrides_json"] = json.dumps(normalized_structural, sort_keys=True)
 
+    qc_review_flag = str(qc_rollup.get("qc_status_code", "")).upper() == "REVIEW"
     roi_df["qc_overall_status"] = qc_status
     roi_df["qc_summary"] = qc_summary
     roi_df["qc_pass_fail"] = qc_to_pass_fail(qc_report_full, qc_status)
-    roi_df["qc_needs_review"] = review_needed
+    roi_df["qc_needs_review"] = qc_review_flag
     roi_df["qc_text"] = qc_report_full
     for k, v in qc_metrics.items():
         roi_df[k] = v
+
+    primary_target_channel = str(mode["targets_str"])
+    roi_df = roi_df[roi_df["channel"].astype(str) == primary_target_channel].copy()
+    if roi_df.empty:
+        raise ValueError(
+            f"No ROI posterior row matched target_channel='{primary_target_channel}'. "
+            f"Available channels: {channels}"
+        )
 
     roi_df.to_csv(args.out_roi_csv, index=False)
 
@@ -1006,9 +1196,32 @@ def main():
         "data_n_rows": data_profile.get("data_n_rows"),
         "data_n_time_periods": data_profile.get("data_n_time_periods"),
         "data_n_geos": data_profile.get("data_n_geos"),
+        "run_mode": metadata.get("run_mode"),
+        "prior_mode_used": metadata.get("prior_mode_used"),
+        "kpi_type": metadata.get("kpi_type"),
+        "kpi_type_effective": metadata.get("kpi_type_effective"),
+        "outcome_col_used": metadata.get("outcome_col_used"),
+        "revenue_per_kpi": metadata.get("revenue_per_kpi"),
+        "target_channels": metadata.get("target_channels"),
+        "sweep_type": metadata.get("sweep_type"),
+        "two_layer_enabled": metadata.get("two_layer_enabled"),
+        "prior_design_mode": metadata.get("prior_design_mode"),
+        "prior_grid_type": metadata.get("prior_grid_type"),
+        "prior_design_label": metadata.get("prior_design_label"),
+        "roi_mu": metadata.get("roi_mu"),
+        "roi_sigma": metadata.get("roi_sigma"),
+        "roi_dist": metadata.get("roi_dist"),
+        "qc_scope": metadata.get("qc_scope"),
+        "qc_target_channels": metadata.get("qc_target_channels"),
+        "gate_mode": metadata.get("gate_mode"),
+        "gate_matched_count": metadata.get("gate_matched_count"),
+        "gate_missing_count": metadata.get("gate_missing_count"),
+        "gate_warning": metadata.get("gate_warning"),
+        "data_tag": metadata.get("data_tag"),
+        "input_data_csv": metadata.get("input_data_csv"),
         "qc_status_code": qc_rollup["qc_status_code"],
         "qc_severity_rank": qc_rollup["qc_severity_rank"],
-        "qc_needs_review": bool(review_needed),
+        "qc_needs_review": bool(qc_review_flag),
         "qc_summary_short": qc_rollup["qc_summary_short"],
         "qc_primary_review_check": qc_rollup["qc_primary_review_check"],
         "qc_flagged_channels": qc_rollup["qc_flagged_channels"],

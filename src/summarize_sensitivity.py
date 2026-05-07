@@ -11,15 +11,12 @@ import numpy as np
 
 from src.output_paths import (
     TABLES_DIR,
-    LEGACY_OUTPUT_DIR,
-    candidate_roi_csv_paths,
-    candidate_run_csv_paths,
     ensure_output_dirs,
-    first_existing,
-    legacy_combined_csv_path,
+    roi_csv_path,
+    run_csv_path,
     tornado_csv_path,
 )
-from src.io_utils import STRUCTURAL_COLUMNS
+from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 
 
 def _pick_center(values):
@@ -29,10 +26,27 @@ def _pick_center(values):
     return vals[len(vals) // 2]
 
 
+def _baseline_scope_columns(df: pd.DataFrame) -> list[str]:
+    cols = ["targets"]
+    scenario_cols = [
+        "kpi_type",
+        "kpi_type_effective",
+        "outcome_col_used",
+        "revenue_per_kpi",
+        "prior_design_mode",
+        "prior_grid_type",
+        "prior_design_label",
+        "input_data_csv",
+    ]
+    cols.extend([c for c in scenario_cols if c in df.columns])
+    return cols
+
+
 def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
     """Fallback baseline inference when is_baseline flag is missing/empty.
 
-    Uses center-point prior values (middle mu, middle sigma, preferred dist) per targets group.
+    Uses center-point prior values (middle mu, middle sigma, preferred dist)
+    per baseline scope group.
     """
     if df.empty:
         return df.copy()
@@ -42,11 +56,14 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
         return df.iloc[0:0].copy()
 
     picked = []
-    for t, g in df.groupby("targets", dropna=False):
+    group_cols = _baseline_scope_columns(df)
+    for _, g in df.groupby(group_cols, dropna=False):
         mu0 = _pick_center(g["roi_prior_mu"])
         sigma0 = _pick_center(g["roi_prior_sigma"])
         dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
         dist0 = "LogNormal" if "LogNormal" in dists else (_pick_center(dists) if dists else None)
+        if mu0 is None or sigma0 is None:
+            continue
 
         mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
         mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
@@ -62,11 +79,10 @@ def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(picked, ignore_index=True)
 
 
-def _paths_for_tag(tag: str) -> dict[str, Path | list[Path]]:
+def _paths_for_tag(tag: str) -> dict[str, Path]:
     return {
-        "run_csv_candidates": candidate_run_csv_paths(tag),
-        "roi_csv_candidates": candidate_roi_csv_paths(tag),
-        "legacy_csv": legacy_combined_csv_path(tag, LEGACY_OUTPUT_DIR),
+        "run_csv": run_csv_path(tag),
+        "roi_csv": roi_csv_path(tag),
         "tornado_csv": tornado_csv_path(tag, TABLES_DIR),
     }
 
@@ -113,8 +129,16 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
-    data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+def _load_channel_spend(project_root: str, channels: list[str], data_csv: str | None = None) -> pd.DataFrame:
+    if data_csv is None:
+        data_csv = os.path.join(project_root, "data", "raw", "monthly_mocha.csv")
+    if not os.path.isabs(data_csv):
+        data_csv = os.path.join(project_root, data_csv)
+    if not os.path.exists(data_csv):
+        raise FileNotFoundError(
+            f"Data CSV for channel spend totals not found: {data_csv}. "
+            "Set input_data_csv metadata or provide the expected dataset path."
+        )
     raw_df = pd.read_csv(data_csv)
 
     records = []
@@ -127,55 +151,47 @@ def _load_channel_spend(project_root: str, channels: list[str]) -> pd.DataFrame:
     return pd.DataFrame(records)
 
 
-def _load_current_results(paths: dict[str, Path | list[Path]]) -> pd.DataFrame:
-    run_candidates = paths["run_csv_candidates"]
-    roi_candidates = paths["roi_csv_candidates"]
+def _load_current_results(paths: dict[str, Path]) -> pd.DataFrame:
+    run_csv = paths["run_csv"]
+    roi_csv = paths["roi_csv"]
+    if not run_csv.exists() or not roi_csv.exists():
+        return pd.DataFrame()
 
-    run_csv = None
-    roi_csv = None
-    if run_candidates[0].exists() and roi_candidates[0].exists():
-        run_csv = run_candidates[0]
-        roi_csv = roi_candidates[0]
-    elif run_candidates[1].exists() and roi_candidates[1].exists():
-        run_csv = run_candidates[1]
-        roi_csv = roi_candidates[1]
-    else:
-        run_csv = first_existing(run_candidates)
-        roi_csv = first_existing(roi_candidates)
+    run_df = _safe_read_csv_or_backup(run_csv)
+    roi_df = _safe_read_csv_or_backup(roi_csv)
+    if run_df.empty or roi_df.empty:
+        return pd.DataFrame()
 
-    if run_csv is not None and roi_csv is not None:
-        run_df = _safe_read_csv_or_backup(run_csv)
-        roi_df = _safe_read_csv_or_backup(roi_csv)
-        if run_df.empty or roi_df.empty:
-            return pd.DataFrame()
+    if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
+        raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
 
-        if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
-            raise ValueError("Current split outputs must include 'run_id' in both run and ROI CSVs.")
+    run_cols = [
+        c for c in [
+            "run_id",
+            "prior_key",
+            "targets",
+            "roi_prior_mu",
+            "roi_prior_sigma",
+            "roi_prior_dist",
+            *STRUCTURAL_COLUMNS,
+            *EXPERIMENT_METADATA_COLUMNS,
+            "is_baseline",
+            "qc_status_code",
+            "qc_summary_short",
+            "qc_primary_review_check",
+            "qc_flagged_channels",
+        ] if c in run_df.columns
+    ]
+    run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
+    return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
 
-        run_cols = [
-            c for c in [
-                "run_id",
-                "prior_key",
-                "targets",
-                "roi_prior_mu",
-                "roi_prior_sigma",
-                "roi_prior_dist",
-                *STRUCTURAL_COLUMNS,
-                "is_baseline",
-                "qc_status_code",
-                "qc_summary_short",
-                "qc_primary_review_check",
-                "qc_flagged_channels",
-            ] if c in run_df.columns
-        ]
-        run_meta = run_df[run_cols].drop_duplicates(subset=["run_id"]).copy()
-        return roi_df.merge(run_meta, on="run_id", how="left", suffixes=("", "_run"))
 
-    legacy_csv = paths["legacy_csv"]
-    if legacy_csv.exists():
-        return pd.read_csv(legacy_csv)
-
-    return pd.DataFrame()
+def _filter_to_prior_stage(df: pd.DataFrame) -> pd.DataFrame:
+    if "analysis_stage" not in df.columns:
+        return df.copy()
+    mask = df["analysis_stage"].astype(str).str.strip().str.lower() == "prior_sweep"
+    filtered = df.loc[mask].copy()
+    return filtered if not filtered.empty else df.copy()
 
 
 def main():
@@ -208,8 +224,7 @@ def main():
     if df.empty:
         cmd = [sys.executable, "-m", "src.main", "--targets"] + targets_sorted
 
-        print("Sensitivity outputs missing; generating them first via:")
-        print(" ".join(cmd))
+        print("Sensitivity outputs missing; running sensitivity first.")
 
         proc = subprocess.run(cmd, cwd=project_root)
         if proc.returncode != 0:
@@ -217,11 +232,9 @@ def main():
 
         df = _load_current_results(paths)
         if df.empty:
-            run_candidates = ", ".join(str(p) for p in paths["run_csv_candidates"])
-            roi_candidates = ", ".join(str(p) for p in paths["roi_csv_candidates"])
             raise FileNotFoundError(
-                "Expected split outputs (or legacy combined output) still not found after auto-run: "
-                f"{run_candidates} / {roi_candidates}"
+                "Expected split outputs not found after auto-run: "
+                f"{paths['run_csv']} / {paths['roi_csv']}"
             )
 
     # Summarize
@@ -230,6 +243,7 @@ def main():
     if "targets" not in df.columns:
         raise ValueError("Input CSV has no 'targets' column; cannot summarize multi-prior results.")
     df = df[df["targets"] == targets_str].copy()
+    df = _filter_to_prior_stage(df)
 
     if "is_baseline" not in df.columns:
         raise ValueError("Missing column 'is_baseline' in results CSV. Cannot identify baseline reliably.")
@@ -257,14 +271,16 @@ def main():
     baseline_metric_cols = [c for c in baseline_metric_rename if c in baseline_df.columns]
     if not baseline_metric_cols:
         raise ValueError("Baseline rows are missing ROI metrics needed for tornado summarization.")
+    baseline_group_cols = _baseline_scope_columns(df)
+    baseline_join_cols = [*baseline_group_cols, "channel"]
     baseline_summary = (
-        baseline_df.groupby(["targets", "channel"])[baseline_metric_cols]
+        baseline_df.groupby(baseline_join_cols, dropna=False)[baseline_metric_cols]
         .mean()
         .reset_index()
         .rename(columns=baseline_metric_rename)
     )
 
-    df = df.merge(baseline_summary, on=["targets", "channel"], how="left")
+    df = df.merge(baseline_summary, on=baseline_join_cols, how="left")
     df["roi_new"] = df["estimated_roi"]
     df["delta_abs"] = (df["roi_new"] - df["roi_baseline"]).abs()
     df["delta_pct"] = np.where(
@@ -291,7 +307,17 @@ def main():
         union = np.maximum(hi_base, hi_new) - np.minimum(lo_base, lo_new)
         df["ci_overlap_baseline_new"] = np.where(union > 0, overlap / union, np.nan)
 
-    spend_df = _load_channel_spend(project_root, sorted(df["channel"].dropna().astype(str).unique().tolist()))
+    input_data_csv = None
+    if "input_data_csv" in df.columns:
+        non_null = df["input_data_csv"].dropna().astype(str).str.strip()
+        non_null = non_null[non_null != ""]
+        if not non_null.empty:
+            input_data_csv = non_null.iloc[0]
+    spend_df = _load_channel_spend(
+        project_root,
+        sorted(df["channel"].dropna().astype(str).unique().tolist()),
+        data_csv=input_data_csv,
+    )
     if not spend_df.empty:
         df = df.merge(spend_df, on="channel", how="left")
         df["channel_total_spend"] = pd.to_numeric(df["channel_total_spend"], errors="coerce")
@@ -335,6 +361,7 @@ def main():
     ]
     optional_cols = [
         *STRUCTURAL_COLUMNS,
+        *EXPERIMENT_METADATA_COLUMNS,
         "roi_prior_mu",
         "roi_prior_sigma",
         "roi_prior_dist",
@@ -369,8 +396,7 @@ def main():
 
     output_cols = required_cols + [c for c in optional_cols if c in df.columns]
     df[output_cols].to_csv(out_csv, index=False)
-    print("Saved tornado-ready summary to:")
-    print(out_csv)
+    print("Tornado summary ready.")
 
 
 if __name__ == "__main__":

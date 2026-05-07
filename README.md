@@ -4,7 +4,7 @@ Bayesian prior-sensitivity workflow for Google Meridian MMM.
 We perturb ROI priors (`mu`, `sigma`, `dist`) and evaluate how conclusions move under different assumptions.
 
 [![Try Demo - Local](https://img.shields.io/badge/Try%20Demo-Local%20Private%20Repo-2f5dc6?style=for-the-badge)](#run-demo-private-repo-safe)
-[![Open Data Contract](https://img.shields.io/badge/Open-dashboard_payload.json-475569?style=for-the-badge)](data/output/03_reports/report/google_meta_tiktok/tables/dashboard_payload.json)
+[![Open Google Data Contract](https://img.shields.io/badge/Open-google%20dashboard_payload.json-475569?style=for-the-badge)](data/output/03_reports/report/google/tables/dashboard_payload.json)
 
 Private repo note: external HTML hosts (for example `raw.githack`) may return 404 for private content.  
 Use the local demo launcher below.
@@ -27,21 +27,22 @@ python -m src.pipeline --config config/sensitivity.yaml
 
 Open:
 
-- `data/output/03_reports/report/google_meta_tiktok/dashboard.html`
+- `data/output/03_reports/report/google/dashboard.html`
+- `data/output/03_reports/report/tiktok/dashboard.html`
 
 ## Run Demo (Private Repo Safe)
 
 ```powershell
-# Open default target dashboard (`google_meta_tiktok`)
+# Open default target dashboard
 powershell -ExecutionPolicy Bypass -File scripts/open_demo.ps1
 
 # Optional: custom tag/port
-powershell -ExecutionPolicy Bypass -File scripts/open_demo.ps1 -Tag google_meta_moloco -Port 8766
+powershell -ExecutionPolicy Bypass -File scripts/open_demo.ps1 -Tag tiktok -Port 8766
 ```
 
 ## Output You Can Share
 
-For a target tag `<tag>` (example: `google_meta_tiktok`):
+For a target tag `<tag>` (examples: `google`, `tiktok`):
 
 - Runs CSV: `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
 - ROI CSV: `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
@@ -52,17 +53,18 @@ For a target tag `<tag>` (example: `google_meta_tiktok`):
 ## Main Commands
 
 ```powershell
-# Sensitivity run only
-python -m src.main --targets google meta tiktok --config config/sensitivity.yaml
+# Sensitivity run only for a single dashboard target
+python -m src.main --targets google --config config/sensitivity.yaml
 
 # Build merged sensitivity table
-python -m src.summarize_sensitivity google meta tiktok
+python -m src.summarize_sensitivity google
 
 # Build dashboard
-python -m src.reporting.make_dashboard --input data/output/02_tables/google_meta_tiktok/prior_sensitivity_report_input_google_meta_tiktok.csv --outdir data/output/03_reports/report/google_meta_tiktok --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/google/prior_sensitivity_report_input_google.csv --outdir data/output/03_reports/report/google --clean-output
+python -m src.reporting.make_dashboard --input data/output/02_tables/tiktok/prior_sensitivity_report_input_tiktok.csv --outdir data/output/03_reports/report/tiktok --clean-output
 
 # Compute robustness score
-python -m src.robustness_score google meta tiktok
+python -m src.robustness_score google
 ```
 
 ### Target Selection (YAML-first)

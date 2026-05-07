@@ -9,14 +9,13 @@ import pandas as pd
 from src.formatting import status_bucket as _status_bucket
 from src.output_paths import (
     PROJECT_ROOT,
-    candidate_run_csv_paths,
-    candidate_tornado_csv_paths,
-    first_existing,
+    run_csv_path,
+    tornado_csv_path,
 )
 
 
 DEFAULT_MU_VALUES = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
-DEFAULT_SIGMA_VALUES = [0.5, 1.0, 1.5]
+DEFAULT_SIGMA_VALUES = [1.0, 1.5, 2.0]
 DEFAULT_DISTS = ["LogNormal"]
 
 
@@ -74,15 +73,17 @@ def _format_targets(targets: list[str]) -> tuple[list[str], str, str]:
 
 
 def _find_run_csv(tag: str) -> Path:
-    run_csv = first_existing(candidate_run_csv_paths(tag))
-    if run_csv is None:
-        tried = ", ".join(str(p) for p in candidate_run_csv_paths(tag))
-        raise FileNotFoundError(f"Run CSV not found for tag={tag}. Tried: {tried}")
+    run_csv = run_csv_path(tag)
+    if not run_csv.exists():
+        raise FileNotFoundError(f"Run CSV not found for tag={tag}: {run_csv}")
     return run_csv
 
 
 def _find_tornado_csv(tag: str) -> Path | None:
-    return first_existing(candidate_tornado_csv_paths(tag))
+    tor = tornado_csv_path(tag)
+    if tor.exists():
+        return tor
+    return None
 
 
 def _build_qc_subset(

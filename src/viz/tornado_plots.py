@@ -13,7 +13,7 @@ from src.formatting import fmt_money as _fmt_money
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
-CSV_NAME = "data/output/02_tables/google_meta_tiktok/tornado_google_meta_tiktok.csv"
+CSV_NAME = "data/output/02_tables/google/tornado_google.csv"
 CSV_GLOB = "data/output/02_tables/*/tornado_*.csv"
 INPUT_MODE = "all"  # "single" or "all"
 OUT_DIR = "data/output/03_reports/tornado_outputs"
@@ -559,7 +559,7 @@ def plot_interval_by_channel(
     summ: pd.DataFrame, title: str, outpath: Path, subscription_scale_note: str
 ):
     if summ.empty:
-        print("No data to plot.")
+        print("No tornado data to plot.")
         return
 
     # least sensitive at bottom, most sensitive at top
@@ -739,7 +739,15 @@ def process_single_csv(csv_path: Path, out_dir: Path) -> dict:
     csv_stem = csv_path.stem
     df = pd.read_csv(csv_path)
     if df.empty:
-        raise ValueError(f"CSV has no rows: {csv_path.name}")
+        return {
+            "csv_name": csv_path.name,
+            "plot_path": None,
+            "summ_csv": None,
+            "html_report_path": None,
+            "html_fragment_path": None,
+            "scenario_summary": pd.DataFrame(),
+            "skipped_empty": True,
+        }
 
     needed = {CHANNEL_COL}
     missing = needed - set(df.columns)
@@ -909,21 +917,20 @@ def main():
     for csv_path in csv_paths:
         try:
             result = process_single_csv(csv_path=csv_path, out_dir=out_dir)
+            if bool(result.get("skipped_empty")):
+                print(f"[{result['csv_name']}] No tornado rows available; skipped tornado outputs.")
+                continue
             scenario_summaries.append(result["scenario_summary"])
-            print(f"\n[{result['csv_name']}] Saved:")
-            print(" -", result["plot_path"])
-            if result["summ_csv"] is not None:
-                print(" -", result["summ_csv"])
-            if result["html_report_path"] is not None:
-                print(" -", result["html_report_path"])
-            if result["html_fragment_path"] is not None:
-                print(" -", result["html_fragment_path"])
+            print(f"[{result['csv_name']}] Tornado outputs ready.")
         except Exception as exc:
             failures.append((csv_path.name, str(exc)))
             print(f"\n[{csv_path.name}] ERROR: {exc}")
 
     if not scenario_summaries:
-        raise RuntimeError("No scenario reports were produced.")
+        if failures:
+            raise RuntimeError("No scenario reports were produced.")
+        print("No tornado scenario rows available; finished without tornado outputs.")
+        return
 
     all_summ = pd.concat(scenario_summaries, ignore_index=True)
     global_agg = aggregate_global_channel_sensitivity(all_summ)
@@ -941,10 +948,7 @@ def main():
             agg=global_agg,
             scenarios_count=len(csv_paths) - len(failures),
         )
-        print("\n[GLOBAL] Saved:")
-        print(" -", global_html_report_path)
-        if global_html_fragment_path is not None:
-            print(" -", global_html_fragment_path)
+        print("[GLOBAL] Tornado summary ready.")
 
     if WRITE_GLOBAL_REPORT and not global_agg.empty:
         top_channel = str(global_agg.iloc[0]["channel"]).upper()

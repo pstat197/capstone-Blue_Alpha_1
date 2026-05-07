@@ -143,7 +143,15 @@ def render_dashboard_output(
     env = Environment(loader=FileSystemLoader(str(template_dir)))
     output_cfg = cfg.get("output", {}) or {}
     write_report = bool(output_cfg.get("write_report", False))
-    template = env.get_template("report_template.html") if write_report else None
+    report_template_name = "report_template.html"
+    report_template_path = template_dir / report_template_name
+    template = (
+        env.get_template(report_template_name)
+        if write_report and report_template_path.exists()
+        else None
+    )
+    if write_report and template is None:
+        write_report = False
 
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
@@ -243,6 +251,7 @@ def render_dashboard_output(
     if qc_gate.get("available"):
         appendix_tables.extend(
             [
+                "tables/qc_gate_summary.csv",
                 "tables/qc_gate_run_subset.csv",
                 "tables/qc_gate_status_breakdown.csv",
             ]
@@ -433,6 +442,11 @@ def render_dashboard_output(
         qc_gate_block = {
             "available": True,
             "result": qc_gate.get("result", "REVIEW"),
+            "gate_mode": qc_gate.get("gate_mode"),
+            "gate_mode_requested": qc_gate.get("gate_mode_requested"),
+            "gate_matched_count": qc_gate.get("gate_matched_count"),
+            "gate_missing_count": qc_gate.get("gate_missing_count"),
+            "gate_warning": qc_gate.get("gate_warning"),
             "mu_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("mu_values", [])],
             "sigma_values": [_fmt_float_safe(v, digits=3, missing_label="NA") for v in qc_gate.get("sigma_values", [])],
             "dists": qc_gate.get("dists", []),
@@ -459,6 +473,8 @@ def render_dashboard_output(
             "headline": _clean_text_safe(decision_card.get("headline"), ""),
             "score_label": _clean_text_safe(decision_card.get("score_label"), ""),
             "score_value": _clean_text_safe(decision_card.get("score_value"), ""),
+            "score_numeric": _to_float_safe(decision_card.get("score_numeric")),
+            "score_band": _clean_text_safe(decision_card.get("score_band"), ""),
             "score_note": _clean_text_safe(decision_card.get("score_note"), ""),
             "score_subscores": [
                 {
@@ -473,6 +489,15 @@ def render_dashboard_output(
             "triggered_rules": decision_card.get("triggered_rules", []),
             "reasons": decision_card.get("reasons", []),
             "actions": decision_card.get("actions", []),
+            "score_meta": {
+                "higher_is_better": bool((decision_card.get("score_meta", {}) or {}).get("higher_is_better", True)),
+                "overall_weighting": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("overall_weighting"), ""),
+                "band_low_cutoff_q33": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_low_cutoff_q33")),
+                "band_high_cutoff_q67": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_high_cutoff_q67")),
+                "band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("band_method"), ""),
+                "adstock_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("adstock_note"), ""),
+                "subscore_weights": (decision_card.get("score_meta", {}) or {}).get("subscore_weights", {}) or {},
+            },
         }
 
     spend_effect_block = {"available": False}
@@ -625,6 +650,38 @@ def render_dashboard_output(
                 }
             )
 
+        response_rows = []
+        for row in structural.get("response_rows", []):
+            response_rows.append(
+                {
+                    "run_id": row.get("run_id"),
+                    "channel": row.get("channel"),
+                    "target_channel": row.get("target_channel"),
+                    "analysis_stage": row.get("analysis_stage"),
+                    "struct_profile_id": row.get("struct_profile_id"),
+                    "roi_prior_mu": _to_float_safe(row.get("roi_prior_mu")),
+                    "roi_prior_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+                    "roi_prior_dist": row.get("roi_prior_dist"),
+                    "estimated_roi": _to_float_safe(row.get("estimated_roi")),
+                    "baseline_roi": _to_float_safe(row.get("baseline_roi")),
+                    "pct_change": _to_float_safe(row.get("pct_change")),
+                    "abs_pct_change": _to_float_safe(row.get("abs_pct_change")),
+                    "contribution_value": _to_float_safe(row.get("contribution_value")),
+                    "contribution_share": _to_float_safe(row.get("contribution_share")),
+                    "effect_value": _to_float_safe(row.get("effect_value")),
+                    "effect_share": _to_float_safe(row.get("effect_share")),
+                    "channel_total_spend": _to_float_safe(row.get("channel_total_spend")),
+                    "spend_share": _to_float_safe(row.get("spend_share")),
+                    "adstock_alpha_m": _to_float_safe(row.get("adstock_alpha_m")),
+                    "saturation_ec_m": _to_float_safe(row.get("saturation_ec_m")),
+                    "saturation_slope_m": _to_float_safe(row.get("saturation_slope_m")),
+                    "max_lag": _to_float_safe(row.get("max_lag")),
+                    "adstock_decay_spec": row.get("adstock_decay_spec"),
+                    "qc_status_code": row.get("qc_status_code"),
+                    "qc_summary_short": row.get("qc_summary_short"),
+                }
+            )
+
         selected_profile = structural.get("selected_profile") or {}
         structural_block = {
             "available": True,
@@ -633,6 +690,7 @@ def render_dashboard_output(
             "notes": structural.get("notes", []),
             "profile_rows": profile_rows,
             "run_rows": run_rows,
+            "response_rows": response_rows,
         }
 
     diagnostics_focus = []
@@ -809,6 +867,7 @@ def render_dashboard_output(
         }
 
     import numpy as _np
+    import pandas as _pd
     merged_df_for_tornado = metrics.get("merged_df")
     roi_tornado_rows: list[dict] = []
     if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
@@ -837,11 +896,167 @@ def render_dashboard_output(
                 "impact": max(abs(left_v), abs(right_v)),
                 "n": int(vals.size),
                 "source": source,
+                "unit": "pct",
             })
         roi_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
 
+    contribution_tornado_rows: list[dict] = []
+    tornado_primary_metric = "roi_pct"
+    tornado_primary_label = "ROI Change (%)"
+    active_kpi_type = ""
+    active_revenue_conversion_available = False
+    outcome_context = {
+        "metric_label": "ROI",
+        "kpi_type": "",
+        "kpi_type_effective": "",
+        "revenue_per_kpi": None,
+    }
+    if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
+        def _dominant_text_value(columns: list[str]) -> str:
+            values: list[str] = []
+            for col in columns:
+                if col not in merged_df_for_tornado.columns:
+                    continue
+                values.extend(
+                    merged_df_for_tornado[col]
+                    .dropna()
+                    .astype(str)
+                    .str.strip()
+                    .str.lower()
+                    .replace({"": _np.nan, "nan": _np.nan, "none": _np.nan, "null": _np.nan})
+                    .dropna()
+                    .tolist()
+                )
+            return max(set(values), key=values.count) if values else ""
+
+        def _has_positive_number(columns: list[str]) -> bool:
+            for col in columns:
+                if col not in merged_df_for_tornado.columns:
+                    continue
+                vals = _pd.to_numeric(merged_df_for_tornado[col], errors="coerce").dropna()
+                if bool((vals > 0).any()):
+                    return True
+            return False
+
+        def _cfg_has_revenue_conversion() -> bool:
+            outcome_cfg = cfg.get("outcome", {}) or {}
+            single = _to_float_safe(outcome_cfg.get("revenue_per_kpi"))
+            if single is not None and single > 0:
+                return True
+            values = outcome_cfg.get("revenue_per_kpi_values")
+            if isinstance(values, (list, tuple)):
+                return any((_to_float_safe(v) is not None and float(_to_float_safe(v)) > 0) for v in values)
+            value = _to_float_safe(values)
+            return value is not None and value > 0
+
+        active_kpi_type = _dominant_text_value(["kpi_type_effective", "kpi_type"])
+        configured_kpi_type = str((cfg.get("outcome", {}) or {}).get("kpi_type", "") or "").strip().lower()
+        source_kpi_type = _dominant_text_value(["kpi_type"]) or configured_kpi_type
+        effective_kpi_type = _dominant_text_value(["kpi_type_effective"]) or active_kpi_type or configured_kpi_type
+        active_kpi_type = active_kpi_type or configured_kpi_type
+        active_revenue_conversion_available = _has_positive_number(["revenue_per_kpi"]) or _cfg_has_revenue_conversion()
+        revenue_per_kpi_value = None
+        if "revenue_per_kpi" in merged_df_for_tornado.columns:
+            revenue_vals = _pd.to_numeric(merged_df_for_tornado["revenue_per_kpi"], errors="coerce").dropna()
+            revenue_vals = revenue_vals[revenue_vals > 0]
+            if not revenue_vals.empty:
+                revenue_per_kpi_value = float(revenue_vals.iloc[0])
+        if revenue_per_kpi_value is None:
+            outcome_cfg = cfg.get("outcome", {}) or {}
+            single_value = _to_float_safe(outcome_cfg.get("revenue_per_kpi"))
+            if single_value is not None and single_value > 0:
+                revenue_per_kpi_value = float(single_value)
+        outcome_context = {
+            "metric_label": "Revenue-equivalent ROI" if revenue_per_kpi_value is not None else "ROI",
+            "kpi_type": source_kpi_type,
+            "kpi_type_effective": effective_kpi_type,
+            "revenue_per_kpi": revenue_per_kpi_value,
+        }
+
+        value_source = None
+        baseline_values = new_values = None
+        if {"incremental_value_baseline", "incremental_value_new"}.issubset(merged_df_for_tornado.columns):
+            baseline_values = merged_df_for_tornado["incremental_value_baseline"]
+            new_values = merged_df_for_tornado["incremental_value_new"]
+            value_source = "incremental_value"
+        elif {"incremental_outcome_baseline", "incremental_outcome_new"}.issubset(merged_df_for_tornado.columns):
+            baseline_values = merged_df_for_tornado["incremental_outcome_baseline"]
+            new_values = merged_df_for_tornado["incremental_outcome_new"]
+            value_source = "incremental_outcome"
+
+        if baseline_values is not None and new_values is not None:
+            work = merged_df_for_tornado.copy()
+            work["_contribution_base_value"] = _pd.to_numeric(baseline_values, errors="coerce")
+            work["_contribution_new_value"] = _pd.to_numeric(new_values, errors="coerce")
+            if "run_id" in work.columns:
+                run_groups = work.groupby("run_id", dropna=False)
+                work["_contribution_base_sum"] = run_groups["_contribution_base_value"].transform("sum")
+                work["_contribution_new_sum"] = run_groups["_contribution_new_value"].transform("sum")
+            else:
+                work["_contribution_base_sum"] = work["_contribution_base_value"].sum()
+                work["_contribution_new_sum"] = work["_contribution_new_value"].sum()
+            base_valid = work["_contribution_base_sum"].abs() >= 1e-9
+            new_valid = work["_contribution_new_sum"].abs() >= 1e-9
+            work["_contribution_base_share"] = _np.where(
+                base_valid,
+                work["_contribution_base_value"] / work["_contribution_base_sum"],
+                _np.nan,
+            )
+            work["_contribution_new_share"] = _np.where(
+                new_valid,
+                work["_contribution_new_value"] / work["_contribution_new_sum"],
+                _np.nan,
+            )
+            work["_contribution_share_delta_pp"] = 100.0 * (
+                work["_contribution_new_share"] - work["_contribution_base_share"]
+            )
+            tornado_range_mode = str(cfg.get("figures", {}).get("tornado_range_mode", "p05p95")).strip().lower()
+            for channel, g in work.groupby("channel", as_index=False):
+                vals = g["_contribution_share_delta_pp"].dropna().to_numpy(dtype=float)
+                if vals.size == 0:
+                    continue
+                if tornado_range_mode == "minmax":
+                    left_v = float(_np.min(vals))
+                    right_v = float(_np.max(vals))
+                else:
+                    left_v = float(_np.quantile(vals, 0.05))
+                    right_v = float(_np.quantile(vals, 0.95))
+                contribution_tornado_rows.append({
+                    "channel": str(channel),
+                    "left": left_v,
+                    "right": right_v,
+                    "impact": max(abs(left_v), abs(right_v)),
+                    "n": int(vals.size),
+                    "source": f"{value_source}_share",
+                    "unit": "pp",
+                })
+            contribution_tornado_rows.sort(key=lambda r: r["impact"], reverse=True)
+
+    use_contribution_tornado = active_kpi_type == "non_revenue" and not active_revenue_conversion_available and bool(contribution_tornado_rows)
+    if use_contribution_tornado:
+        tornado_primary_metric = "contribution_pct"
+        tornado_primary_label = "Contribution Share Change (pp)"
+
     dollar_tornado_rows: list[dict] = []
-    if dollar.get("available") and dollar.get("rank_df") is not None:
+    dollar_reason = str(dollar.get("reason", "") or "")
+    dollar_source = str(dollar.get("source", "") or "")
+    dps_note = str(dollar.get("dollars_per_subscription_note", "unknown"))
+    dps_value = _to_float_safe(dps_note)
+    default_subscription_dollars = dps_value is not None and abs(float(dps_value) - 100.0) <= 1e-9
+    dollar_values_meaningful = bool(dollar.get("available"))
+    if use_contribution_tornado and not active_revenue_conversion_available:
+        dollar_values_meaningful = False
+        dollar_reason = (
+            "Dollar impact hidden because this non-revenue KPI does not have a revenue-equivalent conversion."
+        )
+    elif default_subscription_dollars and not active_revenue_conversion_available:
+        dollar_values_meaningful = False
+        dollar_reason = (
+            "Dollar impact hidden because dollars_per_subscription=100 is the default assumption, "
+            "not a reliable revenue conversion."
+        )
+
+    if dollar_values_meaningful and dollar.get("rank_df") is not None:
         for row in dollar["rank_df"].to_dict(orient="records"):
             left_v = _to_float_safe(row.get("left_dollar"))
             right_v = _to_float_safe(row.get("right_dollar"))
@@ -938,6 +1153,7 @@ def render_dashboard_output(
             "n_dists": int(overview.get("n_dists", 0) or 0),
             "n_target_sets": int(overview.get("n_target_sets", 0) or 0),
         },
+        "outcome_context": outcome_context,
         "thresholds": cfg.get("thresholds", {}),
         "decision_card": decision_card_block,
         "diagnostics_overview": diagnostics.get("overview", {}),
@@ -945,11 +1161,16 @@ def render_dashboard_output(
         "spend_effect_rows": spend_effect_dashboard_rows,
         "scenario_items": scenario_dashboard_items,
         "roi_tornado_rows": roi_tornado_rows,
+        "contribution_tornado_rows": contribution_tornado_rows,
+        "tornado_primary_metric": tornado_primary_metric,
+        "tornado_primary_label": tornado_primary_label,
         "dollar_tornado_rows": dollar_tornado_rows,
         "dollar_meta": {
-            "available": bool(dollar.get("available")),
-            "dollars_per_subscription_note": str(dollar.get("dollars_per_subscription_note", "unknown")),
+            "available": bool(dollar_values_meaningful and dollar_tornado_rows),
+            "dollars_per_subscription_note": dps_note,
             "range_mode": str(dollar.get("range_mode", "p05p95")),
+            "source": dollar_source,
+            "reason": dollar_reason,
         },
         "structural": structural_block,
         "workbench": workbench_block,
@@ -961,6 +1182,7 @@ def render_dashboard_output(
         },
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
+        "how_this_was_run": metrics.get("how_this_was_run", {"available": False}),
     }
     dashboard_payload = _json_compatible(dashboard_payload, float_decimals=3)
     if write_report and template is not None:
@@ -1062,24 +1284,5 @@ def render_dashboard_output(
                 (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
                 kept_files.add(page_filename)
 
-            # Legacy multi-page dashboard outputs from older template generations.
-            stale_candidates = [
-                "dashboard_sensitivity.html",
-                "dashboard_allocation.html",
-                "dashboard_scenarios.html",
-                "dashboard_actions.html",
-                "dashboard_decision.html",
-            ]
-            for stale_name in stale_candidates:
-                if stale_name in kept_files:
-                    continue
-                stale_path = outdir / stale_name
-                if stale_path.exists() and stale_path.is_file():
-                    stale_path.unlink()
-
-
 # Backward-compatible alias for older imports.
 render_html_report = render_dashboard_output
-
-
-

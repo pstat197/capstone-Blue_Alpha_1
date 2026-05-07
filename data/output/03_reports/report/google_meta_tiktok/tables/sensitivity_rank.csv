@@ -1,9 +1,0 @@
-channel,roi_prior_dist,max_abs_pct_change,max_abs_pct_change_raw,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,pct_metric_unstable_reason,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,primary_metric,primary_value,ranking_metric_label
-tiktok,LogNormal,,77.9734810572247,0.0543542648399792,0.0697086549208809,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.44991166878668887,delta_roi,0.0543542648399792,Max |Delta ROI|
-beehiiv,LogNormal,,33.19286330403431,0.048303995388560006,0.1455252442252822,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.15811481960628349,delta_roi,0.048303995388560006,Max |Delta ROI|
-meta,LogNormal,,76.4116512729167,0.0422756825887336,0.0553262256272137,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.4446224949122253,delta_roi,0.0422756825887336,Max |Delta ROI|
-liveintent,LogNormal,,30.925477207728346,0.026699273603347506,0.0863342331761183,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.10832862702743419,delta_roi,0.026699273603347506,Max |Delta ROI|
-google,LogNormal,,77.24907129737011,0.026263340855318004,0.0339982609683647,1.75,1.0,False,abs(baseline_roi)=0.0340 < min_abs_baseline_roi=0.0500; baseline_qc=REVIEW,False,False,4,0.284767259870811,delta_roi,0.026263340855318004,Max |Delta ROI|
-amazon,LogNormal,,18.85194925495057,0.023754021788869706,0.1260030008972777,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.0470871844361306,delta_roi,0.023754021788869706,Max |Delta ROI|
-snapchat,LogNormal,,13.16246151388827,0.0037208728577631,0.0282688223159251,1.75,1.0,False,abs(baseline_roi)=0.0283 < min_abs_baseline_roi=0.0500; baseline_qc=REVIEW,False,False,4,0.04500405405997301,delta_roi,0.0037208728577631,Max |Delta ROI|
-moloco,LogNormal,,0.8584094941549162,0.0006207399481597958,0.0723128008702769,1.75,1.0,False,baseline_qc=REVIEW,False,False,4,0.008401044575785565,delta_roi,0.0006207399481597958,Max |Delta ROI|

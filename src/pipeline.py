@@ -1,21 +1,23 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 import subprocess
 import sys
+from typing import Any
 from pathlib import Path
 
 import pandas as pd
 
-from src.io_utils import STRUCTURAL_COLUMNS
+from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 from src.output_paths import (
+    OUTPUT_ROOT,
     RUNS_DIR,
-    candidate_roi_csv_paths,
-    candidate_run_csv_paths,
-    candidate_tornado_csv_paths,
     ensure_output_dirs,
-    first_existing,
     report_input_csv_path,
+    roi_csv_path,
+    run_csv_path,
+    tornado_csv_path,
 )
 from src.run_config import load_run_config
 
@@ -170,36 +172,86 @@ def _to_project_rel_or_abs(path_str: str, project_root: Path) -> str:
         return str(p)
 
 
+def _is_within(path: Path, root: Path) -> bool:
+    try:
+        path.resolve().relative_to(root.resolve())
+        return True
+    except Exception:
+        return False
+
+
+def _safe_remove(path: Path, *, allowed_root: Path) -> bool:
+    if not path.exists():
+        return True
+    if not _is_within(path, allowed_root):
+        print(f"[warn] Skip cleanup outside output root: {path}")
+        return False
+    try:
+        if path.is_dir():
+            shutil.rmtree(path)
+        else:
+            path.unlink()
+        return True
+    except PermissionError:
+        return False
+
+
+def _cleanup_tag_outputs(
+    tag: str,
+    project_root: Path,
+    dashboard_outdir_base: Path,
+    tornado_outdir_base: Path,
+) -> None:
+    tag_paths = [
+        RUNS_DIR / tag,
+        Path("data/output/02_tables") / tag,
+        dashboard_outdir_base / tag,
+        tornado_outdir_base / tag,
+        report_input_csv_path(tag),
+        run_csv_path(tag),
+        roi_csv_path(tag),
+        tornado_csv_path(tag),
+    ]
+
+    locked_paths: list[str] = []
+    for raw in tag_paths:
+        p = raw if raw.is_absolute() else (project_root / raw)
+        ok = _safe_remove(p, allowed_root=OUTPUT_ROOT)
+        if not ok and p.exists():
+            locked_paths.append(str(p))
+
+    # Remove temporary config files for this tag.
+    tmp_cfg_dir = project_root / "data" / "output" / "_tmp_configs"
+    if tmp_cfg_dir.exists():
+        for p in tmp_cfg_dir.glob(f"sensitivity_{tag}_*.yaml"):
+            ok = _safe_remove(p, allowed_root=OUTPUT_ROOT)
+            if not ok and p.exists():
+                locked_paths.append(str(p))
+
+    if locked_paths:
+        preview = "\n".join(locked_paths[:8])
+        more = "" if len(locked_paths) <= 8 else f"\n... and {len(locked_paths) - 8} more"
+        raise PermissionError(
+            "Cannot clean old outputs because some files are locked.\n"
+            "Close browser tabs / Excel / file previews using output files, then rerun.\n"
+            f"Locked paths:\n{preview}{more}"
+        )
+
+
 def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
-    run_candidates = candidate_run_csv_paths(tag)
-    roi_candidates = candidate_roi_csv_paths(tag)
-
-    run_csv = None
-    roi_csv = None
-    if run_candidates[0].exists() and roi_candidates[0].exists():
-        run_csv = run_candidates[0]
-        roi_csv = roi_candidates[0]
-    elif run_candidates[1].exists() and roi_candidates[1].exists():
-        run_csv = run_candidates[1]
-        roi_csv = roi_candidates[1]
-    else:
-        run_csv = first_existing(run_candidates)
-        roi_csv = first_existing(roi_candidates)
-
-    if run_csv is None:
-        candidates = ", ".join(str(p) for p in run_candidates)
-        raise FileNotFoundError(f"Missing run CSV for dashboard. Tried: {candidates}")
-    if roi_csv is None:
-        candidates = ", ".join(str(p) for p in roi_candidates)
-        raise FileNotFoundError(f"Missing ROI CSV for dashboard. Tried: {candidates}")
+    run_csv = run_csv_path(tag)
+    roi_csv = roi_csv_path(tag)
+    if not run_csv.exists():
+        raise FileNotFoundError(f"Missing run CSV for dashboard: {run_csv}")
+    if not roi_csv.exists():
+        raise FileNotFoundError(f"Missing ROI CSV for dashboard: {roi_csv}")
 
     out_csv = report_input_csv_path(tag)
     out_csv.parent.mkdir(parents=True, exist_ok=True)
 
     run_df = pd.read_csv(run_csv)
     roi_df = pd.read_csv(roi_csv)
-    tornado_candidates = candidate_tornado_csv_paths(tag)
-    tornado_csv = first_existing(tornado_candidates)
+    tornado_csv = tornado_csv_path(tag)
 
     if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
         raise ValueError("Both run and ROI CSVs must include 'run_id'.")
@@ -223,6 +275,7 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
             "targets",
             "is_baseline",
             *STRUCTURAL_COLUMNS,
+            *EXPERIMENT_METADATA_COLUMNS,
         ]
         if c in run_df.columns
     ]
@@ -249,7 +302,7 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
     merged = roi_df.merge(run_meta, on="run_id", how="left")
 
     # Optionally enrich report input with tornado dollar/outcome deltas.
-    if tornado_csv is not None:
+    if tornado_csv.exists():
         tornado_df = pd.read_csv(tornado_csv)
         if {"run_id", "channel"}.issubset(tornado_df.columns):
             tcols = [
@@ -313,7 +366,7 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
         "report_input": str(out_csv),
         "runs_csv": str(run_csv),
         "roi_csv": str(roi_csv),
-        "tornado_csv": str(tornado_csv) if tornado_csv is not None else None,
+        "tornado_csv": str(tornado_csv) if tornado_csv.exists() else None,
     }
     return out_csv, source_files
 
@@ -329,24 +382,27 @@ def main() -> None:
     run_cfg = load_run_config(config_path)
     target_sets = _resolve_target_sets(args, run_cfg)
 
+    dashboard_outdir_base_abs = Path(args.dashboard_outdir)
+    if not dashboard_outdir_base_abs.is_absolute():
+        dashboard_outdir_base_abs = (project_root / dashboard_outdir_base_abs).resolve()
+    tornado_outdir_base_abs = Path(args.tornado_outdir)
+    if not tornado_outdir_base_abs.is_absolute():
+        tornado_outdir_base_abs = (project_root / tornado_outdir_base_abs).resolve()
+
     built_tags: list[str] = []
     for targets in target_sets:
         tag = "_".join(targets)
         built_tags.append(tag)
-        print(f"\n=== Target set: {', '.join(targets)} (tag: {tag}) ===")
+        print(f"\n=== Target set: {', '.join(targets)} ===")
 
-        tornado_candidates = candidate_tornado_csv_paths(tag)
-        if args.skip_summarize:
-            tornado_csv = first_existing(tornado_candidates) or tornado_candidates[0]
-        else:
-            tornado_csv = tornado_candidates[0]
+        tornado_csv = tornado_csv_path(tag)
         dashboard_outdir = Path(args.dashboard_outdir) / tag
         tornado_outdir = Path(args.tornado_outdir) / tag
 
         if not args.skip_main:
-            cmd = [sys.executable, "-m", "src.main", "--targets", *targets]
-            if args.config:
-                cmd.extend(["--config", args.config])
+            print(f"[clean] Removing existing outputs for tag={tag} before fixed full-grid run.")
+            _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs, tornado_outdir_base_abs)
+            cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(config_path)]
             _run_step(cmd, project_root)
 
         if not args.skip_summarize:
@@ -419,15 +475,9 @@ def main() -> None:
                 cmd.extend(["--scenario-selection", args.dashboard_scenario_selection])
             _run_step(cmd, project_root)
 
-        print("Finished target set:", ", ".join(targets))
-        print("Run outputs dir:", RUNS_DIR)
-        print("Tornado CSV:", tornado_csv)
-        print("Tornado outputs:", tornado_outdir)
-        if dashboard_input_path is not None:
-            print("Dashboard input table:", dashboard_input_path)
-        print("Dashboard output:", project_root / dashboard_outdir)
+        print("Target set complete:", ", ".join(targets))
 
-    print("\nPipeline finished for tags:", ", ".join(built_tags))
+    print("\nPipeline complete:", ", ".join(built_tags))
 
 
 if __name__ == "__main__":
