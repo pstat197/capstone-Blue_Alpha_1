@@ -1097,6 +1097,7 @@ def main():
     for k, v in metadata.items():
         roi_df[k] = v
     roi_df = roi_df.merge(channel_prior_df, on="channel", how="left")
+    roi_df["is_target_channel"] = roi_df["channel"].astype(str) == roi_df["target_channel"].astype(str)
 
     roi_df["prior_posterior_kl_gaussian"] = _kl_gaussian_from_moments(
         post_mean=roi_df["estimated_roi"],
@@ -1128,9 +1129,18 @@ def main():
 
     roi_df["prior_posterior_wasserstein"] = roi_df["channel"].map(w1_by_channel)
 
-    for col in ["roi_prior_mu", "roi_prior_sigma", "adstock_alpha_m", "saturation_ec_m", "saturation_slope_m", "max_lag"]:
+    for col in [
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "prior_roi_mu_channel",
+        "prior_roi_sigma_channel",
+        "adstock_alpha_m",
+        "saturation_ec_m",
+        "saturation_slope_m",
+        "max_lag",
+    ]:
         roi_df[col] = pd.to_numeric(roi_df[col], errors="coerce").round(6)
-    for col in ["roi_prior_dist", "adstock_decay_spec"]:
+    for col in ["roi_prior_dist", "prior_roi_dist_channel", "adstock_decay_spec"]:
         roi_df[col] = roi_df[col].astype(str)
 
     has_prior_baseline = all(v is not None for v in [args.baseline_mu, args.baseline_sigma, args.baseline_dist])
@@ -1159,11 +1169,9 @@ def main():
     for k, v in qc_metrics.items():
         roi_df[k] = v
 
-    primary_target_channel = str(mode["targets_str"])
-    roi_df = roi_df[roi_df["channel"].astype(str) == primary_target_channel].copy()
-    if roi_df.empty:
+    if not roi_df["is_target_channel"].any():
         raise ValueError(
-            f"No ROI posterior row matched target_channel='{primary_target_channel}'. "
+            f"No ROI posterior row matched target_channel='{mode['targets_str']}'. "
             f"Available channels: {channels}"
         )
 

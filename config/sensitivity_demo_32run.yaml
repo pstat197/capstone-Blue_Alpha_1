@@ -1,0 +1,70 @@
+# Demo grid: 32-run reduced prior sensitivity test; final 240-run audit still running.
+# Purpose: presentation/smoke-test dashboard generation only. Do not use as final audit evidence.
+
+metadata:
+  label: "Demo grid: 32-run reduced prior sensitivity test; final 240-run audit still running."
+  purpose: "Presentation demo/smoke-test grid for dashboard graph generation."
+
+run_mode: demo_32run
+parallel_workers: 4
+
+run_modes:
+  demo_32run:
+    roi_mu_values: [1.0, 3.0]
+    roi_sigma_values: [1.0, 1.5]
+    roi_dist_values: [LogNormal]
+    n_chains: 2
+    n_adapt: 300
+    n_burnin: 300
+    n_keep: 150
+
+model:
+  channels: [meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon]
+  data_csv: data/raw/monthly_mocha.csv
+  data_tag: null
+  time_col: date
+  geo_col: null
+  population_col: null
+
+outcome:
+  kpi_col: subscriptions
+  kpi_type: non_revenue
+  revenue_per_kpi: 40.0
+  revenue_per_kpi_values: null
+
+prior_mode: roi
+
+sweep:
+  type: fixed_full_grid
+  prior_grid_scope: full_grid
+  structural_grid_scope: full_grid
+  allow_reduced_prior_grid: true
+
+structural:
+  alpha_m_values: [0.3]
+  ec_m_values: [0.5]
+  slope_m_values: [1.2]
+  max_lag_values: [4]
+  adstock_decay_values: [geometric]
+
+baseline:
+  roi_mu: 1.0
+  roi_sigma: 1.0
+  roi_dist: LogNormal
+
+defaults:
+  targets: [meta, google, snapchat, tiktok, moloco, liveintent, beehiiv, amazon]
+  target_sets: null
+
+sampler:
+  n_chains: 2
+  n_adapt: 300
+  n_burnin: 300
+  n_keep: 150
+  seed: 0
+
+output:
+  tag: demo_32run
+  runs_dir: data/output/01_runs/demo_32run/
+  tables_dir: data/output/02_tables/demo_32run/
+  report_dir: data/output/03_reports/report/demo_32run/

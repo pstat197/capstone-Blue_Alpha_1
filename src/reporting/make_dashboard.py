@@ -11,10 +11,12 @@ try:
     from .metrics import compute_all_metrics
     from .figures import make_all_figures
     from .render import render_dashboard_output
+    from src.viz.roi_prior_vs_posterior import make_plot as make_roi_prior_vs_posterior_plot
 except ImportError:  # Allow direct script execution.
     from metrics import compute_all_metrics
     from figures import make_all_figures
     from render import render_dashboard_output
+    from src.viz.roi_prior_vs_posterior import make_plot as make_roi_prior_vs_posterior_plot
 
 
 _REQUIRED_COLS = {
@@ -50,6 +52,7 @@ def _empty_figure_paths() -> dict:
         "heatmap_pages": [],
         "heatmap_modes": [],
         "default_heatmap_mode": None,
+        "roi_prior_vs_posterior": None,
     }
 
 
@@ -175,6 +178,15 @@ def main():
     df = load_results(input_path)
     metrics = compute_all_metrics(df, cfg, tables_dir)
     fig_paths = make_all_figures(df, metrics, cfg, figures_dir) if write_report else _empty_figure_paths()
+    if args.source_roi_csv:
+        figures_dir.mkdir(parents=True, exist_ok=True)
+        roi_prior_plot_path = figures_dir / "roi_prior_vs_posterior.png"
+        make_roi_prior_vs_posterior_plot(
+            args.source_roi_csv,
+            roi_prior_plot_path,
+            title="ROI Prior vs Posterior with 50% Posterior Intervals",
+        )
+        fig_paths["roi_prior_vs_posterior"] = roi_prior_plot_path.name
     branding_cfg = cfg.get("branding", {})
     branding = {
         "cobrand_label": branding_cfg.get("cobrand_label", "UCSB x BlueAlpha AI"),

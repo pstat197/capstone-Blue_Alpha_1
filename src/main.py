@@ -567,6 +567,14 @@ def _resolve_data_tag(*, data_csv: str, geo_col: str | None, explicit_data_tag: 
     return None
 
 
+def _resolve_output_tag(run_cfg: dict, fallback_tag: str) -> str:
+    output_cfg = run_cfg.get("output", {}) or {}
+    explicit_tag = output_cfg.get("tag")
+    if explicit_tag is None or str(explicit_tag).strip().lower() in {"", "null", "none"}:
+        return fallback_tag
+    return _sanitize_tag_token(str(explicit_tag))
+
+
 def _resolve_runner_python(project_root: str) -> str:
     forced = os.environ.get("BLUEALPHA_PYTHON")
     if forced and os.path.exists(forced):
@@ -693,7 +701,8 @@ def main():
     targets = sorted(str(x) for x in targets)
     targets_tag = "_".join(targets)
     data_tag = _resolve_data_tag(data_csv=data_csv, geo_col=geo_col, explicit_data_tag=explicit_data_tag)
-    output_tag = f"{targets_tag}__{data_tag}" if data_tag else targets_tag
+    default_output_tag = f"{targets_tag}__{data_tag}" if data_tag else targets_tag
+    output_tag = _resolve_output_tag(run_cfg, default_output_tag)
     targets_str = ",".join(targets)
 
     run_output_file = str(run_csv_path(output_tag, RUNS_DIR))

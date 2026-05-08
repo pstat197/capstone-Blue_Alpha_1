@@ -123,6 +123,28 @@ def _unique_sorted(values: list[str]) -> list[str]:
     return sorted({str(v).strip() for v in values if str(v).strip()})
 
 
+def _sanitize_tag_token(raw: str) -> str:
+    s = str(raw).strip().lower()
+    out = []
+    for ch in s:
+        if ch.isalnum() or ch in {"-", "_"}:
+            out.append(ch)
+        else:
+            out.append("_")
+    token = "".join(out).strip("_")
+    while "__" in token:
+        token = token.replace("__", "_")
+    return token or "dataset"
+
+
+def _tag_for_target_set(targets: list[str], run_cfg: dict) -> str:
+    output_cfg = run_cfg.get("output", {}) or {}
+    explicit_tag = output_cfg.get("tag")
+    if explicit_tag is None or str(explicit_tag).strip().lower() in {"", "null", "none"}:
+        return "_".join(targets)
+    return _sanitize_tag_token(str(explicit_tag))
+
+
 def _resolve_target_sets(args: argparse.Namespace, run_cfg: dict) -> list[list[str]]:
     if args.targets:
         targets = _unique_sorted(list(args.targets))
@@ -391,7 +413,7 @@ def main() -> None:
 
     built_tags: list[str] = []
     for targets in target_sets:
-        tag = "_".join(targets)
+        tag = _tag_for_target_set(targets, run_cfg)
         built_tags.append(tag)
         print(f"\n=== Target set: {', '.join(targets)} ===")
 
@@ -413,6 +435,8 @@ def main() -> None:
                 *targets,
                 "--dollars_per_subscription",
                 str(float(args.dollars_per_subscription)),
+                "--tag",
+                tag,
             ]
             _run_step(cmd, project_root)
 
@@ -444,6 +468,8 @@ def main() -> None:
                 *targets,
                 "--out-dir",
                 str(robustness_outdir),
+                "--tag",
+                tag,
             ]
             _run_step(cmd, project_root)
 

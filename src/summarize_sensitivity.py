@@ -87,6 +87,20 @@ def _paths_for_tag(tag: str) -> dict[str, Path]:
     }
 
 
+def _sanitize_tag_token(raw: str) -> str:
+    s = str(raw).strip().lower()
+    out = []
+    for ch in s:
+        if ch.isalnum() or ch in {"-", "_"}:
+            out.append(ch)
+        else:
+            out.append("_")
+    token = "".join(out).strip("_")
+    while "__" in token:
+        token = token.replace("__", "_")
+    return token or "dataset"
+
+
 def _safe_read_csv_or_backup(path: Path) -> pd.DataFrame:
     try:
         return pd.read_csv(path)
@@ -125,6 +139,11 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="dollars_per_subscription",
         type=float,
         help=argparse.SUPPRESS,
+    )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="Optional output tag to read/write instead of the target-derived tag.",
     )
     return parser
 
@@ -212,7 +231,7 @@ def main():
         )
 
     targets_sorted = sorted([str(t) for t in targets])
-    tag = "_".join(targets_sorted)
+    tag = _sanitize_tag_token(args.tag) if args.tag else "_".join(targets_sorted)
 
     paths = _paths_for_tag(tag)
     out_csv = paths["tornado_csv"]
@@ -242,7 +261,11 @@ def main():
     targets_str = ",".join(targets_sorted)
     if "targets" not in df.columns:
         raise ValueError("Input CSV has no 'targets' column; cannot summarize multi-prior results.")
-    df = df[df["targets"] == targets_str].copy()
+    target_matched = df[df["targets"] == targets_str].copy()
+    if target_matched.empty and "target_channel" in df.columns:
+        target_set = set(targets_sorted)
+        target_matched = df[df["target_channel"].astype(str).isin(target_set)].copy()
+    df = target_matched
     df = _filter_to_prior_stage(df)
 
     if "is_baseline" not in df.columns:

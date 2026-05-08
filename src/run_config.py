@@ -376,7 +376,9 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Config field 'prior_mode' must be one of: auto, roi.")
     if kpi_type == "non_revenue" and outcome["revenue_per_kpi"] is None:
         raise ValueError(ROI_PRIOR_POLICY_ERROR)
-    _require_fixed_roi_prior_grid(active_profile)
+    allow_reduced_prior_grid = bool((config.get("sweep", {}) or {}).get("allow_reduced_prior_grid", False))
+    if not allow_reduced_prior_grid:
+        _require_fixed_roi_prior_grid(active_profile)
     config["prior_mode"] = "roi"
     config.pop("prior_design", None)
 

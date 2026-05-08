@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}, "axis": {"gridDash": [3, 2], "labelColor": "#5F6368", "labelFont": "Roboto", "labelFontSize": 12, "titleColor": "#5F6368", "titleFont": "Roboto", "titleFontSize": 12, "titleFontWeight": "normal", "titlePadding": 10}}, "data": {"name": "data-6a968d34b92c22d27c57730a452da733"}, "mark": {"type": "circle", "size": 80, "tooltip": true}, "encoding": {"color": {"field": "channel", "legend": {"columnPadding": 20, "columns": 7, "orient": "bottom", "rowPadding": 10, "title": null}, "type": "nominal"}, "size": {"field": "spend", "legend": null, "scale": {"range": [100, 5000]}, "type": "quantitative"}, "x": {"field": "roi", "scale": {}, "title": "ROI", "type": "quantitative"}, "y": {"axis": {"titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "effectiveness", "scale": {}, "title": "Effectiveness", "type": "quantitative"}}, "title": {"text": "ROI vs. effectiveness", "anchor": "start", "color": "#3C4043", "font": "Google Sans Display", "fontSize": 18, "fontWeight": "normal", "offset": 10}, "width": 400, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-6a968d34b92c22d27c57730a452da733": [{"channel": "meta", "roi": 0.4034133851528168, "effectiveness": 0.001759606646373868, "spend": 840158.1875}, {"channel": "google", "roi": 0.22761762142181396, "effectiveness": 0.00509430980309844, "spend": 10298544.0}, {"channel": "snapchat", "roi": 0.44558796286582947, "effectiveness": 0.009655021131038666, "spend": 4342437.0}, {"channel": "tiktok", "roi": 0.37342095375061035, "effectiveness": 0.008185707032680511, "spend": 1752685.0}, {"channel": "moloco", "roi": 0.8854368329048157, "effectiveness": 0.019840501248836517, "spend": 842234.625}, {"channel": "liveintent", "roi": 0.8794787526130676, "effectiveness": 0.0783359631896019, "spend": 797987.125}, {"channel": "beehiiv", "roi": 1.1444278955459595, "effectiveness": 0.11444313079118729, "spend": 328172.25}, {"channel": "amazon", "roi": 1.070045828819275, "effectiveness": 0.02349962666630745, "spend": 15740.2578125}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

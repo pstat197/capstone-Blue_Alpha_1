@@ -33,10 +33,10 @@
       <a href="#overview" data-page-target="overview"{% if (dashboard_page or 'overview') == 'overview' %} class="active"{% endif %}><span class="rail-icon rail-icon--trend"></span><span>Overview</span></a>
       <a href="#howrun" data-page-target="howrun"{% if (dashboard_page or 'overview') == 'howrun' %} class="active"{% endif %}><span class="rail-icon rail-icon--database"></span><span>Run Setup</span></a>
       <a href="#explorer" data-page-target="explorer"{% if (dashboard_page or 'overview') == 'explorer' %} class="active"{% endif %}><span class="rail-icon rail-icon--sliders"></span><span>Priors</span></a>
-      <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}><span class="rail-icon rail-icon--report"></span><span>Model Outputs</span></a>
       <a href="#comparison" data-page-target="comparison"{% if (dashboard_page or 'overview') == 'comparison' %} class="active"{% endif %}><span class="rail-icon rail-icon--pulse"></span><span>Sensitivity</span></a>
+      <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}><span class="rail-icon rail-icon--gear"></span><span>Structural Response</span></a>
+      <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}><span class="rail-icon rail-icon--report"></span><span>Model Outputs</span></a>
       <a href="#qc" data-page-target="qc"{% if (dashboard_page or 'overview') == 'qc' %} class="active"{% endif %}><span class="rail-icon rail-icon--report"></span><span>Diagnostics</span></a>
-      <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}><span class="rail-icon rail-icon--gear"></span><span>Robustness</span></a>
     </aside>
 
     <div class="app">
@@ -44,10 +44,10 @@
         <a href="#overview" data-page-target="overview"{% if (dashboard_page or 'overview') == 'overview' %} class="active"{% endif %}>Overview</a>
         <a href="#howrun" data-page-target="howrun"{% if (dashboard_page or 'overview') == 'howrun' %} class="active"{% endif %}>Run Setup</a>
         <a href="#explorer" data-page-target="explorer"{% if (dashboard_page or 'overview') == 'explorer' %} class="active"{% endif %}>Priors</a>
-        <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}>Model Outputs</a>
         <a href="#comparison" data-page-target="comparison"{% if (dashboard_page or 'overview') == 'comparison' %} class="active"{% endif %}>Sensitivity</a>
+        <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}>Structural Response</a>
+        <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}>Model Outputs</a>
         <a href="#qc" data-page-target="qc"{% if (dashboard_page or 'overview') == 'qc' %} class="active"{% endif %}>Diagnostics</a>
-        <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}>Robustness</a>
       </nav>
 
     <div class="layout">
@@ -130,9 +130,9 @@
 
         <section class="overview-ia-board" id="section-overview-board" data-page-group="overview" aria-label="Prior sensitivity overview">
           <article class="overview-card overview-question-card">
-            <h1 title="How sensitive are our Bayesian MMM conclusions to different prior assumptions?">Prior Sensitivity Overview</h1>
-            <p title="How sensitive are our Bayesian MMM conclusions to different prior assumptions?">How much do MMM conclusions change when priors change?</p>
-            <span class="overview-badge">Directional interpretation only</span>
+            <h1 title="Which channels were most sensitive to their own prior assumptions in the completed audit?">Completed Prior-Sensitivity Audit</h1>
+            <p title="Which channels were most sensitive to their own prior assumptions in the completed audit?">Which channels were most sensitive to their own prior assumptions?</p>
+            <span id="overview-next-channel" class="overview-badge">Most sensitive channel: -</span>
           </article>
 
           <article class="overview-card overview-kpi-card">
@@ -154,21 +154,16 @@
           </article>
 
           <article class="overview-card overview-health-mini">
-            <div>
-              <div class="overview-label">QC Pass Rate</div>
-              <div id="mh-pass-rate" class="overview-value">-</div>
-            </div>
-            <div>
-              <div class="overview-label">Run Status Mix</div>
-              <div id="mh-status-breakdown" class="overview-status-line">-</div>
-            </div>
+            <div class="overview-label">Primary Review Driver</div>
+            <div id="mh-primary-review-driver" class="overview-value">-</div>
+            <div id="mh-primary-review-caption" class="overview-caption">-</div>
           </article>
 
           <article class="overview-card overview-main-chart-card">
             <div class="overview-panel-head">
               <div>
-                <h2 id="overview-tornado-title">Contribution Share Movement Range (pp)</h2>
-                <p id="overview-tornado-interpretation">Largest movement identifies the channel needing sensitivity follow-up.</p>
+                <h2 id="overview-tornado-title">Self-Response ROI Movement Range (%)</h2>
+                <p id="overview-tornado-interpretation">Each bar shows how a channel's own posterior ROI changes when that same channel's prior is perturbed.</p>
               </div>
             </div>
             <div id="overview-tornado-chart" class="chart overview-chart"></div>
@@ -176,53 +171,35 @@
           </article>
 
           <article class="overview-card overview-diagnostic-card">
-            <h2>Diagnostic + Robustness Context</h2>
-            <div class="overview-diag-stack">
-              <div>
-                <span>QC pass rate</span>
-                <strong id="overview-diag-pass-rate">-</strong>
-              </div>
-              <div>
-                <span>PASS / REVIEW / FAIL</span>
-                <strong id="overview-diag-status-mix">-</strong>
-              </div>
-              <div>
-                <span>Good enough to interpret?</span>
-                <strong id="mh-status-chip" class="overview-status-chip">-</strong>
-              </div>
-            </div>
-            <div id="overview-robustness-card" class="overview-robustness-card">
-              <div class="overview-robustness-head">
+            <h2>Diagnostic Context</h2>
+            <div class="overview-health-donut-row">
+              <div id="overview-health-donut" class="overview-health-donut"></div>
+              <div class="overview-diag-stack">
                 <div>
-                  <span class="overview-info-label">
-                    Robustness Score Breakdown
-                    <button class="overview-info-btn" type="button" aria-label="What is the overall model robustness score?" data-tooltip-title="Overall Model Robustness Score" data-tooltip-body="Spend-weighted reliability of the full model for decision support. Higher means the model is broadly stable and more suitable for confident optimization. Lower means recommendations should be treated as scenario guidance, not hard prescriptions.">i</button>
-                  </span>
-                  <strong id="overview-robustness-score">-</strong>
+                  <span>PASS / REVIEW / FAIL</span>
+                  <strong id="overview-diag-status-mix">-</strong>
                 </div>
-                <span id="overview-robustness-band" class="overview-band-chip">-</span>
+                <div>
+                  <span>Good enough to interpret?</span>
+                  <strong id="mh-status-chip" class="overview-status-chip">-</strong>
+                </div>
               </div>
-              <p>Spend-weighted reliability of the full model for decision support.</p>
-              <div class="overview-robustness-hint">Higher is better</div>
-              <div id="overview-robustness-rows" class="overview-robustness-rows"></div>
-              <div class="overview-robustness-foot">Bands are relative to empirical cutoffs within this run set.</div>
             </div>
-            <div id="overview-tooltip" class="overview-tooltip" role="tooltip" hidden></div>
             <p id="decision-headline" class="overview-diag-summary">Sensitivity interpretation pending diagnostics.</p>
           </article>
 
-	          <article class="overview-card overview-risk-card">
-	            <div class="overview-panel-head">
-	              <div>
-	                <h2>Sensitivity Risk Matrix</h2>
-	                <p>Channels positioned by primary movement and metric interpretability.</p>
-	              </div>
-	            </div>
+          <article class="overview-card overview-risk-card">
+            <div class="overview-panel-head">
+              <div>
+                <h2>Sensitivity Risk Matrix</h2>
+                <p>Channels positioned by primary movement and metric interpretability.</p>
+              </div>
+            </div>
             <div id="overview-risk-matrix" class="overview-risk-matrix"></div>
           </article>
 
           <article class="overview-card overview-experiment-card">
-            <h2>Top 3 Recommended Next Experiments</h2>
+            <h2>Largest Prior-Driven Movers</h2>
             <ol id="overview-experiment-list" class="overview-experiment-list"></ol>
           </article>
 
@@ -246,8 +223,8 @@
             <p class="subhead">Fitted Meridian/MMM output context for contribution, ROI, effectiveness, and spend allocation.</p>
           </div>
           <div class="workbench-page-head sensitivity-page-head" data-wb-pages="comparison">
-            <h2>Prior Sensitivity Drivers</h2>
-            <p class="subhead">Which channels move most when priors change, and is that movement driven by prior mean or prior uncertainty?</p>
+            <h2>Full-System Prior Response</h2>
+            <p class="subhead">What happens to the full MMM system when one channel's prior assumptions are perturbed?</p>
           </div>
           <div class="workbench-page-head" data-wb-pages="structural">
             <h2>Structural Response</h2>
@@ -274,7 +251,7 @@
                   <span id="wb2-mu-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
                 </label>
                 <div class="range-row">
-                  <input id="wb2-mu-range" type="range" min="0" max="0" step="1" value="0">
+                  <input id="wb2-mu-range" type="range" min="0" max="0" step="1" value="{{ dashboard_payload.workbench.explicit_baseline.mu_index|default(0, true) }}">
                 </div>
                 <div id="wb2-mu-ticks" class="range-ticks subhead" style="display:flex;justify-content:space-between;font-size:0.72rem;color:#4f6689;margin-top:2px;"></div>
               </div>
@@ -285,7 +262,7 @@
                   <span id="wb2-sigma-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
                 </label>
                 <div class="range-row">
-                  <input id="wb2-sigma-range" type="range" min="0" max="0" step="1" value="0">
+                  <input id="wb2-sigma-range" type="range" min="0" max="0" step="1" value="{{ dashboard_payload.workbench.explicit_baseline.sigma_index|default(0, true) }}">
                 </div>
                 <div id="wb2-sigma-ticks" class="range-ticks subhead" style="display:flex;justify-content:space-between;font-size:0.72rem;color:#4f6689;margin-top:2px;"></div>
               </div>
@@ -298,7 +275,7 @@
               <article class="kpi wb2-metric-card">
                 <div class="k" id="wb2-roi-metric-label">ROI</div>
                 <div class="wb2-metric-primary">
-                  <span>Selected</span>
+                  <span>Selected Prior</span>
                   <strong id="wb2-kpi-roi">-</strong>
                 </div>
                 <div class="wb2-metric-subgrid wb2-metric-subgrid--three">
@@ -310,7 +287,7 @@
               <article class="kpi wb2-metric-card">
                 <div class="k">Contribution</div>
                 <div class="wb2-metric-primary">
-                  <span>Selected</span>
+                  <span>Selected Prior</span>
                   <strong id="wb2-kpi-contrib">-</strong>
                 </div>
                 <div class="wb2-metric-subgrid">
@@ -320,7 +297,7 @@
               <article class="kpi wb2-metric-card">
                 <div class="k">Contribution Share</div>
                 <div class="wb2-metric-primary">
-                  <span>Selected</span>
+                  <span>Selected Prior</span>
                   <strong id="wb2-kpi-contrib-share">-</strong>
                 </div>
                 <div class="wb2-metric-subgrid">
@@ -345,7 +322,7 @@
                 <div id="wb2-heatmap-chart" class="chart chart--heatmap compact"></div>
               </section>
               <section class="panel card" data-wb-pages="explorer">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Selected Channel Contribution vs Baseline</h2>
+                <h2 style="margin:0 0 6px;font-size:0.96rem;">Selected Prior Movement vs Baseline</h2>
                 <div id="wb2-contrib-compare-chart" class="chart chart--dual-axis compact"></div>
               </section>
             </div>
@@ -371,20 +348,113 @@
               {% endif %}
             </div>
 
-            <div class="sensitivity-primary-grid" data-wb-pages="comparison">
-              <section class="panel card sensitivity-primary-chart">
-                <h2>Mu-Sigma Sensitivity Gap</h2>
-                <p class="subhead">Positive = mu-driven; negative = sigma-driven.</p>
-                <div id="wb2-driver-balance-chart" class="chart chart--rank compact"></div>
-              </section>
-              <section class="panel card sensitivity-driver-list-card">
-                <h2>Top Driver Readout</h2>
-                <p class="subhead">Ranked by total mu/sigma prior sensitivity.</p>
-                <div id="sens-driver-list" class="sensitivity-driver-list">
-                  <div class="empty empty--compact">Unavailable</div>
+            <section class="panel card sensitivity-target-card" data-wb-pages="comparison" aria-label="Selected target channel detail">
+              <div class="overview-target-head">
+                <div>
+                  <span class="overview-label">Target Channel</span>
+                  <h2 id="target-detail-title">Selected Target Channel</h2>
                 </div>
-              </section>
-            </div>
+                <label class="target-channel-control">
+                  <span>Target Channel</span>
+                  <select id="target-channel-select"></select>
+                </label>
+              </div>
+              <div class="target-detail-grid">
+                <section class="target-detail-summary">
+                  <div class="target-panel-title">
+                    <h3>Selected Target Summary</h3>
+                    <span>target_channel == selected</span>
+                  </div>
+                  <div class="target-mini-kpis">
+                    <div>
+                      <span>Prior Settings Tested</span>
+                      <strong id="target-prior-settings">-</strong>
+                    </div>
+                    <div>
+                      <span>QC Status Mix</span>
+                      <strong id="target-qc-mix">-</strong>
+                    </div>
+                    <div>
+                      <span>Largest Movement Under Sweep</span>
+                      <strong id="target-largest-movement">-</strong>
+                    </div>
+                    <div>
+                      <span>Rows Scope</span>
+                      <strong id="target-outcome-count">-</strong>
+                    </div>
+                  </div>
+                  <p id="target-detail-interpretation" class="overview-note">Select a target channel to inspect full-system response and movement.</p>
+                </section>
+                <section class="target-chart-panel target-system-chart-panel">
+                  <div class="target-panel-title">
+                    <h3>Signed Posterior ROI Change vs Baseline (%)</h3>
+                    <span>When the selected target channel's prior changes, this chart shows signed posterior ROI percent change across all outcome channels relative to that target channel's baseline.</span>
+                  </div>
+                  <div id="target-system-chart" class="chart target-chart"></div>
+                </section>
+                <section class="target-robustness-panel">
+                  <div class="target-panel-title">
+                    <h3>Target-Level Robustness Framework</h3>
+                    <span>selected target perturbation scope</span>
+                  </div>
+                  <div class="target-robustness-head">
+                    <div>
+                      <span>Robustness Score</span>
+                      <strong id="target-robustness-score">Not available</strong>
+                    </div>
+                    <span id="target-robustness-band" class="overview-band-chip">Unavailable</span>
+                  </div>
+                  <p id="target-robustness-note" class="overview-note">Robustness model output is unavailable for this demo; score framework is shown for reference.</p>
+                  <div id="target-robustness-rows" class="target-robustness-rows"></div>
+                </section>
+              </div>
+            </section>
+
+            <section class="panel card target-table-panel sensitivity-full-width-section" data-wb-pages="comparison">
+              <div class="target-table-head">
+                <div class="target-panel-title">
+                  <div>
+                    <h3>Full-System Movement Detail</h3>
+                    <p id="target-table-note" class="target-table-note">This table includes preserved full-system outcome rows for the selected target-channel sweep. Self-response rows show the selected target channel's own signed posterior ROI percent change; non-self rows show cross-channel response under the same target prior settings.</p>
+                  </div>
+                </div>
+              </div>
+              <div class="target-impact-table-wrap">
+                <table class="target-impact-table">
+                  <thead>
+                    <tr>
+                      <th>Channel</th>
+                      <th>Response Scope</th>
+                      <th>Min Signed ROI Change (%)</th>
+                      <th>Max Signed ROI Change (%)</th>
+                      <th>Max Abs Signed ROI Change (%)</th>
+                      <th>Max Value Movement</th>
+                    </tr>
+                  </thead>
+                  <tbody id="target-impact-table-body"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="sensitivity-section" data-wb-pages="comparison">
+              <div class="sensitivity-section-head">
+                <h2>Driver Diagnostics</h2>
+              </div>
+              <div class="sensitivity-primary-grid">
+                <section class="panel card sensitivity-primary-chart">
+                  <h2>Mu-Sigma Sensitivity Gap</h2>
+                  <p class="subhead">Positive = mu-driven; negative = sigma-driven.</p>
+                  <div id="wb2-driver-balance-chart" class="chart chart--rank compact"></div>
+                </section>
+                <section class="panel card sensitivity-driver-list-card">
+                  <h2>Top Driver Readout</h2>
+                  <p class="subhead">Ranked by total mu/sigma prior sensitivity.</p>
+                  <div id="sens-driver-list" class="sensitivity-driver-list">
+                    <div class="empty empty--compact">Unavailable</div>
+                  </div>
+                </section>
+              </div>
+            </section>
 
             <section class="sensitivity-section" data-wb-pages="comparison">
               <div class="sensitivity-section-head">
@@ -407,6 +477,30 @@
                 </section>
               </div>
             </section>
+
+            {% if dashboard_payload.figures.roi_prior_vs_posterior %}
+            <section class="sensitivity-section" data-wb-pages="comparison">
+              <div class="sensitivity-section-head">
+                <h2>Prior vs Posterior Evidence</h2>
+              </div>
+              <section class="panel card roi-prior-posterior-card">
+                <div class="roi-prior-posterior-layout">
+                  <div>
+                    <h2>ROI Prior vs Posterior with 50% Posterior Intervals</h2>
+                    <p class="subhead">Target-channel self-response only: each row compares the selected target channel's ROI prior mean against its posterior ROI estimate and central 50% posterior interval across prior settings.</p>
+                  </div>
+                  <div class="figure-frame roi-prior-posterior-frame">
+                    <img src="{{ dashboard_payload.figures.roi_prior_vs_posterior }}" alt="ROI Prior vs Posterior with 50% Posterior Intervals">
+                  </div>
+                </div>
+                <div id="roi-prior-posterior-table-wrap" class="target-impact-table-wrap roi-prior-posterior-table-wrap"></div>
+              </section>
+            </section>
+            {% endif %}
+
+            <div class="sensitivity-legacy-hidden" data-wb-pages="comparison" aria-hidden="true">
+              <div id="target-self-response-chart" class="chart target-chart"></div>
+            </div>
 
             <div id="model-output-kpis" class="model-output-kpis" data-wb-pages="modeloutputs"></div>
 
@@ -586,22 +680,11 @@
           <ul id="structural-screen-note-list" class="list"></ul>
         </section>
 
-
-        <section class="panel card run-health-panel" id="section-run-health" data-page-group="qc">
-          <div class="panel-heading-row">
-            <div>
-              <h2>Run Health</h2>
-              <p class="subhead">Health status across all model runs.</p>
-            </div>
-            <span class="status-chip">Live</span>
-          </div>
-          <div id="qc-chart" class="chart"></div>
-        </section>
-
         <section class="panel card panel--compact" id="section-actions" data-page-group="qc">
-          <h2>Recommended Next Actions</h2>
+          <h2>Diagnostics Readout</h2>
           <ul id="readout-list" class="list"></ul>
         </section>
+        <div id="overview-tooltip" class="overview-tooltip" role="tooltip" hidden></div>
       </main>
     </div>
   </div>
@@ -706,6 +789,7 @@
       const workbench = payload.workbench || {};
       const executionContext = payload.execution_context || {};
       const outcomeContext = payload.outcome_context || {};
+      const targetDetail = payload.target_channel_detail || {};
 
       const byId = (id) => document.getElementById(id);
       const distFilter = byId("dist-filter");
@@ -742,6 +826,8 @@
       const mhStatusChip = byId("mh-status-chip");
       const mhPassRate = byId("mh-pass-rate");
       const mhStatusBreakdown = byId("mh-status-breakdown");
+      const mhPrimaryReviewDriver = byId("mh-primary-review-driver");
+      const mhPrimaryReviewCaption = byId("mh-primary-review-caption");
       const mhTierScore = byId("mh-tier-score");
       const mhNote = byId("mh-note");
       const structProfileSelect = byId("struct-profile-select");
@@ -764,16 +850,28 @@
       const overviewLargestCaption = byId("overview-largest-caption");
       const overviewDiagPassRate = byId("overview-diag-pass-rate");
       const overviewDiagStatusMix = byId("overview-diag-status-mix");
-      const overviewRobustnessCard = byId("overview-robustness-card");
-      const overviewRobustnessScore = byId("overview-robustness-score");
-      const overviewRobustnessBand = byId("overview-robustness-band");
-      const overviewRobustnessRows = byId("overview-robustness-rows");
+      const overviewHealthDonutNode = byId("overview-health-donut");
       const overviewTooltip = byId("overview-tooltip");
       const overviewExperimentList = byId("overview-experiment-list");
       const overviewTornadoTitle = byId("overview-tornado-title");
       const overviewTornadoInterp = byId("overview-tornado-interpretation");
       const overviewTornadoNote = byId("overview-tornado-note");
+      const overviewNextChannel = byId("overview-next-channel");
       const overviewRiskMatrix = byId("overview-risk-matrix");
+      const targetChannelSelect = byId("target-channel-select");
+      const targetDetailTitle = byId("target-detail-title");
+      const targetPriorSettings = byId("target-prior-settings");
+      const targetQCMix = byId("target-qc-mix");
+      const targetLargestMovement = byId("target-largest-movement");
+      const targetOutcomeCount = byId("target-outcome-count");
+      const targetDetailInterpretation = byId("target-detail-interpretation");
+      const targetImpactTableBody = byId("target-impact-table-body");
+      const targetTableNote = byId("target-table-note");
+      const targetRobustnessScore = byId("target-robustness-score");
+      const targetRobustnessBand = byId("target-robustness-band");
+      const targetRobustnessNote = byId("target-robustness-note");
+      const targetRobustnessRows = byId("target-robustness-rows");
+      const roiPriorPosteriorTableWrap = byId("roi-prior-posterior-table-wrap");
 
       const state = {
         dist: "lognormal",
@@ -1210,6 +1308,7 @@
 
       let spendChart = null;
       let qcChart = null;
+      let overviewHealthDonutChart = null;
       let adstockLabChart = null;
       let saturationLabChart = null;
       let carryoverLabChart = null;
@@ -1219,6 +1318,9 @@
       }
       if (window.echarts && qcChartNode) {
         qcChart = echarts.init(qcChartNode);
+      }
+      if (window.echarts && overviewHealthDonutNode) {
+        overviewHealthDonutChart = echarts.init(overviewHealthDonutNode);
       }
       if (window.echarts && adstockLabChartNode) {
         adstockLabChart = echarts.init(adstockLabChartNode);
@@ -1496,11 +1598,6 @@
           lines.push(`QC diagnostics: PASS ${pass}, REVIEW ${review}, FAIL ${fail}.`);
         }
 
-        const scoreText = String(decision.score_value || "").trim();
-        if (scoreText) {
-          lines.push(`Robustness score: ${scoreText}.`);
-        }
-
         const coverageRaw = (Array.isArray(decision.reasons) ? decision.reasons : [])
           .find((x) => String(x || "").toLowerCase().includes("pass coverage"));
         if (coverageRaw) {
@@ -1526,11 +1623,32 @@
 
       const scoreGuideLibrary = {
         overall: {
-          label: "Overall Model Robustness",
-          meaning: "Spend-weighted across channels.",
-          high: "The model is broadly stable and more suitable for confident optimization.",
-          low: "Recommendations should be treated as scenario guidance, not hard prescriptions.",
+          label: "Overall Prior-Sensitivity Robustness",
+          meaning: "Portfolio-level stability across all single-channel self-response prior sweeps.",
+          high: "Channel posterior ROI conclusions are comparatively stable under tested prior changes.",
+          low: "One or more channel conclusions move enough that recommendations should stay directional.",
           whatToDo: "Use stronger interpretation only when score, QC, and tornado diagnostics agree; otherwise keep guardrails and iterate.",
+        },
+        movement: {
+          label: "Movement Stability",
+          meaning: "How little each channel's own ROI changes when that channel's own prior changes.",
+          high: "Self-response ROI movement is small relative to the explicit baseline.",
+          low: "Self-response ROI moves materially under the tested prior grid.",
+          whatToDo: "If low, inspect the top sensitive channels and rerun with narrower or better-informed priors.",
+        },
+        qc: {
+          label: "QC Pass Rate",
+          meaning: "Run-level diagnostic pass rate for the runs targeting each channel.",
+          high: "Most relevant runs pass diagnostics.",
+          low: "Diagnostics are mostly REVIEW or FAIL, so interpretation should stay cautious.",
+          whatToDo: "Resolve review/fail checks before using the target-level readout for stronger interpretation.",
+        },
+        interpretability: {
+          label: "Interpretability",
+          meaning: "Penalty-based check for unstable baseline, one-sided movement, or sign flips.",
+          high: "Movement is easier to interpret against the explicit baseline.",
+          low: "Baseline stability, directionality, or sign behavior makes the movement harder to read.",
+          whatToDo: "Use absolute movement and channel detail tables before making percent-change claims.",
         },
         prior: {
           label: "Prior Sensitivity Subscore",
@@ -1538,6 +1656,18 @@
           high: "Estimates do not move much when prior assumptions change.",
           low: "Small prior changes cause large output changes, so the channel is fragile and assumption-dependent.",
           whatToDo: "If low, use caution in budget decisions, run finer prior grids, and stress test recommendations.",
+        },
+        movement: {
+          title: "Movement Stability",
+          body: "Higher is better. Computed from self-response rows only as 100 minus median absolute ROI movement percent versus the explicit baseline, floored at zero.",
+        },
+        qc: {
+          title: "QC Pass Rate",
+          body: "Higher is better. Uses run-level PASS share for the prior runs targeting the channel.",
+        },
+        interpretability: {
+          title: "Interpretability",
+          body: "Higher is better. Starts at 100 and applies simple penalties for unstable baseline percent metrics, one-sided movement, or ROI sign flips.",
         },
         data: {
           label: "Data Influence Subscore",
@@ -1594,12 +1724,16 @@
         },
         band: {
           title: "Band Labels",
-          body: "Low / Medium / High are relative classifications from empirical cutoffs within this run set. Low means highest fragility and requires caution; Medium is usable with uncertainty; High is strongest relative robustness.",
+          body: "Low / Medium / High summarize the existing robustness payload when available. If no robustness output is present, the score remains unavailable.",
+        },
+        target_subset: {
+          title: "Target Subset",
+          body: "Higher is better. Summarizes the configured target subset from the existing robustness payload when available, so narrow target conclusions can be cross-checked against the broader model score.",
         },
       };
 
       const infoButtonHtml = (title, body, label) => `
-        <button class="overview-info-btn" type="button" aria-label="${escapeHtml(label || title)}" data-tooltip-title="${escapeHtml(title)}" data-tooltip-body="${escapeHtml(body)}">i</button>
+        <button class="overview-info-btn" type="button" aria-label="${escapeHtml(label || title)}" data-tooltip-title="${escapeHtml(title)}" data-tooltip-body="${escapeHtml(body)}">?</button>
       `;
 
       const positionOverviewTooltip = (trigger) => {
@@ -1650,46 +1784,6 @@
       });
       window.addEventListener("scroll", hideOverviewTooltip, { passive: true });
       window.addEventListener("resize", hideOverviewTooltip);
-
-      const renderOverviewRobustness = () => {
-        if (!overviewRobustnessCard) return;
-        const score = toNum(decision.score_numeric);
-        const scoreText = Number.isFinite(score)
-          ? `${fmtNum(score, 2)} / 100`
-          : String(decision.score_value || "NA").replace(/\s*\([^)]*\)\s*$/u, "").trim();
-        const band = String(decision.score_band || parseBandFromScoreText(String(decision.score_value || "")) || "").trim();
-        if (overviewRobustnessScore) overviewRobustnessScore.textContent = scoreText || "Not available";
-        if (overviewRobustnessBand) {
-          overviewRobustnessBand.innerHTML = `
-            <span>${escapeHtml(band || "Not available")}</span>
-            ${infoButtonHtml(robustnessTooltipCopy.band.title, robustnessTooltipCopy.band.body, "What do robustness band labels mean?")}
-          `;
-          overviewRobustnessBand.classList.remove("band-low", "band-medium", "band-high");
-          if (band.toLowerCase() === "low") overviewRobustnessBand.classList.add("band-low");
-          else if (band.toLowerCase() === "medium") overviewRobustnessBand.classList.add("band-medium");
-          else if (band.toLowerCase() === "high") overviewRobustnessBand.classList.add("band-high");
-        }
-        if (!overviewRobustnessRows) return;
-        const subs = Array.isArray(decision.score_subscores) ? decision.score_subscores : [];
-        const rows = ["prior", "data", "cross", "adstock"].map((id) => {
-          const row = subs.find((item) => String(item.id || "") === id) || null;
-          const value = row ? toNum(row.value) : null;
-          const label = row ? String(row.label || id) : (scoreGuideLibrary[id] || {}).label || id;
-          const pct = Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
-          const display = Number.isFinite(value) ? `${fmtNum(value, 2)}` : "Not available";
-          const tip = robustnessTooltipCopy[id] || { title: label, body: "Higher is better." };
-          return `
-            <div class="overview-robustness-row">
-              <div>
-                <span class="overview-info-label">${escapeHtml(label)}${infoButtonHtml(tip.title, tip.body, `What does ${label} mean?`)}</span>
-                <b>${display}</b>
-              </div>
-              <div class="overview-robustness-bar" aria-hidden="true"><i style="width:${pct}%"></i></div>
-            </div>
-          `;
-        });
-        overviewRobustnessRows.innerHTML = rows.join("");
-      };
 
       const scoreRuleLines = (selectedId) => {
         const weights = (scoreMeta && typeof scoreMeta.subscore_weights === "object" && scoreMeta.subscore_weights)
@@ -1858,16 +1952,14 @@
           ));
         }
         if (decisionScoreLabel) {
-          decisionScoreLabel.textContent = String(decision.score_label || "Robustness level");
+          decisionScoreLabel.textContent = "Audit Scope";
         }
         if (decisionScoreValue) {
-          const scoreLabelText = String(decision.score_label || "Model Robustness Score").trim();
-          const scoreValueText = String(decision.score_value || "NA").trim();
-          decisionScoreValue.innerHTML = scoreValueText && scoreValueText !== "NA"
-            ? `<span>${escapeHtml(scoreLabelText || "Model Robustness Score")}</span><strong>${escapeHtml(scoreValueText)}</strong>`
-            : "<span>Model Robustness Score</span><strong>NA</strong>";
+          const tierText = String(decision.tier || "").toUpperCase();
+          decisionScoreValue.innerHTML = tierText === "YELLOW"
+            ? "<strong>YELLOW means results are directionally interpretable, but QC/stability follow-up is needed before making stronger conclusions.</strong>"
+            : `<strong>${escapeHtml(String(decision.headline || "Interpretation tier pending diagnostics."))}</strong>`;
         }
-        renderOverviewRobustness();
         if (decisionScoreNote) {
           const note = String(decision.score_note || "").trim();
           decisionScoreNote.textContent = note || "";
@@ -1953,14 +2045,12 @@
             : (top ? conf.format(top[conf.key]) : "NA");
         }
         if (overviewSensitiveChannelLabel) {
-          overviewSensitiveChannelLabel.textContent = tornadoTop
-            ? `Largest ${usesContributionTornado ? "Contribution Share" : "ROI"} Tornado Channel`
-            : "Largest Tornado Channel";
+          overviewSensitiveChannelLabel.textContent = "Largest Tornado Channel";
         }
         if (overviewSensitiveChannel) overviewSensitiveChannel.textContent = channelText;
         if (overviewLargestLabel) {
           overviewLargestLabel.textContent = tornadoTop
-            ? `Largest ${primaryTornadoMovementName()}`
+            ? "Largest Self-Response ROI Movement"
             : (state.metric === "delta" ? "Largest Metric Movement" : "Largest Ranking Movement");
         }
         if (overviewLargestCaption) {
@@ -1996,12 +2086,55 @@
         if (kpiTier) kpiTier.textContent = String(decision.tier || "NA").toUpperCase();
       };
 
+      const getRunHealthCounts = () => {
+        let pass = 0;
+        let review = 0;
+        let fail = 0;
+        let unknown = 0;
+        const wbRows = (payload.workbench && Array.isArray(payload.workbench.run_rows)) ? payload.workbench.run_rows : [];
+        if (wbRows.length) {
+          const byRun = new Map();
+          wbRows.forEach((r) => {
+            const id = String(r.run_id || "");
+            if (!id) return;
+            const status = String(r.qc_status_code || r.qc_summary_short || "").toUpperCase();
+            if (!byRun.has(id)) byRun.set(id, status);
+          });
+          byRun.forEach((status) => {
+            if (status === "PASS") pass += 1;
+            else if (status === "FAIL") fail += 1;
+            else if (status === "REVIEW" || status === "WARN") review += 1;
+            else unknown += 1;
+          });
+        } else {
+          pass = Number(diagnostics.pass_runs || 0);
+          review = Number(diagnostics.review_runs || 0);
+          fail = Number(diagnostics.fail_runs || 0);
+          unknown = Number(diagnostics.unknown_runs || 0);
+        }
+        return { pass, review, fail, unknown, total: pass + review + fail + unknown };
+      };
+
+      const dominantReviewReason = () => {
+        const followup = payload.qc_followup || {};
+        if (followup.available && followup.primary_review_check) {
+          return { label: String(followup.primary_review_check), count: Number(followup.count || 0) };
+        }
+        const rows = (payload.workbench && Array.isArray(payload.workbench.run_rows)) ? payload.workbench.run_rows : [];
+        const counts = new Map();
+        rows.forEach((row) => {
+          const status = String(row.qc_status_code || row.qc_summary_short || "").toUpperCase();
+          const raw = String(row.qc_primary_review_check || "").trim();
+          if (!raw || raw === "-" || status === "PASS") return;
+          counts.set(raw, (counts.get(raw) || 0) + 1);
+        });
+        if (!counts.size) return null;
+        const [label, count] = Array.from(counts.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0];
+        return { label, count };
+      };
+
       const renderModelHealthCard = () => {
-        const nRuns = Number(diagnostics.n_runs || 0);
-        const pass = Number(diagnostics.pass_runs || 0);
-        const review = Number(diagnostics.review_runs || 0);
-        const fail = Number(diagnostics.fail_runs || 0);
-        const unknown = Number(diagnostics.unknown_runs || 0);
+        const { pass, review, fail, unknown, total: nRuns } = getRunHealthCounts();
         const passRate = Number.isFinite(Number(diagnostics.pass_rate_pct))
           ? Number(diagnostics.pass_rate_pct)
           : (nRuns > 0 ? (100 * pass / nRuns) : 0);
@@ -2024,6 +2157,50 @@
         if (mhStatusBreakdown) mhStatusBreakdown.textContent = `PASS ${pass} | REVIEW ${review} | FAIL ${fail}`;
         if (overviewDiagPassRate) overviewDiagPassRate.textContent = `${fmtNum(passRate, 1)}%`;
         if (overviewDiagStatusMix) overviewDiagStatusMix.textContent = `${pass} / ${review} / ${fail}`;
+        const driver = dominantReviewReason();
+        if (mhPrimaryReviewDriver) mhPrimaryReviewDriver.textContent = driver ? driver.label : "Unavailable";
+        if (mhPrimaryReviewCaption) {
+          mhPrimaryReviewCaption.textContent = driver
+            ? `${driver.count} run${driver.count === 1 ? "" : "s"} need follow-up for this check.`
+            : "Review reason unavailable in current payload.";
+        }
+        if (overviewHealthDonutChart) {
+          overviewHealthDonutChart.setOption({
+            animationDuration: 450,
+            tooltip: {
+              trigger: "item",
+              formatter: (p) => {
+                const value = Number(p && p.value);
+                const pct = nRuns > 0 && Number.isFinite(value) ? (100 * value) / nRuns : NaN;
+                return `<b>${p && p.name ? p.name : ""}</b><br>runs: ${Number.isFinite(value) ? value : "NA"}<br>share: ${Number.isFinite(pct) ? `${fmtNum(pct, 1)}%` : "NA"}`;
+              },
+            },
+            series: [{
+              type: "pie",
+              radius: ["56%", "78%"],
+              center: ["50%", "50%"],
+              itemStyle: { borderColor: "#fff", borderWidth: 2 },
+              label: { show: false },
+              labelLine: { show: false },
+              data: [
+                { name: "PASS", value: pass, itemStyle: { color: "#1ba790" } },
+                { name: "REVIEW", value: review, itemStyle: { color: "#c7892f" } },
+                { name: "FAIL", value: fail, itemStyle: { color: "#b44f64" } },
+              ],
+            }],
+            graphic: [{
+              type: "text",
+              left: "center",
+              top: "43%",
+              style: {
+                text: `${nRuns} runs`,
+                fill: "#1f456f",
+                fontWeight: 900,
+                fontSize: 12,
+              },
+            }],
+          }, true);
+        }
         const scoreTxt = String(decision.score_value || "NA");
         if (mhTierScore) mhTierScore.textContent = `${tier} | ${scoreTxt}`;
         if (mhNote) mhNote.textContent = `Runs=${nRuns} (unknown=${unknown}). Policy: ${String(decision.policy_name || "Traffic-Light Policy")}.`;
@@ -2042,7 +2219,7 @@
         structuralScreenNoteSection.style.display = "";
         structuralScreenNoteList.innerHTML = [
           "Prior tornado charts are intentionally omitted in this baseline-only structural screen because there are no non-baseline prior comparisons.",
-          "Robustness scoring is intentionally skipped in this mode; the decision card is reading QC outcomes from the 10 structural runs instead.",
+          "Target-level robustness output is intentionally skipped in this mode; the diagnostics readout is based on the structural runs instead.",
           "Use the Structural Assumptions tab to compare how alpha, ec, slope, lag, and decay move ROI across the screened runs.",
         ].map((line) => `<li>${line}</li>`).join("");
       };
@@ -2186,28 +2363,7 @@
           return;
         }
 
-        let pass = 0;
-        let review = 0;
-        let fail = 0;
-        const wbRows = (payload.workbench && Array.isArray(payload.workbench.run_rows)) ? payload.workbench.run_rows : [];
-        if (wbRows.length) {
-          const byRun = new Map();
-          wbRows.forEach((r) => {
-            const id = String(r.run_id || "");
-            if (!id) return;
-            const status = String(r.qc_status_code || r.qc_summary_short || "").toUpperCase();
-            if (!byRun.has(id)) byRun.set(id, status);
-          });
-          byRun.forEach((status) => {
-            if (status === "PASS") pass += 1;
-            else if (status === "FAIL") fail += 1;
-            else review += 1;
-          });
-        } else {
-          pass = Number(diagnostics.pass_runs || 0);
-          review = Number(diagnostics.review_runs || 0);
-          fail = Number(diagnostics.fail_runs || 0);
-        }
+        const { pass, review, fail } = getRunHealthCounts();
 
         qcChart.setOption({
           animationDuration: 550,
@@ -2278,41 +2434,39 @@
         if (top) {
           const topPrimary = getPrimaryTornadoTop();
           if (topPrimary) {
-            insightLines.push(`${channelUpper(topPrimary.channel)} has the largest ${primaryTornadoMovementName().toLowerCase()} (${formatPrimaryTornadoImpact(topPrimary.impact)}).`);
+            insightLines.push(`${channelUpper(topPrimary.channel)} has the largest completed-audit self-response movement (${formatPrimaryTornadoImpact(topPrimary.impact)}).`);
           } else {
             insightLines.push(`${topChannel} under the ${topDist} prior has the largest ranking movement (${conf.format(metricValueForRow(top, state.metric))}).`);
           }
         }
         if (second) {
-          insightLines.push(`${channelUpper(second.channel)} also shows elevated sensitivity and should be checked before interpreting sensitivity results.`);
+          insightLines.push(`${channelUpper(second.channel)} also shows elevated sensitivity in the completed self-response ranking.`);
         }
         if (third) {
-          insightLines.push(`${channelUpper(third.channel)} is next in the sensitivity ranking; confirm diagnostics before finalizing interpretation.`);
+          insightLines.push(`${channelUpper(third.channel)} is next in the sensitivity ranking.`);
         }
         insightLines.push("Current results support directional interpretation only.");
         const tornadoExperimentRows = getPrimaryTornadoRows(3);
         const experimentRows = tornadoExperimentRows.length
-          ? tornadoExperimentRows.map((row, idx) => {
+          ? tornadoExperimentRows.map((row) => {
             const channel = channelUpper(row.channel);
             const movement = formatPrimaryTornadoImpact(row.impact);
             const range = `${formatPrimaryTornadoPoint(row.left)} to ${formatPrimaryTornadoPoint(row.right)}`;
-            if (idx === 0) {
-              return `Re-run ${channel} for ${primaryTornadoMovementName().toLowerCase()} (${movement} one-sided; interval ${range}).`;
-            }
-            return `Stress test ${channel} as the next ${primaryTornadoMovementName().toLowerCase()} signal (${movement} one-sided; interval ${range}).`;
+            const oneSided = (Number(row.left) >= 0 || Number(row.right) <= 0) ? "one-sided movement" : "two-sided movement";
+            return `${channel}: ${movement} max self-response ROI movement; interval ${range}; ${oneSided}.`;
           })
           : [
-            top ? `Re-run ${topChannel} with a narrower ${topDist} prior grid and compare ${primaryTornadoMovementName().toLowerCase()}.` : `Re-run the most sensitive channel and compare ${primaryTornadoMovementName().toLowerCase()}.`,
-            second ? `Stress test ${channelUpper(second.channel)} under the alternate prior family before interpreting its rank.` : "Stress test the next-highest channel under the alternate prior family.",
-            third ? `Run a diagnostics-gated rerun for ${channelUpper(third.channel)} and review PASS/REVIEW/FAIL changes.` : "Run a diagnostics-gated rerun and review PASS/REVIEW/FAIL changes.",
+            top ? `${topChannel}: largest available ranking movement (${conf.format(metricValueForRow(top, state.metric))}).` : "No completed-audit mover summary available.",
+            second ? `${channelUpper(second.channel)}: second-largest available ranking movement.` : "",
+            third ? `${channelUpper(third.channel)}: third-largest available ranking movement.` : "",
           ];
         const actionRows = [
-          ...experimentRows,
-          "Keep interpretation directional until robustness improves.",
+          ...experimentRows.filter(Boolean),
+          "Diagnostics page summarizes PASS / REVIEW / FAIL health checks for the completed audit.",
         ];
         const readoutLines = [];
         if (String(decision.tier || "").trim()) {
-          readoutLines.push(`Interpretation tier: ${String(decision.tier || "").toUpperCase()}${String(decision.score_value || "").trim() ? ` | Robustness Score ${String(decision.score_value)}` : ""}`);
+          readoutLines.push(`Interpretation tier: ${String(decision.tier || "").toUpperCase()}`);
         }
         if (top) {
           readoutLines.push(`Top sensitivity signal: ${String(top.channel || "").toUpperCase()} (${top.roi_prior_dist || "?"}) at ${conf.format(top[conf.key])}.`);
@@ -2341,7 +2495,7 @@
         if (overviewExperimentList) {
           overviewExperimentList.innerHTML = experimentRows.length
             ? experimentRows.slice(0, 3).map((x) => `<li>${x}</li>`).join("")
-            : "<li>No recommended next experiments available.</li>";
+            : "<li>No completed-audit mover summary available.</li>";
         }
         if (actionSection) {
           const hasOverview = overviewLines.length > 0;
@@ -2520,7 +2674,7 @@
                   <span>${escapeHtml(String(row.step || idx + 1))}</span>
                   <div>
                     <h3>${escapeHtml(String(row.title || "Step"))}</h3>
-                    <p title="${escapeHtml(String(row.detail || ""))}">${escapeHtml(shortenPath(row.detail || "", 72))}</p>
+                    <p>${escapeHtml(String(row.detail || ""))}</p>
                   </div>
                 </article>
               `).join("")
@@ -2569,9 +2723,13 @@
       const tornadoRoiChartNode = byId("tornado-roi-chart");
       const tornadoDollarChartNode = byId("tornado-dollar-chart");
       const overviewTornadoChartNode = byId("overview-tornado-chart");
+      const targetSelfChartNode = byId("target-self-response-chart");
+      const targetSystemChartNode = byId("target-system-chart");
       const tornadoRoiChart = (window.echarts && tornadoRoiChartNode) ? echarts.init(tornadoRoiChartNode) : null;
       const tornadoDollarChart = (window.echarts && tornadoDollarChartNode) ? echarts.init(tornadoDollarChartNode) : null;
       const overviewTornadoChart = (window.echarts && overviewTornadoChartNode) ? echarts.init(overviewTornadoChartNode) : null;
+      const targetSelfChart = (window.echarts && targetSelfChartNode) ? echarts.init(targetSelfChartNode) : null;
+      const targetSystemChart = (window.echarts && targetSystemChartNode) ? echarts.init(targetSystemChartNode) : null;
 
       const roiTornadoRows = Array.isArray(payload.roi_tornado_rows) ? payload.roi_tornado_rows : [];
       const contributionTornadoRows = Array.isArray(payload.contribution_tornado_rows) ? payload.contribution_tornado_rows : [];
@@ -2802,7 +2960,9 @@
           const axisMax = axisRange.max;
           const labelFontSize = 10;
           const intervalLabel = () => "";
-          const gridLeft = clampNum(Math.ceil(maxChannelPx + 46), 132, 190);
+          const gridLeft = Number.isFinite(Number(opts.gridLeft))
+            ? Number(opts.gridLeft)
+            : clampNum(Math.ceil(maxChannelPx + 46), 132, 190);
           const gridRight = 34;
           const labelDistance = 6;
           const labelBoundaryPadding = 10;
@@ -3016,7 +3176,7 @@
             },
             grid: makeGrid(
               "tornado",
-              { left: 110, right: 22, top: 24, bottom: 34 },
+              { left: Number.isFinite(opts.gridLeft) ? opts.gridLeft : 110, right: 22, top: 24, bottom: 34 },
               { forceRight: 22, minRight: 22, mirrorRatio: 0 },
             ),
             xAxis: {
@@ -3126,17 +3286,19 @@
           endpointLabels: true,
           endpointLabelTopN: 8,
           endpointLabelFormatter: formatPrimaryTornadoStaticPoint,
+          gridLeft: 150,
         });
-        if (overviewTornadoTitle) overviewTornadoTitle.textContent = primaryTornadoRangeTitle();
+        if (overviewTornadoTitle) overviewTornadoTitle.textContent = "Self-Response ROI Movement Range (%)";
         if (overviewTornadoNote) {
           overviewTornadoNote.textContent = (primaryPercentTornadoRows.length && overviewRender)
-            ? "Signed lower and upper bounds are drawn against the zero line; exact values remain available in hover tooltip."
+            ? "Self-response rows only: target_channel == channel, non-baseline selected priors compared to each channel's explicit baseline."
             : "Primary sensitivity movement data unavailable.";
         }
         if (overviewTornadoInterp && primaryPercentTornadoRows.length) {
           const topRow = getPrimaryTornadoTop();
           if (topRow) {
-            overviewTornadoInterp.textContent = `${channelUpper(topRow.channel)} shows the largest ${primaryTornadoStoryNoun()} movement under the tested prior assumptions.`;
+            overviewTornadoInterp.textContent = "Each bar shows how a channel's own posterior ROI changes when that same channel's prior is perturbed.";
+            if (overviewNextChannel) overviewNextChannel.textContent = `Most sensitive channel: ${channelUpper(topRow.channel)}`;
           }
         }
 
@@ -3415,6 +3577,342 @@
         });
       };
 
+      const formatTargetMovement = (row) => {
+        if (!row) return "NA";
+        const pctMove = Number(row.max_abs_delta_pct);
+        if (Number.isFinite(pctMove)) return `${fmtNum(Math.abs(pctMove), 3)}%`;
+        const valueMove = Number(row.max_abs_delta_value);
+        if (Number.isFinite(valueMove)) return fmtMoneyCompact(valueMove);
+        const roiMove = Number(row.max_abs_delta_roi);
+        if (Number.isFinite(roiMove)) return fmtNum(Math.abs(roiMove), 3);
+        return "NA";
+      };
+
+      const renderTargetSelfChart = (summary) => {
+        if (!targetSelfChart) return;
+        const rows = Array.isArray(summary && summary.self_response_rows) ? summary.self_response_rows : [];
+        const clean = rows
+          .map((row, idx) => ({
+            idx,
+            mu: Number(row.roi_prior_mu),
+            sigma: Number(row.roi_prior_sigma),
+            dist: String(row.roi_prior_dist || ""),
+            roi: Number(row.estimated_roi),
+            p25: Number(row.posterior_roi_p25),
+            p75: Number(row.posterior_roi_p75),
+            status: String(row.qc_status_code || "UNKNOWN"),
+          }))
+          .filter((row) => Number.isFinite(row.roi));
+        if (!clean.length) {
+          targetSelfChart.clear();
+          return;
+        }
+        const labels = clean.map((row) => `mu ${fmtNum(row.mu, 1)}\nsigma ${fmtNum(row.sigma, 1)}`);
+        const tooltipLabels = clean.map((row) => `mu ${fmtNum(row.mu, 1)} / sigma ${fmtNum(row.sigma, 1)}`);
+        const yVals = clean.flatMap((row) => [
+          row.roi,
+          Number.isFinite(row.p25) ? row.p25 : row.roi,
+          Number.isFinite(row.p75) ? row.p75 : row.roi,
+        ]);
+        const yRange = dataInterval(Math.min(...yVals), Math.max(...yVals), 0.16);
+        const yAxisMin = Math.min(...yVals) >= 0 ? 0 : yRange.min;
+        targetSelfChart.setOption({
+          animationDuration: 350,
+          grid: makeGrid("default", { left: 48, right: 20, top: 18, bottom: 48 }, { mirrorRatio: 0, minRight: 20 }),
+          tooltip: {
+            trigger: "item",
+            formatter: (p) => {
+              const row = clean[p.dataIndex];
+              if (!row) return "";
+              const ci = Number.isFinite(row.p25) && Number.isFinite(row.p75)
+                ? `${fmtNum(row.p25, 3)} to ${fmtNum(row.p75, 3)}`
+                : "NA";
+              return [
+                `<b>${escapeHtml(tooltipLabels[p.dataIndex] || "")}</b>`,
+                `Posterior ROI mean: ${fmtNum(row.roi, 3)}`,
+                `50% CI: ${ci}`,
+                `Prior dist: ${escapeHtml(row.dist || "NA")}`,
+                `QC: ${escapeHtml(row.status)}`,
+              ].join("<br>");
+            },
+          },
+          xAxis: {
+            type: "category",
+            data: labels,
+            axisLabel: { color: "#365983", interval: 0, rotate: 0, fontSize: 10, lineHeight: 14, margin: 12 },
+            axisTick: { alignWithLabel: true },
+          },
+          yAxis: {
+            type: "value",
+            min: yAxisMin,
+            max: yRange.max,
+            name: "ROI",
+            nameTextStyle: { color: "#4d688b", fontSize: 11 },
+            axisLabel: { color: "#365983", formatter: (v) => fmtNum(v, 2) },
+            splitLine: { lineStyle: { color: "rgba(31,70,127,0.12)", type: "dashed" } },
+          },
+          series: [
+            {
+              type: "line",
+              data: clean.map((row) => row.roi),
+              smooth: false,
+              symbolSize: 8,
+              lineStyle: { width: 2, color: "#315f8f" },
+              itemStyle: { color: "#315f8f" },
+              z: 3,
+            },
+            {
+              type: "custom",
+              data: clean.map((row, idx) => [idx, row.p25, row.p75]),
+              silent: true,
+              renderItem: (params, api) => {
+                const idx = api.value(0);
+                const lo = Number(api.value(1));
+                const hi = Number(api.value(2));
+                if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
+                const loPt = api.coord([idx, lo]);
+                const hiPt = api.coord([idx, hi]);
+                return {
+                  type: "group",
+                  children: [
+                    { type: "line", shape: { x1: loPt[0], y1: loPt[1], x2: hiPt[0], y2: hiPt[1] }, style: { stroke: "#8ea6c4", lineWidth: 2 } },
+                    { type: "line", shape: { x1: loPt[0] - 5, y1: loPt[1], x2: loPt[0] + 5, y2: loPt[1] }, style: { stroke: "#8ea6c4", lineWidth: 2 } },
+                    { type: "line", shape: { x1: hiPt[0] - 5, y1: hiPt[1], x2: hiPt[0] + 5, y2: hiPt[1] }, style: { stroke: "#8ea6c4", lineWidth: 2 } },
+                  ],
+                };
+              },
+              z: 1,
+            },
+          ],
+        }, true);
+      };
+
+      const renderTargetSystemChart = (summary) => {
+        if (!targetSystemChart) return;
+        const rows = (Array.isArray(summary && summary.system_impact_rows) ? summary.system_impact_rows : [])
+          .filter((row) => row && row.channel)
+          .map((row) => ({
+            ...row,
+            left_pct: Number(row.left_pct),
+            right_pct: Number(row.right_pct),
+          }))
+          .filter((row) => Number.isFinite(row.left_pct) && Number.isFinite(row.right_pct))
+          .sort((a, b) => Math.max(Math.abs(Number(b.left_pct)), Math.abs(Number(b.right_pct))) - Math.max(Math.abs(Number(a.left_pct)), Math.abs(Number(a.right_pct))))
+          .slice(0, 8);
+        if (!rows.length) {
+          targetSystemChart.clear();
+          return;
+        }
+        renderTornadoBar(targetSystemChart, rows, {
+          leftKey: "left_pct",
+          rightKey: "right_pct",
+          valueFormatter: (v) => (v >= 0 ? `+${fmtNum(v, 1)}%` : `${fmtNum(v, 1)}%`),
+          rangeFormatter: (v) => `${fmtNum(Math.abs(v), 1)}%`,
+          axisFormatter: fmtPctAxisCompact,
+          downsideColor: "#b85b6b",
+          upsideColor: "#249b8a",
+          barHeight: 16,
+          topN: 8,
+          gridLeft: 152,
+        });
+      };
+
+      const renderTargetRobustness = (summary) => {
+        const robust = summary && typeof summary.robustness === "object" ? summary.robustness : {};
+        const available = !!robust.available;
+        const score = Number(robust.score);
+        const band = String(robust.band || (available ? "Available" : "Unavailable"));
+        if (targetRobustnessScore) {
+          targetRobustnessScore.textContent = available && Number.isFinite(score)
+            ? `${fmtNum(score, 2)} / 100`
+            : "Not available";
+        }
+        if (targetRobustnessBand) {
+          targetRobustnessBand.textContent = band;
+          targetRobustnessBand.classList.remove("band-low", "band-medium", "band-high");
+          if (band.toLowerCase() === "low") targetRobustnessBand.classList.add("band-low");
+          else if (band.toLowerCase() === "medium") targetRobustnessBand.classList.add("band-medium");
+          else if (band.toLowerCase() === "high") targetRobustnessBand.classList.add("band-high");
+        }
+        if (targetRobustnessNote) {
+          targetRobustnessNote.textContent = String(
+            robust.note || "Robustness model output is unavailable for this demo; score framework is shown for reference.",
+          );
+        }
+        if (!targetRobustnessRows) return;
+        const subscoreDefinitions = {
+          prior: robustnessTooltipCopy.prior,
+          data: robustnessTooltipCopy.data,
+          cross: robustnessTooltipCopy.cross,
+          adstock: robustnessTooltipCopy.adstock,
+          target_subset: robustnessTooltipCopy.target_subset,
+        };
+        const subs = Array.isArray(robust.subscores) ? robust.subscores : [];
+        const rows = (subs.length ? subs : [
+          { id: "prior", label: "Prior Sensitivity", value: null },
+          { id: "data", label: "Data Influence", value: null },
+          { id: "cross", label: "Cross-Channel", value: null },
+          { id: "adstock", label: "Adstock Proxy", value: null },
+          { id: "target_subset", label: "Target Subset", value: null },
+        ]).map((item) => {
+          const value = Number(item.value);
+          const hasValue = Number.isFinite(value);
+          const pct = hasValue ? Math.max(0, Math.min(100, value)) : 0;
+          const stateClass = hasValue
+            ? (pct >= 67 ? "target-robustness-row--high" : pct >= 34 ? "target-robustness-row--medium" : "target-robustness-row--low")
+            : "target-robustness-row--unavailable";
+          const id = String(item.id || "");
+          const fallback = subscoreDefinitions[id] || {};
+          const title = String(item.label || fallback.title || item.id || "Subscore");
+          const definition = String(item.definition || fallback.body || "");
+          return `
+            <div class="target-robustness-row ${stateClass}">
+              <div class="target-robustness-main">
+                <div class="target-robustness-metric">
+                  <span>${escapeHtml(item.label || item.id || "Subscore")}</span>
+                  ${definition ? infoButtonHtml(title, definition, `${title} explanation`) : ""}
+                </div>
+                <div class="target-robustness-track" aria-hidden="true">
+                  <span class="target-robustness-fill" style="width: ${pct.toFixed(1)}%"></span>
+                </div>
+              </div>
+              <div class="target-robustness-value">
+                <b>${hasValue ? fmtNum(value, 2) : "N/A"}</b>
+              </div>
+            </div>
+          `;
+        });
+        targetRobustnessRows.innerHTML = rows.join("");
+      };
+
+      const renderTargetChannelDetail = () => {
+        const options = Array.isArray(targetDetail.options) ? targetDetail.options : [];
+        const summaries = (targetDetail && typeof targetDetail.summaries === "object" && targetDetail.summaries) ? targetDetail.summaries : {};
+        if (!targetChannelSelect || !options.length) {
+          if (targetSelfChart) targetSelfChart.clear();
+          if (targetSystemChart) targetSystemChart.clear();
+          return;
+        }
+        if (!targetChannelSelect.options.length) {
+          targetChannelSelect.innerHTML = options
+            .map((opt) => `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label || channelUpper(opt.value))}</option>`)
+            .join("");
+          targetChannelSelect.value = String(targetDetail.default_channel || options[0].value || "").toLowerCase();
+        }
+        const selected = String(targetChannelSelect.value || targetDetail.default_channel || options[0].value || "").toLowerCase();
+        const summary = summaries[selected] || {};
+        const label = String(summary.label || channelUpper(selected));
+        if (targetDetailTitle) targetDetailTitle.textContent = label;
+        if (targetPriorSettings) targetPriorSettings.textContent = String(summary.prior_settings_tested || 0);
+        const qcMix = summary.qc_status_mix || {};
+        const qcText = ["PASS", "REVIEW", "FAIL", "UNKNOWN"]
+          .map((key) => Number(qcMix[key]) > 0 ? `${key} ${Number(qcMix[key])}` : "")
+          .filter(Boolean)
+          .join(" / ");
+        if (targetQCMix) targetQCMix.textContent = qcText || "NA";
+        if (targetLargestMovement) {
+          const largest = summary.largest_movement || null;
+          targetLargestMovement.textContent = largest
+            ? `${channelUpper(largest.channel)} ${formatTargetMovement(largest)}`
+            : "NA";
+        }
+        if (targetOutcomeCount) {
+          const systemCount = Number(summary.system_outcome_channel_count || 0);
+          const posteriorRows = Number(summary.system_posterior_rows || 0);
+          targetOutcomeCount.textContent = systemCount <= 1
+            ? `${Math.max(systemCount, 0)} channel / ${posteriorRows} posterior rows`
+            : `${systemCount} channels / ${posteriorRows} posterior rows`;
+        }
+        if (targetDetailInterpretation) {
+          const minRoi = Number(summary.posterior_roi_mean_min);
+          const maxRoi = Number(summary.posterior_roi_mean_max);
+          const roiRange = Number.isFinite(minRoi) && Number.isFinite(maxRoi)
+            ? `posterior ROI mean spans ${fmtNum(minRoi, 3)} to ${fmtNum(maxRoi, 3)} across tested priors`
+            : "posterior ROI summary unavailable";
+          const systemCount = Number(summary.system_outcome_channel_count || 0);
+          const scopeText = systemCount <= 1
+            ? "Full-system outcome rows are unavailable for this selected target."
+            : `Available source rows include ${systemCount} outcome channels, ${Number(summary.system_posterior_rows || 0)} full-system posterior rows, and ${Number(summary.system_non_baseline_movement_rows || 0)} non-baseline movement rows.`;
+          targetDetailInterpretation.textContent = `${label} target-channel response: ${roiRange}. ${scopeText}`;
+        }
+        if (targetImpactTableBody) {
+          const rows = Array.isArray(summary.system_impact_rows) ? summary.system_impact_rows : [];
+          targetImpactTableBody.innerHTML = rows.length
+            ? rows.slice(0, 8).map((row) => `
+              <tr>
+                <td>${escapeHtml(channelUpper(row.channel))}</td>
+                <td><span class="target-scope-chip ${row.is_self_response ? "is-self" : "is-system"}">${escapeHtml(row.response_scope || (row.is_self_response ? "Self-response" : "Non-self"))}</span></td>
+                <td>${Number.isFinite(Number(row.min_signed_delta_pct)) ? `${fmtNum(Number(row.min_signed_delta_pct), 3)}%` : "NA"}</td>
+                <td>${Number.isFinite(Number(row.max_signed_delta_pct)) ? `${fmtNum(Number(row.max_signed_delta_pct), 3)}%` : "NA"}</td>
+                <td>${Number.isFinite(Number(row.max_abs_delta_pct)) ? `${fmtNum(Math.abs(Number(row.max_abs_delta_pct)), 3)}%` : "NA"}</td>
+                <td>${Number.isFinite(Number(row.max_abs_delta_value)) ? fmtMoneyCompact(Number(row.max_abs_delta_value)) : "NA"}</td>
+              </tr>
+            `).join("")
+            : '<tr><td colspan="6">No movement rows available for this selected target sweep.</td></tr>';
+        }
+        if (targetTableNote) {
+          const posteriorRows = Number(summary.system_posterior_rows || 0);
+          const movementRows = Number(summary.system_non_baseline_movement_rows || 0);
+          const rowCounts = posteriorRows || movementRows
+            ? ` (${posteriorRows} full-system posterior rows; ${movementRows} non-baseline movement rows).`
+            : ".";
+          targetTableNote.textContent = `This table includes preserved full-system outcome rows for the selected target-channel sweep${rowCounts} Self-response rows show the selected target channel's own signed posterior ROI percent change; non-self rows show cross-channel response under the same target prior settings.`;
+        }
+        renderTargetSelfChart(summary);
+        renderTargetSystemChart(summary);
+        renderTargetRobustness(summary);
+      };
+
+      if (targetChannelSelect) {
+        targetChannelSelect.addEventListener("change", () => {
+          renderTargetChannelDetail();
+          if (typeof window.__dashScheduleResize === "function") window.__dashScheduleResize();
+        });
+      }
+
+      const renderRoiPriorPosteriorTable = () => {
+        if (!roiPriorPosteriorTableWrap) return;
+        const block = payload.roi_prior_posterior_table || {};
+        const rows = Array.isArray(block.rows) ? block.rows : [];
+        if (!block.available || !rows.length) {
+          roiPriorPosteriorTableWrap.innerHTML = `<div class="empty empty--compact">${escapeHtml(block.reason || "Prior vs posterior table unavailable.")}</div>`;
+          return;
+        }
+        const has95 = !!block.has_95;
+        const head = `
+          <thead>
+            <tr>
+              <th>Channel</th>
+              <th>Prior Variant</th>
+              <th>Prior ROI Mu</th>
+              <th>Prior ROI Sigma</th>
+              <th>Posterior ROI Estimate</th>
+              <th>50% Lower</th>
+              <th>50% Upper</th>
+              <th>95% Lower</th>
+              <th>95% Upper</th>
+            </tr>
+          </thead>`;
+        const body = rows.map((row) => `
+          <tr>
+            <td>${escapeHtml(channelUpper(row.channel))}</td>
+            <td>${escapeHtml(row.prior_variant || "NA")}</td>
+            <td>${fmtNum(Number(row.prior_roi_mu), 3)}</td>
+            <td>${fmtNum(Number(row.prior_roi_sigma), 3)}</td>
+            <td>${fmtNum(Number(row.posterior_roi_estimate), 3)}</td>
+            <td>${fmtNum(Number(row.posterior_50_lower), 3)}</td>
+            <td>${fmtNum(Number(row.posterior_50_upper), 3)}</td>
+            <td>${has95 ? fmtNum(Number(row.posterior_95_lower), 3) : "Unavailable"}</td>
+            <td>${has95 ? fmtNum(Number(row.posterior_95_upper), 3) : "Unavailable"}</td>
+          </tr>
+        `).join("");
+        roiPriorPosteriorTableWrap.innerHTML = `
+          <table class="target-impact-table roi-prior-posterior-table">
+            ${head}
+            <tbody>${body}</tbody>
+          </table>`;
+      };
+
       const renderAll = () => {
         renderExecutionModeNote();
         const rows = getFilteredRows();
@@ -3426,6 +3924,8 @@
         renderQc();
         renderLists();
         renderTornadoCharts();
+        renderTargetChannelDetail();
+        renderRoiPriorPosteriorTable();
         renderSensitivityDriverStory();
         renderRiskMatrix();
         try {
@@ -3643,7 +4143,10 @@
       setupPageTabs();
       setupRevealAnimations();
       updateScrollProgress();
-      registerCharts([spendChart, qcChart, adstockLabChart, saturationLabChart, carryoverLabChart, tornadoRoiChart, tornadoDollarChart, overviewTornadoChart]);
+      registerCharts([
+        spendChart, qcChart, overviewHealthDonutChart, adstockLabChart, saturationLabChart, carryoverLabChart,
+        tornadoRoiChart, tornadoDollarChart, overviewTornadoChart, targetSelfChart, targetSystemChart,
+      ]);
       scheduleChartResize();
       applyPreset("lognormal");
     })();
@@ -4671,11 +5174,16 @@
       const channels = Array.isArray(wb.available_channels) && wb.available_channels.length
         ? wb.available_channels.map((x) => String(x))
         : Array.from(new Set(allPrimaryRows().map((r) => r.channel).filter(Boolean))).sort();
+      const explicitBaseline = (wb.explicit_baseline && typeof wb.explicit_baseline === "object")
+        ? wb.explicit_baseline
+        : null;
+      const explicitBaselineMu = explicitBaseline ? toNum(explicitBaseline.mu) : null;
+      const explicitBaselineSigma = explicitBaseline ? toNum(explicitBaseline.sigma) : null;
 
       const state = {
         channel: String(wb.default_channel || channels[0] || ""),
-        mu: null,
-        sigma: null,
+        mu: explicitBaselineMu,
+        sigma: explicitBaselineSigma,
       };
 
       channelSelect.innerHTML = channels.map((c) => `<option value="${c}">${String(c).toUpperCase()}</option>`).join("");
@@ -4700,7 +5208,15 @@
       });
       const channelRows = () => allPrimaryRows().filter((r) => r.channel === state.channel);
       const structuralChannelRows = () => structuralResponseRows.filter((r) => channelUpper(r.channel) === channelUpper(state.channel));
-      const baselineRow = (rowsSel) => rowsSel.find((r) => !!r.is_baseline) || rowsSel[0] || null;
+      const baselineRow = (rowsSel) => {
+        const explicit = rowsSel.find((r) =>
+          !!r.is_baseline &&
+          (explicitBaselineMu === null || approxEq(r.roi_prior_mu, explicitBaselineMu)) &&
+          (explicitBaselineSigma === null || approxEq(r.roi_prior_sigma, explicitBaselineSigma)) &&
+          (!explicitBaseline || !explicitBaseline.dist || normalizeDist(r.roi_prior_dist) === normalizeDist(explicitBaseline.dist))
+        );
+        return explicit || rowsSel.find((r) => !!r.is_baseline) || null;
+      };
       const rowDistance = (row, struct, muVals, sigmaVals) => {
         const muRange = Math.max(1e-9, (muVals[muVals.length - 1] || 1) - (muVals[0] || 0));
         const sigmaRange = Math.max(1e-9, (sigmaVals[sigmaVals.length - 1] || 1) - (sigmaVals[0] || 0));
@@ -4787,7 +5303,7 @@
 
       const renderKpis = (selected, baseline) => {
         if (!selected) return;
-        const baselineRoi = Number.isFinite(baseline && baseline.estimated_roi) ? baseline.estimated_roi : toNum(selected.baseline_roi);
+        const baselineRoi = Number.isFinite(baseline && baseline.estimated_roi) ? baseline.estimated_roi : null;
         const deltaRoi = Number.isFinite(selected.estimated_roi) && Number.isFinite(baselineRoi) ? selected.estimated_roi - baselineRoi : null;
         const pct = Number.isFinite(selected.pct_change)
           ? selected.pct_change
@@ -5663,8 +6179,13 @@
       const defaults = channelRows();
       if (defaults.length) {
         const base = baselineRow(defaults);
-        state.mu = Number.isFinite(base && base.roi_prior_mu) ? base.roi_prior_mu : uniqueSorted(defaults.map((r) => r.roi_prior_mu))[0];
-        state.sigma = Number.isFinite(base && base.roi_prior_sigma) ? base.roi_prior_sigma : uniqueSorted(defaults.map((r) => r.roi_prior_sigma))[0];
+        if (base && Number.isFinite(base.roi_prior_mu) && Number.isFinite(base.roi_prior_sigma)) {
+          state.mu = base.roi_prior_mu;
+          state.sigma = base.roi_prior_sigma;
+        } else if (!explicitBaseline) {
+          state.mu = uniqueSorted(defaults.map((r) => r.roi_prior_mu))[0];
+          state.sigma = uniqueSorted(defaults.map((r) => r.roi_prior_sigma))[0];
+        }
       }
       renderAll();
       if (typeof window.__dashScheduleResize === "function") {

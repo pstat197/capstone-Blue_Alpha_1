@@ -326,7 +326,7 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
     if cfg["figures"].get("make_tornado", True):
         range_mode = str(cfg["figures"].get("tornado_range_mode", "p05p95")).strip().lower()
         top_n = int(cfg["figures"].get("tornado_top_n", cfg["ranking"]["top_n"]))
-        summary = _compute_tornado_interval_summary(metrics["merged_df"], range_mode)
+        summary = _compute_tornado_interval_summary(metrics.get("overview_df", metrics["merged_df"]), range_mode)
         summary = summary.head(top_n).sort_values("impact", ascending=True).reset_index(drop=True)
 
         labels = [str(r.channel).upper() for r in summary.itertuples(index=False)]
@@ -485,7 +485,7 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
                 out["scenario_snapshot"] = out["scenario_snapshots"][0]["path"]
 
     if cfg["figures"].get("make_heatmaps", True):
-        merged = metrics["merged_df"]
+        merged = metrics.get("overview_df", metrics["merged_df"])
         rank = metrics["rank_df"].copy()
 
         rows = int(cfg["figures"].get("heatmap_grid_rows", 2))
@@ -646,7 +646,6 @@ def make_all_figures(df: pd.DataFrame, metrics: dict, cfg: dict, fig_dir: Path) 
         _cleanup_stale_generated_figures(fig_dir, out)
 
     return out
-
 
 
 

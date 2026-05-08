@@ -38,9 +38,15 @@ DEFAULT_QC_GATE_DISTS = ["LogNormal"]
 
 
 def _pick_baseline(group: pd.DataFrame, rule: str) -> tuple[float, float]:
-    if rule == "median":
-        return float(group["roi_prior_mu"].median()), float(group["roi_prior_sigma"].median())
-    raise ValueError(f"Unknown baseline rule: {rule}")
+    if "is_baseline" in group.columns:
+        baseline_mask = group["is_baseline"].astype(str).str.lower().isin({"true", "1", "yes"})
+        baseline_rows = group.loc[baseline_mask].copy()
+        if not baseline_rows.empty:
+            return (
+                float(pd.to_numeric(baseline_rows["roi_prior_mu"], errors="coerce").median()),
+                float(pd.to_numeric(baseline_rows["roi_prior_sigma"], errors="coerce").median()),
+            )
+    raise ValueError("Baseline rows must be marked explicitly with is_baseline == True.")
 
 
 def _merge_reason_tokens(tokens: list[str]) -> str:
@@ -86,6 +92,12 @@ def _build_scope_info(df: pd.DataFrame) -> dict:
     }
 
     run_level = df.drop_duplicates(subset=["run_id"]).copy() if "run_id" in df.columns else df.copy()
+    for col in ["data_tag", "run_mode"]:
+        if col in run_level.columns:
+            vals = run_level[col].dropna().astype(str).str.strip()
+            vals = vals[vals != ""]
+            if not vals.empty:
+                scope[col] = vals.value_counts().index[0]
 
     granularity = None
     if "data_granularity" in run_level.columns:
@@ -284,7 +296,11 @@ def _build_how_this_was_run(
     )
 
     baseline_rule = str((cfg.get("baseline", {}) or {}).get("rule", "median"))
-    baseline_distinct = baseline_df[["baseline_mu", "baseline_sigma"]].drop_duplicates() if {"baseline_mu", "baseline_sigma"}.issubset(baseline_df.columns) else pd.DataFrame()
+    baseline_distinct = (
+        baseline_df[["baseline_mu", "baseline_sigma"]].drop_duplicates()
+        if {"baseline_mu", "baseline_sigma"}.issubset(baseline_df.columns)
+        else pd.DataFrame()
+    )
     baseline_dist_values = []
     if "roi_prior_dist" in baseline_df.columns:
         baseline_dist_values = sorted(baseline_df["roi_prior_dist"].dropna().astype(str).str.strip().unique().tolist())
@@ -330,7 +346,7 @@ def _build_how_this_was_run(
         (
             "Generate structural diagnostics and the dashboard payload."
             if structural_screen_only
-            else "Generate tornado summaries, robustness scoring, and the dashboard payload."
+            else "Generate tornado summaries, target-level robustness artifacts, and the dashboard payload."
         ),
     ]
 
@@ -365,7 +381,7 @@ def _build_how_this_was_run(
             "detail": (
                 "Structural diagnostics and dashboard payload"
                 if structural_screen_only
-                else "Tornado summaries, robustness score, and dashboard payload"
+                else "Tornado summaries, target-level robustness artifacts, and dashboard payload"
             ),
         },
     ]
@@ -417,7 +433,7 @@ def _build_how_this_was_run(
             "This run is a structural-only screen: the baseline prior is fixed while structural settings vary."
         )
         notes.append(
-            "Prior tornado charts and robustness scores are intentionally omitted in baseline-only structural screens."
+            "Prior tornado charts and target-level robustness artifacts are intentionally omitted in baseline-only structural screens."
         )
     notes.append(
         "This panel is internal run provenance for team review and reproducibility, not client-facing narrative."
@@ -1092,6 +1108,11 @@ def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
     if explicit_tag:
         return explicit_tag
 
+    for key in ["run_mode", "data_tag"]:
+        value = str(scope.get(key, "") or "").strip()
+        if value and value.lower() not in {"unknown", "na", "none"}:
+            return value
+
     linked_targets = [str(x).strip() for x in (scope.get("linked_targets") or []) if str(x).strip()]
     if linked_targets:
         return "_".join(sorted(linked_targets))
@@ -1206,6 +1227,7 @@ def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
         "available": True,
         "tag": tag,
         "model_csv": str(model_csv),
+        "channel_csv": str(model_csv.with_name(f"robustness_channel_{tag}.csv")),
         "reason": "",
         "overall_model_robustness_score": score,
         "overall_model_robustness_band": band,
@@ -1239,7 +1261,7 @@ def _compute_decision_card(
     policy_name = str(
         policy_cfg.get(
             "name",
-            "Traffic-Light Policy v1 (pre-robustness score)",
+            "Traffic-Light Policy v1",
         )
     )
     require_qc_gate_for_green = bool(policy_cfg.get("require_qc_gate_for_green", True))
@@ -1376,7 +1398,7 @@ def _compute_decision_card(
     elif tier == "GREEN":
         if require_robustness_score_for_green and (not robust_available):
             tier = "YELLOW"
-            headline = "Directional only; robustness score is required before green-light decisions."
+            headline = "Directional only; robustness score output is required before stronger interpretation."
             triggered_rules.append("YELLOW rule: robustness score is missing, so GREEN is blocked.")
         elif (
             robust_available
@@ -1435,11 +1457,14 @@ def _compute_decision_card(
         robust_weighting = str(robust.get("overall_weighting", "") or "").strip() or "unknown"
         robust_runs = int(robust.get("n_runs_used", 0) or 0)
         robust_tag = str(robust.get("tag", "") or "").strip()
+        robust_source = str(robust.get("source", "") or "").strip()
         robust_target_subset = _safe_float(robust.get("target_subset_robustness_score"))
         robust_line = (
             f"Robustness score: {robust_score_value:.2f}/100 "
             f"({robust_band.title() if robust_band != 'UNKNOWN' else 'Unknown'}), "
-            f"weighting={robust_weighting}, runs={robust_runs}, tag={robust_tag or 'NA'}."
+            f"weighting={robust_weighting}, runs={robust_runs}"
+            f"{', source=' + robust_source if robust_source else ''}"
+            f"{', tag=' + robust_tag if robust_tag else ''}."
         )
         if robust_target_subset is not None:
             robust_line += f" Target-subset score={robust_target_subset:.2f}/100."
@@ -1483,32 +1508,32 @@ def _compute_decision_card(
 
     actions: list[str] = []
     if tier == "GREEN":
-        actions.append("Use the QC gate window as the default operating prior range.")
-        actions.append("Monitor drift each refresh by rerunning the same QC gate scenarios.")
-        actions.append("Escalate to 8-run/18-run only if gate status drops below PASS.")
+        actions.append("QC gate window supports the completed audit interpretation.")
+        actions.append("Keep the same QC gate scenario definition for future refresh comparability.")
+        actions.append("Escalation is only needed if a future refresh drops below PASS.")
     elif tier == "YELLOW":
         actions.append("Keep conclusions directional; avoid hard budget shifts from single-run snapshots.")
         if structural_screen_only:
-            actions.append("Prioritize reruns around the structural settings that triggered FAIL checks.")
+            actions.append("Structural settings with FAIL checks remain the main review context.")
             actions.append("Use the Structural Assumptions view before widening the prior grid.")
         else:
-            actions.append("Prioritize reruns around the most sensitive channel-prior combinations.")
-            actions.append("Require QC gate PASS plus robustness score before production decision workflow.")
+            actions.append("Treat the largest prior-driven movers as audit findings, not queued experiments.")
+            actions.append("Use Sensitivity for target-level robustness context when robustness output is available.")
     else:
         actions.append("Do not use this result set for budget decisions yet.")
-        actions.append("Run a broader prior sweep and recompute diagnostics/QC gate.")
-        actions.append("Re-baseline score after improving unstable channels and failing checks.")
+        actions.append("Diagnostics and QC gate failures are the primary blockers in this artifact.")
+        actions.append("Re-baseline only after unstable channels and failing checks are resolved.")
 
     if robust_available and robust_band == "LOW":
-        actions.append("Prioritize the lowest-scoring channels in robustness_channel_<tag>.csv for targeted reruns.")
+        actions.append("Lowest-scoring robustness channels should be treated as interpretability risks.")
 
-    score_label = "Pending Robustness Score"
-    score_value = "N/A (awaiting score pipeline)"
-    score_note = "Placeholder: robustness score pipeline not integrated yet."
+    score_label = "Robustness Model Output"
+    score_value = "Unavailable"
+    score_note = "Robustness model output is unavailable for this demo; score framework is shown for reference."
     score_numeric = None
     score_band = None
     if robust_available and robust_score_value is not None:
-        score_label = "Model Robustness Score"
+        score_label = "Overall Prior-Sensitivity Robustness"
         band_text = robust_band.title() if robust_band != "UNKNOWN" else "Unknown"
         score_value = f"{robust_score_value:.2f} / 100 ({band_text})"
         score_numeric = robust_score_value
@@ -1516,15 +1541,36 @@ def _compute_decision_card(
         robust_weighting = str(robust.get("overall_weighting", "") or "").strip() or "unknown"
         robust_runs = int(robust.get("n_runs_used", 0) or 0)
         source_name = Path(str(robust.get("model_csv", "") or "")).name
-        score_note = f"src={source_name} | w={robust_weighting} | n={robust_runs}"
+        score_note = f"src={source_name or 'robustness_model_<tag>.csv'} | w={robust_weighting} | n={robust_runs}"
     elif robust_enabled and robust_reason:
-        score_note = f"Robustness score unavailable: {robust_reason}."
+        score_note = "Robustness model output is unavailable for this demo; score framework is shown for reference."
     if structural_screen_only and not robust_available:
         score_label = "Structural Screen Mode"
         score_value = "Baseline prior fixed"
-        score_note = "Robustness scoring is intentionally skipped in baseline-only structural screens."
+        score_note = "Robustness model output is intentionally skipped in baseline-only structural screens."
 
-    score_subscores: list[dict] = []
+    score_subscores: list[dict] = [
+        {
+            "id": "prior",
+            "label": "Prior Sensitivity",
+            "value": None,
+        },
+        {
+            "id": "data",
+            "label": "Data Influence",
+            "value": None,
+        },
+        {
+            "id": "cross",
+            "label": "Cross-Channel",
+            "value": None,
+        },
+        {
+            "id": "adstock",
+            "label": "Adstock Proxy",
+            "value": None,
+        },
+    ]
     score_meta: dict = {
         "higher_is_better": True,
         "overall_weighting": None,
@@ -1567,7 +1613,7 @@ def _compute_decision_card(
                 "value": _safe_float(robust.get("target_subset_robustness_score")),
             },
         ]
-        score_subscores = [x for x in score_subscores if x.get("value") is not None]
+        score_subscores = [x for x in score_subscores if x.get("value") is not None or x.get("id") != "target_subset"]
         score_meta.update(
             {
                 "overall_weighting": str(robust.get("overall_weighting", "") or "").strip() or None,
@@ -2467,11 +2513,23 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     elif "qc_summary_short" in prior_df.columns:
         status_col_for_baseline = "qc_summary_short"
 
-    for (channel, dist), g in prior_df.groupby(["channel", "roi_prior_dist"], as_index=False):
+    baseline_group_cols = ["target_channel", "channel", "roi_prior_dist"]
+    for group_key, g in prior_df.groupby(baseline_group_cols, as_index=False):
+        target_channel, channel, dist = group_key
         mu0, s0 = _pick_baseline(g, baseline_rule)
 
+        baseline_mask = g["is_baseline"].map(_to_bool) if "is_baseline" in g.columns else pd.Series(False, index=g.index)
+        baseline_rows = g.loc[baseline_mask].copy()
+        if baseline_rows.empty:
+            raise ValueError(
+                "Baseline rows must be marked explicitly with is_baseline == True "
+                f"for target={target_channel}, channel={channel}, dist={dist}."
+            )
+        baseline_rows["_baseline_sort"] = np.arange(len(baseline_rows))
+        baseline_row = baseline_rows.sort_values("_baseline_sort").iloc[0]
+        mu0 = float(pd.to_numeric(pd.Series([baseline_row["roi_prior_mu"]]), errors="coerce").iloc[0])
+        s0 = float(pd.to_numeric(pd.Series([baseline_row["roi_prior_sigma"]]), errors="coerce").iloc[0])
         g2 = g.assign(d=(g["roi_prior_mu"] - mu0).abs() + (g["roi_prior_sigma"] - s0).abs()).sort_values("d")
-        baseline_row = g2.iloc[0]
         baseline_roi = float(baseline_row["estimated_roi"])
 
         baseline_run_id = baseline_row.get("run_id") if "run_id" in g2.columns else None
@@ -2527,6 +2585,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
         baselines.append(
             {
+                "target_channel": target_channel,
                 "channel": channel,
                 "roi_prior_dist": dist,
                 "baseline_mu": mu0,
@@ -2545,8 +2604,8 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     baseline_df = pd.DataFrame(baselines)
 
-    merged = full_df.merge(baseline_df, on=["channel", "roi_prior_dist"], how="left")
-    merged_prior = prior_df.merge(baseline_df, on=["channel", "roi_prior_dist"], how="left")
+    merged = full_df.merge(baseline_df, on=baseline_group_cols, how="left")
+    merged_prior = prior_df.merge(baseline_df, on=baseline_group_cols, how="left")
     pct_source = "median_grid_baseline"
 
     # Always compute a robust fallback from the report baseline table first.
@@ -2609,6 +2668,18 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     merged, _ = _apply_baseline_metrics(merged)
     merged_prior, pct_source = _apply_baseline_metrics(merged_prior)
 
+    overview_input = merged_prior.copy()
+    overview_scope = "all_rows"
+    overview_scope_fallback = False
+    if "is_target_channel" in merged_prior.columns:
+        self_response_mask = merged_prior["is_target_channel"].map(_to_bool).fillna(False)
+        self_response_rows = merged_prior.loc[self_response_mask].copy()
+        if not self_response_rows.empty:
+            overview_input = self_response_rows
+            overview_scope = "self_response"
+        else:
+            overview_scope_fallback = True
+
     prior_guardrail = _compute_prior_guardrail(merged_prior, cfg, tables_dir)
     dollar = _compute_dollar_sensitivity(merged_prior, cfg, tables_dir)
     scenario_snapshot = _compute_scenario_snapshot(merged_prior, cfg, tables_dir)
@@ -2622,18 +2693,18 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
     if ranking_qc_scope not in {"all", "pass_only", "non_fail"}:
         ranking_qc_scope = "all"
 
-    rank_input = merged_prior.copy()
+    rank_input = overview_input.copy()
     rank_scope_fallback = False
 
     status_col = None
-    if "qc_status_code" in merged_prior.columns:
+    if "qc_status_code" in overview_input.columns:
         status_col = "qc_status_code"
-    elif "qc_summary_short" in merged_prior.columns:
+    elif "qc_summary_short" in overview_input.columns:
         status_col = "qc_summary_short"
 
-    status_bucket = merged_prior[status_col].map(_status_bucket) if status_col else None
+    status_bucket = overview_input[status_col].map(_status_bucket) if status_col else None
     pass_rows_for_coverage = int((status_bucket == "PASS").sum()) if status_bucket is not None else 0
-    total_rows_for_coverage = int(len(merged_prior))
+    total_rows_for_coverage = int(len(overview_input))
     pass_coverage_pct = (
         100.0 * pass_rows_for_coverage / total_rows_for_coverage
         if total_rows_for_coverage > 0 and status_bucket is not None
@@ -2642,12 +2713,12 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     if ranking_qc_scope != "all" and status_bucket is not None:
         if ranking_qc_scope == "pass_only":
-            rank_input = merged_prior[status_bucket == "PASS"].copy()
+            rank_input = overview_input[status_bucket == "PASS"].copy()
         else:
-            rank_input = merged_prior[status_bucket != "FAIL"].copy()
+            rank_input = overview_input[status_bucket != "FAIL"].copy()
 
     if rank_input.empty:
-        rank_input = merged_prior.copy()
+        rank_input = overview_input.copy()
         rank_scope_fallback = True
 
     rank = (
@@ -2789,7 +2860,11 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "n_unstable_pct_pairs": unstable_pairs,
         "ranking_qc_scope": ranking_qc_scope,
         "ranking_rows_total": int(len(merged)),
+        "ranking_rows_total_full_system": int(len(merged_prior)),
         "ranking_rows_used": int(len(rank_input)),
+        "overview_response_scope": overview_scope,
+        "overview_response_scope_fallback": bool(overview_scope_fallback),
+        "overview_self_response_rows": int(len(overview_input)),
         "ranking_scope_fallback": bool(rank_scope_fallback),
         "pass_rows_for_coverage": pass_rows_for_coverage,
         "total_rows_for_coverage": total_rows_for_coverage,
@@ -2820,6 +2895,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
         "rank_df": rank,
         "rank_top_df": rank_top,
         "merged_df": merged_prior,
+        "overview_df": overview_input,
         "recommendations": recs,
         "quick_overview_lines": quick_overview_lines,
         "how_this_was_run": how_this_was_run,

@@ -31,11 +31,30 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Optional output directory. Defaults to data/output/02_tables/<tag>/.",
     )
+    parser.add_argument(
+        "--tag",
+        default=None,
+        help="Optional output tag to read/write instead of the target-derived tag.",
+    )
     return parser
 
 
 def _tag_for_targets(targets: Iterable[str]) -> str:
     return "_".join(sorted(str(t) for t in targets))
+
+
+def _sanitize_tag_token(raw: str) -> str:
+    s = str(raw).strip().lower()
+    out = []
+    for ch in s:
+        if ch.isalnum() or ch in {"-", "_"}:
+            out.append(ch)
+        else:
+            out.append("_")
+    token = "".join(out).strip("_")
+    while "__" in token:
+        token = token.replace("__", "_")
+    return token or "dataset"
 
 
 def _paths_for_tag(tag: str) -> dict[str, str]:
@@ -630,7 +649,7 @@ def main() -> None:
         raise ValueError("Provide at least one target channel.")
     targets_str = ",".join(targets_sorted)
     target_set = set(targets_sorted)
-    tag = _tag_for_targets(targets_sorted)
+    tag = _sanitize_tag_token(args.tag) if args.tag else _tag_for_targets(targets_sorted)
     out_dir = args.out_dir or str(tables_tag_dir(tag))
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -656,7 +675,12 @@ def main() -> None:
         print("Robustness scoring skipped: no tornado rows available for this sweep design.")
         return
     if "targets" in tornado_df.columns:
-        tornado_df = tornado_df[tornado_df["targets"].astype(str) == targets_str].copy()
+        targets_col = tornado_df["targets"].astype(str)
+        exact_tornado_df = tornado_df[targets_col == targets_str].copy()
+        if exact_tornado_df.empty and len(target_set) > 1:
+            tornado_df = tornado_df[targets_col.isin(target_set)].copy()
+        else:
+            tornado_df = exact_tornado_df
     if tornado_df.empty:
         _write_placeholder_outputs(
             out_dir=out_dir,
@@ -674,7 +698,12 @@ def main() -> None:
     if run_csv is not None and os.path.exists(run_csv):
         run_df = pd.read_csv(run_csv)
         if "targets" in run_df.columns:
-            run_df = run_df[run_df["targets"].astype(str) == targets_str].copy()
+            targets_col = run_df["targets"].astype(str)
+            exact_run_df = run_df[targets_col == targets_str].copy()
+            if exact_run_df.empty and len(target_set) > 1:
+                run_df = run_df[targets_col.isin(target_set)].copy()
+            else:
+                run_df = exact_run_df
         run_meta_cols = [
             c
             for c in ["run_id", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist", "is_baseline"]

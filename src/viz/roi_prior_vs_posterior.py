@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -56,15 +59,11 @@ def make_plot(input_csv: str | Path, output_png: str | Path, *, title: str = "RO
     )
 
     target_mask = df["channel"].astype(str) == df["target_channel"].astype(str)
-    ignored_rows = int((~target_mask).sum())
     df = df[target_mask].copy()
     if df.empty:
         raise ValueError("No primary one-channel rows found where channel == target_channel.")
     if not (df["channel"].astype(str) == df["target_channel"].astype(str)).all():
         raise ValueError("Primary ROI rows must satisfy channel == target_channel.")
-
-    if ignored_rows:
-        print(f"Ignored {ignored_rows} non-target ROI rows where channel != target_channel.")
 
     lo_col, hi_col = "posterior_roi_p25", "posterior_roi_p75"
     numeric_cols = ["roi_prior_mu", "roi_prior_sigma", "estimated_roi", "prior_roi_mu_channel", lo_col, hi_col]
