@@ -1,0 +1,2 @@
+run_id,channel,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,estimated_roi,baseline_roi,pct_change,abs_pct_change,delta_value_used,qc_status_code,qc_summary_short
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=40.0|target=google|mu=4.500000|sigma=0.500000|dist=LogNormal|4.500000|0.500000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric",google,google,4.5,0.5,LogNormal,3.0915391155083976,0.3337632389987508,826.2671122148262,826.2671122148262,1136043042.3698328,REVIEW,REVIEW:Baseline

@@ -2606,13 +2606,13 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     merged = full_df.merge(baseline_df, on=baseline_group_cols, how="left")
     merged_prior = prior_df.merge(baseline_df, on=baseline_group_cols, how="left")
-    pct_source = "median_grid_baseline"
+    pct_source = "explicit_flagged_baseline"
 
     # Always compute a robust fallback from the report baseline table first.
     # This keeps baseline/non-baseline runs usable even when tornado columns have gaps.
     def _apply_baseline_metrics(frame: pd.DataFrame) -> tuple[pd.DataFrame, str]:
         out = frame.copy()
-        pct_source_local = "median_grid_baseline"
+        pct_source_local = "explicit_flagged_baseline"
         fallback_baseline = pd.to_numeric(out["baseline_roi"], errors="coerce")
         fallback_estimated = pd.to_numeric(out["estimated_roi"], errors="coerce")
         fallback_safe = fallback_baseline.abs() >= 1e-9

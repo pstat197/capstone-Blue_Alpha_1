@@ -22,7 +22,7 @@ introduction:
     - "This project proposes a systematic prior sensitivity analysis framework that evaluates how ROI estimates change across different prior configurations. The framework generates automated diagnostic reports that help analysts identify unstable parameters and improve model robustness."
 
 baseline:
-  rule: "median"
+  rule: "explicit"
 
 ranking:
   top_n: 10
@@ -121,7 +121,7 @@ theory:
     - "Heatmap surfaces represent ROI response over the tested (mu, sigma) prior grid."
 
 methods:
-  baseline_description: "Baseline ROI is selected from the median prior location within each channel/dist pair, then validated by stability filters (QC pass, denominator magnitude, sign-stability, and local smoothness)."
+  baseline_description: "Baseline ROI is selected from the explicit ROI prior point mu=1.0 and sigma=1.0 within each channel/dist pair, then validated by stability filters (QC pass, denominator magnitude, sign-stability, and local smoothness)."
   sensitivity_description: "LogNormal prior sensitivity is the primary analysis surface; percent change is shown only for stable baselines, with |Delta ROI| fallback when denominator stability is weak."
   visualization_description: "The dashboard emphasizes LogNormal grid exploration with channel-level drill-down, mu/sigma split diagnostics, box-and-whisker distributions, and ROI/contribution response surfaces."
 

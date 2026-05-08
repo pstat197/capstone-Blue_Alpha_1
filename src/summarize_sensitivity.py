@@ -154,6 +154,10 @@ def _load_channel_spend(project_root: str, channels: list[str], data_csv: str | 
     if not os.path.isabs(data_csv):
         data_csv = os.path.join(project_root, data_csv)
     if not os.path.exists(data_csv):
+        local_data_csv = os.path.join(project_root, "data", "raw", os.path.basename(data_csv.replace("\\", "/")))
+        if os.path.exists(local_data_csv):
+            data_csv = local_data_csv
+    if not os.path.exists(data_csv):
         raise FileNotFoundError(
             f"Data CSV for channel spend totals not found: {data_csv}. "
             "Set input_data_csv metadata or provide the expected dataset path."
