@@ -1108,11 +1108,6 @@ def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
     if explicit_tag:
         return explicit_tag
 
-    for key in ["run_mode", "data_tag"]:
-        value = str(scope.get(key, "") or "").strip()
-        if value and value.lower() not in {"unknown", "na", "none"}:
-            return value
-
     linked_targets = [str(x).strip() for x in (scope.get("linked_targets") or []) if str(x).strip()]
     if linked_targets:
         return "_".join(sorted(linked_targets))
@@ -1126,6 +1121,11 @@ def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
     parsed = [str(x).strip() for x in _parse_linked_targets(target_sets) if str(x).strip()]
     if parsed:
         return "_".join(sorted(parsed))
+
+    for key in ["data_tag", "run_mode"]:
+        value = str(scope.get(key, "") or "").strip()
+        if value and value.lower() not in {"unknown", "na", "none"}:
+            return value
     return None
 
 

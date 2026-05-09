@@ -1,5 +1,4 @@
 check,count,pct_runs
-PriorPosteriorShift,82,34.166666666666664
-ROIConsistency,10,4.166666666666667
-Baseline,3,1.25
-Convergence,1,0.4166666666666667
+PriorPosteriorShift,188,78.33333333333333
+ROIConsistency,9,3.75
+Baseline,2,0.8333333333333334

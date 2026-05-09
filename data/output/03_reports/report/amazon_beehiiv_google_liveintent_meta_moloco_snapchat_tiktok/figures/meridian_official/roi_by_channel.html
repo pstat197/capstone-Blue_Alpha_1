@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}, "axis": {"labelColor": "#5F6368", "labelFont": "Roboto", "labelFontSize": 12, "titleColor": "#5F6368", "titleFont": "Roboto", "titleFontSize": 12, "titleFontWeight": "normal", "titlePadding": 10}, "tick": {"bandSize": 10, "thickness": 2}}, "layer": [{"mark": {"type": "bar", "color": "#1A73E8", "cornerRadiusEnd": 2, "size": 42}, "encoding": {"x": {"axis": {"labelAngle": -45}, "field": "channel", "title": "Channel", "type": "nominal"}, "y": {"axis": {"gridDash": [3, 2], "titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "roi", "title": "ROI", "type": "quantitative"}}}, {"mark": {"type": "errorbar", "color": "#8AB4F8", "ticks": true}, "encoding": {"strokeWidth": {"value": 2}, "x": {"field": "channel", "type": "nominal"}, "y": {"field": "ci_hi", "title": "ROI", "type": "quantitative"}, "y2": {"field": "ci_lo"}}}, {"mark": {"type": "point", "color": "#8AB4F8", "filled": true, "tooltip": true}, "encoding": {"x": {"field": "channel", "type": "nominal"}, "y": {"field": "roi", "type": "quantitative"}}}, {"mark": {"type": "text", "align": "center", "baseline": "bottom", "color": "#202124", "dy": -5, "fontSize": 12}, "encoding": {"text": {"field": "roi", "format": ".2f", "type": "quantitative"}, "x": {"axis": {"labelAngle": -45}, "field": "channel", "title": "Channel", "type": "nominal"}, "y": {"axis": {"gridDash": [3, 2], "titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "roi", "title": "ROI", "type": "quantitative"}}}], "data": {"name": "data-170e4bd001852104d86ffaa2b1606f42"}, "title": {"text": "ROI by channel with 90% credible interval", "anchor": "start", "color": "#3C4043", "font": "Google Sans Display", "fontSize": 18, "fontWeight": "normal", "offset": 10}, "width": {"step": 80}, "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json", "datasets": {"data-170e4bd001852104d86ffaa2b1606f42": [{"channel": "amazon", "ci_hi": 2.9030649662017822, "ci_lo": 0.17076385021209717, "roi": 0.9899605512619019}, {"channel": "beehiiv", "ci_hi": 3.3970842361450195, "ci_lo": 0.19242346286773682, "roi": 1.1566914319992065}, {"channel": "google", "ci_hi": 0.6711333394050598, "ci_lo": 0.10694275051355362, "roi": 0.33455872535705566}, {"channel": "liveintent", "ci_hi": 2.2804927825927734, "ci_lo": 0.1713663637638092, "roi": 0.8825080394744873}, {"channel": "meta", "ci_hi": 1.0389723777770996, "ci_lo": 0.14476415514945984, "roi": 0.5015560984611511}, {"channel": "moloco", "ci_hi": 2.3016278743743896, "ci_lo": 0.2026127725839615, "roi": 0.9453333616256714}, {"channel": "snapchat", "ci_hi": 1.354256510734558, "ci_lo": 0.15282315015792847, "roi": 0.6057786345481873}, {"channel": "tiktok", "ci_hi": 1.1217734813690186, "ci_lo": 0.13065291941165924, "roi": 0.5083699822425842}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

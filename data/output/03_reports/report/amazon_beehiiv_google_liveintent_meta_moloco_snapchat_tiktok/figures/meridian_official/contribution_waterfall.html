@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.1.0"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300, "strokeOpacity": 0}, "axis": {"labelColor": "#5F6368", "labelFont": "Roboto", "labelFontSize": 12, "titleColor": "#5F6368", "titleFont": "Roboto", "titleFontSize": 12, "titleFontWeight": "normal", "titlePadding": 10}}, "layer": [{"mark": {"type": "bar", "size": 42}, "encoding": {"color": {"condition": {"test": "(datum.channel === 'BASELINE')", "value": "#F9AB00"}, "value": "#1967D2"}, "x": {"axis": {"domain": false, "format": "%", "labelPadding": 10, "tickCount": 5, "ticks": false}, "field": "prev_sum", "title": "% Revenue", "type": "quantitative"}, "x2": {"field": "sum_outcome"}, "y": {"axis": {"domain": false, "labelLimit": 0, "labelPadding": 10, "ticks": false}, "field": "channel", "scale": {"paddingOuter": 0.2}, "sort": null, "title": null, "type": "nominal"}}, "transform": [{"window": [{"op": "sum", "field": "pct_of_contribution", "as": "sum_outcome"}, {"op": "lead", "field": "channel", "as": "kwargs"}]}, {"calculate": "datum.sum_outcome - datum.pct_of_contribution", "as": "prev_sum"}, {"calculate": "datum.incremental_outcome < 0 ? datum.prev_sum : datum.sum_outcome", "as": "text_x"}]}, {"mark": {"type": "text", "align": "left", "color": "#5F6368", "dx": 10, "fontSize": 14}, "encoding": {"text": {"field": "outcome_text", "type": "nominal"}, "x": {"field": "text_x", "type": "quantitative"}, "y": {"axis": {"domain": false, "labelLimit": 0, "labelPadding": 10, "ticks": false}, "field": "channel", "scale": {"paddingOuter": 0.2}, "sort": null, "title": null, "type": "nominal"}}, "transform": [{"window": [{"op": "sum", "field": "pct_of_contribution", "as": "sum_outcome"}, {"op": "lead", "field": "channel", "as": "kwargs"}]}, {"calculate": "datum.sum_outcome - datum.pct_of_contribution", "as": "prev_sum"}, {"calculate": "datum.incremental_outcome < 0 ? datum.prev_sum : datum.sum_outcome", "as": "text_x"}]}], "data": {"name": "data-eb741b4af00c6a6b949e8d21883cc511"}, "height": 394.8, "title": {"text": "Contribution by baseline and marketing channels", "anchor": "start", "color": "#3C4043", "font": "Google Sans Display", "fontSize": 18, "fontWeight": "normal", "offset": 10}, "width": 500, "$schema": "https://vega.github.io/schema/vega-lite/v6.1.0.json", "datasets": {"data-eb741b4af00c6a6b949e8d21883cc511": [{"channel": "BASELINE", "incremental_outcome": 27394860.0, "pct_of_contribution": 0.746883749961853, "outcome_text": "74.7% (27M)"}, {"channel": "GOOGLE", "incremental_outcome": 3445471.25, "pct_of_contribution": 0.09393607825040817, "outcome_text": "9.4% (3M)"}, {"channel": "SNAPCHAT", "incremental_outcome": 2630554.5, "pct_of_contribution": 0.0717184841632843, "outcome_text": "7.2% (3M)"}, {"channel": "TIKTOK", "incremental_outcome": 891011.5625, "pct_of_contribution": 0.0242922380566597, "outcome_text": "2.4% (891k)"}, {"channel": "MOLOCO", "incremental_outcome": 796193.1875, "pct_of_contribution": 0.02170713245868683, "outcome_text": "2.2% (796k)"}, {"channel": "LIVEINTENT", "incremental_outcome": 704229.4375, "pct_of_contribution": 0.019199863076210022, "outcome_text": "1.9% (704k)"}, {"channel": "META", "incremental_outcome": 421386.25, "pct_of_contribution": 0.011488521471619606, "outcome_text": "1.1% (421k)"}, {"channel": "BEEHIIV", "incremental_outcome": 379594.0, "pct_of_contribution": 0.010349104180932045, "outcome_text": "1.0% (380k)"}, {"channel": "AMAZON", "incremental_outcome": 15582.240234375, "pct_of_contribution": 0.00042482890421524644, "outcome_text": "0.0% (16k)"}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
