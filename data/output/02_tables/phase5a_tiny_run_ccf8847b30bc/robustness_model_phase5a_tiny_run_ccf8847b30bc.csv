@@ -1,0 +1,2 @@
+targets,n_channels,n_runs_used,excluded_fail_runs,overall_weighting,baseline_mu,baseline_sigma,baseline_dist,overall_model_robustness_score,overall_model_robustness_band,overall_prior_sensitivity_subscore,overall_data_influence_subscore,overall_cross_channel_subscore,overall_adstock_proxy_subscore,target_subset_robustness_score,empirical_low_cutoff_q33,empirical_high_cutoff_q67,adstock_note
+meta,0,1,True,spend,,,,,,,,,,,,,No non-baseline tornado rows were available; this is expected for baseline-only structural sweeps.

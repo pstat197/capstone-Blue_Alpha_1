@@ -233,17 +233,35 @@ def _roi_grid_from_config(run_cfg: dict) -> dict:
     return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
 
 
+def _roi_grid_for_target(run_cfg: dict, target_channel: str) -> dict | None:
+    channel_grids = (run_cfg.get("active_prior_grids", {}) or {}).get("roi_by_channel", {}) or {}
+    channel_grid = channel_grids.get(target_channel)
+    if not isinstance(channel_grid, dict):
+        return _roi_grid_from_config(run_cfg)
+    if not channel_grid.get("enabled", True):
+        return None
+
+    mu_vals = [round(float(v), 6) for v in channel_grid.get("roi_mu_values", [])]
+    sigma_vals = [round(float(v), 6) for v in channel_grid.get("roi_sigma_values", [])]
+    dist_vals = [str(v) for v in channel_grid.get("roi_dist_values", [])]
+    if not mu_vals or not sigma_vals or not dist_vals:
+        raise ValueError(f"ROI prior grid is incomplete for target channel '{target_channel}'.")
+    return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
+
+
 def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: list[dict]) -> list[dict]:
     if not prior_run_points:
         return []
 
-    roi_grid = _roi_grid_from_config(run_cfg)
-    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-    )
-
     filtered: list[dict] = []
     for point in prior_run_points:
+        target_channel = str(point.get("target_channel") or "")
+        roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+        if roi_grid is None:
+            continue
+        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+        )
         if (
             abs(float(point["roi_mu_display"]) - baseline_mu) <= 1e-9
             and abs(float(point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
@@ -260,7 +278,9 @@ def _is_baseline_prior_point(run_cfg: dict, prior_point: dict) -> bool:
     mode = str(prior_point.get("effective_prior_mode", "") or "").strip().lower()
     if mode != "roi":
         return False
-    roi_grid = _roi_grid_from_config(run_cfg)
+    roi_grid = _roi_grid_for_target(run_cfg, str(prior_point.get("target_channel") or ""))
+    if roi_grid is None:
+        return False
     baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
         roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
     )
@@ -390,11 +410,13 @@ def _build_prior_run_points(
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
         )
-        roi_grid = _roi_grid_from_config(run_cfg)
-        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-        )
         for target_channel in targets:
+            roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+            if roi_grid is None:
+                continue
+            baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+                roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+            )
             for mu, sigma, dist in product(roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"]):
                 roi_overrides = {
                     ch: {

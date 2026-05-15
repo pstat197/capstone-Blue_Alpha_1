@@ -1,0 +1,2 @@
+channel,n_runs,n_baseline_rows,roi_median,roi_mean,roi_min,roi_max,pct_change_abs_max,delta_abs_max,contribution_median,contribution_min,contribution_max,contribution_share_median,spend_share_median,effect_share_median,roi_range,contribution_range
+meta,1,1,0.5670040667057037,0.5670040667057037,0.5670040667057037,0.5670040667057037,0.0,0.0,,,,,,,0.0,

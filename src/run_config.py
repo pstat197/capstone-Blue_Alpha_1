@@ -148,6 +148,64 @@ def _require_fixed_roi_prior_grid(active_profile: dict[str, Any]) -> None:
         )
 
 
+def _normalize_channel_prior_grids(
+    active_profile: dict[str, Any],
+    model_channels: list[str],
+) -> dict[str, dict[str, Any]]:
+    raw = active_profile.get("channel_prior_grids")
+    if not isinstance(raw, dict):
+        return {}
+
+    normalized: dict[str, dict[str, Any]] = {}
+    for channel, raw_grid in raw.items():
+        channel_key = str(channel).strip()
+        if channel_key not in model_channels:
+            raise ValueError(
+                "Config field 'channel_prior_grids' has channels not present in model.channels: "
+                + channel_key
+            )
+        if not isinstance(raw_grid, dict):
+            raise ValueError(f"Config field 'channel_prior_grids.{channel_key}' must be a mapping/object.")
+
+        enabled = bool(raw_grid.get("enabled", True))
+        use_custom = bool(raw_grid.get("use_custom", raw_grid.get("custom", False)))
+        if use_custom:
+            mu_values = _as_numeric_list(
+                raw_grid.get("roi_mu_values") or raw_grid.get("mu_values"),
+                f"channel_prior_grids.{channel_key}.roi_mu_values",
+            )
+            sigma_values = _as_numeric_list(
+                raw_grid.get("roi_sigma_values") or raw_grid.get("sigma_values"),
+                f"channel_prior_grids.{channel_key}.roi_sigma_values",
+            )
+            dist_values = _as_string_list(
+                raw_grid.get("roi_dist_values") or raw_grid.get("distributions"),
+                f"channel_prior_grids.{channel_key}.roi_dist_values",
+            )
+            if not mu_values:
+                raise ValueError(f"Config field 'channel_prior_grids.{channel_key}.roi_mu_values' must contain at least one value.")
+            if not sigma_values:
+                raise ValueError(f"Config field 'channel_prior_grids.{channel_key}.roi_sigma_values' must contain at least one value.")
+            if not dist_values:
+                raise ValueError(f"Config field 'channel_prior_grids.{channel_key}.roi_dist_values' must contain at least one value.")
+            mu_values = _normalize_positive_list(mu_values, f"channel_prior_grids.{channel_key}.roi_mu_values")
+            sigma_values = _normalize_positive_list(sigma_values, f"channel_prior_grids.{channel_key}.roi_sigma_values")
+        else:
+            mu_values = list(active_profile["roi_mu_values"])
+            sigma_values = list(active_profile["roi_sigma_values"])
+            dist_values = list(active_profile["roi_dist_values"])
+
+        normalized[channel_key] = {
+            "enabled": enabled,
+            "use_custom": use_custom,
+            "roi_mu_values": mu_values,
+            "roi_sigma_values": sigma_values,
+            "roi_dist_values": dist_values,
+        }
+
+    return normalized
+
+
 def _as_optional_float(raw: Any, field_name: str) -> float | None:
     if raw is None or str(raw).strip().lower() in {"", "null", "none", "nan"}:
         return None
@@ -198,6 +256,7 @@ def _normalize_run_mode_profile(name: str, raw_profile: Any) -> dict[str, Any]:
         "roi_mu_values": mu_values,
         "roi_sigma_values": sigma_values,
         "roi_dist_values": dist_values,
+        "channel_prior_grids": raw_profile.get("channel_prior_grids"),
         **sampler_out,
     }
 
@@ -376,6 +435,7 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("Config field 'prior_mode' must be one of: auto, roi.")
     if kpi_type == "non_revenue" and outcome["revenue_per_kpi"] is None:
         raise ValueError(ROI_PRIOR_POLICY_ERROR)
+    channel_prior_grids = _normalize_channel_prior_grids(active_profile, model["channels"])
     allow_reduced_prior_grid = bool((config.get("sweep", {}) or {}).get("allow_reduced_prior_grid", False))
     if not allow_reduced_prior_grid:
         _require_fixed_roi_prior_grid(active_profile)
@@ -389,6 +449,8 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
             "roi_dist_values": list(active_profile["roi_dist_values"]),
         },
     }
+    if channel_prior_grids:
+        config["active_prior_grids"]["roi_by_channel"] = channel_prior_grids
 
     # Keep legacy experiment block synchronized with the active run_mode ROI grid.
     exp = config.setdefault("experiment", {})

@@ -17,6 +17,7 @@
 </head>
 <body data-page="{{ dashboard_page or 'overview' }}">
   {% set dollar_tornado_available = dashboard_payload.dollar_meta.available and dashboard_payload.dollar_tornado_rows|length > 0 %}
+  
   <div class="progress-track" aria-hidden="true"><div id="scroll-progress" class="progress-bar"></div></div>
   <div class="studio-shell">
     <header class="topbar">
@@ -30,24 +31,18 @@
     </header>
 
     <aside class="side-rail" aria-label="Dashboard sections">
-      <a href="#overview" data-page-target="overview"{% if (dashboard_page or 'overview') == 'overview' %} class="active"{% endif %}><span class="rail-icon rail-icon--trend"></span><span>Overview</span></a>
-      <a href="#howrun" data-page-target="howrun"{% if (dashboard_page or 'overview') == 'howrun' %} class="active"{% endif %}><span class="rail-icon rail-icon--database"></span><span>Run Setup</span></a>
-      <a href="#explorer" data-page-target="explorer"{% if (dashboard_page or 'overview') == 'explorer' %} class="active"{% endif %}><span class="rail-icon rail-icon--sliders"></span><span>Priors</span></a>
-      <a href="#comparison" data-page-target="comparison"{% if (dashboard_page or 'overview') == 'comparison' %} class="active"{% endif %}><span class="rail-icon rail-icon--pulse"></span><span>Sensitivity</span></a>
-      <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}><span class="rail-icon rail-icon--gear"></span><span>Structural Response</span></a>
-      <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}><span class="rail-icon rail-icon--report"></span><span>Model Outputs</span></a>
-      <a href="#qc" data-page-target="qc"{% if (dashboard_page or 'overview') == 'qc' %} class="active"{% endif %}><span class="rail-icon rail-icon--report"></span><span>Diagnostics</span></a>
+      <a href="#overview" data-page-target="overview" class="active"><span class="rail-icon rail-icon--trend"></span><span>Overview</span></a>
+      <a href="#comparison" data-page-target="comparison"><span class="rail-icon rail-icon--pulse"></span><span>Prior Sensitivity</span></a>
+      <a href="#structural" data-page-target="structural"><span class="rail-icon rail-icon--gear"></span><span>Model Structure</span></a>
+      <a href="#qc" data-page-target="qc"><span class="rail-icon rail-icon--report"></span><span>Diagnostics / Run Details</span></a>
     </aside>
 
     <div class="app">
       <nav class="quick-nav">
-        <a href="#overview" data-page-target="overview"{% if (dashboard_page or 'overview') == 'overview' %} class="active"{% endif %}>Overview</a>
-        <a href="#howrun" data-page-target="howrun"{% if (dashboard_page or 'overview') == 'howrun' %} class="active"{% endif %}>Run Setup</a>
-        <a href="#explorer" data-page-target="explorer"{% if (dashboard_page or 'overview') == 'explorer' %} class="active"{% endif %}>Priors</a>
-        <a href="#comparison" data-page-target="comparison"{% if (dashboard_page or 'overview') == 'comparison' %} class="active"{% endif %}>Sensitivity</a>
-        <a href="#structural" data-page-target="structural"{% if (dashboard_page or 'overview') == 'structural' %} class="active"{% endif %}>Structural Response</a>
-        <a href="#modeloutputs" data-page-target="modeloutputs"{% if (dashboard_page or 'overview') == 'modeloutputs' %} class="active"{% endif %}>Model Outputs</a>
-        <a href="#qc" data-page-target="qc"{% if (dashboard_page or 'overview') == 'qc' %} class="active"{% endif %}>Diagnostics</a>
+        <a href="#overview" data-page-target="overview" class="active">Overview</a>
+        <a href="#comparison" data-page-target="comparison">Prior Sensitivity</a>
+        <a href="#structural" data-page-target="structural">Model Structure</a>
+        <a href="#qc" data-page-target="qc">Diagnostics / Run Details</a>
       </nav>
 
     <div class="layout">
@@ -84,29 +79,29 @@
       </aside>
 
       <main class="panels">
-        <section class="run-setup-page" id="section-how-run" data-page-group="howrun" aria-label="Run setup summary">
+        <section class="run-setup-page" id="section-how-run" data-page-group="qc" aria-label="Run setup summary">
           <section class="panel card run-setup-hero">
             <div class="run-setup-hero-head">
               <div>
-                <div class="run-setup-eyebrow">Model Run Setup</div>
+                <div class="run-setup-eyebrow">Run Details &amp; Diagnostics</div>
                 <h2>Run Configuration Summary</h2>
-                <p class="subhead">Generated report configuration and quality status.</p>
+                <p class="subhead">Generated report configuration and quality status for this audit.</p>
               </div>
               <span id="run-setup-status-badge" class="run-status-badge">Generated</span>
             </div>
             <div id="run-setup-summary-grid" class="run-summary-grid"></div>
           </section>
 
-          <section class="panel card run-pipeline-card">
-            <div class="run-section-head">
-              <div>
-                <h2>Orchestration Pipeline</h2>
+          <section class="run-setup-detail-grid">
+            <article class="panel card run-pipeline-card">
+              <div class="run-section-head">
+                <div>
+                  <h2>Orchestration Pipeline</h2>
+                </div>
               </div>
-            </div>
-            <div id="run-pipeline-steps" class="run-pipeline-steps" aria-label="Orchestration pipeline"></div>
-          </section>
+              <div id="run-pipeline-steps" class="run-pipeline-steps" aria-label="Orchestration pipeline"></div>
+            </article>
 
-          <section class="run-setup-bottom">
             <article class="panel card run-settings-card">
               <div class="run-section-head">
                 <div>
@@ -114,49 +109,61 @@
                 </div>
               </div>
               <div id="how-run-settings-grid" class="run-settings-groups"></div>
-              <div class="run-technical-row">
-                <details class="run-notes-details">
-                  <summary>Technical Workflow Details</summary>
-                  <div id="how-run-flow" class="run-method-flow"></div>
-                </details>
-                <details class="run-notes-details">
-                  <summary>Technical Notes</summary>
-                  <ul id="how-run-notes-list" class="list run-notes-list"></ul>
-                </details>
-              </div>
             </article>
           </section>
         </section>
 
         <section class="overview-ia-board" id="section-overview-board" data-page-group="overview" aria-label="Prior sensitivity overview">
+          <section class="overview-snapshot-strip" aria-label="Audit snapshot">
+            <article class="overview-snapshot-card">
+              <span>Completed Runs</span>
+              <strong id="overview-snap-runs">-</strong>
+              <small id="overview-snap-runs-detail">Across all prior grid points</small>
+            </article>
+            <article class="overview-snapshot-card">
+              <span>Modeled Channels</span>
+              <strong id="overview-snap-channels">-</strong>
+              <small id="overview-snap-channels-detail">Channels in the model</small>
+            </article>
+            <article class="overview-snapshot-card">
+              <span>KPI</span>
+              <strong id="overview-snap-kpi">-</strong>
+              <small id="overview-snap-kpi-detail">Target metric</small>
+            </article>
+            <article class="overview-snapshot-card">
+              <span>QC Pass Rate</span>
+              <strong id="overview-snap-pass">-</strong>
+              <small id="overview-snap-pass-detail">PASS / REVIEW / FAIL mix</small>
+            </article>
+            <article class="overview-snapshot-card overview-snapshot-card--accent">
+              <span>Largest Self-Response Movement</span>
+              <strong id="overview-snap-mover">-</strong>
+              <small id="overview-snap-mover-detail">No tornado mover available</small>
+            </article>
+          </section>
+
           <article class="overview-card overview-question-card">
-            <h1 title="Which channels were most sensitive to their own prior assumptions in the completed audit?">Completed Prior-Sensitivity Audit</h1>
+            <h1 title="Which channels were most sensitive to their own prior assumptions in the completed audit?">Prior-Sensitivity Audit Summary</h1>
             <p title="Which channels were most sensitive to their own prior assumptions in the completed audit?">Which channels were most sensitive to their own prior assumptions?</p>
-            <span id="overview-next-channel" class="overview-badge">Most sensitive channel: -</span>
-          </article>
-
-          <article class="overview-card overview-kpi-card">
-            <div class="overview-label">Interpretation Tier</div>
-            <div id="decision-tier-chip" class="overview-tier-chip">REVIEW</div>
-            <div id="decision-score-value" class="overview-caption">Awaiting score</div>
-          </article>
-
-          <article class="overview-card overview-kpi-card">
-            <div id="overview-sensitive-channel-label" class="overview-label">Largest Tornado Channel</div>
-            <div id="overview-sensitive-channel" class="overview-value">-</div>
-            <div id="kpi-top-pair" class="overview-caption">-</div>
-          </article>
-
-          <article class="overview-card overview-kpi-card">
-            <div id="overview-largest-label" class="overview-label">Largest Movement</div>
-            <div id="kpi-top-value" class="overview-value">-</div>
-            <div id="overview-largest-caption" class="overview-caption">ROI or contribution movement</div>
-          </article>
-
-          <article class="overview-card overview-health-mini">
-            <div class="overview-label">Primary Review Driver</div>
-            <div id="mh-primary-review-driver" class="overview-value">-</div>
-            <div id="mh-primary-review-caption" class="overview-caption">-</div>
+            <div class="overview-summary-list">
+              <div>
+                <span class="overview-label">Audit completion</span>
+                <strong>Completed</strong>
+              </div>
+              <div>
+                <span class="overview-label">Main sensitivity question</span>
+                <strong>Own-prior movement by channel</strong>
+              </div>
+              <div>
+                <span id="overview-sensitive-channel-label" class="overview-label">Largest Tornado Channel</span>
+                <strong id="overview-sensitive-channel">-</strong>
+                <small id="kpi-top-pair">-</small>
+              </div>
+              <div>
+                <span class="overview-label">Interpretation status</span>
+                <strong id="overview-summary-status">Pending diagnostics</strong>
+              </div>
+            </div>
           </article>
 
           <article class="overview-card overview-main-chart-card">
@@ -183,6 +190,11 @@
                   <span>Good enough to interpret?</span>
                   <strong id="mh-status-chip" class="overview-status-chip">-</strong>
                 </div>
+                <div>
+                  <span>Primary review check</span>
+                  <strong id="mh-primary-review-driver">-</strong>
+                  <small id="mh-primary-review-caption">-</small>
+                </div>
               </div>
             </div>
             <p id="decision-headline" class="overview-diag-summary">Sensitivity interpretation pending diagnostics.</p>
@@ -192,18 +204,19 @@
             <div class="overview-panel-head">
               <div>
                 <h2>Sensitivity Risk Matrix</h2>
-                <p>Channels positioned by primary movement and metric interpretability.</p>
+                <p>Channels grouped by movement size and interpretation readiness.</p>
               </div>
             </div>
             <div id="overview-risk-matrix" class="overview-risk-matrix"></div>
           </article>
 
-          <article class="overview-card overview-experiment-card">
-            <h2>Largest Prior-Driven Movers</h2>
-            <ol id="overview-experiment-list" class="overview-experiment-list"></ol>
-          </article>
-
           <div class="decision-hidden-metrics" aria-hidden="true">
+            <div id="decision-tier-chip"></div>
+            <div id="decision-score-value"></div>
+            <div id="kpi-top-value"></div>
+            <div id="overview-largest-label"></div>
+            <div id="overview-largest-caption"></div>
+            <div id="overview-next-channel"></div>
             <span id="kpi-qc-pass"></span>
             <span id="kpi-tier"></span>
             <span id="mh-tier-score"></span>
@@ -214,14 +227,6 @@
         </section>
 
         <section class="panel card" id="section-workbench-v2" data-page-group="analysis">
-          <div class="workbench-page-head" data-wb-pages="explorer">
-            <h2>Prior Scenario Studio</h2>
-            <p class="subhead" id="wb2-prior-assumption">Explore how selected ROI prior assumptions affect one channel.</p>
-          </div>
-          <div class="workbench-page-head model-output-head" data-wb-pages="modeloutputs">
-            <h2>Model Outputs</h2>
-            <p class="subhead">Fitted Meridian/MMM output context for contribution, ROI, effectiveness, and spend allocation.</p>
-          </div>
           <div class="workbench-page-head sensitivity-page-head" data-wb-pages="comparison">
             <h2>Full-System Prior Response</h2>
             <p class="subhead">What happens to the full MMM system when one channel's prior assumptions are perturbed?</p>
@@ -231,122 +236,17 @@
             <p class="subhead">Carryover and saturation context for the selected channel.</p>
           </div>
           <div class="workbench-page-head diagnostics-page-head" data-wb-pages="qc">
-            <h2>Diagnostics</h2>
-            <p class="subhead">Model health and QC checks across runs.</p>
+            <h2>Model Health &amp; Diagnostics</h2>
+            <p class="subhead">Meridian sampling diagnostics and QC checks for the completed runs above.</p>
+            <p class="diagnostics-review-note">PriorPosteriorShift means the posterior moved substantially away from the prior, so this run needs follow-up review before stronger interpretation.</p>
           </div>
 
           <div id="wb2-empty" class="subhead" style="display:none;color:#8b4f22;font-weight:700;">
             Workbench payload unavailable in this build.
           </div>
           <div id="wb2-content">
-            <div class="wb2-control-grid" data-wb-pages="explorer">
-              <div class="field">
-                <label for="wb2-channel-select"><b>Channel</b></label>
-                <select id="wb2-channel-select"></select>
-              </div>
-              <div class="field">
-                <label for="wb2-mu-range">
-                  <b>ROI Mu (selected scenario)</b>
-                  <span id="wb2-mu-value" class="range-value" style="margin-left:6px;">-</span>
-                  <span id="wb2-mu-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
-                </label>
-                <div class="range-row">
-                  <input id="wb2-mu-range" type="range" min="0" max="0" step="1" value="{{ dashboard_payload.workbench.explicit_baseline.mu_index|default(0, true) }}">
-                </div>
-                <div id="wb2-mu-ticks" class="range-ticks subhead" style="display:flex;justify-content:space-between;font-size:0.72rem;color:#4f6689;margin-top:2px;"></div>
-              </div>
-              <div class="field">
-                <label for="wb2-sigma-range">
-                  <b>ROI Sigma (selected scenario)</b>
-                  <span id="wb2-sigma-value" class="range-value" style="margin-left:6px;">-</span>
-                  <span id="wb2-sigma-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
-                </label>
-                <div class="range-row">
-                  <input id="wb2-sigma-range" type="range" min="0" max="0" step="1" value="{{ dashboard_payload.workbench.explicit_baseline.sigma_index|default(0, true) }}">
-                </div>
-                <div id="wb2-sigma-ticks" class="range-ticks subhead" style="display:flex;justify-content:space-between;font-size:0.72rem;color:#4f6689;margin-top:2px;"></div>
-              </div>
-            </div>
-
             <select id="wb2-mu-select" hidden></select>
             <select id="wb2-sigma-select" hidden></select>
-
-            <div class="wb2-kpi-grid wb2-kpi-grid--combined" data-wb-pages="explorer">
-              <article class="kpi wb2-metric-card">
-                <div class="k" id="wb2-roi-metric-label">ROI</div>
-                <div class="wb2-metric-primary">
-                  <span>Selected Prior</span>
-                  <strong id="wb2-kpi-roi">-</strong>
-                </div>
-                <div class="wb2-metric-subgrid wb2-metric-subgrid--three">
-                  <span>Baseline <b id="wb2-baseline-roi">-</b></span>
-                  <span>Delta <b id="wb2-kpi-delta">-</b></span>
-                  <span>Change <b id="wb2-kpi-pct">-</b></span>
-                </div>
-              </article>
-              <article class="kpi wb2-metric-card">
-                <div class="k">Contribution</div>
-                <div class="wb2-metric-primary">
-                  <span>Selected Prior</span>
-                  <strong id="wb2-kpi-contrib">-</strong>
-                </div>
-                <div class="wb2-metric-subgrid">
-                  <span>Baseline <b id="wb2-baseline-contrib">-</b></span>
-                </div>
-              </article>
-              <article class="kpi wb2-metric-card">
-                <div class="k">Contribution Share</div>
-                <div class="wb2-metric-primary">
-                  <span>Selected Prior</span>
-                  <strong id="wb2-kpi-contrib-share">-</strong>
-                </div>
-                <div class="wb2-metric-subgrid">
-                  <span>Baseline <b id="wb2-baseline-contrib-share">-</b></span>
-                </div>
-              </article>
-              <article class="kpi wb2-metric-card">
-                <div class="k">Prior Grid</div>
-                <div class="wb2-metric-primary">
-                  <span>Baseline</span>
-                  <strong><span id="wb2-baseline-mu">-</span> / <span id="wb2-baseline-sigma">-</span></strong>
-                </div>
-                <div class="wb2-metric-subgrid">
-                  <span>ROI Mu / ROI Sigma baseline</span>
-                </div>
-              </article>
-            </div>
-
-            <div class="workbench-v2-grid" data-wb-pages="explorer">
-              <section class="panel card" data-wb-pages="explorer">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Selected Channel Mu x Sigma ROI Heatmap</h2>
-                <div id="wb2-heatmap-chart" class="chart chart--heatmap compact"></div>
-              </section>
-              <section class="panel card" data-wb-pages="explorer">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Selected Prior Movement vs Baseline</h2>
-                <div id="wb2-contrib-compare-chart" class="chart chart--dual-axis compact"></div>
-              </section>
-            </div>
-
-            <div class="sensitivity-summary-strip" data-wb-pages="comparison" aria-label="Prior sensitivity summary">
-              <article class="sensitivity-summary-card">
-                <span>Most Sensitive Channel</span>
-                <strong id="sens-most-sensitive-channel">Unavailable</strong>
-              </article>
-              <article class="sensitivity-summary-card">
-                <span>Dominant Driver</span>
-                <strong id="sens-dominant-driver">Unavailable</strong>
-              </article>
-              <article class="sensitivity-summary-card">
-                <span id="sens-largest-primary-label">Largest Movement</span>
-                <strong id="sens-largest-primary-movement">Unavailable</strong>
-              </article>
-              {% if dollar_tornado_available %}
-                <article class="sensitivity-summary-card" id="sens-largest-dollar-card">
-                  <span>Largest Dollar Movement</span>
-                  <strong id="sens-largest-dollar-movement">Unavailable</strong>
-                </article>
-              {% endif %}
-            </div>
 
             <section class="panel card sensitivity-target-card" data-wb-pages="comparison" aria-label="Selected target channel detail">
               <div class="overview-target-head">
@@ -360,35 +260,10 @@
                 </label>
               </div>
               <div class="target-detail-grid">
-                <section class="target-detail-summary">
-                  <div class="target-panel-title">
-                    <h3>Selected Target Summary</h3>
-                    <span>target_channel == selected</span>
-                  </div>
-                  <div class="target-mini-kpis">
-                    <div>
-                      <span>Prior Settings Tested</span>
-                      <strong id="target-prior-settings">-</strong>
-                    </div>
-                    <div>
-                      <span>QC Status Mix</span>
-                      <strong id="target-qc-mix">-</strong>
-                    </div>
-                    <div>
-                      <span>Largest Movement Under Sweep</span>
-                      <strong id="target-largest-movement">-</strong>
-                    </div>
-                    <div>
-                      <span>Rows Scope</span>
-                      <strong id="target-outcome-count">-</strong>
-                    </div>
-                  </div>
-                  <p id="target-detail-interpretation" class="overview-note">Select a target channel to inspect full-system response and movement.</p>
-                </section>
                 <section class="target-chart-panel target-system-chart-panel">
                   <div class="target-panel-title">
                     <h3>Signed Posterior ROI Change vs Baseline (%)</h3>
-                    <span>When the selected target channel's prior changes, this chart shows signed posterior ROI percent change across all outcome channels relative to that target channel's baseline.</span>
+                    <span>Full-system response</span>
                   </div>
                   <div id="target-system-chart" class="chart target-chart"></div>
                 </section>
@@ -415,7 +290,6 @@
                 <div class="target-panel-title">
                   <div>
                     <h3>Full-System Movement Detail</h3>
-                    <p id="target-table-note" class="target-table-note">This table includes preserved full-system outcome rows for the selected target-channel sweep. Self-response rows show the selected target channel's own signed posterior ROI percent change; non-self rows show cross-channel response under the same target prior settings.</p>
                   </div>
                 </div>
               </div>
@@ -423,12 +297,12 @@
                 <table class="target-impact-table">
                   <thead>
                     <tr>
-                      <th>Channel</th>
-                      <th>Response Scope</th>
-                      <th>Min Signed ROI Change (%)</th>
-                      <th>Max Signed ROI Change (%)</th>
-                      <th>Max Abs Signed ROI Change (%)</th>
-                      <th>Max Value Movement</th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="channel">Channel</button></th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="response_scope">Response Scope</button></th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="min_signed_delta_pct">Min Signed ROI Change (%)</button></th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="max_signed_delta_pct">Max Signed ROI Change (%)</button></th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="max_abs_delta_pct">Max Abs Signed ROI Change (%)</button></th>
+                      <th><button type="button" class="sortable-th" data-sort-table="target-impact" data-sort-key="max_abs_delta_value">Max Value Movement</button></th>
                     </tr>
                   </thead>
                   <tbody id="target-impact-table-body"></tbody>
@@ -436,49 +310,7 @@
               </div>
             </section>
 
-            <section class="sensitivity-section" data-wb-pages="comparison">
-              <div class="sensitivity-section-head">
-                <h2>Driver Diagnostics</h2>
-              </div>
-              <div class="sensitivity-primary-grid">
-                <section class="panel card sensitivity-primary-chart">
-                  <h2>Mu-Sigma Sensitivity Gap</h2>
-                  <p class="subhead">Positive = mu-driven; negative = sigma-driven.</p>
-                  <div id="wb2-driver-balance-chart" class="chart chart--rank compact"></div>
-                </section>
-                <section class="panel card sensitivity-driver-list-card">
-                  <h2>Top Driver Readout</h2>
-                  <p class="subhead">Ranked by total mu/sigma prior sensitivity.</p>
-                  <div id="sens-driver-list" class="sensitivity-driver-list">
-                    <div class="empty empty--compact">Unavailable</div>
-                  </div>
-                </section>
-              </div>
-            </section>
-
-            <section class="sensitivity-section" data-wb-pages="comparison">
-              <div class="sensitivity-section-head">
-                <h2>Where Sensitivity Shows Up</h2>
-              </div>
-              <div class="workbench-v2-grid sensitivity-rank-grid">
-                <section class="panel card" data-wb-pages="comparison">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Distribution By Channel</h2>
-                  <div id="wb2-contrib-box-chart" class="chart chart--boxplot compact"></div>
-                </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Mu Sensitivity Rank</h2>
-                  <p class="subhead" id="wb2-mu-rank-subhead">Higher = more mu-sensitive movement (sorted high to low).</p>
-                  <div id="wb2-mu-rank-chart" class="chart chart--rank compact"></div>
-                </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Sigma Sensitivity Rank</h2>
-                  <p class="subhead" id="wb2-sigma-rank-subhead">Higher = more sigma-sensitive movement (sorted high to low).</p>
-                  <div id="wb2-sigma-rank-chart" class="chart chart--rank compact"></div>
-                </section>
-              </div>
-            </section>
-
-            {% if dashboard_payload.figures.roi_prior_vs_posterior %}
+            
             <section class="sensitivity-section" data-wb-pages="comparison">
               <div class="sensitivity-section-head">
                 <h2>Prior vs Posterior Evidence</h2>
@@ -487,52 +319,115 @@
                 <div class="roi-prior-posterior-layout">
                   <div>
                     <h2>ROI Prior vs Posterior with 50% Posterior Intervals</h2>
-                    <p class="subhead">Target-channel self-response only: each row compares the selected target channel's ROI prior mean against its posterior ROI estimate and central 50% posterior interval across prior settings.</p>
                   </div>
                   <div class="figure-frame roi-prior-posterior-frame">
-                    <img src="{{ dashboard_payload.figures.roi_prior_vs_posterior }}" alt="ROI Prior vs Posterior with 50% Posterior Intervals">
+                    <img src="figures/roi_prior_vs_posterior.png" alt="ROI Prior vs Posterior with 50% Posterior Intervals">
                   </div>
                 </div>
                 <div id="roi-prior-posterior-table-wrap" class="target-impact-table-wrap roi-prior-posterior-table-wrap"></div>
               </section>
             </section>
-            {% endif %}
 
-            <div class="sensitivity-legacy-hidden" data-wb-pages="comparison" aria-hidden="true">
-              <div id="target-self-response-chart" class="chart target-chart"></div>
-            </div>
-
-            <div id="model-output-kpis" class="model-output-kpis" data-wb-pages="modeloutputs"></div>
-
-            <section class="model-output-section" data-wb-pages="modeloutputs">
-              <div class="model-output-section-head">
-                <h2>Contribution Context</h2>
+            <section class="sensitivity-section prior-studio-section" data-wb-pages="comparison">
+              <div class="sensitivity-section-head">
+                <h2>Prior Scenario Studio</h2>
+                <p class="subhead" id="wb2-prior-assumption">Interactive workbench: pick a hypothetical ROI prior to see how the selected channel's response surface moves.</p>
               </div>
-              <div class="workbench-v2-grid model-output-chart-grid">
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution Waterfall</h2>
-                  <div id="wb2-meridian-chart-waterfall" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
+
+              <div class="wb2-control-grid prior-studio-controls" data-wb-pages="comparison">
+                <div class="field">
+                  <label for="wb2-channel-select"><b>Channel</b></label>
+                  <select id="wb2-channel-select"></select>
+                </div>
+                <div class="field">
+                  <label for="wb2-mu-range">
+                    <b>ROI Mu (selected scenario)</b>
+                    <span id="wb2-mu-value" class="range-value" style="margin-left:6px;">-</span>
+                    <span id="wb2-mu-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
+                  </label>
+                  <div class="range-row">
+                    <input id="wb2-mu-range" type="range" min="0" max="0" step="1" value="1">
                   </div>
+                  <div id="wb2-mu-ticks" class="range-ticks subhead"></div>
+                </div>
+                <div class="field">
+                  <label for="wb2-sigma-range">
+                    <b>ROI Sigma (selected scenario)</b>
+                    <span id="wb2-sigma-value" class="range-value" style="margin-left:6px;">-</span>
+                    <span id="wb2-sigma-baseline-chip" class="workbench-v2-chip" style="margin-left:6px;display:none;">baseline</span>
+                  </label>
+                  <div class="range-row">
+                    <input id="wb2-sigma-range" type="range" min="0" max="0" step="1" value="1">
+                  </div>
+                  <div id="wb2-sigma-ticks" class="range-ticks subhead"></div>
+                </div>
+              </div>
+
+              <div class="wb2-kpi-grid wb2-kpi-grid--combined prior-studio-kpis" data-wb-pages="comparison">
+                <article class="kpi wb2-metric-card">
+                  <div class="k" id="wb2-roi-metric-label">ROI</div>
+                  <div class="wb2-metric-primary">
+                    <span>Selected Prior</span>
+                    <strong id="wb2-kpi-roi">-</strong>
+                  </div>
+                  <div class="wb2-metric-subgrid wb2-metric-subgrid--three">
+                    <span>Baseline <b id="wb2-baseline-roi">-</b></span>
+                    <span>Delta <b id="wb2-kpi-delta">-</b></span>
+                    <span>Change <b id="wb2-kpi-pct">-</b></span>
+                  </div>
+                </article>
+                <article class="kpi wb2-metric-card">
+                  <div class="k">Contribution</div>
+                  <div class="wb2-metric-primary">
+                    <span>Selected Prior</span>
+                    <strong id="wb2-kpi-contrib">-</strong>
+                  </div>
+                  <div class="wb2-metric-subgrid">
+                    <span>Baseline <b id="wb2-baseline-contrib">-</b></span>
+                  </div>
+                  <small id="wb2-baseline-contrib-note" class="wb2-baseline-note"></small>
+                </article>
+                <article class="kpi wb2-metric-card">
+                  <div class="k">Contribution Share</div>
+                  <div class="wb2-metric-primary">
+                    <span>Selected Prior</span>
+                    <strong id="wb2-kpi-contrib-share">-</strong>
+                  </div>
+                  <div class="wb2-metric-subgrid">
+                    <span>Baseline <b id="wb2-baseline-contrib-share">-</b></span>
+                  </div>
+                  <small id="wb2-baseline-contrib-share-note" class="wb2-baseline-note"></small>
+                </article>
+                <article class="kpi wb2-metric-card">
+                  <div class="k">Prior Grid</div>
+                  <div class="wb2-metric-primary">
+                    <span>Baseline</span>
+                    <strong><span id="wb2-baseline-mu">-</span> / <span id="wb2-baseline-sigma">-</span></strong>
+                  </div>
+                  <div class="wb2-metric-subgrid">
+                    <span>ROI Mu / ROI Sigma baseline</span>
+                  </div>
+                </article>
+              </div>
+
+              <div class="prior-studio-grid" data-wb-pages="comparison">
+                <section class="panel card prior-studio-heatmap-card">
+                  <h2>Selected Channel Mu x Sigma ROI Heatmap</h2>
+                  <div id="wb2-heatmap-chart" class="chart chart--heatmap compact"></div>
                 </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Contribution over Time</h2>
-                  <div id="wb2-meridian-chart-contrib-time" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
-                  </div>
+                <section class="panel card prior-studio-marginal-card">
+                  <h2>Mu Marginal Response (Selected Sigma)</h2>
+                  <div id="wb2-mu-profile-chart" class="chart chart--dual-axis compact"></div>
+                </section>
+                <section class="panel card prior-studio-marginal-card">
+                  <h2>Sigma Marginal Response (Selected Mu)</h2>
+                  <div id="wb2-sigma-profile-chart" class="chart chart--dual-axis compact"></div>
                 </section>
               </div>
             </section>
 
-            <div class="workbench-v2-grid" style="margin-top:10px;" data-wb-pages="explorer">
-              <section class="panel card">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Mu Marginal Response (Selected Sigma)</h2>
-                <div id="wb2-mu-profile-chart" class="chart chart--dual-axis compact"></div>
-              </section>
-              <section class="panel card">
-                <h2 style="margin:0 0 6px;font-size:0.96rem;">Sigma Marginal Response (Selected Mu)</h2>
-                <div id="wb2-sigma-profile-chart" class="chart chart--dual-axis compact"></div>
-              </section>
+            <div class="sensitivity-legacy-hidden" data-wb-pages="comparison" aria-hidden="true">
+              <div id="target-self-response-chart" class="chart target-chart"></div>
             </div>
 
             <section class="panel card structural-control-panel" data-wb-pages="structural">
@@ -604,70 +499,18 @@
                 <p class="subhead">Immediate and delayed response split.</p>
                 <div id="carryover-lab-chart" class="chart chart--structural compact"></div>
               </section>
-              <section class="panel card spend-effect-panel" id="section-spend-effect">
-                <h2>Spend vs Effect Context</h2>
-                <p class="subhead">Top channels by spend/effect share gap.</p>
-                <div id="spend-effect-chart" class="chart chart--rank"></div>
-                <p id="spend-effect-note" class="figure-note"></p>
+              <section class="panel card allocation-gap-panel">
+                <h2>Allocation Gap</h2>
+                <p class="subhead">Dumbbell view by channel (effect share minus spend share).</p>
+                <div id="wb2-allocation-gap-headline" class="decision-headline-bar"></div>
+                <div id="wb2-allocation-gap-chart" class="chart chart--rank compact"></div>
+                <p id="wb2-allocation-gap-note" class="figure-note"></p>
               </section>
             </div>
-
-            <details class="panel card structural-advanced" id="structural-advanced-response" data-wb-pages="structural">
-              <summary>Advanced Response Details</summary>
-              <p class="subhead">Model data response for the selected channel and current prior.</p>
-              <div id="wb2-struct-response-chart" class="chart chart--structural compact"></div>
-            </details>
 
             <section class="panel card" style="margin-top:10px;" data-wb-pages="qc">
               <div id="wb2-meridian-health-full" class="meridian-health-inline-host">
                 <div class="empty">Official Meridian health card not found yet.</div>
-              </div>
-            </section>
-
-            <section class="model-output-section" data-wb-pages="modeloutputs">
-              <div class="model-output-section-head">
-                <h2>ROI / Effectiveness Context</h2>
-              </div>
-              <div class="workbench-v2-grid model-output-chart-grid">
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI by Channel</h2>
-                  <div id="wb2-meridian-chart-roi-channel" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
-                  </div>
-                </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI vs mROI</h2>
-                  <div id="wb2-meridian-chart-roi-mroi" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
-                  </div>
-                </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">ROI vs Effectiveness</h2>
-                  <div id="wb2-meridian-chart-roi-eff" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
-                  </div>
-                </section>
-              </div>
-            </section>
-
-            <section class="model-output-section" data-wb-pages="modeloutputs">
-              <div class="model-output-section-head">
-                <h2>Spend / Effect Allocation Context</h2>
-              </div>
-              <div class="workbench-v2-grid model-output-chart-grid">
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Spend vs Contribution</h2>
-                  <div id="wb2-meridian-chart-spend-contrib" class="figure-frame meridian-vega-frame">
-                    <div class="empty empty--compact">Data unavailable for this run.</div>
-                  </div>
-                </section>
-                <section class="panel card">
-                  <h2 style="margin:0 0 6px;font-size:0.96rem;">Allocation Gap</h2>
-                  <p class="subhead">Dumbbell view by channel (effect share minus spend share).</p>
-                  <div id="wb2-allocation-gap-headline" class="decision-headline-bar" style="margin:0 0 10px;"></div>
-                  <div id="wb2-allocation-gap-chart" class="chart chart--rank compact"></div>
-                  <p id="wb2-allocation-gap-note" class="figure-note"></p>
-                </section>
               </div>
             </section>
 
@@ -698,7 +541,7 @@
       const navLinks = Array.from(document.querySelectorAll(".quick-nav a[data-page-target], .side-rail a[data-page-target]"));
       if (!navLinks.length) return;
 
-      const validPages = new Set(["overview", "howrun", "explorer", "modeloutputs", "comparison", "structural", "qc"]);
+      const validPages = new Set(["overview", "comparison", "structural", "qc"]);
       const normalizePage = (raw) => {
         const cleaned = String(raw || "")
           .replace(/^#/, "")
@@ -857,6 +700,7 @@
       const overviewTornadoInterp = byId("overview-tornado-interpretation");
       const overviewTornadoNote = byId("overview-tornado-note");
       const overviewNextChannel = byId("overview-next-channel");
+      const overviewSummaryStatus = byId("overview-summary-status");
       const overviewRiskMatrix = byId("overview-risk-matrix");
       const targetChannelSelect = byId("target-channel-select");
       const targetDetailTitle = byId("target-detail-title");
@@ -872,6 +716,10 @@
       const targetRobustnessNote = byId("target-robustness-note");
       const targetRobustnessRows = byId("target-robustness-rows");
       const roiPriorPosteriorTableWrap = byId("roi-prior-posterior-table-wrap");
+      const tableSortState = {
+        targetImpact: { key: null, dir: "default" },
+        roiPriorPosterior: { key: null, dir: "default" },
+      };
 
       const state = {
         dist: "lognormal",
@@ -968,6 +816,53 @@
         let s = Number(v).toFixed(maxDigits);
         s = s.replace(/(\.\d*?[1-9])0+$/u, "$1").replace(/\.0+$/u, "");
         return s;
+      };
+      const sortValue = (value) => {
+        if (value === null || value === undefined || value === "") return { type: "empty", value: null };
+        if (typeof value === "number") return Number.isFinite(value) ? { type: "number", value } : { type: "empty", value: null };
+        const text = String(value).trim();
+        if (!text || /^(na|n\/a|unavailable)$/iu.test(text)) return { type: "empty", value: null };
+        const match = text.replace(/,/g, "").match(/^([+-])?\$?(-?\d+(?:\.\d+)?)([kmb])?%?$/iu);
+        if (match) {
+          const sign = match[1] === "-" ? -1 : 1;
+          const suffix = String(match[3] || "").toLowerCase();
+          const scale = suffix === "k" ? 1e3 : suffix === "m" ? 1e6 : suffix === "b" ? 1e9 : 1;
+          return { type: "number", value: sign * Math.abs(Number(match[2])) * scale };
+        }
+        return { type: "text", value: text.toLowerCase() };
+      };
+      const compareSortValues = (a, b, dir = "asc") => {
+        const av = sortValue(a);
+        const bv = sortValue(b);
+        if (av.type === "empty" && bv.type === "empty") return 0;
+        if (av.type === "empty") return 1;
+        if (bv.type === "empty") return -1;
+        const multiplier = dir === "desc" ? -1 : 1;
+        if (av.type === "number" && bv.type === "number") return multiplier * (av.value - bv.value);
+        return multiplier * String(av.value).localeCompare(String(bv.value), undefined, { numeric: true, sensitivity: "base" });
+      };
+      const withOriginalIndex = (rows) => (Array.isArray(rows) ? rows : []).map((row, idx) => ({ ...row, __originalIndex: idx }));
+      const sortRowsByState = (rows, stateObj, getter) => {
+        const indexed = rows.map((row, idx) => ({
+          row,
+          idx: Number.isFinite(Number(row && row.__originalIndex)) ? Number(row.__originalIndex) : idx,
+        }));
+        indexed.sort((a, b) => {
+          if (!stateObj || stateObj.dir === "default" || !stateObj.key) {
+            return a.idx - b.idx;
+          }
+          const result = compareSortValues(getter(a.row, stateObj.key), getter(b.row, stateObj.key), stateObj.dir);
+          return result || a.idx - b.idx;
+        });
+        return indexed.map((item) => item.row);
+      };
+      const updateSortButtons = (tableName, sortState) => {
+        Array.from(document.querySelectorAll(`[data-sort-table="${tableName}"]`)).forEach((button) => {
+          const active = sortState.dir !== "default" && button.getAttribute("data-sort-key") === sortState.key;
+          button.classList.toggle("is-active", active);
+          button.setAttribute("aria-sort", active ? (sortState.dir === "asc" ? "ascending" : "descending") : "none");
+          button.setAttribute("data-sort-dir", active ? sortState.dir : "");
+        });
       };
       const removeFinalDecisionLanguage = (text) => String(text || "")
         .replace(/before budget-level decisions/gi, "before stronger interpretation")
@@ -1300,22 +1195,17 @@
         if (!options.skipRender) renderAll();
       };
 
-      const spendChartNode = byId("spend-effect-chart");
       const qcChartNode = byId("qc-chart");
       const adstockLabChartNode = byId("adstock-lab-chart");
       const saturationLabChartNode = byId("saturation-lab-chart");
       const carryoverLabChartNode = byId("carryover-lab-chart");
 
-      let spendChart = null;
       let qcChart = null;
       let overviewHealthDonutChart = null;
       let adstockLabChart = null;
       let saturationLabChart = null;
       let carryoverLabChart = null;
 
-      if (window.echarts && spendChartNode) {
-        spendChart = echarts.init(spendChartNode);
-      }
       if (window.echarts && qcChartNode) {
         qcChart = echarts.init(qcChartNode);
       }
@@ -2152,6 +2042,7 @@
           else if (statusText === "Requires further testing") mhStatusChip.classList.add("tier-red");
           else mhStatusChip.classList.add("tier-yellow");
         }
+        if (overviewSummaryStatus) overviewSummaryStatus.textContent = statusText;
 
         if (mhPassRate) mhPassRate.textContent = `${fmtNum(passRate, 1)}%`;
         if (mhStatusBreakdown) mhStatusBreakdown.textContent = `PASS ${pass} | REVIEW ${review} | FAIL ${fail}`;
@@ -2222,139 +2113,6 @@
           "Target-level robustness output is intentionally skipped in this mode; the diagnostics readout is based on the structural runs instead.",
           "Use the Structural Assumptions tab to compare how alpha, ec, slope, lag, and decay move ROI across the screened runs.",
         ].map((line) => `<li>${line}</li>`).join("");
-      };
-
-      const renderSpendEffect = () => {
-        if (!spendChart) {
-          if (spendChartNode) spendChartNode.innerHTML = '<div class="empty">ECharts unavailable.</div>';
-          return;
-        }
-
-        const spendNote = byId("spend-effect-note");
-        const rows = spendRows
-          .filter((r) => Number.isFinite(r.spend_share_pct) && Number.isFinite(r.effect_share_pct))
-          .sort((a, b) => Math.abs(Number(b.share_gap_pp || 0)) - Math.abs(Number(a.share_gap_pp || 0)))
-          .slice(0, 8);
-        if (!rows.length) {
-          spendChart.clear();
-          if (spendNote) spendNote.textContent = "Spend vs Effect data unavailable.";
-          return;
-        }
-        const selected = state.selectedChannel;
-
-        const channels = rows.map((r) => channelUpper(r.channel));
-        const spend = rows.map((r) => Number(r.spend_share_pct || 0));
-        const effect = rows.map((r) => Number(r.effect_share_pct || 0));
-        const axisMaxRaw = Math.max(0, ...spend, ...effect);
-        const axisMax = Math.max(10, axisMaxRaw * 1.16);
-        const formatShareStaticLabel = (value) => {
-          const n = Number(value);
-          if (!Number.isFinite(n)) return "";
-          if (Math.abs(n) < 0.005) return "0%";
-          if (Math.abs(n) < 0.1) return `${fmtNum(n, 2)}%`;
-          return `${fmtNum(n, 1)}%`;
-        };
-        const shouldShowShareLabel = (row, key) => {
-          const spendValue = Number(row.spend_share_pct || 0);
-          const effectValue = Number(row.effect_share_pct || 0);
-          const value = key === "spend" ? spendValue : effectValue;
-          const other = key === "spend" ? effectValue : spendValue;
-          if (!Number.isFinite(value) || Math.abs(value) < 0.005) return false;
-          const minReadableValue = Math.max(axisMax * 0.055, 0.45);
-          if (value >= minReadableValue) return true;
-          return value >= other && value >= Math.max(axisMax * 0.025, 0.2);
-        };
-        const labelData = (values, key) => values.map((value, i) => ({
-          value,
-          label: { show: shouldShowShareLabel(rows[i], key) },
-        }));
-
-        spendChart.setOption({
-          animationDuration: 550,
-          tooltip: {
-            trigger: "axis",
-            axisPointer: { type: "shadow" },
-            formatter: (items) => {
-              const i = items[0] ? items[0].dataIndex : -1;
-              const row = rows[i];
-              if (!row) return "";
-              const gap = Number(row.share_gap_pp || 0);
-              return [
-                `<b>${channelUpper(row.channel)}</b>`,
-                `Spend: ${fmtNum(Number(row.spend_share_pct || 0), 3)}%`,
-                `Effect: ${fmtNum(Number(row.effect_share_pct || 0), 3)}%`,
-                `Gap: <b>${gap >= 0 ? "+" : ""}${fmtNum(gap, 3)} pp</b>`,
-                `ROI: ${Number.isFinite(row.estimated_roi) ? fmtNum(Number(row.estimated_roi), 3) : "NA"}`,
-              ].join("<br>");
-            },
-          },
-          legend: { type: "scroll", top: 0, itemGap: 10, textStyle: { color: "#3b5d86", fontSize: 11 } },
-          grid: makeGrid("rank_lollipop", { left: 86, right: 42, top: 42, bottom: 24 }, { hasLegend: true }),
-          xAxis: {
-            type: "value",
-            min: 0,
-            max: axisMax,
-            axisLabel: { formatter: (v) => `${fmtNum(v, 3)}%`, hideOverlap: true },
-            splitLine: { lineStyle: { color: "rgba(31, 70, 127, 0.12)", type: "dashed" } },
-          },
-          yAxis: {
-            type: "category",
-            data: channels,
-            axisLabel: { color: "#375983", fontSize: 11, margin: 12 },
-          },
-          series: [
-            {
-              name: "Spend Share",
-              type: "bar",
-              data: labelData(spend, "spend"),
-              barWidth: 11,
-              label: {
-                show: true,
-                position: "right",
-                distance: 4,
-                color: "#5f7695",
-                fontSize: 10,
-                fontWeight: 600,
-                formatter: (p) => formatShareStaticLabel(Number(p && p.value || 0)),
-              },
-              itemStyle: {
-                color: "#7f97b8",
-                borderRadius: [0, 6, 6, 0],
-                opacity: (ctx) => !selected || selected === channelUpper(rows[ctx.dataIndex].channel) ? 1 : 0.3,
-              },
-            },
-            {
-              name: "Effect Share",
-              type: "bar",
-              data: labelData(effect, "effect"),
-              barWidth: 11,
-              label: {
-                show: true,
-                position: "right",
-                distance: 4,
-                color: "#214db1",
-                fontSize: 10,
-                fontWeight: 600,
-                formatter: (p) => formatShareStaticLabel(Number(p && p.value || 0)),
-              },
-              itemStyle: {
-                color: "#2f5dc6",
-                borderRadius: [0, 6, 6, 0],
-                opacity: (ctx) => !selected || selected === channelUpper(rows[ctx.dataIndex].channel) ? 1 : 0.3,
-              },
-            },
-          ],
-        }, true);
-        if (spendNote) {
-          spendNote.textContent = `Top ${rows.length} channels by |gap|. Hover for exact spend, effect, gap, and ROI.`;
-        }
-
-        spendChart.off("click");
-        spendChart.on("click", (params) => {
-          const row = rows[params.dataIndex];
-          if (!row) return;
-          setSelectedChannel(row.channel);
-        });
       };
 
       const renderQc = () => {
@@ -2506,12 +2264,18 @@
 
       const renderHowRun = () => {
         const section = byId("section-how-run");
-        const statusBadge = byId("run-setup-status-badge");
-        const summaryGrid = byId("run-setup-summary-grid");
         const pipeline = byId("run-pipeline-steps");
-        const flow = byId("how-run-flow");
         const settings = byId("how-run-settings-grid");
-        const notes = byId("how-run-notes-list");
+        const summaryGrid = byId("run-setup-summary-grid");
+        const statusBadge = byId("run-setup-status-badge");
+        const flow = byId("how-run-flow");
+        const notesList = byId("how-run-notes-list");
+        const diagnosticSummaryGrid = byId("diagnostic-run-summary-grid");
+        const diagnosticStatusBadge = byId("diagnostic-run-setup-status-badge");
+        const diagnosticPipeline = byId("diagnostic-run-pipeline-steps");
+        const diagnosticSettings = byId("diagnostic-how-run-settings-grid");
+        const diagnosticFlow = byId("diagnostic-how-run-flow");
+        const diagnosticNotesList = byId("diagnostic-how-run-notes-list");
         if (!section) return;
 
         if (!howRun || !howRun.available) {
@@ -2539,16 +2303,9 @@
         const completedRuns = Number.isFinite(Number(diagnostics.n_runs))
           ? Number(diagnostics.n_runs)
           : uniqueRunCount;
-        const passRuns = Number(diagnostics.pass_runs || 0);
-        const reviewRuns = Number(diagnostics.review_runs || 0);
-        const failRuns = Number(diagnostics.fail_runs || 0);
-        const unknownRuns = Number(diagnostics.unknown_runs || 0);
-        const hasQcMix = [passRuns, reviewRuns, failRuns, unknownRuns].some((v) => Number.isFinite(v) && v > 0);
-        const qcMix = `P ${passRuns} / R ${reviewRuns} / F ${failRuns}`;
-        const runMode = settingValue("Run mode") || "NA";
         const targetChannels = settingValue("Targets") || "NA";
-        const kpiPath = settingValue("KPI Path") || settingValue("KPI type") || "NA";
-        const priorDesignMode = settingValue("Prior design mode") || "NA";
+        const kpiType = settingValue("KPI type");
+        const kpiPath = settingValue("KPI Path") || kpiType || "NA";
         const gridDefinition = settingValue("Grid definition") || "NA";
         const inputDataset = settingValue("Input dataset");
         const channelCount = Number(overview.n_channels || 0);
@@ -2558,12 +2315,19 @@
         const sigmaGrid = settingValue("Sigma grid");
         const dists = settingValue("Distributions");
         const availableChannels = Array.isArray(workbench.available_channels) ? workbench.available_channels : [];
-        const publishReady = !!payloadNode.textContent;
-        const topStatus = failRuns > 0
-          ? "Needs rerun"
-          : reviewRuns > 0
-            ? "Complete with QC follow-up"
-            : "Generated";
+        const splitChannels = (value) => String(value || "")
+          .split(",")
+          .map((x) => x.trim())
+          .filter(Boolean);
+        const perturbedTargets = splitChannels(targetChannels);
+        const modeledChannels = availableChannels.length
+          ? availableChannels.map((x) => String(x || "").trim()).filter(Boolean)
+          : perturbedTargets;
+        const pipelineRunType = perturbedTargets.length > 1 ? "Multi-target run" : "Single-target run";
+        const modeledChannelText = modeledChannels.length ? modeledChannels.join(", ") : "NA";
+        const kpiDisplay = kpiPath !== "NA" ? kpiPath : (kpiType || "NA");
+        const qcResult = String((payload.qc_gate && payload.qc_gate.result) || decision.tier || "").trim().toUpperCase();
+        const setupStatus = qcResult && qcResult !== "NA" ? qcResult : "Generated";
 
         const shortenPath = (value, maxLen = 42) => {
           const text = String(value || "").trim();
@@ -2591,31 +2355,25 @@
           return "is-complete";
         };
         const statusLabel = (status, label) => label || (status === "warning" ? "Review needed" : status === "pending" ? "Missing" : "Complete");
+        const summaryCards = [
+          ["Completed runs", completedRuns > 0 ? String(completedRuns) : "NA"],
+          ["Modeled channels", String(channelCount || modeledChannels.length || "NA")],
+          ["Target channels", perturbedTargets.length ? String(perturbedTargets.length) : targetChannels],
+          ["Input rows", rowCount > 0 ? String(rowCount) : "NA"],
+        ];
+        const summaryHtml = summaryCards.map(([label, value]) => `
+          <article class="run-summary-card">
+            <span>${escapeHtml(label)}</span>
+            <strong>${escapeHtml(value)}</strong>
+          </article>
+        `).join("");
+        if (summaryGrid) summaryGrid.innerHTML = summaryHtml;
+        if (diagnosticSummaryGrid) diagnosticSummaryGrid.innerHTML = summaryHtml;
+        if (statusBadge) statusBadge.textContent = setupStatus;
+        if (diagnosticStatusBadge) diagnosticStatusBadge.textContent = setupStatus;
 
-        if (statusBadge) {
-          statusBadge.textContent = topStatus;
-          statusBadge.className = `run-status-badge ${failRuns > 0 ? "is-fail" : reviewRuns > 0 ? "is-review" : "is-generated"}`;
-        }
-        if (summaryGrid) {
-          const summaryRows = [
-            ["Run Mode", runMode],
-            ["Target Channel(s)", targetChannels],
-            ["KPI Path", kpiPath],
-            ["Prior Design", priorDesignMode],
-            ["Grid Definition", gridDefinition],
-            ["Completed Runs", Number.isFinite(completedRuns) && completedRuns > 0 ? completedRuns : "NA"],
-            ["QC Status", settingValue("QC gate") || qcMix],
-          ];
-          summaryGrid.innerHTML = summaryRows.map(([label, value]) => `
-            <article class="run-summary-item">
-              <span>${escapeHtml(label)}</span>
-              <strong>${valueHtml(value, { path: label === "Input dataset" })}</strong>
-            </article>
-          `).join("");
-        }
+        let pipelineHtml = "";
         if (pipeline) {
-          // These statuses are derived from existing dashboard payload fields. Publish is complete only because
-          // this dashboard.html executed with an embedded dashboard_payload JSON blob from the render step.
           const steps = [
             {
               name: "Data Inputs",
@@ -2626,9 +2384,9 @@
             },
             {
               name: "Model Spec",
-              status: (channelCount > 0 && kpiPath !== "NA") ? "complete" : "pending",
+              status: (channelCount > 0 && kpiDisplay !== "NA") ? "complete" : "pending",
               label: "Complete",
-              detail: `${channelCount || "NA"} channels | ${kpiPath}`,
+              detail: `${channelCount || modeledChannels.length || "NA"} modeled channels | ${kpiDisplay}`,
             },
             {
               name: "Prior Setup",
@@ -2643,19 +2401,13 @@
               detail: completedRuns > 0 ? `${completedRuns} completed run${completedRuns === 1 ? "" : "s"}` : "No completed runs",
             },
             {
-              name: "QC Review",
-              status: hasQcMix ? ((reviewRuns > 0 || failRuns > 0) ? "warning" : "complete") : "pending",
-              label: hasQcMix ? ((reviewRuns > 0 || failRuns > 0) ? "Review needed" : "Pass") : "Missing",
-              detail: hasQcMix ? qcMix : "No QC mix found",
-            },
-            {
-              name: "Publish Insights",
-              status: publishReady ? "complete" : "pending",
-              label: publishReady ? "Generated" : "Pending",
-              detail: publishReady ? "dashboard.html + payload loaded" : "Dashboard output unavailable",
+              name: "View Results",
+              status: payloadNode.textContent ? "complete" : "pending",
+              label: payloadNode.textContent ? "Generated" : "Pending",
+              detail: "Dashboard/report displays prior sensitivity outputs",
             },
           ];
-          pipeline.innerHTML = steps.map((step, idx) => `
+          pipelineHtml = steps.map((step, idx) => `
             <article class="run-pipeline-step ${statusClass(step.status)}">
               <span class="run-pipeline-index">${idx + 1}</span>
               <div>
@@ -2665,42 +2417,44 @@
               </div>
             </article>
           `).join("");
+          pipeline.innerHTML = pipelineHtml;
         }
-        if (flow) {
-          const rows = Array.isArray(howRun.flow_cards) ? howRun.flow_cards : [];
-          flow.innerHTML = rows.length
-            ? rows.map((row, idx) => `
-                <article class="run-method-step ${idx === rows.length - 1 ? "is-terminal" : ""}">
-                  <span>${escapeHtml(String(row.step || idx + 1))}</span>
-                  <div>
-                    <h3>${escapeHtml(String(row.title || "Step"))}</h3>
-                    <p>${escapeHtml(String(row.detail || ""))}</p>
-                  </div>
-                </article>
-              `).join("")
-            : '<div class="empty">No workflow snapshot available.</div>';
-        }
+        if (diagnosticPipeline) diagnosticPipeline.innerHTML = pipelineHtml || (pipeline ? pipeline.innerHTML : "");
+
+        let settingsHtml = "";
         if (settings) {
-          const rowsByLabel = new Map(settingsRows.map((row) => [String(row.label || "").trim(), row]));
-          const groups = [
-            { title: "Data & KPI", labels: ["Targets", "KPI type", "Input dataset"] },
-            { title: "Prior Design", labels: ["Prior design mode", "Grid definition", "Mu grid", "Sigma grid", "Distributions", "Baseline rule"] },
-            { title: "Run Scope", labels: ["Run mode", "Prior grid scope", "Structural sweep scope", "Channel scope"] },
-            { title: "QC / Interpretation Scope", labels: ["QC gate", "Ranking scope"] },
+          const settingRowsForDisplay = [
+            {
+              title: "Data & KPI",
+              items: [
+                ["Pipeline run type", pipelineRunType],
+                ["Perturbed target channels", perturbedTargets.length ? perturbedTargets.join(", ") : targetChannels],
+                ["Modeled channels", modeledChannelText],
+                ["KPI type / path", kpiDisplay],
+                ["Input dataset", inputDataset || "NA"],
+              ],
+            },
+            {
+              title: "Prior Design",
+              items: [
+                ["Grid definition", gridDefinition],
+                ["Mu grid", muGrid || "NA"],
+                ["Sigma grid", sigmaGrid || "NA"],
+                ["Distribution", dists || "NA"],
+                ["Baseline rule", settingValue("Baseline rule") || "NA"],
+              ],
+            },
           ];
-          settings.innerHTML = settingsRows.length
+          const groups = [
+            ...settingRowsForDisplay,
+          ];
+          settingsHtml = groups.length
             ? groups.map((group) => {
-                const items = group.labels
-                  .map((label) => rowsByLabel.get(label))
-                  .filter(Boolean);
-                if (!items.length) return "";
                 return `
                   <section class="run-settings-group">
                     <h3>${escapeHtml(group.title)}</h3>
                     <div class="run-settings-list">
-                      ${items.map((row) => {
-                        const label = String(row.label || "Setting");
-                        const rawValue = String(row.value || "NA");
+                      ${group.items.map(([label, rawValue]) => {
                         return `
                           <div class="run-setting-row">
                             <span>${escapeHtml(label)}</span>
@@ -2713,11 +2467,31 @@
                 `;
               }).join("")
             : '<div class="empty">No current settings available.</div>';
+          settings.innerHTML = settingsHtml;
         }
-        if (notes) {
-          const rows = Array.isArray(howRun.notes) ? howRun.notes : [];
-          notes.innerHTML = rows.length ? rows.map((x) => `<li>${escapeHtml(x)}</li>`).join("") : "<li>No run notes available.</li>";
-        }
+        if (diagnosticSettings) diagnosticSettings.innerHTML = settingsHtml || (settings ? settings.innerHTML : "");
+
+        const flowRows = Array.isArray(howRun.flow) ? howRun.flow : [];
+        const flowHtml = flowRows.length
+          ? flowRows.map((item, idx) => `
+            <article class="run-method-step">
+              <span>${idx + 1}</span>
+              <div>
+                <strong>${escapeHtml(item && item.title ? item.title : item && item.label ? item.label : "Workflow step")}</strong>
+                <p>${escapeHtml(item && item.detail ? item.detail : item && item.value ? item.value : "")}</p>
+              </div>
+            </article>
+          `).join("")
+          : '<div class="empty">No workflow details available.</div>';
+        if (flow) flow.innerHTML = flowHtml;
+        if (diagnosticFlow) diagnosticFlow.innerHTML = flowHtml;
+
+        const noteRows = Array.isArray(howRun.notes) ? howRun.notes : [];
+        const notesHtml = noteRows.length
+          ? noteRows.map((item) => `<li>${escapeHtml(item)}</li>`).join("")
+          : '<li>No technical notes available.</li>';
+        if (notesList) notesList.innerHTML = notesHtml;
+        if (diagnosticNotesList) diagnosticNotesList.innerHTML = notesHtml;
       };
 
       const tornadoRoiChartNode = byId("tornado-roi-chart");
@@ -3489,6 +3263,54 @@
         });
       };
 
+      const renderOverviewSnapshot = () => {
+        const setText = (id, value) => {
+          const node = byId(id);
+          if (node) node.textContent = value;
+        };
+        const nRuns = Number(diagnostics.n_runs || 0);
+        const pass = Number(diagnostics.pass_runs || 0);
+        const review = Number(diagnostics.review_runs || 0);
+        const fail = Number(diagnostics.fail_runs || 0);
+        const nChannels = Number(overview.n_channels || 0);
+        const passRate = nRuns > 0 ? (100 * pass / nRuns) : null;
+        setText("overview-snap-runs", nRuns > 0 ? String(nRuns) : "NA");
+        setText(
+          "overview-snap-runs-detail",
+          nRuns > 0 ? `${nRuns} prior grid run${nRuns === 1 ? "" : "s"}` : "No runs available"
+        );
+        const wbChannels = Array.isArray(workbench.available_channels) ? workbench.available_channels.length : 0;
+        const channelCount = nChannels || wbChannels;
+        setText("overview-snap-channels", channelCount > 0 ? String(channelCount) : "NA");
+        setText(
+          "overview-snap-channels-detail",
+          channelCount > 0 ? `${channelCount} channels in the model` : "No channels available"
+        );
+        const kpiLabel = String(outcomeContext.metric_label || outcomeContext.kpi_type || outcomeContext.kpi_type_effective || "").trim();
+        setText("overview-snap-kpi", kpiLabel || "NA");
+        const rpk = Number(outcomeContext.revenue_per_kpi);
+        setText(
+          "overview-snap-kpi-detail",
+          Number.isFinite(rpk) ? `Revenue per KPI = ${fmtNum(rpk, 2)}` : "Target outcome metric"
+        );
+        setText("overview-snap-pass", Number.isFinite(passRate) ? `${fmtNum(passRate, 1)}%` : "NA");
+        setText(
+          "overview-snap-pass-detail",
+          nRuns > 0 ? `PASS ${pass} | REVIEW ${review} | FAIL ${fail}` : "PASS / REVIEW / FAIL mix"
+        );
+        const topMover = getPrimaryTornadoTop();
+        if (topMover) {
+          setText("overview-snap-mover", channelUpper(topMover.channel));
+          setText(
+            "overview-snap-mover-detail",
+            `${formatPrimaryTornadoImpact(topMover.impact)} range | ${formatPrimaryTornadoPoint(topMover.left)} to ${formatPrimaryTornadoPoint(topMover.right)}`
+          );
+        } else {
+          setText("overview-snap-mover", "NA");
+          setText("overview-snap-mover-detail", "No tornado mover available");
+        }
+      };
+
       const renderRiskMatrix = () => {
         const conf = metricConfig[state.metric] || metricConfig.pct;
         const rankMetaByChannel = new Map();
@@ -3735,9 +3557,12 @@
           else if (band.toLowerCase() === "high") targetRobustnessBand.classList.add("band-high");
         }
         if (targetRobustnessNote) {
-          targetRobustnessNote.textContent = String(
+          const noteText = String(
             robust.note || "Robustness model output is unavailable for this demo; score framework is shown for reference.",
           );
+          const isSourceDebugNote = /^src=/iu.test(noteText.trim());
+          targetRobustnessNote.textContent = isSourceDebugNote ? "" : noteText;
+          targetRobustnessNote.style.display = isSourceDebugNote ? "none" : "";
         }
         if (!targetRobustnessRows) return;
         const subscoreDefinitions = {
@@ -3803,42 +3628,14 @@
         const summary = summaries[selected] || {};
         const label = String(summary.label || channelUpper(selected));
         if (targetDetailTitle) targetDetailTitle.textContent = label;
-        if (targetPriorSettings) targetPriorSettings.textContent = String(summary.prior_settings_tested || 0);
-        const qcMix = summary.qc_status_mix || {};
-        const qcText = ["PASS", "REVIEW", "FAIL", "UNKNOWN"]
-          .map((key) => Number(qcMix[key]) > 0 ? `${key} ${Number(qcMix[key])}` : "")
-          .filter(Boolean)
-          .join(" / ");
-        if (targetQCMix) targetQCMix.textContent = qcText || "NA";
-        if (targetLargestMovement) {
-          const largest = summary.largest_movement || null;
-          targetLargestMovement.textContent = largest
-            ? `${channelUpper(largest.channel)} ${formatTargetMovement(largest)}`
-            : "NA";
-        }
-        if (targetOutcomeCount) {
-          const systemCount = Number(summary.system_outcome_channel_count || 0);
-          const posteriorRows = Number(summary.system_posterior_rows || 0);
-          targetOutcomeCount.textContent = systemCount <= 1
-            ? `${Math.max(systemCount, 0)} channel / ${posteriorRows} posterior rows`
-            : `${systemCount} channels / ${posteriorRows} posterior rows`;
-        }
-        if (targetDetailInterpretation) {
-          const minRoi = Number(summary.posterior_roi_mean_min);
-          const maxRoi = Number(summary.posterior_roi_mean_max);
-          const roiRange = Number.isFinite(minRoi) && Number.isFinite(maxRoi)
-            ? `posterior ROI mean spans ${fmtNum(minRoi, 3)} to ${fmtNum(maxRoi, 3)} across tested priors`
-            : "posterior ROI summary unavailable";
-          const systemCount = Number(summary.system_outcome_channel_count || 0);
-          const scopeText = systemCount <= 1
-            ? "Full-system outcome rows are unavailable for this selected target."
-            : `Available source rows include ${systemCount} outcome channels, ${Number(summary.system_posterior_rows || 0)} full-system posterior rows, and ${Number(summary.system_non_baseline_movement_rows || 0)} non-baseline movement rows.`;
-          targetDetailInterpretation.textContent = `${label} target-channel response: ${roiRange}. ${scopeText}`;
-        }
         if (targetImpactTableBody) {
-          const rows = Array.isArray(summary.system_impact_rows) ? summary.system_impact_rows : [];
+          const rows = withOriginalIndex(summary.system_impact_rows);
+          const sortedRows = sortRowsByState(rows, tableSortState.targetImpact, (row, key) => {
+            if (key === "response_scope") return row.response_scope || (row.is_self_response ? "Self-response" : "Non-self");
+            return row[key];
+          });
           targetImpactTableBody.innerHTML = rows.length
-            ? rows.slice(0, 8).map((row) => `
+            ? sortedRows.slice(0, 8).map((row) => `
               <tr>
                 <td>${escapeHtml(channelUpper(row.channel))}</td>
                 <td><span class="target-scope-chip ${row.is_self_response ? "is-self" : "is-system"}">${escapeHtml(row.response_scope || (row.is_self_response ? "Self-response" : "Non-self"))}</span></td>
@@ -3849,14 +3646,8 @@
               </tr>
             `).join("")
             : '<tr><td colspan="6">No movement rows available for this selected target sweep.</td></tr>';
-        }
-        if (targetTableNote) {
-          const posteriorRows = Number(summary.system_posterior_rows || 0);
-          const movementRows = Number(summary.system_non_baseline_movement_rows || 0);
-          const rowCounts = posteriorRows || movementRows
-            ? ` (${posteriorRows} full-system posterior rows; ${movementRows} non-baseline movement rows).`
-            : ".";
-          targetTableNote.textContent = `This table includes preserved full-system outcome rows for the selected target-channel sweep${rowCounts} Self-response rows show the selected target channel's own signed posterior ROI percent change; non-self rows show cross-channel response under the same target prior settings.`;
+          updateSortButtons("target-impact", tableSortState.targetImpact);
+          if (typeof bindSortableHeaders === "function") bindSortableHeaders();
         }
         renderTargetSelfChart(summary);
         renderTargetSystemChart(summary);
@@ -3869,11 +3660,42 @@
           if (typeof window.__dashScheduleResize === "function") window.__dashScheduleResize();
         });
       }
+      const bindSortableHeaders = () => {
+        const tableMap = {
+          "target-impact": {
+            state: tableSortState.targetImpact,
+            render: renderTargetChannelDetail,
+          },
+          "roi-prior-posterior": {
+            state: tableSortState.roiPriorPosterior,
+            render: renderRoiPriorPosteriorTable,
+          },
+        };
+        Array.from(document.querySelectorAll("[data-sort-table][data-sort-key]")).forEach((button) => {
+          if (button.dataset.sortBound === "1") return;
+          button.dataset.sortBound = "1";
+          button.addEventListener("click", () => {
+            const spec = tableMap[button.getAttribute("data-sort-table")];
+            const key = button.getAttribute("data-sort-key");
+            if (!spec || !key) return;
+            if (spec.state.key !== key || spec.state.dir === "default") {
+              spec.state.key = key;
+              spec.state.dir = "asc";
+            } else if (spec.state.dir === "asc") {
+              spec.state.dir = "desc";
+            } else {
+              spec.state.key = null;
+              spec.state.dir = "default";
+            }
+            spec.render();
+          });
+        });
+      };
 
       const renderRoiPriorPosteriorTable = () => {
         if (!roiPriorPosteriorTableWrap) return;
         const block = payload.roi_prior_posterior_table || {};
-        const rows = Array.isArray(block.rows) ? block.rows : [];
+        const rows = withOriginalIndex(block.rows);
         if (!block.available || !rows.length) {
           roiPriorPosteriorTableWrap.innerHTML = `<div class="empty empty--compact">${escapeHtml(block.reason || "Prior vs posterior table unavailable.")}</div>`;
           return;
@@ -3882,18 +3704,19 @@
         const head = `
           <thead>
             <tr>
-              <th>Channel</th>
-              <th>Prior Variant</th>
-              <th>Prior ROI Mu</th>
-              <th>Prior ROI Sigma</th>
-              <th>Posterior ROI Estimate</th>
-              <th>50% Lower</th>
-              <th>50% Upper</th>
-              <th>95% Lower</th>
-              <th>95% Upper</th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="channel">Channel</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="prior_variant">Prior Variant</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="prior_roi_mu">Prior ROI Mu</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="prior_roi_sigma">Prior ROI Sigma</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="posterior_roi_estimate">Posterior ROI Estimate</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="posterior_50_lower">50% Lower</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="posterior_50_upper">50% Upper</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="posterior_95_lower">95% Lower</button></th>
+              <th><button type="button" class="sortable-th" data-sort-table="roi-prior-posterior" data-sort-key="posterior_95_upper">95% Upper</button></th>
             </tr>
           </thead>`;
-        const body = rows.map((row) => `
+        const sortedRows = sortRowsByState(rows, tableSortState.roiPriorPosterior, (row, key) => row[key]);
+        const body = sortedRows.map((row) => `
           <tr>
             <td>${escapeHtml(channelUpper(row.channel))}</td>
             <td>${escapeHtml(row.prior_variant || "NA")}</td>
@@ -3911,6 +3734,8 @@
             ${head}
             <tbody>${body}</tbody>
           </table>`;
+        updateSortButtons("roi-prior-posterior", tableSortState.roiPriorPosterior);
+        bindSortableHeaders();
       };
 
       const renderAll = () => {
@@ -3920,13 +3745,13 @@
         renderModelHealthCard();
         renderHowRun();
         renderKpis(rows);
-        renderSpendEffect();
         renderQc();
         renderLists();
         renderTornadoCharts();
         renderTargetChannelDetail();
         renderRoiPriorPosteriorTable();
         renderSensitivityDriverStory();
+        renderOverviewSnapshot();
         renderRiskMatrix();
         try {
           renderStructuralLab();
@@ -4043,7 +3868,7 @@
         const navLinks = Array.from(document.querySelectorAll(".quick-nav a[data-page-target]"));
         if (!navLinks.length) return;
 
-        const validPages = new Set(["overview", "howrun", "explorer", "modeloutputs", "comparison", "structural", "qc"]);
+        const validPages = new Set(["overview", "comparison", "structural", "qc"]);
         const normalizePage = (raw) => {
           const cleaned = String(raw || "")
             .replace(/^#/, "")
@@ -4144,7 +3969,7 @@
       setupRevealAnimations();
       updateScrollProgress();
       registerCharts([
-        spendChart, qcChart, overviewHealthDonutChart, adstockLabChart, saturationLabChart, carryoverLabChart,
+        qcChart, overviewHealthDonutChart, adstockLabChart, saturationLabChart, carryoverLabChart,
         tornadoRoiChart, tornadoDollarChart, overviewTornadoChart, targetSelfChart, targetSystemChart,
       ]);
       scheduleChartResize();
@@ -4184,7 +4009,8 @@
       const baselineSigmaNode = byId("wb2-baseline-sigma");
       const baselineContribNode = byId("wb2-baseline-contrib");
       const baselineContribShareNode = byId("wb2-baseline-contrib-share");
-      const modelOutputKpis = byId("model-output-kpis");
+      const baselineContribNote = byId("wb2-baseline-contrib-note");
+      const baselineContribShareNote = byId("wb2-baseline-contrib-share-note");
       const meridianOfficial = payload.meridian_official || {};
       const meridianChartSpecs = meridianOfficial.chart_specs || {};
       const meridianRunChartSpecs = meridianOfficial.run_chart_specs || {};
@@ -4885,54 +4711,6 @@
         const row = baselineData.spendVsContribution.find((r) => !/spend/i.test(String(r.label || "")));
         return row ? String(row.label) : "% KPI";
       })();
-      const renderModelOutputKpis = () => {
-        if (!modelOutputKpis) return;
-        const wfRows = baselineData.contributionWaterfall
-          .filter((r) => r && String(r.channel || "").trim());
-        if (!wfRows.length) {
-          modelOutputKpis.style.display = "none";
-          modelOutputKpis.innerHTML = "";
-          return;
-        }
-        const contributionValue = (r) => {
-          const direct = valueOr(r && r.incremental_outcome);
-          if (Number.isFinite(direct)) return direct;
-          return valueOr(r && r.contribution_value);
-        };
-        const baselineRowOut = wfRows.find((r) => toChannelKey(r.channel) === "baseline");
-        const mediaRows = wfRows.filter((r) => toChannelKey(r.channel) !== "baseline" && Number.isFinite(contributionValue(r)));
-        const topRow = mediaRows.slice().sort((a, b) => Number(contributionValue(b)) - Number(contributionValue(a)))[0] || null;
-        const mediaTotal = mediaRows.reduce((acc, r) => acc + Number(contributionValue(r)), 0);
-        const modeledChannels = mediaRows.length
-          ? new Set(mediaRows.map((r) => toChannelKey(r.channel)).filter(Boolean)).size
-          : new Set(rows.map((r) => toChannelKey(r.channel)).filter(Boolean)).size;
-        const cards = [];
-        const baselineContribution = contributionValue(baselineRowOut);
-        if (Number.isFinite(baselineContribution)) {
-          cards.push(["Baseline contribution", fmtCompact(baselineContribution)]);
-        }
-        if (topRow) {
-          cards.push(["Top contributing channel", String(topRow.channel || "").toUpperCase()]);
-        }
-        if (mediaRows.length && Number.isFinite(mediaTotal)) {
-          cards.push(["Total media contribution", fmtCompact(mediaTotal)]);
-        }
-        if (modeledChannels > 0) {
-          cards.push(["Modeled channels", String(modeledChannels)]);
-        }
-        if (!cards.length) {
-          modelOutputKpis.style.display = "none";
-          modelOutputKpis.innerHTML = "";
-          return;
-        }
-        modelOutputKpis.style.display = document.body && document.body.getAttribute("data-page") === "modeloutputs" ? "" : "none";
-        modelOutputKpis.innerHTML = cards.map(([label, value]) => `
-          <article class="kpi">
-            <div class="k">${escapeHtml(label)}</div>
-            <div class="v">${escapeHtml(value)}</div>
-          </article>
-        `).join("");
-      };
       const buildDynamicMeridianSpecs = (selectedRunRows, anchorRow) => {
         if (!Array.isArray(selectedRunRows) || !selectedRunRows.length) return {};
         const channelRows = selectedRunRows
@@ -5192,7 +4970,6 @@
 
       const heatChart = (window.echarts && byId("wb2-heatmap-chart")) ? echarts.init(byId("wb2-heatmap-chart")) : null;
       const contribBoxChart = (window.echarts && byId("wb2-contrib-box-chart")) ? echarts.init(byId("wb2-contrib-box-chart")) : null;
-      const contribCompareChart = (window.echarts && byId("wb2-contrib-compare-chart")) ? echarts.init(byId("wb2-contrib-compare-chart")) : null;
       const muProfileChart = (window.echarts && byId("wb2-mu-profile-chart")) ? echarts.init(byId("wb2-mu-profile-chart")) : null;
       const sigmaProfileChart = (window.echarts && byId("wb2-sigma-profile-chart")) ? echarts.init(byId("wb2-sigma-profile-chart")) : null;
       const muRankChart = (window.echarts && byId("wb2-mu-rank-chart")) ? echarts.init(byId("wb2-mu-rank-chart")) : null;
@@ -5316,8 +5093,18 @@
         if (baselineRoiNode) baselineRoiNode.textContent = fmt(baselineRoi, 3);
         if (baselineMuNode) baselineMuNode.textContent = baseline ? fmt(baseline.roi_prior_mu, 3) : "NA";
         if (baselineSigmaNode) baselineSigmaNode.textContent = baseline ? fmt(baseline.roi_prior_sigma, 3) : "NA";
-        if (baselineContribNode) baselineContribNode.textContent = baseline ? fmtCompact(baseline.contribution_value) : "NA";
-        if (baselineContribShareNode) baselineContribShareNode.textContent = (baseline && Number.isFinite(baseline.contribution_share)) ? `${fmt(100 * baseline.contribution_share, 3)}%` : "NA";
+        const baselineContribAvailable = baseline && Number.isFinite(baseline.contribution_value);
+        const baselineShareAvailable = baseline && Number.isFinite(baseline.contribution_share);
+        if (baselineContribNode) baselineContribNode.textContent = baselineContribAvailable ? fmtCompact(baseline.contribution_value) : "Unavailable";
+        if (baselineContribShareNode) baselineContribShareNode.textContent = baselineShareAvailable ? `${fmt(100 * baseline.contribution_share, 3)}%` : "Unavailable";
+        if (baselineContribNote) {
+          baselineContribNote.textContent = baselineContribAvailable ? "" : (baseline ? "Baseline row exists, but contribution value is not available in this output payload." : "No matching baseline row was found for the selected channel.");
+          baselineContribNote.hidden = baselineContribAvailable;
+        }
+        if (baselineContribShareNote) {
+          baselineContribShareNote.textContent = baselineShareAvailable ? "" : (baseline ? "Baseline row exists, but contribution share is not available in this output payload." : "No matching baseline row was found for the selected channel.");
+          baselineContribShareNote.hidden = baselineShareAvailable;
+        }
       };
 
       const renderContribBox = () => {
@@ -5457,65 +5244,6 @@
           sigmaSelect.value = String(sigma);
           renderAll();
         });
-      };
-
-      const renderContribCompare = (selected, baseline) => {
-        if (!contribCompareChart) return;
-        if (!selected || !baseline) {
-          contribCompareChart.clear();
-          return;
-        }
-        const se = spendRows.find((r) => String(r.channel || "").toLowerCase() === String(state.channel || "").toLowerCase()) || {};
-        const categories = ["Baseline", "Selected"];
-        const contribVals = [toNum(baseline.contribution_value), toNum(selected.contribution_value)];
-        const contribShareVals = [toNum(baseline.contribution_share), toNum(selected.contribution_share)].map((v) => Number.isFinite(v) ? 100 * v : null);
-        const spendShare = toNum(se.spend_share_pct);
-        const effectShare = toNum(se.effect_share_pct);
-        contribCompareChart.setOption({
-          legend: { ...legendBase, top: 0 },
-          grid: withLayoutGrid("dual_axis", { left: 68, right: 76, top: 34, bottom: 30 }, true),
-          tooltip: {
-            trigger: "axis",
-            axisPointer: { type: "shadow" },
-            formatter: (items) => {
-              const i = items && items[0] ? items[0].dataIndex : -1;
-              if (i < 0) return "";
-              return [
-                `<b>${categories[i] || ""}</b>`,
-                `Contribution: ${fmtCompact(contribVals[i])}`,
-                `Contribution Share: ${fmt(contribShareVals[i], 3)}%`,
-                `Spend Share: ${fmt(spendShare, 3)}%`,
-                `Effect Share: ${fmt(effectShare, 3)}%`,
-              ].join("<br>");
-            },
-          },
-          xAxis: {
-            type: "category",
-            data: categories,
-            axisLabel: { ...axisLabelBase },
-            axisTick: { alignWithLabel: true },
-          },
-          yAxis: [
-            valueAxis("Contribution", (v) => fmtCompact(v), { nameLocation: "end", nameGap: 12 }),
-            {
-              type: "value",
-              name: "Share %",
-              min: 0,
-              max: 100,
-              nameLocation: "end",
-              nameGap: 12,
-              nameTextStyle: { color: "#4d688b", fontSize: 11 },
-              axisLabel: { ...axisLabelBase, formatter: (v) => `${fmt(v, 3)}%` },
-              splitLine: { show: false },
-            },
-          ],
-          series: [
-            { name: "Contribution", type: "bar", data: contribVals, barWidth: 24, itemStyle: { color: "#1ba790", borderRadius: [6, 6, 2, 2] } },
-            { name: "Contribution Share", type: "line", yAxisIndex: 1, data: contribShareVals, symbolSize: 7, lineStyle: { width: 2, color: "#2f5dc6" }, itemStyle: { color: "#2f5dc6" } },
-            { name: "Spend Share (channel)", type: "line", yAxisIndex: 1, data: [spendShare, spendShare], symbol: "none", lineStyle: { type: "dashed", color: "#8d6fb8", width: 1.6 } },
-            { name: "Effect Share (channel)", type: "line", yAxisIndex: 1, data: [effectShare, effectShare], symbol: "none", lineStyle: { type: "dashed", color: "#c7892f", width: 1.6 } },
-          ],
-        }, true);
       };
 
       const renderMarginal = (chart, rowsSlice, axisKey, axisVals, fixedLabel, color) => {
@@ -5924,139 +5652,6 @@
         });
       };
 
-      const structuralAxes = () => {
-        const chRows = structuralChannelRows();
-        return {
-          alpha: uniqueSorted(chRows.map((r) => r.adstock_alpha_m)),
-          ec: uniqueSorted(chRows.map((r) => r.saturation_ec_m)),
-          slope: uniqueSorted(chRows.map((r) => r.saturation_slope_m)),
-          lag: uniqueSorted(chRows.map((r) => r.max_lag)),
-        };
-      };
-
-      const structResponseChart = (window.echarts && byId("wb2-struct-response-chart"))
-        ? echarts.init(byId("wb2-struct-response-chart")) : null;
-      const structuralAdvancedResponse = byId("structural-advanced-response");
-      if (structuralAdvancedResponse && structResponseChart) {
-        structuralAdvancedResponse.addEventListener("toggle", () => {
-          if (!structuralAdvancedResponse.open) return;
-          window.setTimeout(() => {
-            structResponseChart.resize();
-          }, 0);
-        });
-      }
-
-      const renderStructuralResponseChart = (muVals, sigmaVals) => {
-        if (!structResponseChart) return;
-        const rowsSel = structuralChannelRows();
-        if (!rowsSel.length) {
-          renderNoDataChart(
-            structResponseChart,
-            "No structural-stage rows found for the selected channel.",
-          );
-          return;
-        }
-        const axes = structuralAxes();
-        const struct = currentStruct();
-
-        const varyingParams = [];
-        const paramSpec = [
-          { key: "adstock_alpha_m", label: "alpha", color: "#2f5dc6", vals: axes.alpha, current: struct.alpha },
-          { key: "saturation_ec_m", label: "ec", color: "#1ba790", vals: axes.ec, current: struct.ec },
-          { key: "saturation_slope_m", label: "slope", color: "#8d6fb8", vals: axes.slope, current: struct.slope },
-          { key: "max_lag", label: "lag", color: "#c7892f", vals: axes.lag, current: struct.lag },
-        ];
-        paramSpec.forEach((p) => {
-          if (Array.isArray(p.vals) && p.vals.length > 1) varyingParams.push(p);
-        });
-
-        if (!varyingParams.length) {
-          renderNoDataChart(
-            structResponseChart,
-            "No structural curve: alpha/ec/slope/lag are fixed in current runs.",
-          );
-          return;
-        }
-
-        const structMuVals = uniqueSorted(rowsSel.map((r) => r.roi_prior_mu));
-        const structSigmaVals = uniqueSorted(rowsSel.map((r) => r.roi_prior_sigma));
-        const sigmaFixed = Number.isFinite(selectNearest(state.sigma, structSigmaVals))
-          ? selectNearest(state.sigma, structSigmaVals)
-          : (structSigmaVals[0] || sigmaVals[0] || 0);
-        const muFixed = Number.isFinite(selectNearest(state.mu, structMuVals))
-          ? selectNearest(state.mu, structMuVals)
-          : (structMuVals[0] || muVals[0] || 0);
-
-        const otherTolerant = (row, ignoreKey) => {
-          return paramSpec.every((p) => {
-            if (p.key === ignoreKey) return true;
-            if (!Number.isFinite(row[p.key])) return true;
-            if (!Array.isArray(p.vals) || p.vals.length <= 1) return true;
-            const tol = p.key === "max_lag" ? 0.5 : 1e-3;
-            return approxEq(row[p.key], p.current, tol);
-          });
-        };
-
-        const series = [];
-        const legendEntries = [];
-        varyingParams.forEach((p) => {
-          const points = [];
-          p.vals.forEach((v) => {
-            const matching = rowsSel.filter((r) =>
-              approxEq(r.roi_prior_mu, muFixed) &&
-              approxEq(r.roi_prior_sigma, sigmaFixed) &&
-              Number.isFinite(r[p.key]) &&
-              approxEq(r[p.key], v, p.key === "max_lag" ? 0.5 : 1e-3) &&
-              otherTolerant(r, p.key)
-            );
-            if (!matching.length) return;
-            const meanROI = mean(matching.map((r) => r.estimated_roi));
-            if (Number.isFinite(meanROI)) points.push([v, meanROI]);
-          });
-          if (!points.length) return;
-          legendEntries.push(p.label);
-          series.push({
-            name: p.label,
-            type: "line",
-            smooth: false,
-            symbol: "circle",
-            symbolSize: 8,
-            showSymbol: true,
-            data: points,
-            lineStyle: { width: 3, color: p.color },
-            itemStyle: { color: p.color, borderColor: "#fff", borderWidth: 2 },
-            markLine: {
-              silent: true,
-              symbol: "none",
-              lineStyle: { color: p.color, type: "dashed", opacity: 0.45 },
-              label: { show: false },
-              data: [{ xAxis: p.current }],
-            },
-          });
-        });
-
-        if (!series.length) {
-          renderNoDataChart(
-            structResponseChart,
-            "No structural-stage matches for the selected channel and baseline prior.",
-          );
-          return;
-        }
-
-        structResponseChart.setOption({
-          animationDuration: 360,
-          legend: { ...legendBase, top: 0, data: legendEntries },
-          tooltip: {
-            trigger: "item",
-            formatter: (p) => `<b>${p.seriesName}</b><br>param value: ${fmt(Number(p.data[0]), 3)}<br>ROI: ${fmt(Number(p.data[1]), 3)}`,
-          },
-          grid: withLayoutGrid("structural", { left: 68, right: 28, top: 58, bottom: 52 }, true),
-          xAxis: valueAxis("Parameter", (v) => fmt(v, 3), { nameLocation: "end", nameGap: 12 }),
-          yAxis: valueAxis("ROI", (v) => fmt(v, 3), { nameLocation: "end", nameGap: 10 }),
-          series,
-        }, true);
-      };
-
       const renderScenario = (muVals, sigmaVals) => {
         const rowsSel = channelRows();
         const base = baselineRow(rowsSel);
@@ -6064,7 +5659,6 @@
         const slice = structSlice(rowsSel, anchor);
         renderKpis(anchor, base);
         renderHeatmap(slice, anchor);
-        renderContribCompare(anchor, base);
         const sigmaFixed = Number.isFinite(state.sigma) ? state.sigma : sigmaVals[0];
         const muFixed = Number.isFinite(state.mu) ? state.mu : muVals[0];
         const muAxis = uniqueSorted(slice.map((r) => r.roi_prior_mu));
@@ -6073,7 +5667,6 @@
         const sigmaSlice = slice.filter((r) => approxEq(r.roi_prior_mu, muFixed));
         renderMarginal(muProfileChart, muSlice.length ? muSlice : slice, "roi_prior_mu", muAxis, `sigma=${fmt(sigmaFixed, 3)}`, "#2f5dc6");
         renderMarginal(sigmaProfileChart, sigmaSlice.length ? sigmaSlice : slice, "roi_prior_sigma", sigmaAxis, `mu=${fmt(muFixed, 3)}`, "#8d6fb8");
-        renderStructuralResponseChart(muVals, sigmaVals);
         return { anchor, base, slice };
       };
 
@@ -6103,7 +5696,6 @@
         renderDriverBalance();
         renderAllocationGap();
         renderSplitTable();
-        renderModelOutputKpis();
         const scenarioCtx = renderScenario(muVals, sigmaVals);
         const anchor = scenarioCtx && scenarioCtx.anchor ? scenarioCtx.anchor : null;
         const runId = anchor ? String(anchor.run_id || "") : "";
@@ -6160,10 +5752,9 @@
       if (resetBtn) resetBtn.addEventListener("click", () => window.setTimeout(renderAll, 0));
 
       const wbCharts = [
-        heatChart, contribBoxChart, contribCompareChart,
+        heatChart, contribBoxChart,
         muProfileChart, sigmaProfileChart, muRankChart, sigmaRankChart,
         driverBalanceChart, allocationGapChart,
-        structResponseChart,
       ];
       if (typeof window.__dashRegisterCharts === "function") {
         window.__dashRegisterCharts(wbCharts);

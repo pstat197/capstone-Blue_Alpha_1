@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="LiveIntent">
+  <rect width="40" height="40" rx="10" fill="#ecfeff"/>
+  <path fill="#0e7490" d="M10 11h4.2v18H10zm7.2 0h4.1v18h-4.1zm8.8 0h4v11.6l-7-11.6h3z"/>
+  <path fill="#22c55e" d="M26 29h4V17.4l-4-6.4z"/>
+</svg>

@@ -1,0 +1,7 @@
+check,pass_count,review_count,fail_count,unknown_count,coverage_pct
+convergence,1,0,0,0,100.0
+baseline,1,0,0,0,100.0
+bayesianppp,1,0,0,0,100.0
+gof,1,0,0,0,100.0
+prior_posterior_shift,1,0,0,0,100.0
+roi_consistency,1,0,0,0,100.0

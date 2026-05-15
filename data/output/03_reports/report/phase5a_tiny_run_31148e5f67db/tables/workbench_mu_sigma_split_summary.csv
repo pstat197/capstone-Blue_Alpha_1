@@ -1,0 +1,2 @@
+channel,mu_slice_count,mu_sensitivity_roi_median,mu_sensitivity_roi_max,mu_sensitivity_contribution_median,mu_sensitivity_contribution_max,sigma_slice_count,sigma_sensitivity_roi_median,sigma_sensitivity_roi_max,sigma_sensitivity_contribution_median,sigma_sensitivity_contribution_max,mu_vs_sigma_roi_ratio,dominant_driver
+meta,1,0.0,0.0,,,1,0.0,0.0,,,,balanced

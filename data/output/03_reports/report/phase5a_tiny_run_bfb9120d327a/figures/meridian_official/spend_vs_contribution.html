@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@6"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@6.4.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@7"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300, "strokeOpacity": 0}, "axis": {"labelColor": "#5F6368", "labelFont": "Roboto", "labelFontSize": 12, "titleColor": "#5F6368", "titleFont": "Roboto", "titleFontSize": 12, "titleFontWeight": "normal", "titlePadding": 10}, "header": {"labelAlign": "right", "labelAngle": -45, "labelBaseline": "middle", "labelOrient": "bottom", "title": null}}, "data": {"name": "data-20fb16ae585ba63fa35bc83282628bed"}, "facet": {"column": {"field": "channel", "type": "nominal"}}, "spec": {"layer": [{"mark": {"type": "bar", "cornerRadiusEnd": 2, "tooltip": true}, "encoding": {"color": {"field": "label", "legend": {"columnPadding": 20, "orient": "bottom", "rowPadding": 10, "title": null}, "scale": {"domain": ["% Revenue", "% Spend", "Return on Investment"], "range": ["#669DF6", "#AECBFA", "#188038"]}, "type": "nominal"}, "tooltip": [{"field": "pct", "format": ".1%", "type": "quantitative"}], "x": {"axis": {"labels": false, "ticks": false, "title": null}, "field": "label", "scale": {"paddingOuter": 0.5}, "type": "nominal"}, "y": {"axis": {"format": "%", "tickCount": 2, "titleAlign": "left", "titleAngle": 0, "titleY": -20}, "field": "pct", "type": "quantitative"}}}, {"mark": {"type": "tick", "color": "#188038", "cornerRadius": 2, "size": 20, "thickness": 4, "tooltip": true}, "encoding": {"tooltip": [{"field": "roi", "format": ".2f", "type": "quantitative"}], "y": {"field": "roi_scaled", "title": "%", "type": "quantitative"}}}, {"mark": {"type": "text", "color": "#202124", "dy": -15, "fontSize": 12}, "encoding": {"text": {"field": "roi", "format": ".1f", "type": "quantitative"}, "y": {"field": "roi_scaled", "type": "quantitative"}}}]}, "spacing": -1, "title": {"text": "Spend and revenue contribution by marketing channel", "anchor": "start", "color": "#3C4043", "font": "Google Sans Display", "fontSize": 18, "fontWeight": "normal", "offset": 10}, "$schema": "https://vega.github.io/schema/vega-lite/v6.4.1.json", "datasets": {"data-20fb16ae585ba63fa35bc83282628bed": [{"channel": "meta", "pct": 1.0, "label": "% Revenue", "roi": 0.5670040249824524, "roi_scaled": 1.0}, {"channel": "meta", "pct": 1.0, "label": "% Spend", "roi": 0.5670040249824524, "roi_scaled": 1.0}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>

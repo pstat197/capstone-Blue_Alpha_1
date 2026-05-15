@@ -15,6 +15,19 @@ __pycache__/
 .venv/
 venv/
 
+# Frontend
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Local API state
+backend/storage/uploads/*
+backend/storage/workflows/*
+backend/storage/runs/*
+!backend/storage/uploads/.gitkeep
+!backend/storage/workflows/.gitkeep
+!backend/storage/runs/.gitkeep
+
 # Local temporary references
 tmp_style_refs/
 .tmp_csv_backup/

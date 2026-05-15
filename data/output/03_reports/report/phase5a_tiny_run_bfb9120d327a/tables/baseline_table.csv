@@ -1,0 +1,2 @@
+target_channel,channel,roi_prior_dist,baseline_mu,baseline_sigma,baseline_roi,baseline_run_id,baseline_qc_status,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,pct_metric_reliable,pct_metric_unstable_reason
+meta,meta,LogNormal,1.0,1.0,0.5670040667057037,multi|meta|pmode=roi|rpk=40.0|target=meta|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,PASS,True,False,0,,True,
