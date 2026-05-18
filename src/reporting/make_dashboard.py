@@ -56,6 +56,29 @@ def _empty_figure_paths() -> dict:
     }
 
 
+def _boolish(series: pd.Series) -> pd.Series:
+    return series.astype(str).str.lower().isin({"true", "1", "yes"})
+
+
+def _ensure_inferable_baseline_flags(df: pd.DataFrame) -> pd.DataFrame:
+    required = {"target_channel", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist", "is_baseline"}
+    if not required.issubset(df.columns) or df.empty:
+        return df
+
+    repaired = df.copy()
+    repaired["is_baseline"] = _boolish(repaired["is_baseline"])
+    for _, group in repaired.groupby(["target_channel", "roi_prior_dist"], dropna=False):
+        if group["is_baseline"].any():
+            continue
+        mu_values = pd.to_numeric(group["roi_prior_mu"], errors="coerce")
+        sigma_values = pd.to_numeric(group["roi_prior_sigma"], errors="coerce")
+        if not mu_values.notna().any() or not sigma_values.notna().any():
+            continue
+        baseline_mask = mu_values.eq(mu_values.min()) & sigma_values.eq(sigma_values.min())
+        repaired.loc[group.index[baseline_mask], "is_baseline"] = True
+    return repaired
+
+
 def _cleanup_legacy_report_outputs(outdir: Path, report_filename: str) -> None:
     report_path = outdir / report_filename
     if report_path.exists() and report_path.is_file():
@@ -97,6 +120,7 @@ def load_results(csv_path: Path) -> pd.DataFrame:
     df["channel"] = df["channel"].astype(str)
     df["target_channel"] = df["target_channel"].astype(str)
     df["roi_prior_dist"] = df["roi_prior_dist"].astype(str)
+    df = _ensure_inferable_baseline_flags(df)
     return df
 
 

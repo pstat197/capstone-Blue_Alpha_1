@@ -8,6 +8,31 @@ from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 from src.output_paths import report_input_csv_path, roi_csv_path, run_csv_path, tornado_csv_path
 
 
+def _boolish(series: pd.Series) -> pd.Series:
+    return series.astype(str).str.lower().isin({"true", "1", "yes"})
+
+
+def _ensure_inferable_baseline_flags(df: pd.DataFrame) -> pd.DataFrame:
+    required = {"target_channel", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist", "is_baseline"}
+    if not required.issubset(df.columns) or df.empty:
+        return df
+
+    repaired = df.copy()
+    repaired["is_baseline"] = _boolish(repaired["is_baseline"])
+    group_cols = ["target_channel", "roi_prior_dist"]
+    for _, group in repaired.groupby(group_cols, dropna=False):
+        if group["is_baseline"].any():
+            continue
+        mu_values = pd.to_numeric(group["roi_prior_mu"], errors="coerce")
+        sigma_values = pd.to_numeric(group["roi_prior_sigma"], errors="coerce")
+        if mu_values.notna().any() and sigma_values.notna().any():
+            mu0 = mu_values.min()
+            sigma0 = sigma_values.min()
+            mask = mu_values.eq(mu0) & sigma_values.eq(sigma0)
+            repaired.loc[group.index[mask], "is_baseline"] = True
+    return repaired
+
+
 def build_report_input_csv(tag: str) -> tuple[object, dict]:
     run_csv = run_csv_path(tag)
     roi_csv = roi_csv_path(tag)
@@ -21,6 +46,8 @@ def build_report_input_csv(tag: str) -> tuple[object, dict]:
 
     run_df = pd.read_csv(run_csv)
     roi_df = pd.read_csv(roi_csv)
+    run_df = _ensure_inferable_baseline_flags(run_df)
+    roi_df = _ensure_inferable_baseline_flags(roi_df)
     tornado_csv = tornado_csv_path(tag)
 
     if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:

@@ -1686,6 +1686,7 @@ def render_dashboard_output(
         "outcome_context": outcome_context,
         "thresholds": cfg.get("thresholds", {}),
         "decision_card": decision_card_block,
+        "diagnostics": diagnostics,
         "diagnostics_overview": diagnostics.get("overview", {}),
         "rank_rows": rank_dashboard_rows,
         "spend_effect_rows": spend_effect_dashboard_rows,

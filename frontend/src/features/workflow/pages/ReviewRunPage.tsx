@@ -14,8 +14,8 @@ import {
 import {
   type ChannelPriorGrid,
   type ChannelPriorGrids,
+  activePaidChannels,
   countRunsForGrid,
-  detectedChannels,
   getPriorRunLabel,
   makeChannelGrids,
   profileHasBlockingErrors,
@@ -24,6 +24,8 @@ import {
   readKpiType,
   readRevenueColumn,
   readRevenuePerKpi,
+  readRoiMode,
+  activeRunIdStorageKey,
 } from "../data/workflowState";
 
 type CheckStatus = "passed" | "warning" | "missing";
@@ -116,11 +118,12 @@ function valuesForEnabledGrids(
 export function ReviewRunPage() {
   const navigate = useNavigate();
   const profile = useMemo(() => readActiveProfile(), []);
-  const channels = useMemo(() => detectedChannels(profile), [profile]);
+  const channels = useMemo(() => activePaidChannels(profile), [profile]);
   const kpiColumn = readKpiColumn(profile);
   const kpiType = readKpiType(profile);
   const revenueColumn = readRevenueColumn(profile);
   const revenuePerKpi = readRevenuePerKpi();
+  const roiMode = readRoiMode(profile);
   const channelPriorGrids = useMemo(() => readChannelPriorGrids(channels), [channels]);
   const structuralProfile = useMemo(() => readStructuralProfile(), []);
   const [preview, setPreview] = useState<ConfigPreview | null>(null);
@@ -173,6 +176,7 @@ export function ReviewRunPage() {
       outcome: {
         kpi_col: kpiColumn,
         kpi_type: kpiType,
+        roi_mode: roiMode,
         revenue_col: kpiType === "revenue" ? revenueColumn : null,
         revenue_per_kpi: kpiType === "non_revenue" ? revenuePerKpi : null,
       },
@@ -198,7 +202,7 @@ export function ReviewRunPage() {
         parallel_workers: samplerSettings.parallelWorkers,
       },
     };
-  }, [channelPriorGrids, channels, isComplete, kpiColumn, kpiType, profile, revenueColumn, revenuePerKpi, structuralProfile, timeColumn]);
+  }, [channelPriorGrids, channels, isComplete, kpiColumn, kpiType, profile, revenueColumn, revenuePerKpi, roiMode, structuralProfile, timeColumn]);
 
   useEffect(() => {
     if (!workflowRequest) {
@@ -322,7 +326,10 @@ export function ReviewRunPage() {
     setIsCreatingRun(true);
     setRunCreateError(null);
     createFullGridRun({ workflow_id: workflowId, approved_config_preview: preview, mode: "real_full" })
-      .then((run) => navigate(run.monitor_url || `/runs/${run.run_id}/monitor`))
+      .then((run) => {
+        window.sessionStorage.setItem(activeRunIdStorageKey, run.run_id);
+        navigate(`/workflow/run-monitor?run_id=${encodeURIComponent(run.run_id)}`);
+      })
       .catch((error: unknown) => setRunCreateError(error instanceof Error ? error.message : "Unable to start this configuration."))
       .finally(() => {
         setIsCreatingRun(false);

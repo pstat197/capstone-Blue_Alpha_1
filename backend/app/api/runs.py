@@ -4,7 +4,7 @@ from fastapi import APIRouter, HTTPException
 
 from backend.app.schemas.run import RunCreateRequest, RunCreateResponse, RunLogsResponse, RunStatus
 from backend.app.services.pipeline_launcher import read_run_logs
-from backend.app.services.run_store import advance_mock_run, create_run, demo_run_status, get_run
+from backend.app.services.run_store import advance_mock_run, create_run, demo_run_status, get_latest_completed_run, get_run
 
 router = APIRouter(tags=["runs"])
 
@@ -15,6 +15,14 @@ def create_mock_run(request: RunCreateRequest) -> RunCreateResponse:
         return create_run(request)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@router.get("/runs/latest-completed", response_model=RunStatus)
+def get_latest_completed_run_status() -> RunStatus:
+    try:
+        return get_latest_completed_run()
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

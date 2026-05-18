@@ -55,17 +55,24 @@ const exampleCsvHref = `data:text/csv;charset=utf-8,${encodeURIComponent(
 )}`;
 
 const meridianDataGuideHref = "https://developers.google.com/meridian/docs/user-guide/collect-data";
+const pageTitle = "Start a Prior Sensitivity Audit";
+const pageSummary = "Upload a Meridian-ready marketing dataset. We'll detect fields, suggest mappings, configure prior grids, and prepare the audit run.";
 
 export function WelcomeRulesPage() {
   return (
     <WorkflowScaffold
-      title="Start a Prior Sensitivity Audit"
-      summary="Upload a Meridian-ready marketing dataset. We'll detect fields, suggest mappings, configure prior grids, and prepare the audit run."
+      title={pageTitle}
+      summary={pageSummary}
       primaryActionLabel="I understand — Continue to Upload"
       nextHelperText="Upload / Data Detection"
       hideStepper
+      hidePageHeading
     >
       <section className="welcome-hero content-panel">
+        <div className="welcome-hero-heading">
+          <h2>{pageTitle}</h2>
+          <p>{pageSummary}</p>
+        </div>
         <div className="welcome-hero-copy">
           <span className="welcome-eyebrow">Meridian setup workflow</span>
           <div className="welcome-actions" aria-label="Welcome page actions">

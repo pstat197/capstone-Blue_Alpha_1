@@ -111,6 +111,8 @@ def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
         "outcome": {
             "kpi_col": outcome.get("kpi_col") or column_mapping.get("kpi_col"),
             "kpi_type": outcome.get("kpi_type", "non_revenue"),
+            "roi_mode": outcome.get("roi_mode"),
+            "revenue_col": outcome.get("revenue_col"),
             "revenue_per_kpi": outcome.get("revenue_per_kpi"),
         },
         "prior_mode": "roi",

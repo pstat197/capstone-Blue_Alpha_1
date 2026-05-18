@@ -135,10 +135,6 @@ function calcReadout(profile: StructuralProfile) {
   };
 }
 
-function profileLabel(profile: StructuralProfile) {
-  return `Profile 1: a=${profile.alphaM.toFixed(3)}, ec=${profile.ecM.toFixed(3)}, s=${profile.slopeM.toFixed(1)}, lag=${profile.maxLag}`;
-}
-
 function SliderCard({
   config,
   value,
@@ -337,20 +333,10 @@ export function StructuralSettingsPage() {
       summary="Adjust one initial structural profile for carryover and saturation before the audit run."
       nextHelperText="Review & Start Run"
     >
-      <div className="structural-heading-link">
-        <NavLink to="/results/model-structure">How this works</NavLink>
-      </div>
-
       <section className="structural-layout">
         <div className="structural-main">
           <section className="structural-control-card">
             <div className="structural-control-top">
-              <label>
-                <span>Reference Profile</span>
-                <select value="profile-1" aria-label="Reference Profile" onChange={resetProfile}>
-                  <option value="profile-1">{profileLabel(profile)}</option>
-                </select>
-              </label>
               <button className="structural-reset-button" type="button" onClick={resetProfile}>
                 Reset to Profile Defaults
               </button>

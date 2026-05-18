@@ -13,6 +13,7 @@ import { PriorSensitivityPage } from "../features/results/pages/PriorSensitivity
 import { PriorVsPosteriorPage } from "../features/results/pages/PriorVsPosteriorPage";
 import { RunAuditDiagnosticsPage } from "../features/results/pages/RunAuditDiagnosticsPage";
 import { ScenarioExplorerPage } from "../features/results/pages/ScenarioExplorerPage";
+import { DocumentationPage } from "../shared/DocumentationPage";
 
 export const router = createBrowserRouter([
   {
@@ -28,13 +29,17 @@ export const router = createBrowserRouter([
       { path: "workflow/structural-settings", element: <StructuralSettingsPage /> },
       { path: "workflow/review", element: <Navigate to="/workflow/review-run" replace /> },
       { path: "workflow/review-run", element: <ReviewRunPage /> },
+      { path: "workflow/run-monitor", element: <RunMonitorPage /> },
       { path: "runs/:runId/monitor", element: <RunMonitorPage /> },
       { path: "results/overview", element: <OverviewPage /> },
+      { path: "results/:runId/overview", element: <OverviewPage /> },
       { path: "results/prior-sensitivity", element: <PriorSensitivityPage /> },
       { path: "results/prior-vs-posterior", element: <PriorVsPosteriorPage /> },
       { path: "results/scenario-explorer", element: <ScenarioExplorerPage /> },
+      { path: "results/:runId/scenario-explorer", element: <ScenarioExplorerPage /> },
       { path: "results/model-structure", element: <ModelStructurePage /> },
       { path: "results/run-audit-diagnostics", element: <RunAuditDiagnosticsPage /> },
+      { path: "documentation", element: <DocumentationPage /> },
       { path: "*", element: <Navigate to="/workflow/welcome" replace /> },
     ],
   },

@@ -848,6 +848,15 @@ def main():
         sigma = round(float(prior_point["roi_sigma_display"]), 6)
         dist = str(prior_point["roi_dist_display"])
         target_channel = str(prior_point.get("target_channel") or targets[0])
+        point_roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+        if point_roi_grid is None:
+            continue
+        point_baseline_mu, point_baseline_sigma, point_baseline_dist = _resolve_roi_baseline_from_grid(
+            point_roi_grid["mu"],
+            point_roi_grid["sigma"],
+            point_roi_grid["dist"],
+            run_cfg,
+        )
         alpha_m = structural_point["alpha_m"]
         alpha_m = None if alpha_m is None else round(float(alpha_m), 6)
         ec_m = structural_point["ec_m"]
@@ -995,7 +1004,14 @@ def main():
             idx = cmd.index("--revenue_per_kpi")
             del cmd[idx : idx + 2]
         if has_global_baseline:
-            cmd.extend(["--baseline_mu", str(baseline_mu), "--baseline_sigma", str(baseline_sigma), "--baseline_dist", str(baseline_dist)])
+            cmd.extend([
+                "--baseline_mu",
+                str(point_baseline_mu),
+                "--baseline_sigma",
+                str(point_baseline_sigma),
+                "--baseline_dist",
+                str(point_baseline_dist),
+            ])
         if geo_col:
             cmd.extend(["--geo_col", geo_col])
         if population_col:

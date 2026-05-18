@@ -7,7 +7,36 @@ export type ColumnProfile = {
   name: string;
   inferred_type: "date" | "number" | "string" | "boolean" | "unknown";
   null_rate: number;
+  nonzero_rate?: number | null;
+  total_value?: number | null;
+  status?: "valid" | "warning" | "missing";
   sample_values: unknown[];
+};
+
+export type DateProfile = {
+  column: string | null;
+  date_min: string | null;
+  date_max: string | null;
+  valid_parse_rate: number;
+  inferred_frequency: string | null;
+  status: "valid" | "warning" | "missing";
+  message: string;
+};
+
+export type ChannelDiagnostic = {
+  channel: string;
+  spend_column: string | null;
+  media_column: string | null;
+  spend_null_rate: number | null;
+  spend_nonzero_rate: number | null;
+  spend_total: number | null;
+  media_null_rate: number | null;
+  media_nonzero_rate: number | null;
+  media_total: number | null;
+  status: "active_paid_media" | "spend_as_media_fallback" | "inactive_all_zero" | "not_eligible_paid_media";
+  severity: "valid" | "warning" | "missing";
+  include_in_model: boolean;
+  message: string;
 };
 
 export type CsvProfile = {
@@ -26,6 +55,8 @@ export type CsvProfile = {
     geo_candidates: string[];
     population_candidates: string[];
   };
+  date_profile?: DateProfile;
+  channel_diagnostics?: ChannelDiagnostic[];
   validation_badges: Array<{ status: string; label: string }>;
 };
 
@@ -69,6 +100,8 @@ export type ConfigPreview = {
 
 export type ResultPayloadResponse<TPayload = unknown> = {
   run_id: string;
+  output_tag?: string | null;
+  source?: string;
   payload: TPayload;
 };
 

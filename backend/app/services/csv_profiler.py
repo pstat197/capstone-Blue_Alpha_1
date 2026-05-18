@@ -6,7 +6,7 @@ from typing import Any
 
 import pandas as pd
 
-from backend.app.schemas.upload import ColumnProfile, CsvProfile, DetectedColumns
+from backend.app.schemas.upload import ChannelDiagnostic, ColumnProfile, CsvProfile, DateProfile, DetectedColumns
 
 CHANNEL_ALIASES = {
     "fb": "facebook",
@@ -55,6 +55,33 @@ def _sample_values(series: pd.Series) -> list[Any]:
             value = value.item()
         values.append(value)
     return values
+
+
+def _numeric_signal(series: pd.Series) -> tuple[float | None, float | None]:
+    numeric = pd.to_numeric(series, errors="coerce")
+    valid = numeric.notna()
+    if not valid.any():
+        return None, None
+    nonzero_rate = float((numeric[valid] != 0).mean())
+    total_value = float(numeric[valid].sum())
+    return round(nonzero_rate, 6), round(total_value, 6)
+
+
+def _column_profile(name: str, series: pd.Series) -> ColumnProfile:
+    inferred_type = _infer_type(series)
+    nonzero_rate, total_value = _numeric_signal(series)
+    status = "valid"
+    if inferred_type == "number" and total_value == 0:
+        status = "warning"
+    return ColumnProfile(
+        name=name,
+        inferred_type=inferred_type,
+        null_rate=round(float(series.isna().mean()), 6),
+        nonzero_rate=nonzero_rate,
+        total_value=total_value,
+        status=status,
+        sample_values=_sample_values(series),
+    )
 
 
 def _detect_columns(column_names: list[str]) -> DetectedColumns:
@@ -130,6 +157,121 @@ def _detect_columns(column_names: list[str]) -> DetectedColumns:
     )
 
 
+def _infer_frequency(parsed: pd.Series) -> str | None:
+    dates = parsed.dropna().sort_values().drop_duplicates()
+    if len(dates) < 3:
+        return None
+    deltas = dates.diff().dropna().dt.days
+    if deltas.empty:
+        return None
+    median_days = float(deltas.median())
+    if 6 <= median_days <= 8:
+        return "weekly"
+    if 27 <= median_days <= 32:
+        return "monthly"
+    if 13 <= median_days <= 15:
+        return "biweekly"
+    if 0.8 <= median_days <= 1.2:
+        return "daily"
+    return f"every {median_days:.0f} days"
+
+
+def _date_profile(df: pd.DataFrame, detected: DetectedColumns) -> DateProfile:
+    if not detected.time_candidates:
+        return DateProfile(
+            status="missing",
+            message="Date/time column missing",
+        )
+
+    column = detected.time_candidates[0]
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", UserWarning)
+        parsed = pd.to_datetime(df[column], errors="coerce")
+    parse_rate = round(float(parsed.notna().mean()), 6) if len(parsed) else 0
+    if parse_rate == 0:
+        return DateProfile(
+            column=column,
+            valid_parse_rate=parse_rate,
+            status="warning",
+            message="Date column detected but date range could not be parsed.",
+        )
+
+    date_min = parsed.min()
+    date_max = parsed.max()
+    return DateProfile(
+        column=column,
+        date_min=date_min.strftime("%Y-%m-%d"),
+        date_max=date_max.strftime("%Y-%m-%d"),
+        valid_parse_rate=parse_rate,
+        inferred_frequency=_infer_frequency(parsed),
+        status="valid" if parse_rate >= 0.8 else "warning",
+        message="Date range parsed" if parse_rate >= 0.8 else "Date column detected but some rows could not be parsed.",
+    )
+
+
+def _column_by_name(columns: list[ColumnProfile]) -> dict[str, ColumnProfile]:
+    return {column.name: column for column in columns}
+
+
+def _channel_diagnostics(detected: DetectedColumns, columns: list[ColumnProfile]) -> list[ChannelDiagnostic]:
+    by_name = _column_by_name(columns)
+    spend_by_channel = {item["channel"]: item["column"] for item in detected.spend_channel_candidates}
+    media_by_channel = {item["channel"]: item["column"] for item in detected.media_activity_candidates}
+    channels = sorted(set(spend_by_channel) | set(media_by_channel))
+    diagnostics: list[ChannelDiagnostic] = []
+
+    for channel in channels:
+        spend_column = spend_by_channel.get(channel)
+        media_column = media_by_channel.get(channel)
+        spend = by_name.get(spend_column) if spend_column else None
+        media = by_name.get(media_column) if media_column else None
+        spend_total = spend.total_value if spend else None
+        media_total = media.total_value if media else None
+        spend_has_signal = spend_total is not None and spend_total != 0
+        media_has_signal = media_total is not None and media_total != 0
+
+        if spend and spend_has_signal and media and media_has_signal:
+            status = "active_paid_media"
+            severity = "valid"
+            include_in_model = True
+            message = "Included in model"
+        elif spend and spend_has_signal and not media_has_signal:
+            status = "spend_as_media_fallback"
+            severity = "warning"
+            include_in_model = True
+            message = "Spend will be used as the media unit unless remapped"
+        elif spend and not spend_has_signal and not media_has_signal:
+            status = "inactive_all_zero"
+            severity = "warning"
+            include_in_model = False
+            message = "Excluded from model"
+        else:
+            status = "not_eligible_paid_media"
+            severity = "warning"
+            include_in_model = False
+            message = "Classify as organic/non-media or fix spend data"
+
+        diagnostics.append(
+            ChannelDiagnostic(
+                channel=channel,
+                spend_column=spend_column,
+                media_column=media_column,
+                spend_null_rate=spend.null_rate if spend else None,
+                spend_nonzero_rate=spend.nonzero_rate if spend else None,
+                spend_total=spend_total,
+                media_null_rate=media.null_rate if media else None,
+                media_nonzero_rate=media.nonzero_rate if media else None,
+                media_total=media_total,
+                status=status,
+                severity=severity,
+                include_in_model=include_in_model,
+                message=message,
+            )
+        )
+
+    return diagnostics
+
+
 def _strip_suffix(value: str, suffixes: tuple[str, ...]) -> str:
     for suffix in suffixes:
         if value.endswith(suffix):
@@ -149,27 +291,29 @@ def _normalize_channel_name(value: str) -> str:
     return normalized
 
 
-def _validation_badges(detected: DetectedColumns, row_count: int) -> list[dict[str, str]]:
+def _validation_badges(detected: DetectedColumns, date_profile: DateProfile, channel_diagnostics: list[ChannelDiagnostic], row_count: int) -> list[dict[str, str]]:
+    active_or_fallback = [item for item in channel_diagnostics if item.include_in_model]
+    inactive = [item for item in channel_diagnostics if item.status == "inactive_all_zero"]
     badges = [
         {
-            "status": "valid" if detected.time_candidates else "error",
-            "label": "Date/time column detected" if detected.time_candidates else "Date/time column missing",
+            "status": date_profile.status if date_profile.status != "missing" else "error",
+            "label": "Date/time column detected" if date_profile.status == "valid" else date_profile.message,
         },
         {
             "status": "valid" if detected.kpi_candidates else "error",
             "label": "KPI candidate detected" if detected.kpi_candidates else "KPI candidate missing",
         },
         {
-            "status": "valid" if detected.spend_channel_candidates else "error",
-            "label": "Spend columns detected" if detected.spend_channel_candidates else "Spend columns missing",
+            "status": "valid" if active_or_fallback else "error",
+            "label": "Active paid channels detected" if active_or_fallback else "Active paid channels missing",
         },
         {
-            "status": "valid" if detected.media_activity_candidates else "warning",
-            "label": "Media activity columns detected" if detected.media_activity_candidates else "Media activity columns absent",
+            "status": "warning" if inactive else "valid",
+            "label": f"{len(inactive)} inactive channel excluded" if inactive else "No inactive paid channels",
         },
         {
             "status": "valid" if detected.revenue_candidates else "warning",
-            "label": "Revenue column detected" if detected.revenue_candidates else "Revenue column absent; revenue_per_kpi may be required",
+            "label": "Revenue column detected" if detected.revenue_candidates else "Revenue column not detected",
         },
         {
             "status": "valid" if detected.geo_candidates and detected.population_candidates else "info",
@@ -199,16 +343,10 @@ def profile_csv(upload_id: str, filename: str, path: Path) -> CsvProfile:
     if df.empty and not len(df.columns):
         raise ValueError("The CSV is empty or has no readable columns.")
 
-    columns = [
-        ColumnProfile(
-            name=name,
-            inferred_type=_infer_type(df[name]),
-            null_rate=round(float(df[name].isna().mean()), 6),
-            sample_values=_sample_values(df[name]),
-        )
-        for name in df.columns
-    ]
+    columns = [_column_profile(name, df[name]) for name in df.columns]
     detected = _detect_columns(list(df.columns))
+    date_profile = _date_profile(df, detected)
+    channel_diagnostics = _channel_diagnostics(detected, columns)
     return CsvProfile(
         upload_id=upload_id,
         filename=filename,
@@ -216,5 +354,7 @@ def profile_csv(upload_id: str, filename: str, path: Path) -> CsvProfile:
         row_count=int(len(df)),
         columns=columns,
         detected=detected,
-        validation_badges=_validation_badges(detected, int(len(df))),
+        date_profile=date_profile,
+        channel_diagnostics=channel_diagnostics,
+        validation_badges=_validation_badges(detected, date_profile, channel_diagnostics, int(len(df))),
     )

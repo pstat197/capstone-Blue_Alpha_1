@@ -48,9 +48,16 @@ export const workflowNavItems: NavItem[] = [
 
 export const monitorNavItem: NavItem = {
   label: "Run Monitor",
-  path: "/runs/current/monitor",
+  path: "/workflow/run-monitor",
   section: "monitor",
   description: "Track submitted backend run progress from backend status.",
+};
+
+export const documentationNavItem: NavItem = {
+  label: "Help / Documentation",
+  path: "/documentation",
+  section: "workflow",
+  description: "Read dashboard methodology, interpretation guidance, and CSV requirements.",
 };
 
 export const resultNavItems: NavItem[] = [
@@ -96,4 +103,5 @@ export const allNavItems: NavItem[] = [
   ...workflowNavItems,
   monitorNavItem,
   ...resultNavItems,
+  documentationNavItem,
 ];

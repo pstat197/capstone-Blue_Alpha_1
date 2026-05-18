@@ -26,6 +26,10 @@ export function getRunStatus(runId: string): Promise<RunStatus> {
   return apiRequest<RunStatus>(`/api/runs/${runId}`);
 }
 
+export function getLatestCompletedRun(): Promise<RunStatus> {
+  return apiRequest<RunStatus>("/api/runs/latest-completed");
+}
+
 export function advanceMockRun(runId: string): Promise<RunStatus> {
   return apiRequest<RunStatus>(`/api/runs/${runId}/mock/advance`, {
     method: "POST",

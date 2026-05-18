@@ -11,6 +11,7 @@ from backend.app.services.pipeline_launcher import (
     create_real_tiny_run_status,
     launch_real_full_run_async,
     launch_real_tiny_run_async,
+    sync_run_progress_from_logs,
 )
 from backend.app.services.workflow_store import get_workflow
 
@@ -105,7 +106,29 @@ def get_run(run_id: str) -> RunStatus:
     path = _run_path(run_id)
     if not path.exists():
         raise FileNotFoundError(f"Run not found: {run_id}")
-    return RunStatus(**json.loads(path.read_text(encoding="utf-8")))
+    status = RunStatus(**json.loads(path.read_text(encoding="utf-8")))
+    return sync_run_progress_from_logs(status)
+
+
+def get_latest_completed_run() -> RunStatus:
+    ensure_storage_dirs()
+    completed_runs: list[RunStatus] = []
+    for path in RUNS_DIR.glob("*.json"):
+        try:
+            status = RunStatus(**json.loads(path.read_text(encoding="utf-8")))
+            status = sync_run_progress_from_logs(status)
+        except Exception:
+            continue
+        if status.status == "completed":
+            completed_runs.append(status)
+
+    if not completed_runs:
+        raise FileNotFoundError("No completed runs are available.")
+
+    def completed_sort_key(status: RunStatus) -> str:
+        return status.completed_at or status.started_at or status.created_at
+
+    return sorted(completed_runs, key=completed_sort_key, reverse=True)[0]
 
 
 def advance_mock_run(run_id: str) -> RunStatus:

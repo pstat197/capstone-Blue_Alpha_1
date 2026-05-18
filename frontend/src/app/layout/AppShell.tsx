@@ -1,17 +1,42 @@
 import { useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation } from "react-router-dom";
 import blueAlphaLogo from "../../assets/bluealpha_mark_blue.png";
-import { monitorNavItem, resultNavItems, workflowNavItems } from "../navigation";
+import { buildResultsPath, readActiveResultsRunId } from "../../features/results/data/resultLoader";
+import { documentationNavItem, monitorNavItem, resultNavItems, workflowNavItems } from "../navigation";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   isActive ? "nav-link nav-link--active" : "nav-link";
 
-const navIconLabels = ["01", "02", "03", "04", "05"];
+type SetupStepState = "completed" | "active" | "upcoming";
+
+const workflowStepLabels = ["01", "02", "03", "04", "05", "06"];
 
 export function AppShell() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const location = useLocation();
 
   const closeDrawer = () => setIsDrawerOpen(false);
+  const activeWorkflowIndex = workflowNavItems.findIndex((item) => location.pathname.startsWith(item.path));
+  const setupIsComplete = location.pathname.startsWith("/runs") || location.pathname.startsWith("/results");
+  const resultPathRunSegment = location.pathname.match(/^\/results\/([^/]+)/)?.[1] || "";
+  const resultRouteSlugs = new Set(resultNavItems.map((item) => item.path.replace("/results/", "")));
+  const currentRunId =
+    new URLSearchParams(location.search).get("run_id") ||
+    (resultRouteSlugs.has(resultPathRunSegment) ? "" : resultPathRunSegment) ||
+    readActiveResultsRunId();
+  const resultPath = (path: string) => buildResultsPath(path, currentRunId);
+
+  const setupStepState = (index: number): SetupStepState => {
+    if (setupIsComplete || (activeWorkflowIndex > -1 && index < activeWorkflowIndex)) {
+      return "completed";
+    }
+
+    if (index === activeWorkflowIndex) {
+      return "active";
+    }
+
+    return "upcoming";
+  };
 
   return (
     <div className={isDrawerOpen ? "app-shell app-shell--drawer-open" : "app-shell"}>
@@ -29,12 +54,34 @@ export function AppShell() {
         <nav className="nav-stack">
           <section className="nav-group" aria-labelledby="workflow-nav-heading">
             <h2 id="workflow-nav-heading">Setup</h2>
-            {workflowNavItems.map((item, index) => (
-              <NavLink key={item.path} to={item.path} className={navLinkClass} onClick={closeDrawer}>
-                <span className="nav-icon" aria-hidden="true">{navIconLabels[index]}</span>
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
+            <p className="nav-group-helper">Complete these steps in order to launch a run.</p>
+            <ol className="setup-stepper" aria-label="Setup workflow steps">
+              {workflowNavItems.map((item, index) => {
+                const state = setupStepState(index);
+                const statusLabel = state === "completed" ? "Completed" : state === "active" ? "Current" : "Upcoming";
+
+                return (
+                  <li key={item.path} className={`setup-stepper-item setup-stepper-item--${state}`}>
+                    <NavLink
+                      to={item.path}
+                      className={({ isActive }) =>
+                        `setup-step setup-step--${state}${isActive ? " setup-step--active" : ""}`
+                      }
+                      onClick={closeDrawer}
+                      aria-label={`${workflowStepLabels[index]} ${item.label}, ${statusLabel}`}
+                    >
+                      <span className="setup-step-node" aria-hidden="true">
+                        {state === "completed" ? <span className="setup-step-check" /> : workflowStepLabels[index]}
+                      </span>
+                      <span className="setup-step-copy">
+                        <span className="setup-step-title">{item.label}</span>
+                        <span className="setup-step-status">{statusLabel}</span>
+                      </span>
+                    </NavLink>
+                  </li>
+                );
+              })}
+            </ol>
           </section>
 
           <section className="nav-group" aria-labelledby="monitor-nav-heading">
@@ -48,7 +95,7 @@ export function AppShell() {
           <section className="nav-group" aria-labelledby="results-nav-heading">
             <h2 id="results-nav-heading">Results</h2>
             {resultNavItems.map((item) => (
-              <NavLink key={item.path} to={item.path} className={navLinkClass} onClick={closeDrawer}>
+              <NavLink key={item.path} to={resultPath(item.path)} className={navLinkClass} onClick={closeDrawer}>
                 <span className="nav-icon" aria-hidden="true">RS</span>
                 <span>{item.label}</span>
               </NavLink>
@@ -56,15 +103,11 @@ export function AppShell() {
           </section>
 
           <section className="nav-group nav-group--utility" aria-labelledby="utility-nav-heading">
-            <h2 id="utility-nav-heading">Settings / Documentation</h2>
-            <div className="nav-link nav-link--static">
-              <span className="nav-icon" aria-hidden="true">ST</span>
-              <span>Settings</span>
-            </div>
-            <div className="nav-link nav-link--static">
+            <h2 id="utility-nav-heading">Help</h2>
+            <NavLink to={documentationNavItem.path} className={navLinkClass} onClick={closeDrawer}>
               <span className="nav-icon" aria-hidden="true">DC</span>
-              <span>Documentation</span>
-            </div>
+              <span>{documentationNavItem.label}</span>
+            </NavLink>
           </section>
         </nav>
       </aside>

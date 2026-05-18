@@ -8,7 +8,11 @@ type TornadoChartProps = {
 
 export function TornadoChart({ rows, compact = false }: TornadoChartProps) {
   const maxImpact = Math.max(...rows.map((row) => Math.abs(Number(row.impact ?? 0))), 1);
-  const visibleRows = compact ? rows.slice(0, 6) : rows;
+  const visibleRows = compact ? rows.slice(0, 8) : rows;
+
+  if (!visibleRows.length) {
+    return <div className="empty-state">Not available</div>;
+  }
 
   return (
     <div className={compact ? "tornado-chart tornado-chart--compact" : "tornado-chart"} role="img" aria-label="Self-response tornado chart">
@@ -30,6 +34,13 @@ export function TornadoChart({ rows, compact = false }: TornadoChartProps) {
           </div>
         );
       })}
+      {compact ? (
+        <div className="tornado-scale" aria-hidden="true">
+          <span>-{formatPercent(maxImpact, 0)}</span>
+          <span>0%</span>
+          <span>+{formatPercent(maxImpact, 0)}</span>
+        </div>
+      ) : null}
     </div>
   );
 }

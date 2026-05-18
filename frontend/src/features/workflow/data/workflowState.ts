@@ -11,8 +11,12 @@ export const activeProfileStorageKey = "adpilot.active_csv_profile";
 export const kpiColumnStorageKey = "adpilot.kpi_column";
 export const kpiTypeStorageKey = "adpilot.kpi_type";
 export const revenueColumnStorageKey = "adpilot.revenue_column";
+export const roiModeStorageKey = "adpilot.roi_mode";
+export const revenueAssumptionSavedStorageKey = "adpilot.revenue_assumption_saved";
+export const activeRunIdStorageKey = "adpilot.active_run_id";
 
 export type KpiType = "revenue" | "non_revenue";
+export type RoiMode = "direct_revenue_column" | "revenue_per_kpi_assumption";
 
 export type ChannelPriorGrid = {
   enabled: boolean;
@@ -40,6 +44,18 @@ function sanitizeProfile(profile: CsvProfile): CsvProfile {
   return {
     ...profile,
     storage_path: profile.storage_path ?? "",
+    date_profile: profile.date_profile ?? {
+      column: profile.detected.time_candidates?.[0] ?? null,
+      date_min: null,
+      date_max: null,
+      valid_parse_rate: 0,
+      inferred_frequency: null,
+      status: profile.detected.time_candidates?.length ? "warning" : "missing",
+      message: profile.detected.time_candidates?.length
+        ? "Date column detected but date range could not be parsed."
+        : "Date/time column missing",
+    },
+    channel_diagnostics: profile.channel_diagnostics ?? [],
     detected: {
       ...profile.detected,
       media_activity_candidates: sanitizeDetectedCandidates(profile.detected.media_activity_candidates ?? []),
@@ -79,6 +95,8 @@ export function clearDatasetSelections() {
     kpiColumnStorageKey,
     kpiTypeStorageKey,
     revenueColumnStorageKey,
+    roiModeStorageKey,
+    revenueAssumptionSavedStorageKey,
     revenuePerKpiStorageKey,
     priorGridStorageKey,
     priorGridModeStorageKey,
@@ -98,6 +116,33 @@ export function detectedChannels(profile: CsvProfile | null): string[] {
   ).sort();
 }
 
+export function activePaidChannels(profile: CsvProfile | null): string[] {
+  if (!profile) {
+    return [];
+  }
+  const includedFromDiagnostics = (profile.channel_diagnostics ?? [])
+    .filter((item) => item.include_in_model)
+    .map((item) => normalizeChannelName(item.channel))
+    .filter((channel) => isValidMediaChannel(channel));
+
+  if (includedFromDiagnostics.length) {
+    return Array.from(new Set(includedFromDiagnostics)).sort();
+  }
+
+  return detectedChannels(profile);
+}
+
+export function excludedChannelDiagnostics(profile: CsvProfile | null) {
+  if (!profile) {
+    return [];
+  }
+  return (profile.channel_diagnostics ?? [])
+    .filter((item) => !item.include_in_model)
+    .map((item) => ({ ...item, channel: normalizeChannelName(item.channel) }))
+    .filter((item) => isValidMediaChannel(item.channel))
+    .sort((a, b) => a.channel.localeCompare(b.channel));
+}
+
 export function makeDefaultChannelGrid(): ChannelPriorGrid {
   return {
     enabled: true,
@@ -113,6 +158,9 @@ export function makeChannelGrids(channels: string[]): ChannelPriorGrids {
 }
 
 export function readRevenuePerKpi(): number | null {
+  if (window.localStorage.getItem(revenueAssumptionSavedStorageKey) !== "true") {
+    return null;
+  }
   const stored = window.localStorage.getItem(revenuePerKpiStorageKey);
   const parsed = stored ? Number(stored) : NaN;
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -146,6 +194,14 @@ export function readKpiType(profile: CsvProfile | null): KpiType {
     return stored;
   }
   return profile?.detected.revenue_candidates.length ? "revenue" : "non_revenue";
+}
+
+export function readRoiMode(profile: CsvProfile | null): RoiMode {
+  const stored = window.localStorage.getItem(roiModeStorageKey);
+  if (stored === "direct_revenue_column" || stored === "revenue_per_kpi_assumption") {
+    return stored;
+  }
+  return profile?.detected.revenue_candidates.length ? "direct_revenue_column" : "revenue_per_kpi_assumption";
 }
 
 export function profileHasBlockingErrors(profile: CsvProfile | null) {

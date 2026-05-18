@@ -29,13 +29,30 @@ export type DashboardPayload = {
     review_rate_pct?: number;
     fail_rate_pct?: number;
   };
+  diagnostics?: {
+    available?: boolean;
+    overview?: DashboardPayload["diagnostics_overview"];
+    status_rows?: Array<Record<string, unknown>>;
+    primary_rows?: Array<Record<string, unknown>>;
+    flagged_rows?: Array<Record<string, unknown>>;
+    check_rows?: Array<DiagnosticCheckRow>;
+    reason?: string;
+  };
   decision_card?: {
     available?: boolean;
     tier?: string;
+    tier_class?: string;
     headline?: string;
     score_value?: string;
+    score_numeric?: number;
+    score_band?: string;
     reasons?: string[];
     actions?: string[];
+    triggered_rules?: string[];
+    policy_rules?: string[];
+    score_note?: string;
+    score_label?: string;
+    score_meta?: Record<string, unknown>;
   };
   rank_rows?: RankRow[];
   roi_tornado_rows?: RoiTornadoRow[];
@@ -54,6 +71,16 @@ export type DashboardPayload = {
     count?: number;
     reason?: string;
   };
+};
+
+export type DiagnosticCheckRow = {
+  check?: string;
+  pass_count?: number | string;
+  review_count?: number | string;
+  fail_count?: number | string;
+  unknown_count?: number | string;
+  coverage_pct?: number | string;
+  recommendation?: string;
 };
 
 export type RankRow = {
@@ -110,6 +137,7 @@ export type StructuralSection = {
   notes?: string[];
   profile_rows?: Array<Record<string, unknown>>;
   run_rows?: Array<Record<string, unknown>>;
+  response_rows?: Array<Record<string, unknown>>;
   carryover_rows?: Array<Record<string, unknown>>;
   adstock_curve_rows?: Array<Record<string, unknown>>;
   saturation_curve_rows?: Array<Record<string, unknown>>;
@@ -118,6 +146,10 @@ export type StructuralSection = {
 export type WorkbenchSection = {
   available?: boolean;
   notes?: string;
+  explicit_baseline?: Record<string, unknown>;
+  dist_config?: Record<string, unknown>;
+  contribution_col?: string;
+  contribution_delta_col?: string;
   default_channel?: string;
   available_channels?: string[];
   mu_values?: number[];

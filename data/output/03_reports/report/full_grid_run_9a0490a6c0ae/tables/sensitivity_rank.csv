@@ -1,0 +1,9 @@
+channel,roi_prior_dist,max_abs_pct_change,max_abs_pct_change_raw,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,pct_metric_unstable_reason,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,primary_metric,primary_value,ranking_metric_label
+tiktok,LogNormal,,377.2062893444394,1.362599141629568,0.3612344704001831,0.5,1.0,False,baseline_qc=REVIEW; local_volatility_ratio=2.384 > max_local_sensitivity_ratio=1.000,False,False,3,2.3839928999524678,delta_roi,1.362599141629568,Max |Delta ROI|
+moloco,LogNormal,,204.71253231869125,1.0632096642938753,0.5193671595243117,0.5,0.5,False,baseline_qc=REVIEW; local_volatility_ratio=1.042 > max_local_sensitivity_ratio=1.000,False,False,4,1.0419978094332598,delta_roi,1.0632096642938753,Max |Delta ROI|
+amazon,LogNormal,,197.40052278889632,1.0109615897309658,0.5121372402909522,0.5,0.5,False,baseline_qc=REVIEW,False,False,4,0.9861581478778295,delta_roi,1.0109615897309658,Max |Delta ROI|
+liveintent,LogNormal,,198.9616337492296,1.0097220832792422,0.5074958745824794,0.5,0.5,False,baseline_qc=REVIEW,False,False,4,0.9875041026709348,delta_roi,1.0097220832792422,Max |Delta ROI|
+google,LogNormal,,253.23641215995158,0.9217641104354213,0.3639935120598723,0.5,0.5,False,baseline_qc=REVIEW,False,False,4,0.9687023073844452,delta_roi,0.9217641104354213,Max |Delta ROI|
+snapchat,LogNormal,,93.9869245611351,0.48559456332276274,0.5166618288556735,0.5,0.5,False,baseline_qc=REVIEW,False,False,4,0.6374064055776264,delta_roi,0.48559456332276274,Max |Delta ROI|
+meta,LogNormal,,97.98457482906896,0.4822956693281108,0.4922159127285704,0.5,0.5,False,baseline_qc=REVIEW,False,False,3,0.766454911134339,delta_roi,0.4822956693281108,Max |Delta ROI|
+beehiiv,LogNormal,,2.981260772623963,0.0299835905681054,1.0057352527976036,1.0,0.5,False,baseline_qc=REVIEW,False,False,1,0.029812607726239625,delta_roi,0.0299835905681054,Max |Delta ROI|

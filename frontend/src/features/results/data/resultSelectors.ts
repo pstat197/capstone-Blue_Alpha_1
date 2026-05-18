@@ -4,7 +4,7 @@ const emptyArray: never[] = [];
 
 export function formatNumber(value: unknown, digits = 0): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "Unavailable";
+  if (!Number.isFinite(n)) return "NA";
   return new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digits,
     minimumFractionDigits: digits,
@@ -13,13 +13,13 @@ export function formatNumber(value: unknown, digits = 0): string {
 
 export function formatPercent(value: unknown, digits = 1): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "Unavailable";
+  if (!Number.isFinite(n)) return "NA";
   return `${formatNumber(n, digits)}%`;
 }
 
 export function formatMoneyCompact(value: unknown): string {
   const n = Number(value);
-  if (!Number.isFinite(n)) return "Unavailable";
+  if (!Number.isFinite(n)) return "NA";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
@@ -32,11 +32,18 @@ export function channelLabel(channel: unknown): string {
   return String(channel || "Unavailable").toUpperCase();
 }
 
+export function formatMovementValue(row: RankRow | undefined): string {
+  const metric = String(row?.primary_metric || "").toLowerCase();
+  const value = row?.primary_value ?? row?.max_abs_pct_change ?? row?.max_abs_delta_roi;
+  if (metric.includes("delta")) return formatNumber(value, 3);
+  return formatPercent(value, 2);
+}
+
 export function selectResultHeader(payload: DashboardPayload) {
   return {
     title: payload.meta?.title || "Prior Sensitivity Dashboard",
     subtitle: payload.meta?.subtitle || "Generated Meridian prior-sensitivity output",
-    generatedAt: payload.meta?.generated_at || "Unavailable",
+    generatedAt: payload.meta?.generated_at || "Not available",
   };
 }
 
@@ -49,8 +56,8 @@ export function selectOverviewStats(payload: DashboardPayload) {
     completedRuns: diagnostics.n_runs ?? overview.n_rows ?? 0,
     modeledChannels: overview.n_channels ?? payload.target_channel_detail?.options?.length ?? 0,
     metricLabel: outcome.metric_label || "ROI",
-    kpiType: outcome.kpi_type || "Unavailable",
-    effectiveKpiType: outcome.kpi_type_effective || "Unavailable",
+    kpiType: outcome.kpi_type || "Not available",
+    effectiveKpiType: outcome.kpi_type_effective || "Not available",
     revenuePerKpi: outcome.revenue_per_kpi,
     passRatePct: diagnostics.pass_rate_pct,
     passRuns: diagnostics.pass_runs ?? 0,
@@ -58,6 +65,22 @@ export function selectOverviewStats(payload: DashboardPayload) {
     failRuns: diagnostics.fail_runs ?? 0,
     unknownRuns: diagnostics.unknown_runs ?? 0,
     selfResponseRows: overview.overview_self_response_rows ?? overview.ranking_rows_total ?? 0,
+  };
+}
+
+export function selectRunScope(payload: DashboardPayload) {
+  const settings = payload.how_this_was_run?.settings || [];
+  const badges = payload.how_this_was_run?.badges || [];
+  const settingValue = (label: string) => settings.find((item) => item.label?.toLowerCase() === label.toLowerCase())?.value;
+  const badgeValue = (label: string) => badges.find((item) => item.label?.toLowerCase() === label.toLowerCase())?.value;
+  const runMode = settingValue("Run mode") || badgeValue("Run Mode");
+  const gridScope = settingValue("Prior grid scope") || badgeValue("Sweep Scope");
+  const gridDefinition = settingValue("Grid definition") || badgeValue("Grid");
+  const isFixedGrid = String(gridScope || gridDefinition || "").toLowerCase().includes("grid");
+
+  return {
+    value: isFixedGrid ? "Fixed-grid prior sensitivity audit" : runMode || gridScope || "Prior sensitivity audit",
+    note: gridDefinition || payload.how_this_was_run?.summary || "Generated audit scope",
   };
 }
 
@@ -69,7 +92,7 @@ export function selectLargestSelfResponse(payload: DashboardPayload): RankRow | 
 
 export function selectSelfResponseTornadoRows(payload: DashboardPayload): RoiTornadoRow[] {
   return [...(payload.roi_tornado_rows || emptyArray)].sort((a, b) => {
-    return Number(b.impact ?? 0) - Number(a.impact ?? 0);
+    return Math.abs(Number(b.impact ?? 0)) - Math.abs(Number(a.impact ?? 0));
   });
 }
 
@@ -85,13 +108,13 @@ export function selectDiagnosticContext(payload: DashboardPayload) {
   const diagnostics = payload.diagnostics_overview || {};
 
   return {
-    tier: decision?.tier || "Unavailable",
+    tier: decision?.tier || "Not available",
     headline: decision?.headline || "Diagnostic summary unavailable.",
-    scoreValue: decision?.score_value || "Unavailable",
+    scoreValue: decision?.score_value || "Not available",
     reasons: decision?.reasons || [],
     interpretationNotes: [...(decision?.reasons || []), ...(payload.quick_overview_lines || [])],
     cautionFlags: [...(decision?.actions || []), ...(payload.recommendations || [])],
-    primaryReviewCheck: qc?.primary_review_check || "Unavailable",
+    primaryReviewCheck: qc?.primary_review_check || "Not available",
     reviewCount: qc?.count ?? diagnostics.review_runs ?? 0,
   };
 }

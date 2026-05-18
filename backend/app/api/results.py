@@ -12,10 +12,15 @@ router = APIRouter(tags=["results"])
 @router.get("/runs/{run_id}/results/payload", response_model=ResultPayloadResponse)
 def get_result_payload(run_id: str) -> ResultPayloadResponse:
     try:
-        output_tag = None
-        if run_id != "demo_32run":
-            output_tag = get_run(run_id).output_tag
+        run = get_run(run_id)
+        output_tag = run.output_tag
         payload = load_payload_for_run(run_id, output_tag)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return ResultPayloadResponse(run_id=run_id, payload=payload)
+    source = "FastAPI" if run.mode in {"real_full", "real_tiny"} else "Mock execution"
+    return ResultPayloadResponse(run_id=run_id, output_tag=output_tag, source=source, payload=payload)
+
+
+@router.get("/runs/{run_id}/results", response_model=ResultPayloadResponse)
+def get_run_results(run_id: str) -> ResultPayloadResponse:
+    return get_result_payload(run_id)

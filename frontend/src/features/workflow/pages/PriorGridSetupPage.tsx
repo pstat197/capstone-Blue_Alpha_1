@@ -4,8 +4,9 @@ import { defaultFullPriorGrid, priorGridModeStorageKey, priorGridStorageKey } fr
 import {
   type ChannelPriorGrid,
   type ChannelPriorGrids,
+  activePaidChannels,
   countRunsForGrid,
-  detectedChannels,
+  excludedChannelDiagnostics,
   makeChannelGrids,
   makeDefaultChannelGrid,
   readActiveProfile,
@@ -34,6 +35,13 @@ type ChannelDraft = {
 
 const defaultFullGrid = defaultFullPriorGrid;
 const distributionOptions = ["LogNormal", "Normal", "HalfNormal"];
+const baselinePrior = {
+  mu: 1,
+  sigma: 1,
+  distribution: defaultFullGrid.distributions[0] ?? "LogNormal",
+};
+const baselineRequirementText = `Baseline prior required: every active channel must include mu = ${formatNumber(baselinePrior.mu)}, sigma = ${formatNumber(baselinePrior.sigma)}, and ${baselinePrior.distribution} so reporting can compare each grid against a reference run.`;
+const baselineHelperText = "Required baseline value for reporting and sensitivity comparison.";
 const defaultMuRange = { start: "0.5", end: "5.0", increment: "0.5" };
 const defaultSigmaRange = { start: "0.5", end: "1.5", increment: "0.5" };
 function normalizeStoredGrids(raw: unknown, channels: string[]): ChannelPriorGrids {
@@ -91,6 +99,10 @@ function buildRange(startRaw: string, endRaw: string, incrementRaw: string) {
   return values;
 }
 
+function includesNumber(values: number[], required: number) {
+  return values.some((value) => Math.abs(value - required) <= 1e-9);
+}
+
 function addNumber(values: number[], raw: string) {
   const value = parseNumber(raw);
   if (value === null) {
@@ -101,6 +113,21 @@ function addNumber(values: number[], raw: string) {
 
 function removeNumber(values: number[], value: number) {
   return values.filter((item) => item !== value);
+}
+
+function gridIncludesBaseline(grid: ChannelPriorGrid) {
+  if (!grid.enabled) {
+    return true;
+  }
+  return (
+    includesNumber(grid.roi_mu_values, baselinePrior.mu) &&
+    includesNumber(grid.roi_sigma_values, baselinePrior.sigma) &&
+    grid.roi_dist_values.includes(baselinePrior.distribution)
+  );
+}
+
+function draftIncludesBaseline(draft: ChannelDraft) {
+  return gridIncludesBaseline(gridFromDraft(draft));
 }
 
 function gridStatus(grid: ChannelPriorGrid): ChannelMode {
@@ -178,12 +205,32 @@ function modeConfigPreview(channelGrids: ChannelPriorGrids, channels: string[]) 
   };
 }
 
-function ValueChips({ values }: { values: number[] }) {
+function excludedReason(status: string) {
+  if (status === "inactive_all_zero") {
+    return "Inactive / all-zero spend and media activity.";
+  }
+  if (status === "not_eligible_paid_media") {
+    return "Not eligible as paid media for model setup.";
+  }
+  return "Excluded from model setup.";
+}
+
+function ValueChips({ baselineValue, values }: { baselineValue?: number; values: number[] }) {
   return (
     <div className="prior-value-chips">
-      {values.map((value) => (
-        <span className="prior-value-chip" key={value}>{formatNumber(value)}</span>
-      ))}
+      {values.map((value) => {
+        const isBaseline = baselineValue !== undefined && Math.abs(value - baselineValue) <= 1e-9;
+        return (
+          <span
+            className={isBaseline ? "prior-value-chip prior-value-chip--baseline" : "prior-value-chip"}
+            key={value}
+            title={isBaseline ? baselineHelperText : undefined}
+          >
+            {formatNumber(value)}
+            {isBaseline ? " baseline" : ""}
+          </span>
+        );
+      })}
     </div>
   );
 }
@@ -208,10 +255,12 @@ function RangeFields({
 }
 
 function CustomListInput({
+  baselineValue,
   label,
   values,
   onChange,
 }: {
+  baselineValue?: number;
   label: string;
   values: number[];
   onChange: (values: number[]) => void;
@@ -230,12 +279,22 @@ function CustomListInput({
   return (
     <>
       <div className={isEmpty ? "prior-chip-input prior-chip-input--invalid" : "prior-chip-input"}>
-        {values.map((value) => (
-          <button className="prior-chip" key={value} type="button" onClick={() => onChange(removeNumber(values, value))}>
-            {formatNumber(value)}
-            <span aria-hidden="true">×</span>
-          </button>
-        ))}
+        {values.map((value) => {
+          const isBaseline = baselineValue !== undefined && Math.abs(value - baselineValue) <= 1e-9;
+          return (
+            <button
+              className={isBaseline ? "prior-chip prior-chip--locked" : "prior-chip"}
+              disabled={isBaseline}
+              key={value}
+              title={isBaseline ? baselineHelperText : undefined}
+              type="button"
+              onClick={() => onChange(removeNumber(values, value))}
+            >
+              {formatNumber(value)}
+              {isBaseline ? " baseline" : <span aria-hidden="true">×</span>}
+            </button>
+          );
+        })}
         <input
           aria-label={`Add ${label}`}
           value={entry}
@@ -251,6 +310,7 @@ function CustomListInput({
         />
       </div>
       {isEmpty ? <p className="prior-validation-text">Add at least one numeric value before continuing.</p> : null}
+      {baselineValue !== undefined ? <p className="prior-helper-text">{baselineHelperText}</p> : null}
     </>
   );
 }
@@ -303,6 +363,7 @@ function DefaultGridBuilder({
 }
 
 function DrawerValueEditor({
+  baselineValue,
   label,
   mode,
   range,
@@ -311,6 +372,7 @@ function DrawerValueEditor({
   onRangeChange,
   onValuesChange,
 }: {
+  baselineValue: number;
   label: string;
   mode: ValueInputMode;
   range: RangeDraft;
@@ -334,10 +396,10 @@ function DrawerValueEditor({
       {mode === "range" ? (
         <>
           <RangeFields range={range} onChange={onRangeChange} />
-          <ValueChips values={displayedValues} />
+          <ValueChips baselineValue={baselineValue} values={displayedValues} />
         </>
       ) : (
-        <CustomListInput label={label} values={values} onChange={onValuesChange} />
+        <CustomListInput baselineValue={baselineValue} label={label} values={values} onChange={onValuesChange} />
       )}
       <p className="prior-helper-text">Custom List supports irregular values without fixed increments.</p>
     </section>
@@ -356,19 +418,23 @@ function DistributionCards({
   return (
     <div className={compact ? "prior-distribution-grid prior-distribution-grid--compact" : "prior-distribution-grid"}>
       {distributionOptions.map((distribution) => (
-        <label className="prior-distribution-card" key={distribution}>
+        <label className="prior-distribution-card" key={distribution} title={distribution === baselinePrior.distribution ? baselineHelperText : undefined}>
           <input
             checked={selected.includes(distribution)}
+            disabled={distribution === baselinePrior.distribution && selected.includes(distribution)}
             onChange={(event) => {
               const next = event.target.checked
                 ? Array.from(new Set([...selected, distribution]))
                 : selected.filter((value) => value !== distribution);
-              onChange(next.length ? next : ["LogNormal"]);
+              onChange(next.length ? next : [baselinePrior.distribution]);
             }}
             type="checkbox"
           />
           <span aria-hidden="true" className="prior-distribution-curve" />
-          <strong>{distribution}</strong>
+          <strong>
+            {distribution}
+            {distribution === baselinePrior.distribution ? <span className="prior-baseline-tag"> baseline</span> : null}
+          </strong>
           {!compact ? (
             <small>
               {distribution === "LogNormal"
@@ -386,7 +452,8 @@ function DistributionCards({
 
 export function PriorGridSetupPage() {
   const profile = useMemo(() => readActiveProfile(), []);
-  const channels = useMemo(() => detectedChannels(profile), [profile]);
+  const channels = useMemo(() => activePaidChannels(profile), [profile]);
+  const excludedChannels = useMemo(() => excludedChannelDiagnostics(profile), [profile]);
   const [channelGrids, setChannelGrids] = useState<ChannelPriorGrids>(() => hydrateChannelGrids(channels));
   const [activeChannel, setActiveChannel] = useState(() => channels[0] ?? "");
   const [channelDraft, setChannelDraft] = useState<ChannelDraft>(() => draftFromGrid(hydrateChannelGrids(channels)[channels[0] ?? ""] ?? makeDefaultChannelGrid()));
@@ -429,6 +496,9 @@ export function PriorGridSetupPage() {
 
   const applyChannelDraft = () => {
     const nextGrid = gridFromDraft(channelDraft);
+    if (!gridIncludesBaseline(nextGrid)) {
+      return;
+    }
     if (activeChannel) {
       updateChannel(activeChannel, nextGrid);
     }
@@ -438,6 +508,9 @@ export function PriorGridSetupPage() {
     const grid = channelGrids[channel];
     return grid.enabled && grid.use_custom && (!grid.roi_mu_values.length || !grid.roi_sigma_values.length || !grid.roi_dist_values.length);
   });
+  const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelGrids[channel]));
+  const baselineInvalid = baselineInvalidChannels.length > 0;
+  const activeDraftBaselineInvalid = channelDraft.mode === "custom" && !draftIncludesBaseline(channelDraft);
 
   const perChannelRows = channels.map((channel) => ({
     channel,
@@ -481,9 +554,18 @@ export function PriorGridSetupPage() {
     <WorkflowScaffold
       title="Prior Grid Setup"
       summary="Define default and per-channel prior grids for the production sensitivity audit."
-      primaryActionDisabled={customModeInvalid}
+      primaryActionDisabled={customModeInvalid || baselineInvalid}
+      nextHelperText={baselineInvalid ? "Add the required baseline prior to every active channel." : undefined}
     >
       <div className="prior-warning">Custom grids may increase run time and should be reviewed before production runs.</div>
+      {baselineInvalid ? (
+        <div className="prior-warning prior-warning--error" role="alert">
+          {baselineRequirementText}
+          <span>
+            Missing baseline in: {baselineInvalidChannels.map((channel) => displayChannelName(channel)).join(", ")}.
+          </span>
+        </div>
+      ) : null}
       <div className="prior-custom-layout">
             <main className="prior-custom-main">
               <section className="content-panel prior-default-panel">
@@ -516,7 +598,7 @@ export function PriorGridSetupPage() {
                 <div className="section-title-row">
                   <div>
                     <span className="eyebrow">Per-Channel Prior Grid Configuration</span>
-                    <h3>{channels.length} channels detected</h3>
+                    <h3>{channels.length} active paid channels</h3>
                     <p>Click a channel to edit in the drawer.</p>
                   </div>
                   <div className="prior-table-actions">
@@ -525,6 +607,16 @@ export function PriorGridSetupPage() {
                     <button type="button" onClick={resetToDefaults}>Reset to Defaults</button>
                   </div>
                 </div>
+
+                {excludedChannels.length ? (
+                  <div className="prior-excluded-note" role="status">
+                    <strong>
+                      {excludedChannels.length} detected channel{excludedChannels.length === 1 ? " was" : "s were"} excluded from prior grid setup:{" "}
+                      {excludedChannels.map((item) => displayChannelName(item.channel)).join(", ")}.
+                    </strong>
+                    <span>{excludedReason(excludedChannels[0].status)}</span>
+                  </div>
+                ) : null}
 
                 <div className="prior-channel-table" role="table" aria-label="Channel prior grid configuration">
                   <div className="prior-channel-header" role="row">
@@ -606,6 +698,7 @@ export function PriorGridSetupPage() {
               {channelDraft.mode === "custom" ? (
                 <>
                   <DrawerValueEditor
+                    baselineValue={baselinePrior.mu}
                     label="MU Values"
                     mode={channelDraft.muMode}
                     range={channelDraft.muRange}
@@ -615,6 +708,7 @@ export function PriorGridSetupPage() {
                     onValuesChange={(values) => setChannelDraft((current) => ({ ...current, muValues: values }))}
                   />
                   <DrawerValueEditor
+                    baselineValue={baselinePrior.sigma}
                     label="Sigma Values"
                     mode={channelDraft.sigmaMode}
                     range={channelDraft.sigmaRange}
@@ -633,7 +727,11 @@ export function PriorGridSetupPage() {
                       selected={channelDraft.distributions}
                       onChange={(distributions) => setChannelDraft((current) => ({ ...current, distributions }))}
                     />
+                    <p className="prior-helper-text">{baselineHelperText}</p>
                   </section>
+                  {activeDraftBaselineInvalid ? (
+                    <p className="prior-validation-text">{baselineRequirementText}</p>
+                  ) : null}
                 </>
               ) : (
                 <p className="prior-drawer-empty">
@@ -646,7 +744,14 @@ export function PriorGridSetupPage() {
               <div className="prior-drawer-actions">
                 <button type="button" onClick={() => setChannelDraft(draftFromGrid(channelGrids[activeChannel]))}>Cancel</button>
                 <button
-                  disabled={channelDraft.mode === "custom" && (!gridFromDraft(channelDraft).roi_mu_values.length || !gridFromDraft(channelDraft).roi_sigma_values.length)}
+                  disabled={
+                    channelDraft.mode === "custom" &&
+                    (
+                      !gridFromDraft(channelDraft).roi_mu_values.length ||
+                      !gridFromDraft(channelDraft).roi_sigma_values.length ||
+                      activeDraftBaselineInvalid
+                    )
+                  }
                   type="button"
                   onClick={applyChannelDraft}
                 >

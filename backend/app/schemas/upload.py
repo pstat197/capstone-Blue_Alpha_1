@@ -9,6 +9,9 @@ class ColumnProfile(BaseModel):
     name: str
     inferred_type: Literal["date", "number", "string", "boolean", "unknown"]
     null_rate: float
+    nonzero_rate: float | None = None
+    total_value: float | None = None
+    status: Literal["valid", "warning", "missing"] = "valid"
     sample_values: list[Any]
 
 
@@ -23,6 +26,32 @@ class DetectedColumns(BaseModel):
     population_candidates: list[str]
 
 
+class DateProfile(BaseModel):
+    column: str | None = None
+    date_min: str | None = None
+    date_max: str | None = None
+    valid_parse_rate: float = 0
+    inferred_frequency: str | None = None
+    status: Literal["valid", "warning", "missing"] = "missing"
+    message: str
+
+
+class ChannelDiagnostic(BaseModel):
+    channel: str
+    spend_column: str | None = None
+    media_column: str | None = None
+    spend_null_rate: float | None = None
+    spend_nonzero_rate: float | None = None
+    spend_total: float | None = None
+    media_null_rate: float | None = None
+    media_nonzero_rate: float | None = None
+    media_total: float | None = None
+    status: Literal["active_paid_media", "spend_as_media_fallback", "inactive_all_zero", "not_eligible_paid_media"]
+    severity: Literal["valid", "warning", "missing"]
+    include_in_model: bool
+    message: str
+
+
 class CsvProfile(BaseModel):
     upload_id: str
     filename: str
@@ -30,6 +59,8 @@ class CsvProfile(BaseModel):
     row_count: int
     columns: list[ColumnProfile]
     detected: DetectedColumns
+    date_profile: DateProfile
+    channel_diagnostics: list[ChannelDiagnostic]
     validation_badges: list[dict[str, str]]
 
 

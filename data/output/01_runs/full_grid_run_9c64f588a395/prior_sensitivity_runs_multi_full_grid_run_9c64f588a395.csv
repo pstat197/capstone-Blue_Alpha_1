@@ -1,0 +1,1281 @@
+run_id,prior_key,targets,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,adstock_alpha_m,saturation_ec_m,saturation_slope_m,max_lag,adstock_decay_spec,is_baseline,data_granularity,data_time_col,data_geo_col,data_population_col,data_n_rows,data_n_time_periods,data_n_geos,analysis_stage,run_mode,prior_mode_used,kpi_type,kpi_type_effective,outcome_col_used,revenue_per_kpi,target_channels,sweep_type,two_layer_enabled,prior_design_mode,prior_grid_type,prior_design_label,roi_mu,roi_sigma,roi_dist,qc_scope,qc_target_channels,gate_mode,gate_matched_count,gate_missing_count,gate_warning,data_tag,input_data_csv,qc_status_code,qc_severity_rank,qc_needs_review,qc_summary_short,qc_primary_review_check,qc_flagged_channels,qc_review_reason,qc_convergence_status,qc_baseline_status,qc_bayesianppp_status,qc_gof_status,qc_prior_posterior_shift_status,qc_roi_consistency_status,qc_r2,qc_mape,qc_wmape,qc_bayesian_ppp,qc_baseline_neg_prob,qc_report_full
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv","We've detected channel(s) `amazon`, `beehiiv` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.049,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.0489,0.0489,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,liveintent,We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.049,0.95,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,1.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,1.0,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8963,0.049,0.049,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8963, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=amazon|mu=1.500000|sigma=0.500000|dist=LogNormal|1.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""amazon"", ""two_layer_enabled"": false}",amazon,amazon,1.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,amazon,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,0.5,LogNormal,target_channels,amazon,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"liveintent,meta","We've detected channel(s) `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8963,0.0489,0.0488,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8963, MAPE = 0.0489, and wMAPE = 0.0488. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=beehiiv|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""beehiiv"", ""two_layer_enabled"": false}",beehiiv,beehiiv,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,beehiiv,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,beehiiv,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8961,0.0489,0.0489,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8961, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=beehiiv|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""beehiiv"", ""two_layer_enabled"": false}",beehiiv,beehiiv,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,beehiiv,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,beehiiv,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8961,0.049,0.049,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8961, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8964,0.0489,0.0489,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8964, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8955,0.0494,0.0493,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8955, MAPE = 0.0494, and wMAPE = 0.0493. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,meta,snapchat","We've detected channel(s) `amazon`, `meta`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8959,0.0491,0.0491,0.95,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8959, MAPE = 0.0491, and wMAPE = 0.0491. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `meta`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=1.500000|sigma=0.500000|dist=LogNormal|1.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,1.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,0.5,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8946,0.0498,0.0496,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8946, MAPE = 0.0498, and wMAPE = 0.0496. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=google|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""google"", ""two_layer_enabled"": false}",google,google,1.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,google,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,1.0,LogNormal,target_channels,google,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent,snapchat","We've detected channel(s) `amazon`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8951,0.0495,0.0494,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8951, MAPE = 0.0495, and wMAPE = 0.0494. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent","We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.049,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,meta,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,1.0,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 95.1
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=1.500000|sigma=0.500000|dist=LogNormal|1.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,1.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,0.5,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8963,0.0489,0.0489,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8963, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,meta","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=liveintent|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""liveintent"", ""two_layer_enabled"": false}",liveintent,liveintent,1.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,liveintent,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,1.0,LogNormal,target_channels,liveintent,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent,meta","We've detected channel(s) `amazon`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8963,0.0489,0.0489,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8963, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=meta|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""meta"", ""two_layer_enabled"": false}",meta,meta,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,meta,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,meta,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=meta|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""meta"", ""two_layer_enabled"": false}",meta,meta,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,meta,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,meta,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8964,0.0487,0.0486,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8964, MAPE = 0.0487, and wMAPE = 0.0486. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=meta|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""meta"", ""two_layer_enabled"": false}",meta,meta,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,meta,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,meta,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,liveintent,We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.8964,0.0487,0.0487,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8964, MAPE = 0.0487, and wMAPE = 0.0487. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=meta|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""meta"", ""two_layer_enabled"": false}",meta,meta,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,meta,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,meta,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"liveintent,snapchat","We've detected channel(s) `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.049,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,meta","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8965,0.049,0.0489,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8965, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent,snapchat","We've detected channel(s) `amazon`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8966,0.0489,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8966, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=1.500000|sigma=0.500000|dist=LogNormal|1.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,1.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,0.5,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,meta","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8968,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8968, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=moloco|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""moloco"", ""two_layer_enabled"": false}",moloco,moloco,1.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,moloco,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,1.0,LogNormal,target_channels,moloco,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"beehiiv,liveintent","We've detected channel(s) `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8969,0.0489,0.0489,0.97,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8969, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"beehiiv,liveintent","We've detected channel(s) `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8961,0.049,0.049,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8961, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=0.500000|sigma=0.500000|dist=LogNormal|0.500000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,0.5,0.5,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,0.5,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent","We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8962,0.049,0.0489,0.96,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.96. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8962, MAPE = 0.0490, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=0.500000|sigma=1.500000|dist=LogNormal|0.500000|1.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,0.5,1.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.5,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent,meta","We've detected channel(s) `amazon`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8961,0.0491,0.049,0.98,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.98. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8961, MAPE = 0.0491, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent`, `meta` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=1.000000|sigma=0.500000|dist=LogNormal|1.000000|0.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 0.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,1.0,0.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,0.5,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,beehiiv,liveintent,snapchat","We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8965,0.0488,0.0488,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 96.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8965, MAPE = 0.0488, and wMAPE = 0.0488. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent`, `snapchat` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=1.000000|sigma=1.500000|dist=LogNormal|1.000000|1.500000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.5}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,1.0,1.5,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.5,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,liveintent,We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.8964,0.049,0.049,1.0,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 1.00. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8964, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=snapchat|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 0.5}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""snapchat"", ""two_layer_enabled"": false}",snapchat,snapchat,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,snapchat,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,snapchat,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent","We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8965,0.0489,0.0489,0.95,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.95. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8965, MAPE = 0.0489, and wMAPE = 0.0489. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=tiktok|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}",tiktok,tiktok,1.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,beehiiv,We've detected channel(s) `beehiiv` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.896,0.0491,0.049,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8960, MAPE = 0.0491, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `beehiiv` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=tiktok|mu=1.500000|sigma=1.000000|dist=LogNormal|1.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 1.5, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}",tiktok,tiktok,1.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,1.5,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,amazon,We've detected channel(s) `amazon` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.8955,0.0493,0.0492,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8955, MAPE = 0.0493, and wMAPE = 0.0492. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=tiktok|mu=0.500000|sigma=1.000000|dist=LogNormal|0.500000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}",tiktok,tiktok,0.5,1.0,LogNormal,0.51,0.5,1.2,4,geometric,True,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,0.5,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,"amazon,liveintent","We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).",PASS,PASS,PASS,PASS,REVIEW,PASS,0.8964,0.049,0.049,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 98.3
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8964, MAPE = 0.0490, and wMAPE = 0.0490. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."
+"multi|amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok|pmode=roi|rpk=100.0|target=tiktok|mu=2.000000|sigma=1.000000|dist=LogNormal|2.000000|1.000000|LogNormal|alpha=0p51|ec=0p5|slope=1p2|lag=4|decay=geometric","{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 0.5, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 2.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.51, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}",tiktok,tiktok,2.0,1.0,LogNormal,0.51,0.5,1.2,4,geometric,False,national,date,,,74,74,1,prior_sweep,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,2.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,REVIEW,1,True,REVIEW:PriorPosteriorShift,PriorPosteriorShift,liveintent,We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).,PASS,PASS,PASS,PASS,REVIEW,PASS,0.895,0.0493,0.0492,0.99,0.0,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 99.2
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.99. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8950, MAPE = 0.0493, and wMAPE = 0.0492. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided."

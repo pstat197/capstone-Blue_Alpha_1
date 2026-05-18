@@ -136,13 +136,17 @@ export function WorkflowScaffold({
             Back
           </button>
         )}
-        {nextHelperText ? (
-          <p className="workflow-next-helper">
-            <span>Next screen:</span>
-            {nextHelperText}
-          </p>
-        ) : null}
-        {hidePrimaryAction ? null : renderPrimaryAction()}
+        {hidePrimaryAction ? null : (
+          <div className="workflow-primary-action-stack">
+            {renderPrimaryAction()}
+            {nextHelperText ? (
+              <p className="workflow-next-helper">
+                {primaryActionDisabled ? null : <span>Next screen:</span>}
+                {nextHelperText}
+              </p>
+            ) : null}
+          </div>
+        )}
       </nav>
     </article>
   );

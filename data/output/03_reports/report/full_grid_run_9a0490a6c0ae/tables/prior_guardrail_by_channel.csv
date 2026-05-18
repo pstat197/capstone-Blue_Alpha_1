@@ -1,0 +1,9 @@
+channel,n_rows,n_applicable,n_fail,max_prior_neg_prob,fail_rate_pct
+amazon,40,40,0,0.0,0.0
+beehiiv,40,40,0,0.0,0.0
+google,40,40,0,0.0,0.0
+liveintent,40,40,0,0.0,0.0
+meta,40,40,0,0.0,0.0
+moloco,40,40,0,0.0,0.0
+snapchat,40,40,0,0.0,0.0
+tiktok,40,40,0,0.0,0.0

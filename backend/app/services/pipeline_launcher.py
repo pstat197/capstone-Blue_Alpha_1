@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import json
+import re
+import csv
 import subprocess
 import sys
 import threading
@@ -17,6 +19,12 @@ from backend.app.services.paths import PROJECT_ROOT, RUNS_DIR, ensure_storage_di
 from backend.app.services.result_locator import locate_result_artifacts
 
 MAX_PHASE5A_REAL_RUNS = 3
+REQUIRED_MODEL_MODULES = ("platformdirs", "tensorflow", "tensorflow_probability", "meridian")
+PROGRESS_LINE_RE = re.compile(
+    r"\[done\s+(?P<completed>\d+)\s*/\s*(?P<total>\d+)\]\s+"
+    r"run_index=(?P<run_index>\d+)\s+"
+    r"mu=(?P<mu>[^\s]+)\s+sigma=(?P<sigma>[^\s]+)\s+dist=(?P<dist>[^\s]+)"
+)
 
 
 def _now_iso() -> str:
@@ -33,6 +41,11 @@ def _write_run(status: RunStatus) -> RunStatus:
     raw = status.model_dump_json(indent=2) if hasattr(status, "model_dump_json") else status.json(indent=2)
     path.write_text(raw, encoding="utf-8")
     return status
+
+
+def _append_message_once(status: RunStatus, message: str) -> None:
+    if message not in status.messages:
+        status.messages.append(message)
 
 
 def _config_from_request_preview(preview: dict[str, Any]) -> dict[str, Any]:
@@ -189,6 +202,48 @@ def _resolve_pipeline_python() -> str:
     return sys.executable
 
 
+def _pipeline_env() -> dict[str, str]:
+    env = os.environ.copy()
+    env["TF_CPP_MIN_LOG_LEVEL"] = "3"
+    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
+    cache_dir = PROJECT_ROOT / ".cache"
+    env.setdefault("BLUEALPHA_CACHE_DIR", str(cache_dir))
+    env.setdefault("MPLCONFIGDIR", str(cache_dir / "matplotlib"))
+    env.setdefault("XDG_CACHE_HOME", str(cache_dir))
+    env.setdefault("ARVIZ_HOME", str(cache_dir / "arviz"))
+    return env
+
+
+def _preflight_pipeline_python(python_executable: str, env: dict[str, str]) -> tuple[bool, str]:
+    script = (
+        "import importlib.util, sys\n"
+        f"required = {REQUIRED_MODEL_MODULES!r}\n"
+        "missing = [name for name in required if importlib.util.find_spec(name) is None]\n"
+        "if missing:\n"
+        "    print('Missing required modeling modules: ' + ', '.join(missing))\n"
+        "    print('Install root requirements.txt into the selected interpreter or set BLUEALPHA_PIPELINE_PYTHON.')\n"
+        "    sys.exit(1)\n"
+        "print('Modeling runtime preflight passed.')\n"
+    )
+    try:
+        result = subprocess.run(
+            [python_executable, "-c", script],
+            cwd=PROJECT_ROOT,
+            env=env,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            timeout=20,
+        )
+    except Exception as exc:
+        return False, f"Could not validate modeling runtime {python_executable}: {exc}"
+
+    output = result.stdout.strip()
+    if result.returncode != 0:
+        return False, output or "Selected modeling runtime is missing required modeling modules."
+    return True, output or "Modeling runtime preflight passed."
+
+
 def _read_log_tail(log_path: str | None, limit: int = 80) -> list[str]:
     if not log_path:
         return []
@@ -228,6 +283,256 @@ def _failure_summary(lines: list[str]) -> str:
         ):
             return clean[-500:]
     return "See run logs for the detailed failure."
+
+
+def _parse_float(raw: str) -> float | None:
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def _parse_progress_line(line: str) -> dict[str, Any] | None:
+    match = PROGRESS_LINE_RE.search(line)
+    if not match:
+        return None
+    return {
+        "completed": int(match.group("completed")),
+        "total": int(match.group("total")),
+        "run_index": int(match.group("run_index")),
+        "mu": _parse_float(match.group("mu")),
+        "sigma": _parse_float(match.group("sigma")),
+        "dist": match.group("dist"),
+    }
+
+
+def _channel_for_run_index(status: RunStatus, run_index: int) -> str | None:
+    if run_index <= 0:
+        return status.channel_progress[0].channel if status.channel_progress else None
+
+    zero_based = run_index - 1
+    offset = 0
+    for channel in status.channel_progress:
+        next_offset = offset + max(0, int(channel.total_runs))
+        if offset <= zero_based < next_offset:
+            return channel.channel
+        offset = next_offset
+    return None
+
+
+def _apply_progress_events(status: RunStatus, events: list[dict[str, Any]]) -> bool:
+    if not events:
+        return False
+
+    latest = events[-1]
+    total_runs = max(int(latest.get("total") or 0), int(status.progress.total_runs or 0))
+    completed_runs = min(total_runs, max(int(event.get("completed") or 0) for event in events))
+    prior_completed = int(status.progress.completed_runs or 0)
+    prior_total = int(status.progress.total_runs or 0)
+    prior_active = status.progress.active_target_channel
+
+    channel_run_indexes = {channel.channel: set() for channel in status.channel_progress}
+    for event in events:
+        channel_name = _channel_for_run_index(status, int(event.get("run_index") or 0))
+        if channel_name in channel_run_indexes:
+            channel_run_indexes[channel_name].add(int(event.get("run_index") or 0))
+
+    latest_channel = _channel_for_run_index(status, int(latest.get("run_index") or 0))
+    first_incomplete: str | None = None
+    for channel in status.channel_progress:
+        completed_for_channel = min(int(channel.total_runs), len(channel_run_indexes.get(channel.channel, set())))
+        if completed_for_channel < int(channel.total_runs) and first_incomplete is None:
+            first_incomplete = channel.channel
+        channel.completedRuns = completed_for_channel
+        channel.failedRuns = 0
+        if completed_for_channel >= int(channel.total_runs):
+            channel.status = "completed"
+        elif completed_for_channel > 0 or channel.channel == latest_channel:
+            channel.status = "running"
+        else:
+            channel.status = "queued"
+
+    active_channel = None if completed_runs >= total_runs else latest_channel or first_incomplete
+    if active_channel:
+        for channel in status.channel_progress:
+            if channel.channel == active_channel and channel.status == "queued":
+                channel.status = "running"
+                break
+
+    status.progress.total_runs = total_runs
+    status.progress.completed_runs = completed_runs
+    status.progress.failed_runs = 0
+    status.progress.active_target_channel = active_channel
+    status.progress.active_mu = latest.get("mu")
+    status.progress.active_sigma = latest.get("sigma")
+    status.progress.active_dist = latest.get("dist")
+
+    return (
+        prior_completed != status.progress.completed_runs
+        or prior_total != status.progress.total_runs
+        or prior_active != status.progress.active_target_channel
+    )
+
+
+def _is_process_alive(process_id: int | None) -> bool:
+    if not process_id:
+        return False
+    try:
+        os.kill(int(process_id), 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    except OSError:
+        return False
+
+
+def _age_seconds(raw: str | None) -> float:
+    if not raw:
+        return 0.0
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return 0.0
+    return max(0.0, (datetime.now(timezone.utc) - parsed).total_seconds())
+
+
+def _runs_csv_path(output_tag: str | None) -> Path | None:
+    if not output_tag:
+        return None
+    runs_dir = PROJECT_ROOT / "data" / "output" / "01_runs" / output_tag
+    if not runs_dir.exists():
+        return None
+    matches = sorted(
+        runs_dir.glob(f"prior_sensitivity_runs_*{output_tag}.csv"),
+        key=lambda path: path.stat().st_mtime,
+        reverse=True,
+    )
+    return matches[0] if matches else None
+
+
+def _apply_artifact_progress(status: RunStatus) -> bool:
+    path = _runs_csv_path(status.output_tag)
+    if not path:
+        return False
+
+    prior_completed = int(status.progress.completed_runs or 0)
+    prior_failed = int(status.progress.failed_runs or 0)
+    prior_active = status.progress.active_target_channel
+    prior_status = status.status
+    prior_result_url = status.result_url
+    prior_completed_at = status.completed_at
+
+    seen_run_ids: set[str] = set()
+    channel_counts = {channel.channel: 0 for channel in status.channel_progress}
+    try:
+        with path.open("r", encoding="utf-8", newline="") as csv_file:
+            reader = csv.DictReader(csv_file)
+            for row_index, row in enumerate(reader):
+                run_key = str(row.get("run_id") or row_index)
+                if run_key in seen_run_ids:
+                    continue
+                seen_run_ids.add(run_key)
+                channel_name = str(row.get("target_channel") or "").strip()
+                if channel_name in channel_counts:
+                    channel_counts[channel_name] += 1
+    except Exception:
+        return False
+
+    artifact_completed = min(int(status.progress.total_runs or len(seen_run_ids)), len(seen_run_ids))
+    status.progress.completed_runs = max(prior_completed, artifact_completed)
+    status.progress.failed_runs = max(0, int(status.progress.failed_runs or 0))
+
+    first_incomplete: str | None = None
+    for channel in status.channel_progress:
+        completed_for_channel = min(int(channel.total_runs), max(channel.completedRuns, channel_counts.get(channel.channel, 0)))
+        channel.completedRuns = completed_for_channel
+        if completed_for_channel >= int(channel.total_runs):
+            channel.status = "completed"
+            channel.failedRuns = 0
+        elif first_incomplete is None:
+            first_incomplete = channel.channel
+            channel.status = "running" if _is_process_alive(status.process_id) else channel.status
+
+    total_runs = int(status.progress.total_runs or 0)
+    process_alive = _is_process_alive(status.process_id)
+    if total_runs > 0 and status.progress.completed_runs >= total_runs:
+        status.progress.active_target_channel = None
+        status.result_artifacts = locate_result_artifacts(status.output_tag or "")
+        if status.result_artifacts.get("dashboard_payload"):
+            status.status = "completed"
+            status.completed_at = status.completed_at or _now_iso()
+            status.result_url = f"/results/overview?run_id={status.run_id}"
+            _append_message_once(status, "Recovered completed run state from output artifacts.")
+        elif not process_alive and status.status in {"queued", "running"}:
+            status.status = "failed"
+            status.completed_at = status.completed_at or _now_iso()
+            status.progress.failed_runs = 0
+            _append_message_once(
+                status,
+                "Run process is no longer active. Model outputs completed, but dashboard results were not generated.",
+            )
+    elif not process_alive and status.status in {"queued", "running"} and status.progress.completed_runs > 0:
+        status.status = "failed"
+        status.completed_at = status.completed_at or _now_iso()
+        status.progress.failed_runs = max(0, total_runs - status.progress.completed_runs)
+        status.progress.active_target_channel = None
+        for channel in status.channel_progress:
+            if channel.completedRuns < channel.total_runs:
+                channel.failedRuns = channel.total_runs - channel.completedRuns
+                channel.status = "failed"
+        _append_message_once(status, "Run process is no longer active before all model fits completed.")
+    else:
+        status.progress.active_target_channel = first_incomplete
+
+    return (
+        prior_completed != status.progress.completed_runs
+        or prior_failed != status.progress.failed_runs
+        or prior_active != status.progress.active_target_channel
+        or prior_status != status.status
+        or prior_result_url != status.result_url
+        or prior_completed_at != status.completed_at
+    )
+
+
+def sync_run_progress_from_logs(status: RunStatus) -> RunStatus:
+    if status.mode not in {"real_tiny", "real_full"} or status.status not in {"queued", "running"}:
+        return status
+    changed = False
+    if status.log_path:
+        path = Path(status.log_path)
+        if path.exists():
+            events = [
+                event
+                for event in (_parse_progress_line(line) for line in path.read_text(encoding="utf-8", errors="replace").splitlines())
+                if event is not None
+            ]
+            if events and status.status == "queued":
+                status.status = "running"
+                changed = True
+            changed = _apply_progress_events(status, events) or changed
+    changed = _apply_artifact_progress(status) or changed
+    if (
+        not changed
+        and status.status == "running"
+        and status.process_id
+        and not _is_process_alive(status.process_id)
+        and _age_seconds(status.started_at) > 30
+    ):
+        status.status = "failed"
+        status.completed_at = status.completed_at or _now_iso()
+        status.progress.failed_runs = max(1, status.progress.total_runs - status.progress.completed_runs)
+        status.progress.active_target_channel = None
+        for channel in status.channel_progress:
+            if channel.completedRuns < channel.total_runs:
+                channel.failedRuns = channel.total_runs - channel.completedRuns
+                channel.status = "failed"
+        _append_message_once(status, "Run process is no longer active and no completed model-output artifact was found.")
+        changed = True
+    if changed:
+        return _write_run(status)
+    return status
 
 
 def create_real_tiny_run_status(run_id: str, workflow_id: str, approved_config_preview: dict[str, Any]) -> RunStatus:
@@ -353,8 +658,27 @@ def launch_real_tiny_run(status: RunStatus) -> RunStatus:
     except Exception:
         dollars_per_subscription = 100.0
 
+    pipeline_python = _resolve_pipeline_python()
+    env = _pipeline_env()
+    preflight_ok, preflight_message = _preflight_pipeline_python(pipeline_python, env)
+    log_path = Path(str(status.log_path))
+    if not preflight_ok:
+        with log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write("Modeling runtime preflight failed.\n")
+            log_file.write(f"Python executable: {pipeline_python}\n")
+            log_file.write(f"Working directory: {PROJECT_ROOT}\n")
+            log_file.write(preflight_message + "\n")
+        status.status = "failed"
+        status.completed_at = _now_iso()
+        status.progress.failed_runs = status.progress.total_runs
+        for channel in status.channel_progress:
+            channel.status = "failed"
+            channel.failedRuns = channel.total_runs
+        status.messages.append(f"Modeling runtime preflight failed: {preflight_message}")
+        return _write_run(status)
+
     cmd = [
-        _resolve_pipeline_python(),
+        pipeline_python,
         "-m",
         "src.pipeline",
         "--config",
@@ -362,14 +686,6 @@ def launch_real_tiny_run(status: RunStatus) -> RunStatus:
         "--dollars-per-subscription",
         str(dollars_per_subscription),
     ]
-    env = os.environ.copy()
-    env["TF_CPP_MIN_LOG_LEVEL"] = "3"
-    env["TF_ENABLE_ONEDNN_OPTS"] = "0"
-    cache_dir = PROJECT_ROOT / ".cache"
-    env.setdefault("BLUEALPHA_CACHE_DIR", str(cache_dir))
-    env.setdefault("MPLCONFIGDIR", str(cache_dir / "matplotlib"))
-    env.setdefault("XDG_CACHE_HOME", str(cache_dir))
-    env.setdefault("ARVIZ_HOME", str(cache_dir / "arviz"))
 
     try:
         proc = subprocess.Popen(
@@ -408,13 +724,30 @@ def launch_real_tiny_run(status: RunStatus) -> RunStatus:
 
     def _watch() -> None:
         current = status
+        progress_events: list[dict[str, Any]] = []
         log_path = Path(str(status.log_path))
         with log_path.open("a", encoding="utf-8") as log_file:
+            log_file.write(preflight_message + "\n")
+            log_file.write(f"Python executable: {pipeline_python}\n")
+            log_file.write(f"Working directory: {PROJECT_ROOT}\n")
+            log_file.write("MPLCONFIGDIR: " + env.get("MPLCONFIGDIR", "") + "\n")
+            log_file.write("XDG_CACHE_HOME: " + env.get("XDG_CACHE_HOME", "") + "\n")
             log_file.write("Command: " + " ".join(cmd) + "\n")
             if proc.stdout is not None:
                 for line in proc.stdout:
                     log_file.write(line)
                     log_file.flush()
+                    progress_event = _parse_progress_line(line)
+                    if progress_event is not None:
+                        progress_events.append(progress_event)
+                        try:
+                            current = RunStatus(**json.loads(_run_path(status.run_id).read_text(encoding="utf-8")))
+                            if current.status in {"queued", "running"}:
+                                current.status = "running"
+                                _apply_progress_events(current, progress_events)
+                                _write_run(current)
+                        except Exception:
+                            pass
         returncode = proc.wait()
         current = RunStatus(**json.loads(_run_path(status.run_id).read_text(encoding="utf-8")))
         current.completed_at = _now_iso()
@@ -441,10 +774,12 @@ def launch_real_tiny_run(status: RunStatus) -> RunStatus:
             failure_type = _classify_failure(log_tail)
             failure_detail = _failure_summary(log_tail)
             current.status = "failed"
-            current.progress.failed_runs = max(1, current.progress.total_runs - current.progress.completed_runs)
+            current.progress.failed_runs = max(0, current.progress.total_runs - current.progress.completed_runs)
+            current.progress.active_target_channel = None
             for channel in current.channel_progress:
-                channel.status = "failed"
-                channel.failedRuns = max(1, channel.total_runs)
+                remaining = max(0, channel.total_runs - channel.completedRuns)
+                channel.failedRuns = remaining
+                channel.status = "completed" if remaining == 0 else "failed"
             current.messages.append(
                 f"Pipeline subprocess failed with exit code {returncode}: {failure_type}. {failure_detail}"
             )
