@@ -52,6 +52,7 @@ export type DashboardPayload = {
     policy_rules?: string[];
     score_note?: string;
     score_label?: string;
+    score_subscores?: Array<{ id?: string; label?: string; value?: number | null }>;
     score_meta?: Record<string, unknown>;
   };
   rank_rows?: RankRow[];
@@ -119,7 +120,59 @@ export type TargetChannelDetail = {
   recommended_channel?: string;
   recommendation_source?: string;
   options?: Array<{ value?: string; label?: string }>;
-  summaries?: Record<string, unknown>;
+  summaries?: Record<string, TargetChannelSummary>;
+  notes?: string[];
+};
+
+export type TargetChannelSummary = {
+  target_channel?: string;
+  label?: string;
+  prior_settings_tested?: number;
+  self_response_rows?: Array<Record<string, unknown>>;
+  system_response_rows?: Array<Record<string, unknown>>;
+  system_impact_rows?: SystemImpactRow[];
+  system_outcome_channel_count?: number;
+  system_posterior_rows?: number;
+  system_non_baseline_movement_rows?: number;
+  system_source?: string;
+  largest_movement?: SystemImpactRow;
+  robustness?: TargetRobustness;
+};
+
+export type SystemImpactRow = {
+  channel?: string;
+  target_channel?: string;
+  is_self_response?: boolean;
+  response_scope?: string;
+  min_signed_delta_pct?: number | null;
+  max_signed_delta_pct?: number | null;
+  max_abs_delta_pct?: number | null;
+  max_abs_delta_roi?: number | null;
+  max_abs_delta_value?: number | null;
+  left_pct?: number | null;
+  right_pct?: number | null;
+  left_delta_roi?: number | null;
+  right_delta_roi?: number | null;
+  n_rows?: number;
+};
+
+export type TargetRobustness = {
+  available?: boolean;
+  score?: number | null;
+  channel_robustness_score?: number | null;
+  overall_channel_robustness_score?: number | null;
+  band?: string;
+  robustness_band?: string;
+  absolute_band?: string;
+  band_method?: string;
+  relative_rank?: number | null;
+  relative_rank_total?: number | null;
+  relative_rank_label?: string;
+  relative_rank_method?: string;
+  subscores?: Array<{ id?: string; label?: string; value?: number | null }>;
+  note?: string;
+  scope?: string;
+  source_row?: Record<string, unknown>;
 };
 
 export type PosteriorEvidenceTable = {

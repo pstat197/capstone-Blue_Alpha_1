@@ -91,6 +91,33 @@ export function selectLargestSelfResponse(payload: DashboardPayload): RankRow | 
 }
 
 export function selectSelfResponseTornadoRows(payload: DashboardPayload): RoiTornadoRow[] {
+  const summaries = payload.target_channel_detail?.summaries || {};
+  const summaryRows = Object.entries(summaries)
+    .map(([target, summary]) => {
+      const impact = (summary.system_impact_rows || []).find((row) => {
+        const channel = String(row.channel || "").toLowerCase();
+        return Boolean(row.is_self_response) || channel === target.toLowerCase();
+      });
+      if (!impact) return null;
+      const left = Number(impact.left_pct ?? 0);
+      const right = Number(impact.right_pct ?? 0);
+      const impactValue = Number(impact.max_abs_delta_pct ?? Math.max(Math.abs(left), Math.abs(right)));
+      if (!Number.isFinite(impactValue)) return null;
+      return {
+        channel: target,
+        left: Number.isFinite(left) ? left : 0,
+        right: Number.isFinite(right) ? right : 0,
+        impact: impactValue,
+        n: impact.n_rows,
+        source: "target_channel_detail.self_response",
+        unit: "pct",
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+  if (summaryRows.length) {
+    return summaryRows.sort((a, b) => Math.abs(Number(b.impact ?? 0)) - Math.abs(Number(a.impact ?? 0)));
+  }
+
   return [...(payload.roi_tornado_rows || emptyArray)].sort((a, b) => {
     return Math.abs(Number(b.impact ?? 0)) - Math.abs(Number(a.impact ?? 0));
   });

@@ -1108,6 +1108,10 @@ def _resolve_robustness_tag(scope: dict, cfg: dict) -> str | None:
     if explicit_tag:
         return explicit_tag
 
+    output_tag = str(scope.get("output_tag", "") or "").strip()
+    if output_tag:
+        return output_tag
+
     linked_targets = [str(x).strip() for x in (scope.get("linked_targets") or []) if str(x).strip()]
     if linked_targets:
         return "_".join(sorted(linked_targets))
@@ -1202,16 +1206,16 @@ def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
     score = _safe_float(row.get("overall_model_robustness_score"))
     band = str(row.get("overall_model_robustness_band", "") or "").strip().upper()
     if band not in {"LOW", "MEDIUM", "HIGH"}:
-        band = ""
-        q33 = _safe_float(row.get("empirical_low_cutoff_q33"))
-        q67 = _safe_float(row.get("empirical_high_cutoff_q67"))
-        if score is not None and q33 is not None and q67 is not None:
-            if score < q33:
-                band = "LOW"
-            elif score >= q67:
+        absolute_band = str(row.get("absolute_band", "") or "").strip().upper()
+        if absolute_band in {"LOW", "MEDIUM", "HIGH"}:
+            band = absolute_band
+        elif score is not None:
+            if score >= 75:
                 band = "HIGH"
-            else:
+            elif score >= 50:
                 band = "MEDIUM"
+            else:
+                band = "LOW"
 
     if score is None:
         return {
@@ -1231,16 +1235,21 @@ def _load_robustness_model_score(scope: dict, cfg: dict) -> dict:
         "reason": "",
         "overall_model_robustness_score": score,
         "overall_model_robustness_band": band,
+        "absolute_band": str(row.get("absolute_band", "") or "").strip() or band.title(),
         "overall_weighting": str(row.get("overall_weighting", "") or "").strip(),
         "n_runs_used": int(_safe_float(row.get("n_runs_used")) or 0),
         "target_subset_robustness_score": _safe_float(row.get("target_subset_robustness_score")),
         "overall_prior_sensitivity_subscore": _safe_float(row.get("overall_prior_sensitivity_subscore")),
         "overall_data_influence_subscore": _safe_float(row.get("overall_data_influence_subscore")),
         "overall_cross_channel_subscore": _safe_float(row.get("overall_cross_channel_subscore")),
-        "overall_adstock_proxy_subscore": _safe_float(row.get("overall_adstock_proxy_subscore")),
         "empirical_low_cutoff_q33": _safe_float(row.get("empirical_low_cutoff_q33")),
         "empirical_high_cutoff_q67": _safe_float(row.get("empirical_high_cutoff_q67")),
-        "adstock_note": str(row.get("adstock_note", "") or "").strip(),
+        "band_method": str(row.get("band_method", "") or "").strip(),
+        "absolute_band_method": str(row.get("absolute_band_method", "") or "").strip(),
+        "relative_rank_method": str(row.get("relative_rank_method", "") or "").strip(),
+        "score_method": str(row.get("score_method", "") or "").strip(),
+        "score_note": str(row.get("score_note", "") or "").strip(),
+        "near_zero_baseline_fallback_rate": _safe_float(row.get("near_zero_baseline_fallback_rate")),
     }
 
 
@@ -1552,7 +1561,7 @@ def _compute_decision_card(
     score_subscores: list[dict] = [
         {
             "id": "prior",
-            "label": "Prior Sensitivity",
+            "label": "Sensitivity Elasticity",
             "value": None,
         },
         {
@@ -1565,31 +1574,26 @@ def _compute_decision_card(
             "label": "Cross-Channel",
             "value": None,
         },
-        {
-            "id": "adstock",
-            "label": "Adstock Proxy",
-            "value": None,
-        },
     ]
     score_meta: dict = {
         "higher_is_better": True,
         "overall_weighting": None,
         "band_low_cutoff_q33": None,
         "band_high_cutoff_q67": None,
-        "band_method": "empirical_tertiles_within_run_set",
+        "band_method": "provisional_fixed_thresholds",
         "subscore_weights": {
-            "prior": 0.50,
-            "data": 0.30,
+            "prior": 0.60,
+            "data": 0.25,
             "cross": 0.15,
-            "adstock": 0.05,
         },
-        "adstock_note": None,
+        "score_method": "absolute_prior_sensitivity_v1",
+        "near_zero_baseline_fallback_rate": None,
     }
     if robust_available:
         score_subscores = [
             {
                 "id": "prior",
-                "label": "Prior Sensitivity",
+                "label": "Sensitivity Elasticity",
                 "value": _safe_float(robust.get("overall_prior_sensitivity_subscore")),
             },
             {
@@ -1603,11 +1607,6 @@ def _compute_decision_card(
                 "value": _safe_float(robust.get("overall_cross_channel_subscore")),
             },
             {
-                "id": "adstock",
-                "label": "Adstock Proxy",
-                "value": _safe_float(robust.get("overall_adstock_proxy_subscore")),
-            },
-            {
                 "id": "target_subset",
                 "label": "Target Subset",
                 "value": _safe_float(robust.get("target_subset_robustness_score")),
@@ -1619,7 +1618,16 @@ def _compute_decision_card(
                 "overall_weighting": str(robust.get("overall_weighting", "") or "").strip() or None,
                 "band_low_cutoff_q33": _safe_float(robust.get("empirical_low_cutoff_q33")),
                 "band_high_cutoff_q67": _safe_float(robust.get("empirical_high_cutoff_q67")),
-                "adstock_note": str(robust.get("adstock_note", "") or "").strip() or None,
+                "band_method": str(robust.get("band_method", "") or "").strip() or "provisional_fixed_thresholds",
+                "absolute_band_method": str(robust.get("absolute_band_method", "") or "").strip() or "provisional_fixed_thresholds",
+                "relative_rank_method": str(robust.get("relative_rank_method", "") or "").strip() or "score_rank_within_current_run",
+                "score_method": str(robust.get("score_method", "") or "").strip() or "absolute_prior_sensitivity_v1",
+                "near_zero_baseline_fallback_rate": _safe_float(robust.get("near_zero_baseline_fallback_rate")),
+                "methodology_note": (
+                    "This robustness score is a project-defined prior sensitivity heuristic, not an official Meridian metric. "
+                    "It measures how stable each channel's posterior ROI/contribution estimates are under prior perturbations, "
+                    "conditional on the selected structural profile."
+                ),
             }
         )
 
@@ -2461,6 +2469,7 @@ def compute_all_metrics(df: pd.DataFrame, cfg: dict, tables_dir: Path) -> dict:
 
     diagnostics = _compute_diagnostics(prior_df, tables_dir)
     scope = _build_scope_info(prior_df)
+    scope["output_tag"] = tables_dir.parent.name if tables_dir.name == "tables" else tables_dir.name
     scope["n_channels_before"] = int(prior_df["channel"].nunique())
     scope["n_rows_before"] = int(prior_df.shape[0])
     scope["n_rows_total_input"] = int(full_df.shape[0])

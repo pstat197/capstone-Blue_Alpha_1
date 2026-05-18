@@ -2,7 +2,7 @@
   "meta": {
     "title": "Prior Sensitivity Analysis Framework for Bayesian Marketing Mix Models (MMM)",
     "subtitle": "Google Meridian MMM - Prior Robustness Diagnostics",
-    "generated_at": "2026-05-16 18:53:30",
+    "generated_at": "2026-05-18 01:03:57",
     "authors": [
       "Aidan Frazier",
       "Quinlan Wilson",
@@ -39,35 +39,30 @@
     "tier_class": "review",
     "headline": "Directional only; resolve QC or stability risks before budget-level decisions.",
     "score_label": "Overall Prior-Sensitivity Robustness",
-    "score_value": "46.61 / 100 (Medium)",
-    "score_numeric": 46.609,
+    "score_value": "63.11 / 100 (Medium)",
+    "score_numeric": 63.106,
     "score_band": "Medium",
-    "score_note": "src=robustness_model_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | w=spend | n=231",
+    "score_note": "src=robustness_model_full_grid_run_31f48db54f2c.csv | w=spend | n=32",
     "score_subscores": [
       {
         "id": "prior",
-        "label": "Prior Sensitivity",
-        "value": 30.723
+        "label": "Sensitivity Elasticity",
+        "value": 65.884
       },
       {
         "id": "data",
         "label": "Data Influence",
-        "value": 80.07
+        "value": 38.733
       },
       {
         "id": "cross",
         "label": "Cross-Channel",
-        "value": 20.925
-      },
-      {
-        "id": "adstock",
-        "label": "Adstock Proxy",
-        "value": 81.763
+        "value": 92.618
       },
       {
         "id": "target_subset",
         "label": "Target Subset",
-        "value": 46.609
+        "value": 63.106
       }
     ],
     "policy_name": "Traffic-Light Policy v2 (LogNormal-first robustness)",
@@ -87,7 +82,7 @@
     "reasons": [
       "Broad exploration diagnostics: PASS 0.0%, REVIEW 40, FAIL 0.",
       "QC gate window: 40 run(s), PASS 0, REVIEW 40, FAIL 0.",
-      "Robustness score: 46.61/100 (Medium), weighting=spend, runs=231, tag=amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok. Target-subset score=46.61/100.",
+      "Robustness score: 63.11/100 (Medium), weighting=spend, runs=32, tag=full_grid_run_31f48db54f2c. Target-subset score=63.11/100.",
       "Percent-change safeguard: 8/8 channel-prior pair(s) had unstable baseline ROI; those pairs are ranked by |Delta ROI| instead of % change.",
       "Prior guardrail: 0 run(s), 0/320 row(s) exceed threshold P(ROI<0)>0.20 (0.0%), max P(ROI<0)=0.00.",
       "PASS coverage (pass_only): 0.0% (0/320); green minimum is 60.0%.",
@@ -101,20 +96,124 @@
     "score_meta": {
       "higher_is_better": true,
       "overall_weighting": "spend",
-      "band_low_cutoff_q33": 42.857,
-      "band_high_cutoff_q67": 64.524,
-      "band_method": "empirical_tertiles_within_run_set",
-      "adstock_note": "Proxy-only (no adstock sweep in current experiment design)",
+      "band_low_cutoff_q33": null,
+      "band_high_cutoff_q67": null,
+      "band_method": "provisional_fixed_thresholds",
+      "absolute_band_method": "provisional_fixed_thresholds",
+      "relative_rank_method": "score_rank_within_current_run",
       "subscore_weights": {
-        "prior": 0.5,
-        "data": 0.3,
-        "cross": 0.15,
-        "adstock": 0.05
+        "prior": 0.6,
+        "data": 0.25,
+        "cross": 0.15
       },
-      "methodology_note": "",
+      "methodology_note": "This robustness score is a project-defined prior sensitivity heuristic, not an official Meridian metric. It measures how stable each channel's posterior ROI/contribution estimates are under prior perturbations, conditional on the selected structural profile.",
       "worst_channel": null,
       "top_sensitive_channels": []
     }
+  },
+  "diagnostics": {
+    "available": true,
+    "overview": {
+      "n_runs": 40,
+      "pass_runs": 0,
+      "review_runs": 40,
+      "fail_runs": 0,
+      "unknown_runs": 0,
+      "pass_rate_pct": 0.0,
+      "review_rate_pct": 100.0,
+      "fail_rate_pct": 0.0
+    },
+    "status_rows": [
+      {
+        "status": "REVIEW",
+        "count": 40,
+        "pct_runs": 100.0
+      }
+    ],
+    "primary_rows": [
+      {
+        "check": "PriorPosteriorShift",
+        "count": 40,
+        "pct_runs": 100.0
+      }
+    ],
+    "flagged_rows": [
+      {
+        "channel": "liveintent",
+        "count": 33,
+        "pct_runs": 82.5
+      },
+      {
+        "channel": "amazon",
+        "count": 31,
+        "pct_runs": 77.5
+      },
+      {
+        "channel": "beehiiv",
+        "count": 25,
+        "pct_runs": 62.5
+      },
+      {
+        "channel": "snapchat",
+        "count": 12,
+        "pct_runs": 30.0
+      },
+      {
+        "channel": "meta",
+        "count": 8,
+        "pct_runs": 20.0
+      }
+    ],
+    "check_rows": [
+      {
+        "check": "convergence",
+        "pass_count": 40,
+        "review_count": 0,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      },
+      {
+        "check": "baseline",
+        "pass_count": 40,
+        "review_count": 0,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      },
+      {
+        "check": "bayesianppp",
+        "pass_count": 40,
+        "review_count": 0,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      },
+      {
+        "check": "gof",
+        "pass_count": 40,
+        "review_count": 0,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      },
+      {
+        "check": "prior_posterior_shift",
+        "pass_count": 0,
+        "review_count": 40,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      },
+      {
+        "check": "roi_consistency",
+        "pass_count": 40,
+        "review_count": 0,
+        "fail_count": 0,
+        "unknown_count": 0,
+        "coverage_pct": 100.0
+      }
+    ]
   },
   "diagnostics_overview": {
     "n_runs": 40,
@@ -21571,10 +21670,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.364,
-            "posterior_roi_p25": 0.18,
-            "posterior_roi_p75": 0.478,
-            "posterior_roi_p50": 0.293,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -21585,10 +21684,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.225,
-            "posterior_roi_p25": 0.077,
-            "posterior_roi_p75": 0.311,
-            "posterior_roi_p50": 0.157,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -21599,10 +21698,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.824,
-            "posterior_roi_p25": 0.58,
-            "posterior_roi_p75": 1.017,
-            "posterior_roi_p50": 0.776,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -21613,10 +21712,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.609,
-            "posterior_roi_p25": 0.327,
-            "posterior_roi_p75": 0.8,
-            "posterior_roi_p50": 0.504,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -21627,10 +21726,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.286,
-            "posterior_roi_p25": 1.027,
-            "posterior_roi_p75": 1.493,
-            "posterior_roi_p50": 1.264,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -21641,10 +21740,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.058,
-            "posterior_roi_p25": 0.692,
-            "posterior_roi_p75": 1.333,
-            "posterior_roi_p50": 0.981,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -22614,58 +22713,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 35.0,
-          "band": "Low",
+          "score": 60.494,
+          "overall_channel_robustness_score": 60.494,
+          "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 4.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "4 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 0.0
+              "label": "Sensitivity Elasticity",
+              "value": 61.142
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 100.0
+              "value": 40.399
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 0.0
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 100.0
+              "value": 91.393
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=google | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=google | n=5",
           "scope": "target_channel",
           "source_row": {
             "channel": "google",
+            "target_channel": "google",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 5,
+            "n_self_rows": 5,
+            "n_cross_rows": 35,
             "channel_total_spend": 10298543.947,
-            "sensitivity_mu_elasticity_median": 0.016,
-            "sensitivity_sigma_elasticity_median": 0.044,
-            "sensitivity_joint_elasticity_median": 0.015,
+            "sensitivity_mu_elasticity_median": 1.265,
+            "sensitivity_sigma_elasticity_median": 0.383,
+            "sensitivity_joint_elasticity_median": 0.636,
+            "sensitivity_any_elasticity_median": 0.636,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.025,
-            "data_diffuse_shift_median": 0.017,
-            "data_prior_shift_flag_rate": 0.0,
-            "data_influence_raw": 0.212,
-            "cross_channel_coupling_raw": 0.096,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.187,
-            "prior_sensitivity_fragility_rank": 1.0,
-            "data_influence_fragility_rank": 0.0,
-            "cross_channel_fragility_rank": 1.0,
-            "adstock_proxy_fragility_rank": 0.0,
-            "prior_sensitivity_subscore": 0.0,
-            "data_influence_subscore": 100.0,
-            "cross_channel_subscore": 0.0,
-            "adstock_proxy_subscore": 100.0,
-            "overall_channel_robustness_score": 35.0,
-            "robustness_band": "Low",
+            "sensitivity_fragility": 0.636,
+            "prior_sensitivity_raw": 0.636,
+            "prior_sensitivity_subscore": 61.142,
+            "data_diffuse_shift_median": 0.383,
+            "data_influence_raw": 40.399,
+            "data_influence_subscore": 40.399,
+            "cross_channel_fragility": 0.024,
+            "max_cross_channel_fragility": 0.081,
+            "cross_channel_subscore": 91.393,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 60.494,
+            "relative_rank": 4,
+            "relative_rank_total": 8,
+            "relative_rank_label": "4 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
+            "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -22683,10 +22791,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.492,
-            "posterior_roi_p25": 0.212,
-            "posterior_roi_p75": 0.628,
-            "posterior_roi_p50": 0.357,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -22697,10 +22805,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.442,
-            "posterior_roi_p25": 0.104,
-            "posterior_roi_p75": 0.571,
-            "posterior_roi_p50": 0.237,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -22711,10 +22819,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.975,
-            "posterior_roi_p25": 0.674,
-            "posterior_roi_p75": 1.167,
-            "posterior_roi_p50": 0.867,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -22725,10 +22833,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.869,
-            "posterior_roi_p25": 0.419,
-            "posterior_roi_p75": 1.164,
-            "posterior_roi_p50": 0.674,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -23426,58 +23534,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 71.429,
-          "band": "High",
+          "score": 67.776,
+          "overall_channel_robustness_score": 67.776,
+          "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 3.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "3 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 57.143
+              "label": "Sensitivity Elasticity",
+              "value": 72.295
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 85.714
+              "value": 41.527
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 85.714
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 85.714
+              "value": 93.453
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=meta | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=meta | n=3",
           "scope": "target_channel",
           "source_row": {
             "channel": "meta",
+            "target_channel": "meta",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 3,
+            "n_self_rows": 3,
+            "n_cross_rows": 21,
             "channel_total_spend": 840158.127,
-            "sensitivity_mu_elasticity_median": 0.027,
-            "sensitivity_sigma_elasticity_median": 0.014,
-            "sensitivity_joint_elasticity_median": 0.017,
+            "sensitivity_mu_elasticity_median": 0.98,
+            "sensitivity_sigma_elasticity_median": 0.101,
+            "sensitivity_joint_elasticity_median": 0.383,
+            "sensitivity_any_elasticity_median": 0.383,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.019,
-            "data_diffuse_shift_median": 0.004,
-            "data_prior_shift_flag_rate": 0.0,
-            "data_influence_raw": 0.251,
-            "cross_channel_coupling_raw": 0.077,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.202,
-            "prior_sensitivity_fragility_rank": 0.429,
-            "data_influence_fragility_rank": 0.143,
-            "cross_channel_fragility_rank": 0.143,
-            "adstock_proxy_fragility_rank": 0.143,
-            "prior_sensitivity_subscore": 57.143,
-            "data_influence_subscore": 85.714,
-            "cross_channel_subscore": 85.714,
-            "adstock_proxy_subscore": 85.714,
-            "overall_channel_robustness_score": 71.429,
-            "robustness_band": "High",
+            "sensitivity_fragility": 0.383,
+            "prior_sensitivity_raw": 0.383,
+            "prior_sensitivity_subscore": 72.295,
+            "data_diffuse_shift_median": 0.101,
+            "data_influence_raw": 41.527,
+            "data_influence_subscore": 41.527,
+            "cross_channel_fragility": 0.018,
+            "max_cross_channel_fragility": 0.052,
+            "cross_channel_subscore": 93.453,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 67.776,
+            "relative_rank": 3,
+            "relative_rank_total": 8,
+            "relative_rank_label": "3 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
+            "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -23495,10 +23612,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.361,
-            "posterior_roi_p25": 0.089,
-            "posterior_roi_p75": 0.449,
-            "posterior_roi_p50": 0.207,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -23509,10 +23626,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.773,
-            "posterior_roi_p25": 0.356,
-            "posterior_roi_p75": 1.031,
-            "posterior_roi_p50": 0.61,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -23523,10 +23640,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.222,
-            "posterior_roi_p25": 0.716,
-            "posterior_roi_p75": 1.566,
-            "posterior_roi_p50": 1.082,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -23537,10 +23654,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.724,
-            "posterior_roi_p25": 1.179,
-            "posterior_roi_p75": 2.153,
-            "posterior_roi_p50": 1.593,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -24238,57 +24355,66 @@
         },
         "robustness": {
           "available": true,
-          "score": 60.714,
+          "score": 52.257,
+          "overall_channel_robustness_score": 52.257,
           "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 8.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "8 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 42.857
+              "label": "Sensitivity Elasticity",
+              "value": 55.721
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 71.429
+              "value": 22.695
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 100.0
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 57.143
+              "value": 87.674
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=tiktok | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=tiktok | n=3",
           "scope": "target_channel",
           "source_row": {
             "channel": "tiktok",
+            "target_channel": "tiktok",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 3,
+            "n_self_rows": 3,
+            "n_cross_rows": 21,
             "channel_total_spend": 1752685.009,
-            "sensitivity_mu_elasticity_median": 0.017,
-            "sensitivity_sigma_elasticity_median": 0.029,
-            "sensitivity_joint_elasticity_median": 0.015,
+            "sensitivity_mu_elasticity_median": null,
+            "sensitivity_sigma_elasticity_median": null,
+            "sensitivity_joint_elasticity_median": 0.795,
+            "sensitivity_any_elasticity_median": 0.795,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.021,
-            "data_diffuse_shift_median": 0.016,
-            "data_prior_shift_flag_rate": 0.0,
-            "data_influence_raw": 0.257,
-            "cross_channel_coupling_raw": 0.076,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.229,
-            "prior_sensitivity_fragility_rank": 0.571,
-            "data_influence_fragility_rank": 0.286,
-            "cross_channel_fragility_rank": 0.0,
-            "adstock_proxy_fragility_rank": 0.429,
-            "prior_sensitivity_subscore": 42.857,
-            "data_influence_subscore": 71.429,
-            "cross_channel_subscore": 100.0,
-            "adstock_proxy_subscore": 57.143,
-            "overall_channel_robustness_score": 60.714,
+            "sensitivity_fragility": 0.795,
+            "prior_sensitivity_raw": 0.795,
+            "prior_sensitivity_subscore": 55.721,
+            "data_diffuse_shift_median": null,
+            "data_influence_raw": 22.695,
+            "data_influence_subscore": 22.695,
+            "cross_channel_fragility": 0.035,
+            "max_cross_channel_fragility": 0.1,
+            "cross_channel_subscore": 87.674,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 52.257,
+            "relative_rank": 8,
+            "relative_rank_total": 8,
+            "relative_rank_label": "8 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
             "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
@@ -24307,10 +24433,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.517,
-            "posterior_roi_p25": 0.206,
-            "posterior_roi_p75": 0.689,
-            "posterior_roi_p50": 0.371,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -24321,10 +24447,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.386,
-            "posterior_roi_p25": 0.096,
-            "posterior_roi_p75": 0.514,
-            "posterior_roi_p50": 0.232,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -24335,10 +24461,10 @@
             "roi_prior_sigma": 1.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.295,
-            "posterior_roi_p25": 0.056,
-            "posterior_roi_p75": 0.392,
-            "posterior_roi_p50": 0.151,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -24349,10 +24475,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.002,
-            "posterior_roi_p25": 0.66,
-            "posterior_roi_p75": 1.239,
-            "posterior_roi_p50": 0.91,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -24363,10 +24489,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.954,
-            "posterior_roi_p25": 0.412,
-            "posterior_roi_p75": 1.264,
-            "posterior_roi_p50": 0.731,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -24377,10 +24503,10 @@
             "roi_prior_sigma": 1.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.752,
-            "posterior_roi_p25": 0.274,
-            "posterior_roi_p75": 1.014,
-            "posterior_roi_p50": 0.564,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -25350,57 +25476,66 @@
         },
         "robustness": {
           "available": true,
-          "score": 58.571,
+          "score": 73.109,
+          "overall_channel_robustness_score": 73.109,
           "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 2.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "2 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 71.429
+              "label": "Sensitivity Elasticity",
+              "value": 79.854
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 57.143
+              "value": 43.299
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 14.286
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 71.429
+              "value": 95.812
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=snapchat | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=snapchat | n=5",
           "scope": "target_channel",
           "source_row": {
             "channel": "snapchat",
+            "target_channel": "snapchat",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 5,
+            "n_self_rows": 5,
+            "n_cross_rows": 35,
             "channel_total_spend": 4342436.909,
-            "sensitivity_mu_elasticity_median": 0.016,
-            "sensitivity_sigma_elasticity_median": 0.029,
-            "sensitivity_joint_elasticity_median": 0.013,
+            "sensitivity_mu_elasticity_median": 0.94,
+            "sensitivity_sigma_elasticity_median": 0.233,
+            "sensitivity_joint_elasticity_median": 0.252,
+            "sensitivity_any_elasticity_median": 0.252,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.019,
-            "data_diffuse_shift_median": 0.014,
-            "data_prior_shift_flag_rate": 0.0,
-            "data_influence_raw": 0.279,
-            "cross_channel_coupling_raw": 0.095,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.221,
-            "prior_sensitivity_fragility_rank": 0.286,
-            "data_influence_fragility_rank": 0.429,
-            "cross_channel_fragility_rank": 0.857,
-            "adstock_proxy_fragility_rank": 0.286,
-            "prior_sensitivity_subscore": 71.429,
-            "data_influence_subscore": 57.143,
-            "cross_channel_subscore": 14.286,
-            "adstock_proxy_subscore": 71.429,
-            "overall_channel_robustness_score": 58.571,
+            "sensitivity_fragility": 0.252,
+            "prior_sensitivity_raw": 0.252,
+            "prior_sensitivity_subscore": 79.854,
+            "data_diffuse_shift_median": 0.429,
+            "data_influence_raw": 43.299,
+            "data_influence_subscore": 43.299,
+            "cross_channel_fragility": 0.011,
+            "max_cross_channel_fragility": 0.078,
+            "cross_channel_subscore": 95.812,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 73.109,
+            "relative_rank": 2,
+            "relative_rank_total": 8,
+            "relative_rank_label": "2 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
             "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
@@ -25419,10 +25554,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.519,
-            "posterior_roi_p25": 0.22,
-            "posterior_roi_p75": 0.632,
-            "posterior_roi_p50": 0.369,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -25433,10 +25568,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.562,
-            "posterior_roi_p25": 0.113,
-            "posterior_roi_p75": 0.601,
-            "posterior_roi_p50": 0.246,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -25447,10 +25582,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.035,
-            "posterior_roi_p25": 0.686,
-            "posterior_roi_p75": 1.284,
-            "posterior_roi_p50": 0.932,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -25461,10 +25596,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.086,
-            "posterior_roi_p25": 0.452,
-            "posterior_roi_p75": 1.389,
-            "posterior_roi_p50": 0.779,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -25475,10 +25610,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.528,
-            "posterior_roi_p25": 1.183,
-            "posterior_roi_p75": 1.793,
-            "posterior_roi_p50": 1.451,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -25489,10 +25624,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.583,
-            "posterior_roi_p25": 0.887,
-            "posterior_roi_p75": 1.945,
-            "posterior_roi_p50": 1.351,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -26462,58 +26597,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 66.429,
-          "band": "High",
+          "score": 58.726,
+          "overall_channel_robustness_score": 58.726,
+          "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 7.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "7 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 85.714
+              "label": "Sensitivity Elasticity",
+              "value": 59.44
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 42.857
+              "value": 35.07
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 57.143
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 42.857
+              "value": 95.296
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=moloco | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=moloco | n=5",
           "scope": "target_channel",
           "source_row": {
             "channel": "moloco",
+            "target_channel": "moloco",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 5,
+            "n_self_rows": 5,
+            "n_cross_rows": 35,
             "channel_total_spend": 842234.61,
-            "sensitivity_mu_elasticity_median": 0.022,
-            "sensitivity_sigma_elasticity_median": 0.014,
-            "sensitivity_joint_elasticity_median": 0.016,
+            "sensitivity_mu_elasticity_median": 0.982,
+            "sensitivity_sigma_elasticity_median": 0.082,
+            "sensitivity_joint_elasticity_median": 0.682,
+            "sensitivity_any_elasticity_median": 0.682,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.018,
-            "data_diffuse_shift_median": 0.006,
-            "data_prior_shift_flag_rate": 0.004,
-            "data_influence_raw": 0.365,
-            "cross_channel_coupling_raw": 0.084,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.255,
-            "prior_sensitivity_fragility_rank": 0.143,
-            "data_influence_fragility_rank": 0.571,
-            "cross_channel_fragility_rank": 0.429,
-            "adstock_proxy_fragility_rank": 0.571,
-            "prior_sensitivity_subscore": 85.714,
-            "data_influence_subscore": 42.857,
-            "cross_channel_subscore": 57.143,
-            "adstock_proxy_subscore": 42.857,
-            "overall_channel_robustness_score": 66.429,
-            "robustness_band": "High",
+            "sensitivity_fragility": 0.682,
+            "prior_sensitivity_raw": 0.682,
+            "prior_sensitivity_subscore": 59.44,
+            "data_diffuse_shift_median": 0.082,
+            "data_influence_raw": 35.07,
+            "data_influence_subscore": 35.07,
+            "cross_channel_fragility": 0.012,
+            "max_cross_channel_fragility": 0.061,
+            "cross_channel_subscore": 95.296,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 58.726,
+            "relative_rank": 7,
+            "relative_rank_total": 8,
+            "relative_rank_label": "7 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
+            "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -26531,10 +26675,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.507,
-            "posterior_roi_p25": 0.202,
-            "posterior_roi_p75": 0.649,
-            "posterior_roi_p50": 0.363,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -26545,10 +26689,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.476,
-            "posterior_roi_p25": 0.091,
-            "posterior_roi_p75": 0.545,
-            "posterior_roi_p50": 0.231,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -26559,10 +26703,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.009,
-            "posterior_roi_p25": 0.643,
-            "posterior_roi_p75": 1.262,
-            "posterior_roi_p50": 0.901,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -26573,10 +26717,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.009,
-            "posterior_roi_p25": 0.4,
-            "posterior_roi_p75": 1.28,
-            "posterior_roi_p50": 0.723,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -26587,10 +26731,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.51,
-            "posterior_roi_p25": 1.137,
-            "posterior_roi_p75": 1.812,
-            "posterior_roi_p50": 1.421,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -26601,10 +26745,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.517,
-            "posterior_roi_p25": 0.835,
-            "posterior_roi_p75": 1.941,
-            "posterior_roi_p50": 1.28,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -27574,58 +27718,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 66.429,
-          "band": "High",
+          "score": 59.408,
+          "overall_channel_robustness_score": 59.408,
+          "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 6.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "6 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 100.0
+              "label": "Sensitivity Elasticity",
+              "value": 60.125
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 28.571
+              "value": 35.696
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 42.857
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 28.571
+              "value": 96.064
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=liveintent | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=liveintent | n=5",
           "scope": "target_channel",
           "source_row": {
             "channel": "liveintent",
+            "target_channel": "liveintent",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 5,
+            "n_self_rows": 5,
+            "n_cross_rows": 35,
             "channel_total_spend": 797987.173,
-            "sensitivity_mu_elasticity_median": 0.01,
-            "sensitivity_sigma_elasticity_median": 0.013,
-            "sensitivity_joint_elasticity_median": 0.01,
+            "sensitivity_mu_elasticity_median": 0.988,
+            "sensitivity_sigma_elasticity_median": 0.061,
+            "sensitivity_joint_elasticity_median": 0.663,
+            "sensitivity_any_elasticity_median": 0.663,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.011,
-            "data_diffuse_shift_median": 0.005,
-            "data_prior_shift_flag_rate": 0.0,
-            "data_influence_raw": 0.37,
-            "cross_channel_coupling_raw": 0.086,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.293,
-            "prior_sensitivity_fragility_rank": 0.0,
-            "data_influence_fragility_rank": 0.714,
-            "cross_channel_fragility_rank": 0.571,
-            "adstock_proxy_fragility_rank": 0.714,
-            "prior_sensitivity_subscore": 100.0,
-            "data_influence_subscore": 28.571,
-            "cross_channel_subscore": 42.857,
-            "adstock_proxy_subscore": 28.571,
-            "overall_channel_robustness_score": 66.429,
-            "robustness_band": "High",
+            "sensitivity_fragility": 0.663,
+            "prior_sensitivity_raw": 0.663,
+            "prior_sensitivity_subscore": 60.125,
+            "data_diffuse_shift_median": 0.061,
+            "data_influence_raw": 35.696,
+            "data_influence_subscore": 35.696,
+            "cross_channel_fragility": 0.01,
+            "max_cross_channel_fragility": 0.06,
+            "cross_channel_subscore": 96.064,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 59.408,
+            "relative_rank": 6,
+            "relative_rank_total": 8,
+            "relative_rank_label": "6 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
+            "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -27643,10 +27796,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.006,
-            "posterior_roi_p25": 0.64,
-            "posterior_roi_p75": 1.234,
-            "posterior_roi_p50": 0.88,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -27657,10 +27810,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.036,
-            "posterior_roi_p25": 0.387,
-            "posterior_roi_p75": 1.267,
-            "posterior_roi_p50": 0.715,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -28086,58 +28239,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 15.714,
-          "band": "Low",
+          "score": 79.109,
+          "overall_channel_robustness_score": 79.109,
+          "band": "High",
+          "robustness_band": "High",
+          "absolute_band": "High",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 1.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "1 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 14.286
+              "label": "Sensitivity Elasticity",
+              "value": 98.531
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 14.286
+              "value": 21.362
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 28.571
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 0.0
+              "value": 97.664
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=beehiiv | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=beehiiv | n=1",
           "scope": "target_channel",
           "source_row": {
             "channel": "beehiiv",
+            "target_channel": "beehiiv",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 1,
+            "n_self_rows": 1,
+            "n_cross_rows": 7,
             "channel_total_spend": 328172.273,
-            "sensitivity_mu_elasticity_median": 0.023,
-            "sensitivity_sigma_elasticity_median": 0.027,
-            "sensitivity_joint_elasticity_median": 0.018,
+            "sensitivity_mu_elasticity_median": null,
+            "sensitivity_sigma_elasticity_median": null,
+            "sensitivity_joint_elasticity_median": 0.015,
+            "sensitivity_any_elasticity_median": 0.015,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.023,
-            "data_diffuse_shift_median": 0.01,
-            "data_prior_shift_flag_rate": 0.043,
-            "data_influence_raw": 0.397,
-            "cross_channel_coupling_raw": 0.089,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.346,
-            "prior_sensitivity_fragility_rank": 0.857,
-            "data_influence_fragility_rank": 0.857,
-            "cross_channel_fragility_rank": 0.714,
-            "adstock_proxy_fragility_rank": 1.0,
-            "prior_sensitivity_subscore": 14.286,
-            "data_influence_subscore": 14.286,
-            "cross_channel_subscore": 28.571,
-            "adstock_proxy_subscore": 0.0,
-            "overall_channel_robustness_score": 15.714,
-            "robustness_band": "Low",
+            "sensitivity_fragility": 0.015,
+            "prior_sensitivity_raw": 0.015,
+            "prior_sensitivity_subscore": 98.531,
+            "data_diffuse_shift_median": null,
+            "data_influence_raw": 21.362,
+            "data_influence_subscore": 21.362,
+            "cross_channel_fragility": 0.006,
+            "max_cross_channel_fragility": 0.011,
+            "cross_channel_subscore": 97.664,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 79.109,
+            "relative_rank": 1,
+            "relative_rank_total": 8,
+            "relative_rank_label": "1 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "High",
+            "robustness_band": "High",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -28155,10 +28317,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.512,
-            "posterior_roi_p25": 0.213,
-            "posterior_roi_p75": 0.612,
-            "posterior_roi_p50": 0.362,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": true
           },
           {
@@ -28169,10 +28331,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 0.503,
-            "posterior_roi_p25": 0.102,
-            "posterior_roi_p75": 0.5,
-            "posterior_roi_p50": 0.23,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -28183,10 +28345,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.004,
-            "posterior_roi_p25": 0.661,
-            "posterior_roi_p75": 1.221,
-            "posterior_roi_p50": 0.905,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -28197,10 +28359,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.03,
-            "posterior_roi_p25": 0.426,
-            "posterior_roi_p75": 1.265,
-            "posterior_roi_p50": 0.729,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -28211,10 +28373,10 @@
             "roi_prior_sigma": 0.5,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.508,
-            "posterior_roi_p25": 1.17,
-            "posterior_roi_p75": 1.731,
-            "posterior_roi_p50": 1.429,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           },
           {
@@ -28225,10 +28387,10 @@
             "roi_prior_sigma": 1.0,
             "roi_prior_dist": "LogNormal",
             "estimated_roi": 1.523,
-            "posterior_roi_p25": 0.851,
-            "posterior_roi_p75": 1.872,
-            "posterior_roi_p50": 1.271,
-            "qc_status_code": "PASS",
+            "posterior_roi_p25": null,
+            "posterior_roi_p75": null,
+            "posterior_roi_p50": null,
+            "qc_status_code": "REVIEW",
             "is_baseline": false
           }
         ],
@@ -29198,58 +29360,67 @@
         },
         "robustness": {
           "available": true,
-          "score": 25.714,
-          "band": "Low",
+          "score": 59.876,
+          "overall_channel_robustness_score": 59.876,
+          "band": "Medium",
+          "robustness_band": "Medium",
+          "absolute_band": "Medium",
+          "band_method": "provisional_fixed_thresholds",
+          "relative_rank": 5.0,
+          "relative_rank_total": 8.0,
+          "relative_rank_label": "5 / 8 tested channels",
+          "relative_rank_method": "score_rank_within_current_run",
           "subscores": [
             {
               "id": "prior",
-              "label": "Prior Sensitivity",
-              "value": 28.571
+              "label": "Sensitivity Elasticity",
+              "value": 60.314
             },
             {
               "id": "data",
               "label": "Data Influence",
-              "value": 0.0
+              "value": 37.425
             },
             {
               "id": "cross",
               "label": "Cross-Channel",
-              "value": 71.429
-            },
-            {
-              "id": "adstock",
-              "label": "Adstock Proxy",
-              "value": 14.286
+              "value": 95.546
             }
           ],
-          "note": "src=robustness_channel_amazon_beehiiv_google_liveintent_meta_moloco_snapchat_tiktok.csv | channel=amazon | n=231",
+          "note": "src=robustness_channel_full_grid_run_31f48db54f2c.csv | channel=amazon | n=5",
           "scope": "target_channel",
           "source_row": {
             "channel": "amazon",
+            "target_channel": "amazon",
             "in_target_set": true,
-            "n_runs_used": 231,
+            "n_runs_used": 5,
+            "n_self_rows": 5,
+            "n_cross_rows": 35,
             "channel_total_spend": 15740.258,
-            "sensitivity_mu_elasticity_median": 0.014,
-            "sensitivity_sigma_elasticity_median": 0.042,
-            "sensitivity_joint_elasticity_median": 0.013,
+            "sensitivity_mu_elasticity_median": 0.967,
+            "sensitivity_sigma_elasticity_median": 0.017,
+            "sensitivity_joint_elasticity_median": 0.658,
+            "sensitivity_any_elasticity_median": 0.658,
             "sensitivity_dist_shift_median": null,
-            "prior_sensitivity_raw": 0.023,
-            "data_diffuse_shift_median": 0.012,
-            "data_prior_shift_flag_rate": 0.745,
-            "data_influence_raw": 0.548,
-            "cross_channel_coupling_raw": 0.08,
-            "adstock_proxy_sign_flip_rate": 0.0,
-            "adstock_proxy_raw": 0.333,
-            "prior_sensitivity_fragility_rank": 0.714,
-            "data_influence_fragility_rank": 1.0,
-            "cross_channel_fragility_rank": 0.286,
-            "adstock_proxy_fragility_rank": 0.857,
-            "prior_sensitivity_subscore": 28.571,
-            "data_influence_subscore": 0.0,
-            "cross_channel_subscore": 71.429,
-            "adstock_proxy_subscore": 14.286,
-            "overall_channel_robustness_score": 25.714,
-            "robustness_band": "Low",
+            "sensitivity_fragility": 0.658,
+            "prior_sensitivity_raw": 0.658,
+            "prior_sensitivity_subscore": 60.314,
+            "data_diffuse_shift_median": 0.017,
+            "data_influence_raw": 37.425,
+            "data_influence_subscore": 37.425,
+            "cross_channel_fragility": 0.012,
+            "max_cross_channel_fragility": 0.182,
+            "cross_channel_subscore": 95.546,
+            "near_zero_baseline_fallback_rate": 0.0,
+            "score_method": "absolute_prior_sensitivity_v1",
+            "band_method": "provisional_fixed_thresholds",
+            "overall_channel_robustness_score": 59.876,
+            "relative_rank": 5,
+            "relative_rank_total": 8,
+            "relative_rank_label": "5 / 8 tested channels",
+            "relative_rank_method": "score_rank_within_current_run",
+            "absolute_band": "Medium",
+            "robustness_band": "Medium",
             "targets": "amazon,beehiiv,google,liveintent,meta,moloco,snapchat,tiktok"
           }
         }
@@ -39522,455 +39693,14 @@
     }
   },
   "figures": {
-    "roi_prior_vs_posterior": "figures/roi_prior_vs_posterior.png"
+    "roi_prior_vs_posterior": null
   },
   "roi_prior_posterior_table": {
-    "available": true,
+    "available": false,
     "interval": "50%",
-    "has_95": true,
-    "rows": [
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.512,
-        "posterior_50_lower": 0.213,
-        "posterior_50_upper": 0.612,
-        "posterior_95_lower": 0.099,
-        "posterior_95_upper": 1.466
-      },
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.503,
-        "posterior_50_lower": 0.102,
-        "posterior_50_upper": 0.5,
-        "posterior_95_lower": 0.031,
-        "posterior_95_upper": 2.039
-      },
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.004,
-        "posterior_50_lower": 0.661,
-        "posterior_50_upper": 1.221,
-        "posterior_95_lower": 0.429,
-        "posterior_95_upper": 1.946
-      },
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.03,
-        "posterior_50_lower": 0.426,
-        "posterior_50_upper": 1.265,
-        "posterior_95_lower": 0.195,
-        "posterior_95_upper": 2.877
-      },
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=1.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.508,
-        "posterior_50_lower": 1.17,
-        "posterior_50_upper": 1.731,
-        "posterior_95_lower": 0.865,
-        "posterior_95_upper": 2.513
-      },
-      {
-        "channel": "amazon",
-        "prior_variant": "mu=1.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.523,
-        "posterior_50_lower": 0.851,
-        "posterior_50_upper": 1.872,
-        "posterior_95_lower": 0.498,
-        "posterior_95_upper": 3.517
-      },
-      {
-        "channel": "beehiiv",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.006,
-        "posterior_50_lower": 0.64,
-        "posterior_50_upper": 1.234,
-        "posterior_95_lower": 0.401,
-        "posterior_95_upper": 2.033
-      },
-      {
-        "channel": "beehiiv",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.036,
-        "posterior_50_lower": 0.387,
-        "posterior_50_upper": 1.267,
-        "posterior_95_lower": 0.171,
-        "posterior_95_upper": 2.934
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.364,
-        "posterior_50_lower": 0.18,
-        "posterior_50_upper": 0.478,
-        "posterior_95_lower": 0.091,
-        "posterior_95_upper": 0.903
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.225,
-        "posterior_50_lower": 0.077,
-        "posterior_50_upper": 0.311,
-        "posterior_95_lower": 0.027,
-        "posterior_95_upper": 0.652
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.824,
-        "posterior_50_lower": 0.58,
-        "posterior_50_upper": 1.017,
-        "posterior_95_lower": 0.387,
-        "posterior_95_upper": 1.423
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.609,
-        "posterior_50_lower": 0.327,
-        "posterior_50_upper": 0.8,
-        "posterior_95_lower": 0.151,
-        "posterior_95_upper": 1.393
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=1.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.286,
-        "posterior_50_lower": 1.027,
-        "posterior_50_upper": 1.493,
-        "posterior_95_lower": 0.77,
-        "posterior_95_upper": 1.939
-      },
-      {
-        "channel": "google",
-        "prior_variant": "mu=1.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.058,
-        "posterior_50_lower": 0.692,
-        "posterior_50_upper": 1.333,
-        "posterior_95_lower": 0.384,
-        "posterior_95_upper": 2.023
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.507,
-        "posterior_50_lower": 0.202,
-        "posterior_50_upper": 0.649,
-        "posterior_95_lower": 0.091,
-        "posterior_95_upper": 1.423
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.476,
-        "posterior_50_lower": 0.091,
-        "posterior_50_upper": 0.545,
-        "posterior_95_lower": 0.028,
-        "posterior_95_upper": 1.876
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.009,
-        "posterior_50_lower": 0.643,
-        "posterior_50_upper": 1.262,
-        "posterior_95_lower": 0.408,
-        "posterior_95_upper": 2.015
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.009,
-        "posterior_50_lower": 0.4,
-        "posterior_50_upper": 1.28,
-        "posterior_95_lower": 0.192,
-        "posterior_95_upper": 2.786
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=1.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.51,
-        "posterior_50_lower": 1.137,
-        "posterior_50_upper": 1.812,
-        "posterior_95_lower": 0.829,
-        "posterior_95_upper": 2.475
-      },
-      {
-        "channel": "liveintent",
-        "prior_variant": "mu=1.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.517,
-        "posterior_50_lower": 0.835,
-        "posterior_50_upper": 1.941,
-        "posterior_95_lower": 0.477,
-        "posterior_95_upper": 3.329
-      },
-      {
-        "channel": "meta",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.492,
-        "posterior_50_lower": 0.212,
-        "posterior_50_upper": 0.628,
-        "posterior_95_lower": 0.102,
-        "posterior_95_upper": 1.313
-      },
-      {
-        "channel": "meta",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.442,
-        "posterior_50_lower": 0.104,
-        "posterior_50_upper": 0.571,
-        "posterior_95_lower": 0.029,
-        "posterior_95_upper": 1.578
-      },
-      {
-        "channel": "meta",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.975,
-        "posterior_50_lower": 0.674,
-        "posterior_50_upper": 1.167,
-        "posterior_95_lower": 0.444,
-        "posterior_95_upper": 1.83
-      },
-      {
-        "channel": "meta",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.869,
-        "posterior_50_lower": 0.419,
-        "posterior_50_upper": 1.164,
-        "posterior_95_lower": 0.191,
-        "posterior_95_upper": 2.259
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.519,
-        "posterior_50_lower": 0.22,
-        "posterior_50_upper": 0.632,
-        "posterior_95_lower": 0.096,
-        "posterior_95_upper": 1.456
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.562,
-        "posterior_50_lower": 0.113,
-        "posterior_50_upper": 0.601,
-        "posterior_95_lower": 0.034,
-        "posterior_95_upper": 2.259
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.035,
-        "posterior_50_lower": 0.686,
-        "posterior_50_upper": 1.284,
-        "posterior_95_lower": 0.436,
-        "posterior_95_upper": 1.948
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.086,
-        "posterior_50_lower": 0.452,
-        "posterior_50_upper": 1.389,
-        "posterior_95_lower": 0.209,
-        "posterior_95_upper": 3.119
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=1.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.528,
-        "posterior_50_lower": 1.183,
-        "posterior_50_upper": 1.793,
-        "posterior_95_lower": 0.876,
-        "posterior_95_upper": 2.399
-      },
-      {
-        "channel": "moloco",
-        "prior_variant": "mu=1.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.583,
-        "posterior_50_lower": 0.887,
-        "posterior_50_upper": 1.945,
-        "posterior_95_lower": 0.496,
-        "posterior_95_upper": 3.579
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=0.500, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 0.517,
-        "posterior_50_lower": 0.206,
-        "posterior_50_upper": 0.689,
-        "posterior_95_lower": 0.095,
-        "posterior_95_upper": 1.379
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.386,
-        "posterior_50_lower": 0.096,
-        "posterior_50_upper": 0.514,
-        "posterior_95_lower": 0.027,
-        "posterior_95_upper": 1.232
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=0.500, sigma=1.500, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.5,
-        "posterior_roi_estimate": 0.295,
-        "posterior_50_lower": 0.056,
-        "posterior_50_upper": 0.392,
-        "posterior_95_lower": 0.014,
-        "posterior_95_upper": 1.053
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=1.000, sigma=0.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 0.5,
-        "posterior_roi_estimate": 1.002,
-        "posterior_50_lower": 0.66,
-        "posterior_50_upper": 1.239,
-        "posterior_95_lower": 0.415,
-        "posterior_95_upper": 1.884
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.954,
-        "posterior_50_lower": 0.412,
-        "posterior_50_upper": 1.264,
-        "posterior_95_lower": 0.189,
-        "posterior_95_upper": 2.478
-      },
-      {
-        "channel": "snapchat",
-        "prior_variant": "mu=1.000, sigma=1.500, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.5,
-        "posterior_roi_estimate": 0.752,
-        "posterior_50_lower": 0.274,
-        "posterior_50_upper": 1.014,
-        "posterior_95_lower": 0.095,
-        "posterior_95_upper": 2.102
-      },
-      {
-        "channel": "tiktok",
-        "prior_variant": "mu=0.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 0.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.361,
-        "posterior_50_lower": 0.089,
-        "posterior_50_upper": 0.449,
-        "posterior_95_lower": 0.027,
-        "posterior_95_upper": 1.209
-      },
-      {
-        "channel": "tiktok",
-        "prior_variant": "mu=1.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 0.773,
-        "posterior_50_lower": 0.356,
-        "posterior_50_upper": 1.031,
-        "posterior_95_lower": 0.17,
-        "posterior_95_upper": 1.84
-      },
-      {
-        "channel": "tiktok",
-        "prior_variant": "mu=1.500, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 1.5,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.222,
-        "posterior_50_lower": 0.716,
-        "posterior_50_upper": 1.566,
-        "posterior_95_lower": 0.41,
-        "posterior_95_upper": 2.608
-      },
-      {
-        "channel": "tiktok",
-        "prior_variant": "mu=2.000, sigma=1.000, dist=LogNormal",
-        "prior_roi_mu": 2.0,
-        "prior_roi_sigma": 1.0,
-        "posterior_roi_estimate": 1.724,
-        "posterior_50_lower": 1.179,
-        "posterior_50_upper": 2.153,
-        "posterior_95_lower": 0.737,
-        "posterior_95_upper": 3.173
-      }
-    ],
-    "reason": ""
+    "has_95": false,
+    "rows": [],
+    "reason": "ROI source CSV not provided."
   },
   "quick_overview_lines": [
     "tiktok ROI prior (LogNormal): baseline unstable; max |Delta ROI| -> 1.3626",
@@ -40104,7 +39834,7 @@
       },
       {
         "label": "Generated at",
-        "value": "2026-05-16 18:53:30"
+        "value": "2026-05-18 01:03:57"
       }
     ],
     "notes": [

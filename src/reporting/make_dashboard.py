@@ -39,6 +39,28 @@ _LEGACY_REPORT_FIGURE_NAMES = {
 }
 
 
+def _infer_output_tag_from_input(input_path: Path) -> str | None:
+    stem = input_path.stem
+    prefix = "prior_sensitivity_report_input_"
+    if stem.startswith(prefix):
+        return stem[len(prefix):]
+    return input_path.parent.name or None
+
+
+def _infer_roi_source_csv(input_path: Path) -> str | None:
+    project_root = Path(__file__).resolve().parents[2]
+    tag = _infer_output_tag_from_input(input_path)
+    if not tag:
+        return None
+    candidate = project_root / "data" / "output" / "01_runs" / tag / f"prior_sensitivity_roi_multi_{tag}.csv"
+    if not candidate.exists():
+        return None
+    try:
+        return str(candidate.relative_to(project_root))
+    except ValueError:
+        return str(candidate)
+
+
 def _empty_figure_paths() -> dict:
     return {
         "tornado": None,
@@ -165,6 +187,8 @@ def main():
     if args.scenario_selection:
         cfg.setdefault("analysis", {})
         cfg["analysis"]["scenario_selection"] = args.scenario_selection
+    if not args.source_roi_csv:
+        args.source_roi_csv = _infer_roi_source_csv(input_path)
 
     output_cfg = cfg.setdefault("output", {})
     write_dashboard = bool(output_cfg.get("write_dashboard", True))

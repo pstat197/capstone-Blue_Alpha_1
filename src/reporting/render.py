@@ -149,10 +149,9 @@ def _build_target_channel_detail_payload(metrics: dict, source_files: dict | Non
     ]
     if not robust_subscores:
         robust_subscores = [
-            {"id": "prior", "label": "Prior Sensitivity", "value": None},
+            {"id": "prior", "label": "Sensitivity Elasticity", "value": None},
             {"id": "data", "label": "Data Influence", "value": None},
             {"id": "cross", "label": "Cross-Channel", "value": None},
-            {"id": "adstock", "label": "Adstock Proxy", "value": None},
         ]
     robustness_framework = {
         "available": robust_available,
@@ -165,7 +164,7 @@ def _build_target_channel_detail_payload(metrics: dict, source_files: dict | Non
                 "",
             )
             or _clean_text_safe(decision_card.get("score_note"), "")
-            or "Robustness score loaded from the model-level robustness output; higher subscore meters indicate stronger stability."
+            or "Project-defined prior sensitivity heuristic loaded from the model-level robustness output; higher subscore meters indicate stronger stability."
             if robust_available
             else f"Robustness score unavailable: {_clean_text_safe(robust_source.get('reason'), 'required robustness output missing')}."
         ),
@@ -405,11 +404,19 @@ def _build_target_channel_detail_payload(metrics: dict, source_files: dict | Non
                 target_robustness = {
                     "available": robust_score is not None,
                     "score": robust_score,
+                    "overall_channel_robustness_score": robust_score,
                     "band": robust_band,
+                    "robustness_band": robust_band,
+                    "absolute_band": _clean_text_safe(robust_row.get("absolute_band"), robust_band),
+                    "band_method": _clean_text_safe(robust_row.get("band_method"), ""),
+                    "relative_rank": _to_float_safe(robust_row.get("relative_rank")),
+                    "relative_rank_total": _to_float_safe(robust_row.get("relative_rank_total")),
+                    "relative_rank_label": _clean_text_safe(robust_row.get("relative_rank_label"), ""),
+                    "relative_rank_method": _clean_text_safe(robust_row.get("relative_rank_method"), ""),
                     "subscores": [
                         {
                             "id": "prior",
-                            "label": "Prior Sensitivity",
+                            "label": "Sensitivity Elasticity",
                             "value": _to_float_safe(robust_row.get("prior_sensitivity_subscore")),
                         },
                         {
@@ -421,11 +428,6 @@ def _build_target_channel_detail_payload(metrics: dict, source_files: dict | Non
                             "id": "cross",
                             "label": "Cross-Channel",
                             "value": _to_float_safe(robust_row.get("cross_channel_subscore")),
-                        },
-                        {
-                            "id": "adstock",
-                            "label": "Adstock Proxy",
-                            "value": _to_float_safe(robust_row.get("adstock_proxy_subscore")),
                         },
                     ],
                     "note": f"src={source_name or 'robustness_channel_<tag>.csv'} | channel={target} | n={robust_runs}",
@@ -1004,7 +1006,8 @@ def render_dashboard_output(
                 "band_low_cutoff_q33": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_low_cutoff_q33")),
                 "band_high_cutoff_q67": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_high_cutoff_q67")),
                 "band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("band_method"), ""),
-                "adstock_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("adstock_note"), ""),
+                "absolute_band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("absolute_band_method"), ""),
+                "relative_rank_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("relative_rank_method"), ""),
                 "subscore_weights": (decision_card.get("score_meta", {}) or {}).get("subscore_weights", {}) or {},
                 "methodology_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("methodology_note"), ""),
                 "worst_channel": (decision_card.get("score_meta", {}) or {}).get("worst_channel"),

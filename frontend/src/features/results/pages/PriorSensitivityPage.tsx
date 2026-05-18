@@ -1,17 +1,40 @@
-import type { ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
 import { useCurrentResult } from "../data/resultLoader";
-import type { DashboardPayload, DollarTornadoRow, RankRow, RoiTornadoRow } from "../data/resultTypes";
-import {
-  channelLabel,
-  formatMoneyCompact,
-  formatMovementValue,
-  formatNumber,
-  formatPercent,
-  selectDollarTornadoRows,
-  selectRunScope,
-  selectSelfResponseTornadoRows,
-} from "../data/resultSelectors";
+import type { SystemImpactRow, TargetChannelSummary, TargetRobustness } from "../data/resultTypes";
+import { channelLabel, formatNumber, formatPercent } from "../data/resultSelectors";
+
+type MetricMode = "pct" | "delta";
+
+type MovementRow = {
+  channel: string;
+  isSelf: boolean;
+  baselineRoi: number | null;
+  medianPct: number | null;
+  maxAbsPct: number | null;
+  medianDeltaRoi: number | null;
+  maxAbsDeltaRoi: number | null;
+  leftPct: number | null;
+  rightPct: number | null;
+  leftDeltaRoi: number | null;
+  rightDeltaRoi: number | null;
+  n: number;
+  stablePct: boolean;
+};
+
+type StructuralContext = {
+  alpha: number | null;
+  ec: number | null;
+  slope: number | null;
+  maxLag: number | null;
+};
+
+const missing = "Unavailable";
+const robustnessWeights = {
+  prior: 0.6,
+  data: 0.25,
+  cross: 0.15,
+};
 
 function downloadText(filename: string, text: string, type: string) {
   const blob = new Blob([text], { type });
@@ -23,306 +46,576 @@ function downloadText(filename: string, text: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-function csvEscape(value: unknown): string {
-  const text = value === null || value === undefined ? "" : String(value);
-  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-}
-
-function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
-}
-
-function statusText(value: unknown): string {
-  const text = String(value || "").trim();
-  return text || "Unavailable";
-}
-
-function signedMoneyClass(value: unknown): string {
+function asNumber(value: unknown): number | null {
   const n = Number(value);
-  if (!Number.isFinite(n) || n === 0) return "";
-  return n > 0 ? "ps-value-positive" : "ps-value-negative";
+  return Number.isFinite(n) ? n : null;
 }
 
-function EmptyState({ children }: { children: ReactNode }) {
-  return <div className="ps-empty-state">{children}</div>;
+function median(values: Array<number | null | undefined>): number | null {
+  const numeric = values.filter((value): value is number => Number.isFinite(value));
+  if (!numeric.length) return null;
+  const sorted = [...numeric].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
-function PriorSensitivityTornado({ rows }: { rows: RoiTornadoRow[] }) {
-  if (!rows.length) {
-    return <EmptyState>Sensitivity tornado data is unavailable for this run.</EmptyState>;
+function absMax(values: Array<number | null | undefined>): number | null {
+  const numeric = values.filter((value): value is number => Number.isFinite(value));
+  if (!numeric.length) return null;
+  return Math.max(...numeric.map((value) => Math.abs(value)));
+}
+
+function signedClass(value: number | null): string {
+  if (value === null || !Number.isFinite(value) || value === 0) return "";
+  return value > 0 ? "ps-value-positive" : "ps-value-negative";
+}
+
+function signedPercent(value: number | null, digits = 1): string {
+  if (value === null || !Number.isFinite(value)) return "NA";
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${formatPercent(value, digits)}`;
+}
+
+function signedNumber(value: number | null, digits = 3): string {
+  if (value === null || !Number.isFinite(value)) return "NA";
+  const prefix = value > 0 ? "+" : "";
+  return `${prefix}${formatNumber(value, digits)}`;
+}
+
+function scoreText(value: number | null | undefined): string {
+  if (value === null || value === undefined || !Number.isFinite(value)) return "NA";
+  return `${formatNumber(value, 0)} / 100`;
+}
+
+function bandClass(band: unknown): string {
+  const key = String(band || "").toLowerCase();
+  if (key.includes("high")) return "ps-band--high";
+  if (key.includes("medium")) return "ps-band--medium";
+  if (key.includes("low")) return "ps-band--low";
+  return "ps-band--unknown";
+}
+
+function bandInterpretation(band: unknown): string {
+  const key = String(band || "").toLowerCase();
+  if (key.includes("low")) {
+    return "Low robustness means this target channel's results are sensitive to prior assumptions. Additional review is recommended before drawing strong conclusions.";
   }
+  if (key.includes("medium")) {
+    return "Medium robustness means the result is usable directionally, but still needs caution where sensitivity or cross-channel effects are elevated.";
+  }
+  if (key.includes("high")) {
+    return "High robustness means this target channel's results are relatively stable across tested prior assumptions.";
+  }
+  return "Band interpretation is unavailable for this run.";
+}
 
-  const maxExtent = Math.max(
-    ...rows.flatMap((row) => [Math.abs(Number(row.left ?? 0)), Math.abs(Number(row.right ?? 0)), Math.abs(Number(row.impact ?? 0))]),
-    1
-  );
-  const scaleLabel = Math.ceil(maxExtent / 5) * 5;
+function absoluteBandForScore(score: number | null): string {
+  if (score === null || !Number.isFinite(score)) return "";
+  if (score >= 75) return "High";
+  if (score >= 50) return "Medium";
+  return "Low";
+}
 
+function currentTargetSummary(subscores: Array<{ id?: string; label?: string; value?: number | null }>): string {
+  const numeric = subscores
+    .map((item) => ({ label: item.label || item.id || "Subscore", value: asNumber(item.value) }))
+    .filter((item): item is { label: string; value: number } => item.value !== null);
+  if (!numeric.length) return "Subscore details are unavailable for this target.";
+  const strongest = [...numeric].sort((a, b) => b.value - a.value)[0];
+  const weakest = [...numeric].sort((a, b) => a.value - b.value)[0];
+  return `Strongest subscore: ${strongest.label}. Weakest subscore: ${weakest.label}.`;
+}
+
+function scoreField(row: Record<string, unknown> | undefined, keys: string[]): number | null {
+  return asNumber(getField(row, keys));
+}
+
+function rawPayloadRobustnessScore(robustness?: TargetRobustness): number | null {
   return (
-    <div className="ps-tornado" role="img" aria-label="Self-response tornado chart ranked by prior sensitivity movement">
-      <div className="ps-tornado-guidance" aria-hidden="true">
-        <div className="ps-tornado-guidance__left">
-          <strong>More conservative priors</strong>
-          <span>(lower ROI)</span>
-        </div>
-        <div className="ps-tornado-guidance__right">
-          <strong>More optimistic priors</strong>
-          <span>(higher ROI)</span>
-        </div>
-      </div>
-      {rows.map((row) => {
-        const left = Number(row.left ?? 0);
-        const right = Number(row.right ?? 0);
-        const leftWidth = Math.min(50, (Math.abs(left) / maxExtent) * 50);
-        const rightWidth = Math.min(50, (Math.abs(right) / maxExtent) * 50);
-        return (
-          <div className="ps-tornado-row" key={String(row.channel)}>
-            <div className="ps-tornado-channel">{channelLabel(row.channel)}</div>
-            <div className="ps-tornado-track">
-              <span className="ps-tornado-axis" aria-hidden="true" />
-              <span className="ps-tornado-bar ps-tornado-bar--lower" style={{ width: `${leftWidth}%` }} />
-              <span className="ps-tornado-bar ps-tornado-bar--higher" style={{ width: `${rightWidth}%` }} />
-            </div>
-            <div className="ps-tornado-value">{formatPercent(row.impact, 1)}</div>
-          </div>
-        );
-      })}
-      <div className="ps-tornado-scale" aria-hidden="true">
-        <span>-{formatPercent(scaleLabel, 0)}</span>
-        <span>0%</span>
-        <span>+{formatPercent(scaleLabel, 0)}</span>
-      </div>
-    </div>
+    asNumber(robustness?.channel_robustness_score) ??
+    asNumber(robustness?.overall_channel_robustness_score) ??
+    asNumber(robustness?.score) ??
+    scoreField(robustness?.source_row, ["channel_robustness_score", "overall_channel_robustness_score"])
   );
 }
 
-function SummaryCard({
-  title,
-  value,
-  subtitle,
-  footer,
-  tone,
-}: {
-  title: string;
-  value: string;
-  subtitle: string;
-  footer: string;
-  tone: "blue" | "green" | "violet";
-}) {
+function computedRobustnessScore(subscores: Array<{ id?: string; label?: string; value?: number | null }>): number | null {
+  const byId = new Map(subscores.map((item) => [String(item.id || "").toLowerCase(), asNumber(item.value)]));
+  const prior = byId.get("prior");
+  const data = byId.get("data");
+  const cross = byId.get("cross");
+  if (prior === null || prior === undefined || data === null || data === undefined || cross === null || cross === undefined) return null;
+  return robustnessWeights.prior * prior + robustnessWeights.data * data + robustnessWeights.cross * cross;
+}
+
+function robustnessBandValue(robustness?: TargetRobustness): string {
+  return String(robustness?.absolute_band || robustness?.robustness_band || robustness?.band || getField(robustness?.source_row, ["absolute_band", "robustness_band"]) || "");
+}
+
+function robustnessBandMethod(robustness?: TargetRobustness): string {
+  const method = String(robustness?.band_method || getField(robustness?.source_row, ["band_method"]) || "").replaceAll("_", " ");
+  if (method.toLowerCase().includes("provisional fixed")) return "provisional fixed thresholds";
+  return method || "provisional fixed thresholds";
+}
+
+function relativeRankLabel(robustness?: TargetRobustness): string {
+  const label = String(robustness?.relative_rank_label || getField(robustness?.source_row, ["relative_rank_label"]) || "").trim();
+  if (label) return label;
+  const rank = asNumber(robustness?.relative_rank ?? getField(robustness?.source_row, ["relative_rank"]));
+  const total = asNumber(robustness?.relative_rank_total ?? getField(robustness?.source_row, ["relative_rank_total"]));
+  if (rank !== null && total !== null) return `${formatNumber(rank, 0)} / ${formatNumber(total, 0)} tested channels`;
+  return "Unavailable";
+}
+
+function normalizedRobustnessSubscores(robustness?: TargetRobustness): Array<{ id: string; label: string; value: number | null }> {
+  const source = robustness?.source_row;
+  const fromSource = [
+    {
+      id: "prior",
+      label: "Sensitivity Elasticity",
+      value: scoreField(source, ["sensitivity_elasticity_score", "prior_sensitivity_subscore"]),
+    },
+    {
+      id: "data",
+      label: "Data Influence",
+      value: scoreField(source, ["data_influence_score", "data_influence_subscore"]),
+    },
+    {
+      id: "cross",
+      label: "Cross-Channel",
+      value: scoreField(source, ["cross_channel_score", "cross_channel_subscore"]),
+    },
+  ];
+  if (fromSource.some((item) => item.value !== null)) return fromSource;
+
+  return (robustness?.subscores || [])
+    .filter((item) => !String(item.id || item.label || "").toLowerCase().includes("adstock"))
+    .map((item) => {
+      const raw = String(item.id || item.label || "").toLowerCase();
+      const isPrior = raw.includes("prior") || raw.includes("sensitivity");
+      return {
+        id: item.id || (isPrior ? "prior" : item.label || "subscore"),
+        label: isPrior ? "Sensitivity Elasticity" : item.label || item.id || "Subscore",
+        value: asNumber(item.value),
+      };
+    });
+}
+
+function getField(row: Record<string, unknown> | undefined, keys: string[]): unknown {
+  if (!row) return undefined;
+  const key = keys.find((candidate) => row[candidate] !== undefined && row[candidate] !== null && row[candidate] !== "");
+  return key ? row[key] : undefined;
+}
+
+function structuralContext(payload: { structural?: { selected_run_id?: string; response_rows?: Array<Record<string, unknown>>; profile_rows?: Array<Record<string, unknown>> } }): StructuralContext {
+  const selectedRunId = payload.structural?.selected_run_id;
+  const responseRows = payload.structural?.response_rows || [];
+  const profileRows = payload.structural?.profile_rows || [];
+  const responseRow = selectedRunId ? responseRows.find((row) => String(row.run_id || "") === selectedRunId) : responseRows[0];
+  const row = responseRow || profileRows[0];
+  return {
+    alpha: asNumber(getField(row, ["adstock_alpha_m", "alpha", "adstock_alpha"])),
+    ec: asNumber(getField(row, ["saturation_ec_m", "ec", "ec_m"])),
+    slope: asNumber(getField(row, ["saturation_slope_m", "slope", "hill_slope"])),
+    maxLag: asNumber(getField(row, ["max_lag", "lag"])),
+  };
+}
+
+function stabilityLabel(row: MovementRow): "Stable" | "Unstable" | "Review" {
+  if (row.stablePct) return "Stable";
+  if (row.baselineRoi === null) return "Review";
+  return "Unstable";
+}
+
+function directionLabel(value: number | null): "increase" | "decrease" | "flat" {
+  if (value === null || !Number.isFinite(value) || value === 0) return "flat";
+  return value > 0 ? "increase" : "decrease";
+}
+
+function getSetting(settings: Array<{ label?: string; value?: string }> | undefined, label: string): string {
+  return settings?.find((item) => item.label?.toLowerCase() === label.toLowerCase())?.value || "";
+}
+
+function normalizeSummary(summary: TargetChannelSummary | undefined): TargetChannelSummary {
+  return summary || {};
+}
+
+function buildRows(summary: TargetChannelSummary, target: string, minReliableBaseline: number): MovementRow[] {
+  const responseRows = summary.system_response_rows || [];
+  const impactRows = new Map<string, SystemImpactRow>();
+  (summary.system_impact_rows || []).forEach((row) => {
+    const channel = String(row.channel || "").toLowerCase();
+    if (channel) impactRows.set(channel, row);
+  });
+
+  const byChannel = new Map<string, Array<Record<string, unknown>>>();
+  responseRows.forEach((row) => {
+    const channel = String(row.channel || "").toLowerCase();
+    if (!channel) return;
+    byChannel.set(channel, [...(byChannel.get(channel) || []), row]);
+  });
+  impactRows.forEach((_, channel) => {
+    if (!byChannel.has(channel)) byChannel.set(channel, []);
+  });
+
+  return [...byChannel.entries()]
+    .map(([channel, rows]) => {
+      const impact = impactRows.get(channel);
+      const movementRows = rows.filter((row) => String(row.is_baseline || "").toLowerCase() !== "true");
+      const pctValues = movementRows.map((row) => asNumber(row.signed_delta_pct));
+      const deltaValues = movementRows.map((row) => asNumber(row.delta_abs));
+      const baselineRoi = median(rows.map((row) => asNumber(row.roi_baseline)));
+      const isSelf = Boolean(impact?.is_self_response) || channel === target.toLowerCase();
+      const stablePct = baselineRoi !== null && Math.abs(baselineRoi) >= minReliableBaseline;
+      return {
+        channel,
+        isSelf,
+        baselineRoi,
+        medianPct: median(pctValues),
+        maxAbsPct: asNumber(impact?.max_abs_delta_pct) ?? absMax(pctValues),
+        medianDeltaRoi: median(deltaValues),
+        maxAbsDeltaRoi: asNumber(impact?.max_abs_delta_roi) ?? absMax(deltaValues),
+        leftPct: asNumber(impact?.left_pct) ?? (pctValues.filter((v): v is number => Number.isFinite(v)).length ? Math.min(...pctValues.filter((v): v is number => Number.isFinite(v))) : null),
+        rightPct: asNumber(impact?.right_pct) ?? (pctValues.filter((v): v is number => Number.isFinite(v)).length ? Math.max(...pctValues.filter((v): v is number => Number.isFinite(v))) : null),
+        leftDeltaRoi: asNumber(impact?.left_delta_roi) ?? (deltaValues.filter((v): v is number => Number.isFinite(v)).length ? Math.min(...deltaValues.filter((v): v is number => Number.isFinite(v))) : null),
+        rightDeltaRoi: asNumber(impact?.right_delta_roi) ?? (deltaValues.filter((v): v is number => Number.isFinite(v)).length ? Math.max(...deltaValues.filter((v): v is number => Number.isFinite(v))) : null),
+        n: Number(impact?.n_rows ?? movementRows.length) || 0,
+        stablePct,
+      };
+    })
+    .sort((a, b) => (b.maxAbsPct ?? b.maxAbsDeltaRoi ?? -1) - (a.maxAbsPct ?? a.maxAbsDeltaRoi ?? -1));
+}
+
+function RobustnessCard({ robustness, structural }: { robustness?: TargetRobustness; structural: StructuralContext }) {
+  const subscores = normalizedRobustnessSubscores(robustness);
+  const payloadScore = rawPayloadRobustnessScore(robustness);
+  const calculatedScore = computedRobustnessScore(subscores);
+  const scoreMismatch =
+    payloadScore !== null &&
+    calculatedScore !== null &&
+    Math.abs(payloadScore - calculatedScore) > 0.5;
+  const robustnessScore = calculatedScore ?? payloadScore;
+  const robustnessBand = absoluteBandForScore(robustnessScore) || robustnessBandValue(robustness);
+  const bandMethod = robustnessBandMethod(robustness);
+  const rankLabel = relativeRankLabel(robustness);
+  useEffect(() => {
+    if (!scoreMismatch) return;
+    console.warn("Prior Sensitivity robustness payload mismatch; using computed 3-component score.", {
+      payloadScore,
+      calculatedScore,
+      subscores,
+      sourceRow: robustness?.source_row,
+    });
+  }, [calculatedScore, payloadScore, robustness?.source_row, scoreMismatch, subscores]);
   return (
-    <article className="ps-summary-card">
-      <div className={`ps-summary-icon ps-summary-icon--${tone}`} aria-hidden="true" />
-      <div>
-        <h3>{title}</h3>
-        <strong>{value}</strong>
-        <span>{subtitle}</span>
-        <p>{footer}</p>
+    <article className="content-panel ps-context-card ps-robust-card">
+      <div className="ps-card-heading">
+        <span className="ps-mini-icon ps-mini-icon--shield" aria-hidden="true" />
+        <h3>Target-Level Robustness Framework</h3>
       </div>
+      {robustness?.available ? (
+        <>
+          <div className="ps-robust-score">
+            <span>Overall Robustness Score</span>
+            <strong>{scoreText(robustnessScore)}</strong>
+            <em className={`ps-band ${bandClass(robustnessBand)}`}>{robustnessBand || "Unavailable"}</em>
+          </div>
+          <p className="ps-band-method">{bandMethod}</p>
+          <div className="ps-relative-rank">
+            <span>Relative Rank</span>
+            <strong>{rankLabel}</strong>
+            <p>1 / N = most robust among tested channels. N / N = least robust in this run.</p>
+          </div>
+          {scoreMismatch ? (
+            <p className="ps-payload-warning">
+              Payload score did not match the current 60/25/15 formula, so this card is using the computed three-component score.
+            </p>
+          ) : null}
+          <div className="ps-subscore-list">
+            {subscores.map((item) => {
+              const value = asNumber(item.value);
+              return (
+                <div className="ps-subscore" key={item.id || item.label}>
+                  <div>
+                    <span>{item.label || item.id || "Subscore"}</span>
+                    <strong>{scoreText(value)}</strong>
+                  </div>
+                  <i style={{ width: `${Math.max(0, Math.min(100, value ?? 0))}%` }} />
+                </div>
+              );
+            })}
+          </div>
+          <div className="ps-band-interpretation">
+            <h4>Band Interpretation</h4>
+            <p>{bandInterpretation(robustnessBand)}</p>
+          </div>
+          <div className="ps-structural-context">
+            <h4>Selected Structural Profile</h4>
+            <dl>
+              <div><dt>alpha</dt><dd>{structural.alpha !== null ? formatNumber(structural.alpha, 3) : missing}</dd></div>
+              <div><dt>EC midpoint</dt><dd>{structural.ec !== null ? formatNumber(structural.ec, 3) : missing}</dd></div>
+              <div><dt>response slope</dt><dd>{structural.slope !== null ? formatNumber(structural.slope, 3) : missing}</dd></div>
+              <div><dt>max lag</dt><dd>{structural.maxLag !== null ? formatNumber(structural.maxLag, 0) : missing}</dd></div>
+            </dl>
+          </div>
+          <details className="ps-robustness-explainer">
+            <summary>How robustness score is calculated</summary>
+            <div>
+              <h4>Overall robustness score</h4>
+              <p>This robustness score is a project-defined prior sensitivity heuristic, not an official Meridian metric. It measures how stable each channel's posterior ROI/contribution estimates are under prior perturbations, conditional on the selected structural profile.</p>
+              <p>The channel score blends absolute 0-100 subscores: 60% Sensitivity Elasticity, 25% Data Influence, and 15% Cross-Channel. Higher values mean less observed fragility under the tested prior grid.</p>
+              <h4>Subscores</h4>
+              <p><strong>Sensitivity Elasticity:</strong> core metric: output movement divided by prior-input movement. Small posterior movement under larger prior perturbations increases robustness.</p>
+              <p><strong>Data Influence:</strong> combines diffuse-prior stability, prior-posterior distance where available, and credible-interval overlap where available.</p>
+              <p><strong>Cross-Channel:</strong> measures non-self channel movement when the selected target channel's prior is perturbed; the target channel itself is excluded.</p>
+              <p><strong>Near-zero guard:</strong> unreliable ROI percent movement falls back to contribution movement when available, otherwise log-scaled absolute delta ROI.</p>
+              <h4>Robustness band</h4>
+              <p>The main robustness band uses provisional fixed thresholds on the 0-100 score: Low &lt; 50, Medium 50-74, High &gt;= 75. These thresholds are project-defined and can be recalibrated after observing more runs.</p>
+              <p>Relative Rank shows where this channel falls among the tested channels in the current robustness run. Rank 1 means the most robust channel in this run. This rank is relative and should not be interpreted as an absolute quality label.</p>
+              <h4>Current target summary</h4>
+              <p>Overall score: {scoreText(robustnessScore)}. Band: {robustnessBand || "Unavailable"}. Relative Rank: {rankLabel}. {currentTargetSummary(subscores)}</p>
+            </div>
+          </details>
+        </>
+      ) : (
+        <div className="ps-empty-state">Target-level robustness is unavailable for this run.</div>
+      )}
     </article>
   );
 }
 
-function buildCsv(rows: Array<Array<unknown>>) {
-  return rows.map((row) => row.map(csvEscape).join(",")).join("\n");
-}
+function ResponseChart({ rows, target, mode }: { rows: MovementRow[]; target: string; mode: MetricMode }) {
+  const getLeft = (row: MovementRow) => (mode === "pct" ? row.leftPct : row.leftDeltaRoi);
+  const getRight = (row: MovementRow) => (mode === "pct" ? row.rightPct : row.rightDeltaRoi);
+  const getValue = (row: MovementRow) => (mode === "pct" ? row.medianPct : row.medianDeltaRoi);
+  const maxExtent = Math.max(...rows.flatMap((row) => [Math.abs(getLeft(row) ?? 0), Math.abs(getRight(row) ?? 0), Math.abs(getValue(row) ?? 0)]), 1);
 
-function buildAuditType(payload: DashboardPayload) {
-  const settings = payload.how_this_was_run?.settings || [];
-  const badges = payload.how_this_was_run?.badges || [];
-  const values = [...settings, ...badges].map((item) => `${item.label || ""} ${item.value || ""}`.trim());
-  return values.find((value) => /grid|prior|audit|roi/i.test(value)) || payload.how_this_was_run?.summary || "Prior sensitivity audit";
-}
+  if (!rows.length) {
+    return <div className="ps-empty-state">Full-system response rows are unavailable for this target channel.</div>;
+  }
 
-function stabilityNote(payload: DashboardPayload) {
-  const candidates = [...(payload.quick_overview_lines || []), ...(payload.recommendations || []), payload.decision_card?.score_note || ""];
-  return candidates.find((line) => /threshold|stability|guardrail/i.test(line)) || "Stability threshold note unavailable for this run.";
+  return (
+    <div className="ps-response-chart" role="img" aria-label={`Full-system response to ${channelLabel(target)} prior changes`}>
+      {rows.map((row) => {
+        const left = getLeft(row) ?? 0;
+        const right = getRight(row) ?? 0;
+        const value = getValue(row);
+        const leftWidth = Math.min(50, (Math.abs(Math.min(left, 0)) / maxExtent) * 50);
+        const rightWidth = Math.min(50, (Math.abs(Math.max(right, 0)) / maxExtent) * 50);
+        return (
+          <div className={row.isSelf ? "ps-response-row ps-response-row--self" : "ps-response-row"} key={row.channel}>
+            <div className="ps-response-channel">
+              {row.isSelf ? <span aria-hidden="true">★</span> : null}
+              {channelLabel(row.channel)}{row.isSelf ? " (self)" : ""}
+            </div>
+            <div className="ps-response-track">
+              <span className="ps-response-axis" aria-hidden="true" />
+              <span className="ps-response-bar ps-response-bar--negative" style={{ width: `${leftWidth}%` }} />
+              <span className="ps-response-bar ps-response-bar--positive" style={{ width: `${rightWidth}%` }} />
+            </div>
+            <div className={`ps-response-value ${signedClass(value)}`}>
+              {mode === "pct" ? signedPercent(value) : signedNumber(value)}
+              {!row.stablePct && mode === "pct" ? <span title="Unstable percentage due to weak baseline">⚠</span> : null}
+            </div>
+          </div>
+        );
+      })}
+      <div className="ps-response-axis-label">{mode === "pct" ? "% Change vs Baseline ROI" : "Delta ROI vs Baseline"}</div>
+    </div>
+  );
 }
 
 export function PriorSensitivityPage() {
   const result = useCurrentResult();
   const { payload } = result;
-  const tornadoRows = selectSelfResponseTornadoRows(payload);
-  const dollarRows = selectDollarTornadoRows(payload);
-  const rankingRows = [...(payload.rank_rows || [])].sort((a, b) => {
-    const bValue = Math.abs(Number(b.primary_value ?? b.max_abs_pct_change ?? b.max_abs_delta_roi ?? 0));
-    const aValue = Math.abs(Number(a.primary_value ?? a.max_abs_pct_change ?? a.max_abs_delta_roi ?? 0));
-    return bValue - aValue;
-  });
-  const runScope = selectRunScope(payload);
-  const targetChannelCount = payload.target_channel_detail?.options?.length ?? payload.overview?.n_channels ?? rankingRows.length;
-  const defaultTarget = payload.target_channel_detail?.default_channel || payload.workbench?.default_channel;
-  const gridSize = dollarRows[0]?.n ?? tornadoRows[0]?.n ?? payload.diagnostics_overview?.n_runs;
-  const usesRevenueEquivalent = isFiniteNumber(payload.outcome_context?.revenue_per_kpi);
-  const metricLabel = payload.outcome_context?.metric_label || payload.outcome_context?.kpi_type_effective || "ROI";
+  const options = payload.target_channel_detail?.options || [];
+  const summaries = payload.target_channel_detail?.summaries || {};
+  const initialTarget = payload.target_channel_detail?.default_channel || options[0]?.value || Object.keys(summaries)[0] || "";
+  const [selectedTarget, setSelectedTarget] = useState(initialTarget);
+  const [metricMode, setMetricMode] = useState<MetricMode>("pct");
 
-  const handleExport = () => {
-    downloadText(
-      `prior-sensitivity-${result.activeRunId || "run"}.json`,
-      JSON.stringify(
-        {
-          run_id: result.activeRunId,
-          metric_label: metricLabel,
-          outcome_context: payload.outcome_context ?? null,
-          target_channel_detail: payload.target_channel_detail ?? null,
-          audit_scope: payload.how_this_was_run ?? null,
-          roi_tornado_rows: tornadoRows,
-          dollar_tornado_rows: dollarRows,
-          rank_rows: rankingRows,
-        },
-        null,
-        2
-      ),
-      "application/json"
-    );
-  };
+  useEffect(() => {
+    if (!selectedTarget && initialTarget) setSelectedTarget(initialTarget);
+  }, [initialTarget, selectedTarget]);
 
-  const handleExportCsv = () => {
-    downloadText(
-      `prior-sensitivity-ranking-${result.activeRunId || "run"}.csv`,
-      buildCsv([
-        ["Channel", "Prior Dist", "Baseline ROI", "Max Abs Movement"],
-        ...rankingRows.map((row) => [row.channel, row.roi_prior_dist, row.baseline_roi, row.primary_value ?? row.max_abs_pct_change ?? row.max_abs_delta_roi]),
-      ]),
-      "text/csv"
-    );
+  const summary = normalizeSummary(summaries[selectedTarget]);
+  const minReliableBaseline = asNumber((payload.overview as Record<string, unknown> | undefined)?.pct_guardrail_min_abs_baseline_roi) ?? 0.05;
+  const rows = useMemo(() => buildRows(summary, selectedTarget, minReliableBaseline), [summary, selectedTarget, minReliableBaseline]);
+  const hasUnstablePct = rows.some((row) => !row.stablePct);
+  const percentAvailable = rows.some((row) => row.medianPct !== null || row.maxAbsPct !== null);
+  const deltaAvailable = rows.some((row) => row.medianDeltaRoi !== null || row.maxAbsDeltaRoi !== null);
+
+  useEffect(() => {
+    if (hasUnstablePct && deltaAvailable) setMetricMode("delta");
+    else if (percentAvailable) setMetricMode("pct");
+  }, [selectedTarget, hasUnstablePct, deltaAvailable, percentAvailable]);
+
+  const selectedRows = rows;
+  const rankingRows = [...selectedRows].sort((a, b) => Math.abs(b.medianPct ?? b.maxAbsPct ?? 0) - Math.abs(a.medianPct ?? a.maxAbsPct ?? 0));
+  const selfRow = selectedRows.find((row) => row.isSelf);
+  const robustness = summary.robustness;
+  const structural = structuralContext(payload);
+  const settings = payload.how_this_was_run?.settings || [];
+  const priorDist = selfRow ? "ROI" : getSetting(settings, "Prior mode") || missing;
+  const gridType = getSetting(settings, "Run mode") || getSetting(settings, "Prior grid scope") || summary.system_source || missing;
+  const gridSize = summary.prior_settings_tested ?? selfRow?.n ?? selectedRows.reduce((sum, row) => Math.max(sum, row.n), 0);
+  const topIncrease = selectedRows.filter((row) => (metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) !== null && ((metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) as number) > 0).slice(0, 3);
+  const topDecrease = selectedRows.filter((row) => (metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) !== null && ((metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) as number) < 0).slice(0, 3);
+  const unstableRows = selectedRows.filter((row) => !row.stablePct);
+
+  const exportPayload = {
+    run_id: result.activeRunId,
+    selected_target_channel: selectedTarget,
+    target_summary: summary,
+    movement_rows: selectedRows,
   };
 
   return (
     <SectionScaffold
       title="Results / Prior Sensitivity"
-      summary="Read-only view of which channels moved most across the completed fixed ROI-prior grid."
-      sourceLabel={result.sourceLabel}
-      sourceDetail={result.sourceDetail}
+      summary="Explore how the system responds when a target channel's prior assumptions are changed."
       sourceKind={result.sourceKind}
-      activeRunId={result.activeRunId}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
-      titleStatusChip="POST-RUN"
       headerAside={
-        <div className="ps-export">
-          <button className="ps-export-button" type="button" onClick={handleExport}>
-            <span className="ps-export-button__icon" aria-hidden="true" />
-            Export
-            <span className="ps-export-button__chevron" aria-hidden="true" />
-          </button>
-          <button className="ps-export-menu-button" type="button" onClick={handleExportCsv} aria-label="Export ranking as CSV">
-            CSV
-          </button>
-        </div>
+        <button className="ps-export-button" type="button" onClick={() => downloadText(`prior-sensitivity-${selectedTarget || "target"}.json`, JSON.stringify(exportPayload, null, 2), "application/json")}>
+          <span className="ps-export-button__icon" aria-hidden="true" />
+          Export
+          <span className="ps-export-button__chevron" aria-hidden="true" />
+        </button>
       }
     >
-      <div className="prior-sensitivity-page">
-        <section className="content-panel ps-tornado-card">
-          <div className="section-title-row">
-            <div>
-              <span className="eyebrow">Full-System Prior Response</span>
-              <h3>Self-Response Tornado</h3>
-            </div>
-            <span className="subtle-chip">{formatNumber(rankingRows.length)} ranking rows</span>
+      <div className="prior-sensitivity-page prior-sensitivity-page--drilldown">
+        <section className="content-panel ps-target-selector-card">
+          <label>
+            <span>Select Target Channel</span>
+            <select value={selectedTarget} onChange={(event) => setSelectedTarget(event.target.value)}>
+              {options.map((option) => (
+                <option value={option.value} key={option.value}>{option.label || channelLabel(option.value)}</option>
+              ))}
+              {!options.length && selectedTarget ? <option value={selectedTarget}>{channelLabel(selectedTarget)}</option> : null}
+            </select>
+          </label>
+          <div className="ps-selector-callout">
+            <span aria-hidden="true">i</span>
+            <p>This view shows full-system response to the selected target channel's prior changes. Overview page summarizes only each channel's self-response.</p>
           </div>
-          <PriorSensitivityTornado rows={tornadoRows} />
         </section>
 
-        <section className="ps-summary-grid" aria-label="Prior sensitivity summary">
-          <SummaryCard
-            title="Target Channels"
-            value={formatNumber(targetChannelCount)}
-            subtitle="Completed target set"
-            footer={targetChannelCount ? `${formatNumber(targetChannelCount)} channels included in this prior sensitivity audit.` : "Target channel metadata is unavailable for this run."}
-            tone="blue"
-          />
-          <SummaryCard
-            title="Default Target"
-            value={defaultTarget ? channelLabel(defaultTarget) : "Unavailable"}
-            subtitle="Default target channel"
-            footer={defaultTarget ? `Movements are shown for the selected run's default target context: ${channelLabel(defaultTarget)}.` : "Default target channel is unavailable in this payload."}
-            tone="green"
-          />
-          <SummaryCard
-            title="Audit Scope"
-            value={runScope.value.toLowerCase().includes("fixed") ? "Fixed grid" : statusText(runScope.value)}
-            subtitle={buildAuditType(payload)}
-            footer={stabilityNote(payload)}
-            tone="violet"
-          />
-        </section>
+        <section className="ps-drilldown-layout">
+          <aside className="ps-left-rail">
+            <article className="content-panel ps-context-card">
+              <h3>Target Channel Context</h3>
+              <dl className="ps-context-list">
+                <div><dt>Target channel</dt><dd>{selectedTarget ? channelLabel(selectedTarget) : missing}</dd></div>
+                <div><dt>Prior grid</dt><dd>{gridType}{priorDist !== missing ? ` (${priorDist})` : ""}</dd></div>
+                <div><dt>Grid size</dt><dd>{gridSize ? `${formatNumber(gridSize)} prior settings` : missing}</dd></div>
+                <div><dt>Baseline ROI</dt><dd>{selfRow?.baselineRoi !== null && selfRow ? formatNumber(selfRow.baselineRoi, 3) : missing}</dd></div>
+                <div><dt>Baseline period</dt><dd>{getSetting(settings, "Date range") || missing}</dd></div>
+              </dl>
+            </article>
+            <RobustnessCard robustness={robustness} structural={structural} />
+          </aside>
 
-        <section className="ps-bottom-grid">
-          <article className="content-panel ps-table-card">
-            <h3>Top Dollar Sensitivity Rows</h3>
-            {dollarRows.length ? (
-              <>
+          <main className="ps-main-column">
+            <article className="content-panel ps-full-system-card">
+              <div className="ps-card-toolbar">
+                <div>
+                  <h3>Full-System Response to {channelLabel(selectedTarget)} Prior Changes</h3>
+                  {hasUnstablePct ? <p>Some percentage changes are marked unstable because baseline ROI is weak; Delta ROI is available as fallback.</p> : null}
+                </div>
+                <div className="ps-metric-toggle" aria-label="Chart metric">
+                  <span>View as</span>
+                  <button className={metricMode === "pct" ? "active" : ""} type="button" disabled={!percentAvailable} onClick={() => setMetricMode("pct")}>% Change</button>
+                  <button className={metricMode === "delta" ? "active" : ""} type="button" disabled={!deltaAvailable} onClick={() => setMetricMode("delta")}>Delta ROI</button>
+                </div>
+              </div>
+              <ResponseChart rows={selectedRows} target={selectedTarget} mode={metricMode} />
+              <div className="ps-chart-legend">
+                <span><b>★</b> Target channel (self)</span>
+                <span><i className="ps-legend-up" /> Increase vs baseline</span>
+                <span><i className="ps-legend-down" /> Decrease vs baseline</span>
+                <span><i className="ps-legend-warning" /> Unstable %</span>
+              </div>
+            </article>
+
+            <section className="ps-detail-grid">
+              <article className="content-panel ps-table-card">
+                <h3>Movement Summary</h3>
                 <div className="table-shell ps-table-shell">
-                  <table>
+                  <table className="ps-movement-table">
                     <thead>
-                      <tr>
-                        <th>Channel</th>
-                        <th>Max Abs Dollar Change</th>
-                        <th>Median Dollar Change</th>
-                        <th>N</th>
-                      </tr>
+                      <tr><th>Channel</th><th>Baseline ROI</th><th>Median %</th><th>Max Abs %</th><th>N</th></tr>
                     </thead>
                     <tbody>
-                      {dollarRows.map((row: DollarTornadoRow) => (
-                        <tr key={String(row.channel)}>
-                          <td>{channelLabel(row.channel)}</td>
-                          <td className={signedMoneyClass(row.max_abs_dollar_change)}>{formatMoneyCompact(row.max_abs_dollar_change)}</td>
-                          <td className={signedMoneyClass(row.median_dollar_change)}>{formatMoneyCompact(row.median_dollar_change)}</td>
+                      {selectedRows.map((row) => (
+                        <tr className={row.isSelf ? "ps-self-table-row" : ""} key={row.channel}>
+                          <td>{channelLabel(row.channel)}{row.isSelf ? " (self)" : ""}</td>
+                          <td>{row.baselineRoi !== null ? formatNumber(row.baselineRoi, 3) : "NA"}</td>
+                          <td className={signedClass(row.medianPct)}>{signedPercent(row.medianPct)} {!row.stablePct ? <span className="ps-warning-pill">unstable</span> : null}</td>
+                          <td>{row.maxAbsPct !== null ? formatPercent(row.maxAbsPct, 1) : "NA"}</td>
                           <td>{formatNumber(row.n)}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
-                {usesRevenueEquivalent ? <p className="ps-card-footer">Dollar changes are based on revenue-equivalent ROI. N = number of prior grid points.</p> : null}
-              </>
-            ) : (
-              <EmptyState>Dollar sensitivity data is unavailable for this run.</EmptyState>
-            )}
-          </article>
+              </article>
 
-          <article className="content-panel ps-table-card">
-            <h3>Prior Sensitivity Ranking</h3>
-            {rankingRows.length ? (
-              <>
+              <article className="content-panel ps-table-card">
+                <h3>Ranking by Absolute % Movement</h3>
                 <div className="table-shell ps-table-shell">
-                  <table>
+                  <table className="ps-ranking-table">
                     <thead>
-                      <tr>
-                        <th>Channel</th>
-                        <th>Prior Dist</th>
-                        <th>Baseline ROI</th>
-                        <th>Max Abs Movement</th>
-                      </tr>
+                      <tr><th>Rank</th><th>Channel</th><th>Abs %</th><th>Dir.</th><th>Stability</th></tr>
                     </thead>
                     <tbody>
-                      {rankingRows.map((row: RankRow) => (
-                        <tr key={`${row.channel}-${row.roi_prior_dist}-${row.baseline_roi}`}>
-                          <td>{channelLabel(row.channel)}</td>
-                          <td>{statusText(row.roi_prior_dist)}</td>
-                          <td>{formatNumber(row.baseline_roi, 3)}</td>
-                          <td>{formatMovementValue(row)}</td>
-                        </tr>
-                      ))}
+                      {rankingRows.map((row, index) => {
+                        const direction = directionLabel(row.medianPct);
+                        return (
+                          <tr className={row.isSelf ? "ps-self-table-row" : ""} key={row.channel}>
+                            <td>{index + 1}</td>
+                            <td>{channelLabel(row.channel)}{row.isSelf ? " (self)" : ""}</td>
+                            <td>{row.medianPct !== null ? formatPercent(Math.abs(row.medianPct), 1) : "NA"}</td>
+                            <td><span className={`ps-direction ps-direction--${direction}`} title={direction}>{direction === "increase" ? "↑" : direction === "decrease" ? "↓" : "→"}</span></td>
+                            <td><span className={`ps-stability ps-stability--${stabilityLabel(row).toLowerCase()}`}>{stabilityLabel(row)}</span></td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
-                <p className="ps-card-footer">Ranked by Max Abs Movement across the prior grid{gridSize ? ` (${formatNumber(gridSize)} grid points).` : "."}</p>
-              </>
-            ) : (
-              <EmptyState>Prior sensitivity ranking data is unavailable for this run.</EmptyState>
-            )}
-          </article>
+              </article>
 
-          <aside className="content-panel ps-interpretation-card">
-            <div className="ps-interpretation-title">
-              <span aria-hidden="true">i</span>
-              <h3>Interpretation</h3>
-            </div>
-            <p>This page ranks channels by how much their {metricLabel} results moved across the ROI-prior grid.</p>
-            <p>These rankings reflect sensitivity to prior assumptions, not business performance.</p>
-            <p>Use this to identify channels requiring additional review before drawing stronger conclusions.</p>
-          </aside>
+              <aside className="content-panel ps-interpretation-card ps-drilldown-interpretation">
+                <div className="ps-interpretation-title">
+                  <span aria-hidden="true">i</span>
+                  <h3>Interpretation</h3>
+                </div>
+                <div className="ps-interpretation-group ps-interpretation-group--first">
+                  <h4>What this shows</h4>
+                  <p>Shows how all channels respond when {channelLabel(selectedTarget)}'s prior assumptions change. Overview only summarizes each channel's self-response.</p>
+                </div>
+                <div className="ps-interpretation-group">
+                  <h4>Top movers</h4>
+                  <p>{topIncrease.length ? topIncrease.map((row) => channelLabel(row.channel)).join(", ") : "No positive movers available."}</p>
+                </div>
+                <div className="ps-interpretation-group">
+                  <h4>Negative movers</h4>
+                  <p>{topDecrease.length ? topDecrease.map((row) => channelLabel(row.channel)).join(", ") : "No negative movers available."}</p>
+                </div>
+                <div className="ps-interpretation-group">
+                  <h4>Unstable % changes</h4>
+                  <p>{unstableRows.length ? `${unstableRows.length} channel(s) have weak baseline ROI. Use Delta ROI if needed.` : "No unstable percentage changes flagged."}</p>
+                </div>
+              </aside>
+            </section>
+          </main>
+        </section>
+
+        <section className="ps-note-card">
+          <span aria-hidden="true">i</span>
+          <p>Note: This analysis varies only {channelLabel(selectedTarget)}'s prior while keeping other priors at baseline. Results reflect model outputs and should be interpreted within model assumptions.</p>
         </section>
       </div>
     </SectionScaffold>

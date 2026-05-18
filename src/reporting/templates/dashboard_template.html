@@ -1514,10 +1514,10 @@
       const scoreGuideLibrary = {
         overall: {
           label: "Overall Prior-Sensitivity Robustness",
-          meaning: "Portfolio-level stability across all single-channel self-response prior sweeps.",
-          high: "Channel posterior ROI conclusions are comparatively stable under tested prior changes.",
+          meaning: "Spend-weighted or equal-weighted stability of channel posterior ROI/contribution estimates under prior perturbations.",
+          high: "Channel posterior ROI/contribution conclusions are comparatively stable under tested prior changes.",
           low: "One or more channel conclusions move enough that recommendations should stay directional.",
-          whatToDo: "Use stronger interpretation only when score, QC, and tornado diagnostics agree; otherwise keep guardrails and iterate.",
+          whatToDo: "Use the tornado diagrams to see why the score is high or low, and keep recommendations directional when score, QC, or movement diagnostics disagree.",
         },
         movement: {
           label: "Movement Stability",
@@ -1541,9 +1541,9 @@
           whatToDo: "Use absolute movement and channel detail tables before making percent-change claims.",
         },
         prior: {
-          label: "Prior Sensitivity Subscore",
-          meaning: "How much ROI/contribution estimates move when prior assumptions change.",
-          high: "Estimates do not move much when prior assumptions change.",
+          label: "Sensitivity Elasticity Subscore",
+          meaning: "Output movement divided by prior-input movement under prior perturbations.",
+          high: "Posterior ROI/contribution estimates move little relative to the prior perturbation size.",
           low: "Small prior changes cause large output changes, so the channel is fragile and assumption-dependent.",
           whatToDo: "If low, use caution in budget decisions, run finer prior grids, and stress test recommendations.",
         },
@@ -1573,13 +1573,6 @@
           low: "Perturbing one channel shifts other channels noticeably, indicating coupling or identifiability risk.",
           whatToDo: "If low, interpret channel rankings cautiously and emphasize portfolio-level decisions.",
         },
-        adstock: {
-          label: "Adstock Proxy Subscore",
-          meaning: "Secondary diagnostic for sign flips, interval stability, and dispersion proxy.",
-          high: "Estimates are directionally stable with fewer sign flips, better interval stability, and lower dispersion proxy.",
-          low: "Unstable directional behavior and noisier posterior shape.",
-          whatToDo: "If low, keep recommendations conservative and consider extra temporal or adstock-focused diagnostics before stronger interpretation.",
-        },
         target_subset: {
           label: "Target Subset",
           meaning: "Robustness summary restricted to the requested target channels instead of the full modeled portfolio.",
@@ -1597,8 +1590,8 @@
 
       const robustnessTooltipCopy = {
         prior: {
-          title: "Prior Sensitivity",
-          body: "Higher is better. Measures whether ROI/contribution estimates stay stable when prior assumptions change. Low means small prior changes cause large output changes, so use caution, run finer prior grids, and stress test recommendations.",
+          title: "Sensitivity Elasticity",
+          body: "Higher is better. Measures whether ROI/contribution estimates stay stable relative to the size of prior perturbations. Low means small prior changes cause large output changes.",
         },
         data: {
           title: "Data Influence",
@@ -1608,13 +1601,9 @@
           title: "Cross-Channel",
           body: "Higher is better. Measures whether perturbing one channel's prior shifts other channels. Low means stronger coupling or identifiability risk, so interpret channel rankings cautiously and emphasize portfolio-level decisions.",
         },
-        adstock: {
-          title: "Adstock Proxy",
-          body: "Higher is better. Secondary diagnostic for directional and interval stability. Low means unstable direction/sign behavior or noisy posterior shape. Use conservative recommendations and consider temporal/adstock-focused diagnostics.",
-        },
         band: {
           title: "Band Labels",
-          body: "Low / Medium / High summarize the existing robustness payload when available. If no robustness output is present, the score remains unavailable.",
+          body: "Low / Medium / High use provisional fixed thresholds on the 0-100 score: Low < 50, Medium 50-74, High >= 75. These thresholds are project-defined and can be recalibrated after observing more runs.",
         },
         target_subset: {
           title: "Target Subset",
@@ -1686,23 +1675,14 @@
             Number.isFinite(Number(weights.prior)) ? `${fmtNum(100 * Number(weights.prior), 1)}% prior sensitivity` : null,
             Number.isFinite(Number(weights.data)) ? `${fmtNum(100 * Number(weights.data), 1)}% data influence` : null,
             Number.isFinite(Number(weights.cross)) ? `${fmtNum(100 * Number(weights.cross), 1)}% cross-channel` : null,
-            Number.isFinite(Number(weights.adstock)) ? `${fmtNum(100 * Number(weights.adstock), 1)}% adstock proxy` : null,
           ].filter(Boolean);
           if (parts.length) lines.push(`Weighted composite: ${parts.join(", ")}.`);
           if (weighting) lines.push(`Overall model score uses ${weighting} weighting across channels.`);
         } else {
           lines.push("Higher is better; lower values indicate more fragility for this specific failure mode.");
         }
-        const lowCut = Number(scoreMeta.band_low_cutoff_q33);
-        const highCut = Number(scoreMeta.band_high_cutoff_q67);
-        if (Number.isFinite(lowCut) && Number.isFinite(highCut)) {
-          lines.push(`Band labels use empirical run-set cutoffs: Low < ${fmtNum(lowCut, 3)}, High >= ${fmtNum(highCut, 3)}.`);
-        } else {
-          lines.push("Band labels are relative within the current run set: High is strongest, Medium is usable with uncertainty, Low needs caution.");
-        }
-        if (selectedId === "adstock" && String(scoreMeta.adstock_note || "").trim()) {
-          lines.push(`Adstock note: ${String(scoreMeta.adstock_note).trim()}.`);
-        }
+        lines.push("Band labels use provisional fixed thresholds: Low < 50, Medium 50-74, High >= 75.");
+        lines.push("Relative rank, when available, is separate from the band and compares channels only within the current robustness run.");
         const triggers = Array.isArray(decision.triggered_rules) ? decision.triggered_rules : [];
         triggers.slice(0, 2).forEach((line) => {
           const clean = String(line || "").trim();
@@ -1792,20 +1772,12 @@
             Number.isFinite(Number(weights.prior)) ? `${fmtNum(100 * Number(weights.prior), 1)}% prior sensitivity` : null,
             Number.isFinite(Number(weights.data)) ? `${fmtNum(100 * Number(weights.data), 1)}% data influence` : null,
             Number.isFinite(Number(weights.cross)) ? `${fmtNum(100 * Number(weights.cross), 1)}% cross-channel` : null,
-            Number.isFinite(Number(weights.adstock)) ? `${fmtNum(100 * Number(weights.adstock), 1)}% adstock proxy` : null,
           ].filter(Boolean);
           if (parts.length) {
             blocks.push({ h: "Construction", t: `Weighted composite using ${parts.join(", ")}.` });
           }
         }
-        if (selectedId === "adstock" && String(scoreMeta.adstock_note || "").trim()) {
-          blocks.push({ h: "Note", t: String(scoreMeta.adstock_note).trim() });
-        }
-        const lowCut = Number(scoreMeta.band_low_cutoff_q33);
-        const highCut = Number(scoreMeta.band_high_cutoff_q67);
-        const footer = (Number.isFinite(lowCut) && Number.isFinite(highCut))
-          ? `Band labels for this run set: Low < ${fmtNum(lowCut, 3)}, High >= ${fmtNum(highCut, 3)}.`
-          : "Band labels are relative within the current run set.";
+        const footer = "Band labels use provisional fixed thresholds: Low < 50, Medium 50-74, High >= 75. Relative rank is separate and within-run only.";
         decisionScoreGuideBody.innerHTML = [
           ...blocks.map((block) => `
             <div class="decision-score-guide-block">
@@ -3569,15 +3541,13 @@
           prior: robustnessTooltipCopy.prior,
           data: robustnessTooltipCopy.data,
           cross: robustnessTooltipCopy.cross,
-          adstock: robustnessTooltipCopy.adstock,
           target_subset: robustnessTooltipCopy.target_subset,
         };
         const subs = Array.isArray(robust.subscores) ? robust.subscores : [];
         const rows = (subs.length ? subs : [
-          { id: "prior", label: "Prior Sensitivity", value: null },
+          { id: "prior", label: "Sensitivity Elasticity", value: null },
           { id: "data", label: "Data Influence", value: null },
           { id: "cross", label: "Cross-Channel", value: null },
-          { id: "adstock", label: "Adstock Proxy", value: null },
           { id: "target_subset", label: "Target Subset", value: null },
         ]).map((item) => {
           const value = Number(item.value);

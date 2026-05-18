@@ -354,10 +354,22 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
         "run_id",
         "channel",
         "target_channel",
+        "is_target_channel",
         "roi_prior_mu",
         "roi_prior_sigma",
         "roi_prior_dist",
+        "prior_roi_mu_channel",
+        "prior_roi_sigma_channel",
+        "prior_roi_dist_channel",
         "estimated_roi",
+        "posterior_roi_sd",
+        "posterior_roi_p05",
+        "posterior_roi_p25",
+        "posterior_roi_p50",
+        "posterior_roi_p75",
+        "posterior_roi_p95",
+        "prior_posterior_kl_gaussian",
+        "prior_posterior_wasserstein",
     ]
     keep_cols.extend([c for c in run_extra_cols if c in merged.columns])
     keep_cols.extend(

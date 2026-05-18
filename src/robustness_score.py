@@ -10,6 +10,25 @@ import pandas as pd
 from src.output_paths import run_csv_path, tables_tag_dir, tornado_csv_path
 
 EPS = 1e-8
+MIN_ABS_BASELINE_ROI = 0.05
+ELASTICITY_CAP = 10.0
+ELASTICITY_REFERENCE = 1.0
+DATA_REFERENCE = 1.0
+CROSS_REFERENCE = 0.25
+DIST_CHANGE_PENALTY = 1.0
+BAND_METHOD = "provisional_fixed_thresholds"
+RELATIVE_RANK_METHOD = "score_rank_within_current_run"
+
+
+def _absolute_band(score) -> str:
+    if pd.isna(score):
+        return ""
+    value = float(score)
+    if value >= 75.0:
+        return "High"
+    if value >= 50.0:
+        return "Medium"
+    return "Low"
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -121,27 +140,37 @@ def _rowwise_mean(df: pd.DataFrame, cols: list[str]) -> pd.Series:
     return df[valid_cols].apply(lambda row: float(np.nanmean(row.values.astype(float))) if np.isfinite(row.values.astype(float)).any() else np.nan, axis=1)
 
 
-def _scaled_rank(raw: pd.Series) -> pd.Series:
-    vals = pd.to_numeric(raw, errors="coerce")
-    valid = vals.dropna()
-    if valid.empty:
-        return pd.Series(0.5, index=vals.index, dtype=float)
-    if len(valid) == 1:
-        out = pd.Series(0.5, index=vals.index, dtype=float)
-        out.loc[valid.index] = 0.5
-        return out
+def _score_from_fragility(value, reference: float = 1.0, cap: float | None = None) -> float:
+    if pd.isna(value):
+        return float("nan")
+    x = max(float(value), 0.0)
+    if cap is not None:
+        x = min(x, float(cap))
+    return float(100.0 / (1.0 + x / max(float(reference), EPS)))
 
-    ranks = valid.rank(method="average")
-    lo = float(ranks.min())
-    hi = float(ranks.max())
-    if np.isclose(lo, hi):
-        scaled_valid = pd.Series(0.5, index=valid.index, dtype=float)
-    else:
-        scaled_valid = (ranks - lo) / (hi - lo)
 
-    out = pd.Series(0.5, index=vals.index, dtype=float)
-    out.loc[scaled_valid.index] = scaled_valid
-    return out
+def _score_from_distance(value, reference: float = 1.0) -> float:
+    if pd.isna(value):
+        return float("nan")
+    x = max(float(value), 0.0)
+    return float(100.0 * x / (x + max(float(reference), EPS)))
+
+
+def _mean_available(values: Iterable[float]) -> float:
+    vals = [float(v) for v in values if pd.notna(v) and np.isfinite(float(v))]
+    return float(np.mean(vals)) if vals else float("nan")
+
+
+def _median_available(values: pd.Series) -> float:
+    vals = pd.to_numeric(values, errors="coerce").dropna()
+    return float(vals.median()) if not vals.empty else float("nan")
+
+
+def _first_existing_col(df: pd.DataFrame, candidates: list[str]) -> pd.Series:
+    for col in candidates:
+        if col in df.columns:
+            return df[col]
+    return pd.Series(np.nan, index=df.index)
 
 
 def _weighted_mean(values: pd.Series, weights: pd.Series) -> float:
@@ -187,31 +216,54 @@ def _build_run_channel_metrics(
 ) -> pd.DataFrame:
     df = tornado_df.copy()
 
-    df["roi_change_pct"] = (
-        (pd.to_numeric(df["roi_new"], errors="coerce") - pd.to_numeric(df["roi_baseline"], errors="coerce")).abs()
-        / pd.to_numeric(df["roi_baseline"], errors="coerce").abs().clip(lower=EPS)
-    )
-    df["roi_change_signed_pct"] = (
-        (pd.to_numeric(df["roi_new"], errors="coerce") - pd.to_numeric(df["roi_baseline"], errors="coerce"))
-        / pd.to_numeric(df["roi_baseline"], errors="coerce").abs().clip(lower=EPS)
-    )
+    df["target_channel"] = _first_existing_col(df, ["target_channel", "target_channels", "targets"]).astype(str).str.strip()
+    df["channel"] = df["channel"].astype(str).str.strip()
+    df["is_target_channel"] = df["target_channel"].astype(str).eq(df["channel"].astype(str))
+
+    roi_baseline = pd.to_numeric(df["roi_baseline"], errors="coerce")
+    roi_new = pd.to_numeric(df["roi_new"], errors="coerce")
+    roi_delta = roi_new - roi_baseline
+    roi_baseline_reliable = roi_baseline.abs() >= MIN_ABS_BASELINE_ROI
+    df["roi_change_pct"] = np.where(roi_baseline_reliable, roi_delta.abs() / roi_baseline.abs(), np.nan)
+    df["roi_change_signed_pct"] = np.where(roi_baseline_reliable, roi_delta / roi_baseline.abs(), np.nan)
+    df["roi_change_pct_unreliable_baseline"] = ~roi_baseline_reliable
 
     if {"incremental_outcome_new", "incremental_outcome_baseline"}.issubset(df.columns):
+        contrib_baseline = pd.to_numeric(df["incremental_outcome_baseline"], errors="coerce")
+        contrib_new = pd.to_numeric(df["incremental_outcome_new"], errors="coerce")
+        contrib_delta = contrib_new - contrib_baseline
+        contrib_reliable = contrib_baseline.abs() >= EPS
         df["contribution_change_pct"] = (
-            (pd.to_numeric(df["incremental_outcome_new"], errors="coerce") - pd.to_numeric(df["incremental_outcome_baseline"], errors="coerce")).abs()
-            / pd.to_numeric(df["incremental_outcome_baseline"], errors="coerce").abs().clip(lower=EPS)
+            np.where(contrib_reliable, contrib_delta.abs() / contrib_baseline.abs(), np.nan)
         )
         df["contribution_change_signed_pct"] = (
-            (pd.to_numeric(df["incremental_outcome_new"], errors="coerce") - pd.to_numeric(df["incremental_outcome_baseline"], errors="coerce"))
-            / pd.to_numeric(df["incremental_outcome_baseline"], errors="coerce").abs().clip(lower=EPS)
+            np.where(contrib_reliable, contrib_delta / contrib_baseline.abs(), np.nan)
         )
     else:
         df["contribution_change_pct"] = np.nan
         df["contribution_change_signed_pct"] = np.nan
 
-    # Core output movement uses both ROI and contribution changes when available.
     df["output_change_pct"] = _rowwise_mean(df, ["roi_change_pct", "contribution_change_pct"])
     df["signed_output_change_pct"] = _rowwise_mean(df, ["roi_change_signed_pct", "contribution_change_signed_pct"])
+
+    roi_scale_by_channel = (
+        roi_baseline.abs()
+        .where(roi_baseline_reliable)
+        .groupby(df["channel"].astype(str))
+        .median()
+        .replace(0, np.nan)
+    )
+    global_roi_scale = float(roi_baseline.abs().where(roi_baseline.abs() >= MIN_ABS_BASELINE_ROI).median())
+    if not np.isfinite(global_roi_scale):
+        global_roi_scale = 1.0
+    row_roi_scale = df["channel"].astype(str).map(roi_scale_by_channel).fillna(global_roi_scale).clip(lower=EPS)
+    df["output_change_delta_fallback"] = np.log1p(roi_delta.abs() / row_roi_scale)
+    df["output_change"] = pd.to_numeric(df["output_change_pct"], errors="coerce").combine_first(df["output_change_delta_fallback"])
+    df["output_change_method"] = np.where(
+        pd.to_numeric(df["output_change_pct"], errors="coerce").notna(),
+        "percent_roi_or_contribution",
+        "log_scaled_delta_roi",
+    )
 
     df["input_mu_pct"] = (pd.to_numeric(df["roi_prior_mu"], errors="coerce") / max(abs(baseline_mu), EPS) - 1.0).abs()
     df["input_sigma_pct"] = (pd.to_numeric(df["roi_prior_sigma"], errors="coerce") / max(abs(baseline_sigma), EPS) - 1.0).abs()
@@ -232,26 +284,34 @@ def _build_run_channel_metrics(
         & np.isclose(df["input_mu_pct"], 0.0, atol=1e-12)
         & np.isclose(df["input_sigma_pct"], 0.0, atol=1e-12)
     )
+    df["input_change"] = df["input_mu_pct"] + df["input_sigma_pct"] + (DIST_CHANGE_PENALTY * df["input_dist_change"])
     df["joint_continuous"] = ((df["input_mu_pct"] > 0) | (df["input_sigma_pct"] > 0)) & (df["input_dist_change"] == 0)
 
     df["elasticity_mu"] = np.where(
         df["mu_only"] & (df["input_mu_pct"] > 0),
-        df["output_change_pct"] / df["input_mu_pct"].clip(lower=EPS),
+        df["output_change"] / df["input_mu_pct"].clip(lower=EPS),
         np.nan,
     )
     df["elasticity_sigma"] = np.where(
         df["sigma_only"] & (df["input_sigma_pct"] > 0),
-        df["output_change_pct"] / df["input_sigma_pct"].clip(lower=EPS),
+        df["output_change"] / df["input_sigma_pct"].clip(lower=EPS),
         np.nan,
     )
     df["elasticity_joint"] = np.where(
         df["joint_continuous"],
-        df["output_change_pct"] / (df["input_mu_pct"] + df["input_sigma_pct"]).clip(lower=EPS),
+        df["output_change"] / (df["input_mu_pct"] + df["input_sigma_pct"]).clip(lower=EPS),
         np.nan,
     )
-    df["dist_sensitivity"] = np.where(df["dist_only"], df["output_change_pct"], np.nan)
+    df["elasticity_any"] = np.where(
+        df["input_change"] > 0,
+        df["output_change"] / df["input_change"].clip(lower=EPS),
+        np.nan,
+    )
+    for col in ["elasticity_mu", "elasticity_sigma", "elasticity_joint", "elasticity_any"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").clip(upper=ELASTICITY_CAP)
+    df["dist_sensitivity"] = np.where(df["dist_only"], df["output_change"], np.nan)
 
-    df["in_target_set"] = df["channel"].astype(str).isin(target_set)
+    df["in_target_set"] = df["target_channel"].astype(str).isin(target_set)
     df["flagged_this_channel"] = df.apply(
         lambda r: (
             str(r.get("qc_primary_review_check", "")) == "PriorPosteriorShift"
@@ -323,98 +383,114 @@ def _compute_channel_scores(
     baseline_dist: str,
     target_set: set[str],
 ) -> pd.DataFrame:
-    coupling_by_channel = _compute_cross_channel_coupling(run_channel_df, target_set)
     rows = []
 
-    for channel, group in run_channel_df.groupby("channel", dropna=False):
-        channel = str(channel)
+    for target, group in run_channel_df.groupby("target_channel", dropna=False):
+        target = str(target)
+        if target_set and target not in target_set:
+            continue
 
-        mu_elast = pd.to_numeric(group.loc[group["mu_only"], "elasticity_mu"], errors="coerce").median()
-        sigma_elast = pd.to_numeric(group.loc[group["sigma_only"], "elasticity_sigma"], errors="coerce").median()
-        joint_elast = pd.to_numeric(group.loc[group["joint_continuous"], "elasticity_joint"], errors="coerce").median()
-        dist_shift = pd.to_numeric(group.loc[group["dist_only"], "dist_sensitivity"], errors="coerce").median()
+        self_group = group[group["channel"].astype(str) == target].copy()
+        if self_group.empty:
+            self_group = group.copy()
+
+        mu_elast = _median_available(self_group.loc[self_group["mu_only"], "elasticity_mu"])
+        sigma_elast = _median_available(self_group.loc[self_group["sigma_only"], "elasticity_sigma"])
+        joint_elast = _median_available(self_group.loc[self_group["joint_continuous"], "elasticity_joint"])
+        any_elast = _median_available(self_group["elasticity_any"])
+        dist_shift = _median_available(self_group.loc[self_group["dist_only"], "dist_sensitivity"])
 
         sens_components = [x for x in [mu_elast, sigma_elast, joint_elast, dist_shift] if pd.notna(x)]
-        sensitivity_raw = float(np.nanmean(sens_components)) if sens_components else float(
-            pd.to_numeric(group["output_change_pct"], errors="coerce").median()
+        sensitivity_fragility = float(np.nanmedian(sens_components)) if sens_components else any_elast
+        prior_sensitivity_subscore = _score_from_fragility(
+            sensitivity_fragility,
+            reference=ELASTICITY_REFERENCE,
+            cap=ELASTICITY_CAP,
         )
+        if pd.isna(prior_sensitivity_subscore):
+            prior_sensitivity_subscore = 50.0
 
-        diffuse_rows = group[
-            np.isclose(pd.to_numeric(group["roi_prior_mu"], errors="coerce"), baseline_mu, atol=1e-12)
-            & group["roi_prior_dist"].astype(str).eq(str(baseline_dist))
-            & (pd.to_numeric(group["roi_prior_sigma"], errors="coerce") > baseline_sigma + 1e-12)
+        diffuse_rows = self_group[
+            np.isclose(pd.to_numeric(self_group["roi_prior_mu"], errors="coerce"), baseline_mu, atol=1e-12)
+            & self_group["roi_prior_dist"].astype(str).eq(str(baseline_dist))
+            & (pd.to_numeric(self_group["roi_prior_sigma"], errors="coerce") > baseline_sigma + 1e-12)
         ].copy()
         diffuse_shift = np.nan
         if not diffuse_rows.empty:
             sigma_max = pd.to_numeric(diffuse_rows["roi_prior_sigma"], errors="coerce").max()
             diffuse_shift = pd.to_numeric(
-                diffuse_rows[pd.to_numeric(diffuse_rows["roi_prior_sigma"], errors="coerce") == sigma_max]["output_change_pct"],
+                diffuse_rows[pd.to_numeric(diffuse_rows["roi_prior_sigma"], errors="coerce") == sigma_max]["output_change"],
                 errors="coerce",
             ).median()
 
-        flagged_rate = pd.to_numeric(group["flagged_this_channel"], errors="coerce").mean()
-        data_terms = [x for x in [diffuse_shift, flagged_rate] if pd.notna(x)]
-
-        # Prior-posterior distance metrics: larger distance should reduce fragility.
-        if "prior_posterior_wasserstein" in group.columns:
-            w1_med = pd.to_numeric(group["prior_posterior_wasserstein"], errors="coerce").median()
+        data_scores = []
+        diffuse_score = _score_from_fragility(diffuse_shift, reference=DATA_REFERENCE)
+        if pd.notna(diffuse_score):
+            data_scores.append(diffuse_score)
+        if "prior_posterior_wasserstein" in self_group.columns:
+            w1_med = pd.to_numeric(self_group["prior_posterior_wasserstein"], errors="coerce").median()
             if pd.notna(w1_med):
-                data_terms.append(1.0 / (1.0 + float(w1_med)))
-        if "prior_posterior_kl_gaussian" in group.columns:
-            kl_med = pd.to_numeric(group["prior_posterior_kl_gaussian"], errors="coerce").median()
+                data_scores.append(_score_from_distance(w1_med, reference=DATA_REFERENCE))
+        if "prior_posterior_kl_gaussian" in self_group.columns:
+            kl_med = pd.to_numeric(self_group["prior_posterior_kl_gaussian"], errors="coerce").median()
             if pd.notna(kl_med):
-                data_terms.append(1.0 / (1.0 + max(float(kl_med), 0.0)))
-        if "ci_overlap_baseline_new" in group.columns:
-            ci_overlap_med = pd.to_numeric(group["ci_overlap_baseline_new"], errors="coerce").median()
+                data_scores.append(_score_from_distance(kl_med, reference=DATA_REFERENCE))
+        if "ci_overlap_baseline_new" in self_group.columns:
+            ci_overlap_med = pd.to_numeric(self_group["ci_overlap_baseline_new"], errors="coerce").median()
             if pd.notna(ci_overlap_med):
-                data_terms.append(1.0 - float(np.clip(ci_overlap_med, 0.0, 1.0)))
+                data_scores.append(100.0 * float(np.clip(ci_overlap_med, 0.0, 1.0)))
 
-        data_influence_raw = float(np.nanmean(data_terms)) if data_terms else float(
-            pd.to_numeric(group["output_change_pct"], errors="coerce").median()
+        data_influence_subscore = _mean_available(data_scores)
+        if pd.isna(data_influence_subscore):
+            data_influence_subscore = 50.0
+
+        cross_group = group[group["channel"].astype(str) != target].copy()
+        cross_channel_fragility = _median_available(cross_group["output_change"]) if not cross_group.empty else 0.0
+        max_cross_channel_fragility = (
+            float(pd.to_numeric(cross_group["output_change"], errors="coerce").max())
+            if not cross_group.empty and pd.to_numeric(cross_group["output_change"], errors="coerce").notna().any()
+            else 0.0
         )
-
-        cross_channel_raw = coupling_by_channel.get(channel, np.nan)
-
-        # Adstock proxy: we do not have adstock-parameter perturbations in this experiment.
-        # Use sign instability + CI instability + posterior dispersion as a structural proxy.
-        sign_flip_rate = pd.to_numeric(group["sign_flip"], errors="coerce").mean()
-        ci_instability = np.nan
-        if "ci_overlap_baseline_new" in group.columns:
-            ci_overlap_med = pd.to_numeric(group["ci_overlap_baseline_new"], errors="coerce").median()
-            if pd.notna(ci_overlap_med):
-                ci_instability = 1.0 - float(np.clip(ci_overlap_med, 0.0, 1.0))
-
-        dispersion_term = np.nan
-        if {"roi_new_sd", "roi_new"}.issubset(group.columns):
-            dispersion_term = pd.to_numeric(group["roi_new_sd"], errors="coerce").abs().median() / (
-                pd.to_numeric(group["roi_new"], errors="coerce").abs().median() + EPS
-            )
-
-        adstock_proxy_raw = float(np.nanmean([sign_flip_rate, ci_instability, dispersion_term]))
+        cross_channel_subscore = _score_from_fragility(cross_channel_fragility, reference=CROSS_REFERENCE)
+        if pd.isna(cross_channel_subscore):
+            cross_channel_subscore = 100.0
 
         spend_value = (
-            pd.to_numeric(group["channel_total_spend"], errors="coerce").median()
-            if "channel_total_spend" in group.columns
+            pd.to_numeric(self_group["channel_total_spend"], errors="coerce").median()
+            if "channel_total_spend" in self_group.columns
             else np.nan
         )
+        fallback_used_rate = pd.to_numeric(self_group["roi_change_pct_unreliable_baseline"], errors="coerce").mean()
+        n_runs = int(group["run_id"].nunique()) if "run_id" in group.columns else int(len(group))
+        n_self_rows = int(len(self_group))
+        n_cross_rows = int(len(cross_group))
 
         rows.append(
             {
-                "channel": channel,
-                "in_target_set": channel in target_set,
-                "n_runs_used": int(len(group)),
+                "channel": target,
+                "target_channel": target,
+                "in_target_set": target in target_set,
+                "n_runs_used": n_runs,
+                "n_self_rows": n_self_rows,
+                "n_cross_rows": n_cross_rows,
                 "channel_total_spend": spend_value,
                 "sensitivity_mu_elasticity_median": mu_elast,
                 "sensitivity_sigma_elasticity_median": sigma_elast,
                 "sensitivity_joint_elasticity_median": joint_elast,
+                "sensitivity_any_elasticity_median": any_elast,
                 "sensitivity_dist_shift_median": dist_shift,
-                "prior_sensitivity_raw": sensitivity_raw,
+                "sensitivity_fragility": sensitivity_fragility,
+                "prior_sensitivity_raw": sensitivity_fragility,
+                "prior_sensitivity_subscore": prior_sensitivity_subscore,
                 "data_diffuse_shift_median": diffuse_shift,
-                "data_prior_shift_flag_rate": flagged_rate,
-                "data_influence_raw": data_influence_raw,
-                "cross_channel_coupling_raw": cross_channel_raw,
-                "adstock_proxy_sign_flip_rate": sign_flip_rate,
-                "adstock_proxy_raw": adstock_proxy_raw,
+                "data_influence_raw": data_influence_subscore,
+                "data_influence_subscore": data_influence_subscore,
+                "cross_channel_fragility": cross_channel_fragility,
+                "max_cross_channel_fragility": max_cross_channel_fragility,
+                "cross_channel_subscore": cross_channel_subscore,
+                "near_zero_baseline_fallback_rate": fallback_used_rate,
+                "score_method": "absolute_prior_sensitivity_v1",
+                "band_method": BAND_METHOD,
             }
         )
 
@@ -422,22 +498,10 @@ def _compute_channel_scores(
     if channel_df.empty:
         raise ValueError("No per-channel rows could be computed for robustness scoring.")
 
-    channel_df["prior_sensitivity_fragility_rank"] = _scaled_rank(channel_df["prior_sensitivity_raw"])
-    channel_df["data_influence_fragility_rank"] = _scaled_rank(channel_df["data_influence_raw"])
-    channel_df["cross_channel_fragility_rank"] = _scaled_rank(channel_df["cross_channel_coupling_raw"])
-    channel_df["adstock_proxy_fragility_rank"] = _scaled_rank(channel_df["adstock_proxy_raw"])
-
-    channel_df["prior_sensitivity_subscore"] = 100.0 * (1.0 - channel_df["prior_sensitivity_fragility_rank"])
-    channel_df["data_influence_subscore"] = 100.0 * (1.0 - channel_df["data_influence_fragility_rank"])
-    channel_df["cross_channel_subscore"] = 100.0 * (1.0 - channel_df["cross_channel_fragility_rank"])
-    channel_df["adstock_proxy_subscore"] = 100.0 * (1.0 - channel_df["adstock_proxy_fragility_rank"])
-
-    # Advisor-scoped prior sensitivity is primary; adstock is a secondary proxy here.
     channel_df["overall_channel_robustness_score"] = (
-        0.50 * channel_df["prior_sensitivity_subscore"]
-        + 0.30 * channel_df["data_influence_subscore"]
+        0.60 * channel_df["prior_sensitivity_subscore"]
+        + 0.25 * channel_df["data_influence_subscore"]
         + 0.15 * channel_df["cross_channel_subscore"]
-        + 0.05 * channel_df["adstock_proxy_subscore"]
     )
     return channel_df
 
@@ -452,19 +516,22 @@ def _build_overall_score(
     baseline_mu: float,
     baseline_sigma: float,
     baseline_dist: str,
-) -> tuple[pd.DataFrame, float, float]:
+) -> pd.DataFrame:
+    weighting_used = overall_weighting
     if overall_weighting == "spend" and "channel_total_spend" in channel_df.columns:
         weights = pd.to_numeric(channel_df["channel_total_spend"], errors="coerce").fillna(0)
         if float(weights.sum()) <= 0:
             weights = pd.Series(1.0, index=channel_df.index)
+            weighting_used = "equal"
     else:
         weights = pd.Series(1.0, index=channel_df.index)
+        weighting_used = "equal"
 
     overall_score = _weighted_mean(channel_df["overall_channel_robustness_score"], weights)
     overall_prior_sens = _weighted_mean(channel_df["prior_sensitivity_subscore"], weights)
     overall_data_inf = _weighted_mean(channel_df["data_influence_subscore"], weights)
     overall_cross = _weighted_mean(channel_df["cross_channel_subscore"], weights)
-    overall_adstock = _weighted_mean(channel_df["adstock_proxy_subscore"], weights)
+    overall_near_zero_fallback = _weighted_mean(channel_df.get("near_zero_baseline_fallback_rate", pd.Series(np.nan, index=channel_df.index)), weights)
 
     target_subset_df = channel_df[channel_df["in_target_set"] == True].copy()
     target_subset_score = (
@@ -473,14 +540,7 @@ def _build_overall_score(
         else np.nan
     )
 
-    q33 = float(channel_df["overall_channel_robustness_score"].quantile(1.0 / 3.0))
-    q67 = float(channel_df["overall_channel_robustness_score"].quantile(2.0 / 3.0))
-
-    overall_band = "Medium"
-    if overall_score < q33:
-        overall_band = "Low"
-    elif overall_score >= q67:
-        overall_band = "High"
+    overall_band = _absolute_band(overall_score)
 
     overall_df = pd.DataFrame(
         [
@@ -489,24 +549,32 @@ def _build_overall_score(
                 "n_channels": int(len(channel_df)),
                 "n_runs_used": int(n_runs_used),
                 "excluded_fail_runs": bool(excluded_fail_runs),
-                "overall_weighting": overall_weighting,
+                "overall_weighting": weighting_used,
                 "baseline_mu": baseline_mu,
                 "baseline_sigma": baseline_sigma,
                 "baseline_dist": baseline_dist,
                 "overall_model_robustness_score": overall_score,
                 "overall_model_robustness_band": overall_band,
+                "absolute_band": overall_band,
                 "overall_prior_sensitivity_subscore": overall_prior_sens,
                 "overall_data_influence_subscore": overall_data_inf,
                 "overall_cross_channel_subscore": overall_cross,
-                "overall_adstock_proxy_subscore": overall_adstock,
                 "target_subset_robustness_score": target_subset_score,
-                "empirical_low_cutoff_q33": q33,
-                "empirical_high_cutoff_q67": q67,
-                "adstock_note": "Proxy-only (no adstock sweep in current experiment design)",
+                "empirical_low_cutoff_q33": np.nan,
+                "empirical_high_cutoff_q67": np.nan,
+                "band_method": BAND_METHOD,
+                "absolute_band_method": BAND_METHOD,
+                "score_method": "absolute_prior_sensitivity_v1",
+                "score_note": (
+                    "Project-defined prior sensitivity heuristic, not an official Meridian metric; "
+                    "computed conditional on the selected structural profile."
+                ),
+                "near_zero_baseline_fallback_rate": overall_near_zero_fallback,
+                "relative_rank_method": RELATIVE_RANK_METHOD,
             }
         ]
     )
-    return overall_df, q33, q67
+    return overall_df
 
 
 def _write_report(
@@ -527,25 +595,29 @@ def _write_report(
     lines.append(f"# Robustness Score Report ({targets_str})\n")
     lines.append("## Scope\n")
     lines.append(
-        "- Primary scope is prior sensitivity robustness for ROI/contribution outputs under prior perturbations.\n"
-        "- Subscores include prior sensitivity, data influence, cross-channel coupling, and an adstock proxy stability score.\n"
+        "- Primary scope is prior sensitivity robustness for ROI/contribution outputs under prior perturbations, conditional on the selected structural profile.\n"
+        "- This is a project-defined heuristic, not an official Meridian metric.\n"
+        "- Subscores include sensitivity elasticity (60%), data influence (25%), and cross-channel spillover (15%).\n"
     )
     lines.append("## Formula Blocks\n")
     lines.append(
         "- Sensitivity elasticity: `(Delta output / |baseline output|) / (Delta prior / |baseline prior|)`\n"
-        "- Data influence fragility increases when diffuse-prior runs still shift outputs strongly, flagged prior-posterior-shift rates are high, or prior-posterior distance is small.\n"
-        "- Cross-channel fragility increases with mean absolute correlation and spillover ratio across channels.\n"
-        "- Adstock proxy fragility increases with sign-flip rate, CI instability, and posterior dispersion (proxy only in current experiment).\n"
+        "- Near-zero baseline ROI uses contribution movement when available, otherwise log-scaled absolute delta ROI fallback.\n"
+        "- Fragility metrics map to 0-100 with `100 / (1 + fragility / reference_scale)`; higher is more robust.\n"
+        "- Data influence increases when diffuse-prior movement is low, prior-posterior distance is high, or credible-interval overlap is high.\n"
+        "- Cross-channel fragility uses non-self channel movement when the selected target channel's prior is perturbed.\n"
+        "- Structural settings are fixed context only; no adstock/structural robustness subscore is included.\n"
+        "- Main bands use provisional fixed thresholds on the 0-100 score: Low < 50, Medium 50-74, High >= 75.\n"
+        "- Relative Rank is reported separately as rank / tested channels; rank 1 is most robust within the current run.\n"
     )
     lines.append("## Overall Model Score\n")
     lines.append(
         f"- Overall robustness score: **{float(row['overall_model_robustness_score']):.2f}** ({row['overall_model_robustness_band']})\n"
         f"- Weighting: `{row['overall_weighting']}`\n"
         f"- Baseline prior: mu={baseline_mu:.6f}, sigma={baseline_sigma:.6f}, dist={baseline_dist}\n"
-        f"- Overall prior-sensitivity subscore: {float(row['overall_prior_sensitivity_subscore']):.2f}\n"
-        f"- Overall data-influence subscore: {float(row['overall_data_influence_subscore']):.2f}\n"
-        f"- Overall cross-channel subscore: {float(row['overall_cross_channel_subscore']):.2f}\n"
-        f"- Overall adstock proxy subscore: {float(row['overall_adstock_proxy_subscore']):.2f}\n"
+        f"- Overall sensitivity-elasticity subscore (60%): {float(row['overall_prior_sensitivity_subscore']):.2f}\n"
+        f"- Overall data-influence subscore (25%): {float(row['overall_data_influence_subscore']):.2f}\n"
+        f"- Overall cross-channel subscore (15%): {float(row['overall_cross_channel_subscore']):.2f}\n"
     )
     lines.append("## Most Fragile Channels\n")
     for _, r in top_fragile.iterrows():
@@ -553,8 +625,7 @@ def _write_report(
             f"- {r['channel']}: overall={float(r['overall_channel_robustness_score']):.2f}, "
             f"prior_sens={float(r['prior_sensitivity_subscore']):.2f}, "
             f"data_influence={float(r['data_influence_subscore']):.2f}, "
-            f"cross_channel={float(r['cross_channel_subscore']):.2f}, "
-            f"adstock_proxy={float(r['adstock_proxy_subscore']):.2f}"
+            f"cross_channel={float(r['cross_channel_subscore']):.2f}"
         )
     lines.append("\n## Most Robust Channels\n")
     for _, r in top_robust.iterrows():
@@ -562,8 +633,7 @@ def _write_report(
             f"- {r['channel']}: overall={float(r['overall_channel_robustness_score']):.2f}, "
             f"prior_sens={float(r['prior_sensitivity_subscore']):.2f}, "
             f"data_influence={float(r['data_influence_subscore']):.2f}, "
-            f"cross_channel={float(r['cross_channel_subscore']):.2f}, "
-            f"adstock_proxy={float(r['adstock_proxy_subscore']):.2f}"
+            f"cross_channel={float(r['cross_channel_subscore']):.2f}"
         )
 
     return _safe_text_write(report_path, "\n".join(lines) + "\n")
@@ -583,11 +653,28 @@ def _write_placeholder_outputs(
     channel_df = pd.DataFrame(
         columns=[
             "channel",
+            "target_channel",
             "in_target_set",
             "n_runs_used",
+            "n_self_rows",
+            "n_cross_rows",
             "channel_total_spend",
+            "sensitivity_fragility",
+            "prior_sensitivity_subscore",
+            "data_diffuse_shift_median",
+            "data_influence_subscore",
+            "cross_channel_fragility",
+            "cross_channel_subscore",
+            "near_zero_baseline_fallback_rate",
             "overall_channel_robustness_score",
             "robustness_band",
+            "absolute_band",
+            "score_method",
+            "band_method",
+            "relative_rank",
+            "relative_rank_total",
+            "relative_rank_label",
+            "relative_rank_method",
             "targets",
         ]
     )
@@ -604,14 +691,19 @@ def _write_placeholder_outputs(
                 "baseline_dist": "",
                 "overall_model_robustness_score": np.nan,
                 "overall_model_robustness_band": "",
+                "absolute_band": "",
                 "overall_prior_sensitivity_subscore": np.nan,
                 "overall_data_influence_subscore": np.nan,
                 "overall_cross_channel_subscore": np.nan,
-                "overall_adstock_proxy_subscore": np.nan,
                 "target_subset_robustness_score": np.nan,
                 "empirical_low_cutoff_q33": np.nan,
                 "empirical_high_cutoff_q67": np.nan,
-                "adstock_note": reason,
+                "band_method": BAND_METHOD,
+                "absolute_band_method": BAND_METHOD,
+                "score_method": "absolute_prior_sensitivity_v1",
+                "score_note": reason,
+                "near_zero_baseline_fallback_rate": np.nan,
+                "relative_rank_method": RELATIVE_RANK_METHOD,
             }
         ]
     )
@@ -775,7 +867,20 @@ def main() -> None:
         target_set=target_set,
     )
 
-    overall_df, q33, q67 = _build_overall_score(
+    channel_df = channel_df.sort_values("overall_channel_robustness_score", ascending=False).reset_index(drop=True)
+    channel_df["relative_rank"] = (
+        channel_df["overall_channel_robustness_score"]
+        .rank(method="min", ascending=False)
+        .astype(int)
+    )
+    channel_df["relative_rank_total"] = int(len(channel_df))
+    channel_df["relative_rank_label"] = channel_df["relative_rank"].astype(str) + " / " + str(len(channel_df)) + " tested channels"
+    channel_df["relative_rank_method"] = RELATIVE_RANK_METHOD
+    channel_df["absolute_band"] = channel_df["overall_channel_robustness_score"].map(_absolute_band)
+    channel_df["robustness_band"] = channel_df["absolute_band"]
+    channel_df["band_method"] = BAND_METHOD
+
+    overall_df = _build_overall_score(
         channel_df,
         targets_str=targets_str,
         n_runs_used=int(run_channel_df["run_id"].nunique()),
@@ -786,11 +891,6 @@ def main() -> None:
         baseline_dist=baseline_dist,
     )
 
-    channel_df["robustness_band"] = np.where(
-        channel_df["overall_channel_robustness_score"] < q33,
-        "Low",
-        np.where(channel_df["overall_channel_robustness_score"] < q67, "Medium", "High"),
-    )
     channel_df["targets"] = targets_str
     channel_df = channel_df.sort_values("overall_channel_robustness_score", ascending=True).reset_index(drop=True)
 
