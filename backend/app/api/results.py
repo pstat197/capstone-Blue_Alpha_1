@@ -2,11 +2,32 @@ from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
 
-from backend.app.schemas.result import ResultPayloadResponse
-from backend.app.services.result_locator import load_payload_for_run
+from backend.app.schemas.result import ResultHistoryPayloadResponse, ResultHistoryResponse, ResultPayloadResponse
+from backend.app.services.result_locator import list_saved_result_history, load_payload_for_run, load_saved_history_payload
 from backend.app.services.run_store import get_run
 
 router = APIRouter(tags=["results"])
+
+
+@router.get("/results/history", response_model=ResultHistoryResponse)
+def get_result_history() -> ResultHistoryResponse:
+    return ResultHistoryResponse(items=list_saved_result_history())
+
+
+@router.get("/results/history/{history_id}", response_model=ResultHistoryPayloadResponse)
+def get_result_history_payload(history_id: str) -> ResultHistoryPayloadResponse:
+    try:
+        item, payload = load_saved_history_payload(history_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    return ResultHistoryPayloadResponse(
+        history_id=history_id,
+        history_item=item,
+        run_id=item["run_id"],
+        output_tag=item["output_tag"],
+        source="Saved local result",
+        payload=payload,
+    )
 
 
 @router.get("/runs/{run_id}/results/payload", response_model=ResultPayloadResponse)
@@ -16,7 +37,12 @@ def get_result_payload(run_id: str) -> ResultPayloadResponse:
         output_tag = run.output_tag
         payload = load_payload_for_run(run_id, output_tag)
     except FileNotFoundError as exc:
-        raise HTTPException(status_code=404, detail=str(exc)) from exc
+        try:
+            output_tag = run_id
+            payload = load_payload_for_run(run_id, output_tag)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+        return ResultPayloadResponse(run_id=run_id, output_tag=output_tag, source="Saved local result", payload=payload)
     source = "FastAPI" if run.mode in {"real_full", "real_tiny"} else "Mock execution"
     return ResultPayloadResponse(run_id=run_id, output_tag=output_tag, source=source, payload=payload)
 

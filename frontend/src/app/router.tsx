@@ -12,6 +12,7 @@ import { OverviewPage } from "../features/results/pages/OverviewPage";
 import { PriorSensitivityPage } from "../features/results/pages/PriorSensitivityPage";
 import { PriorVsPosteriorPage } from "../features/results/pages/PriorVsPosteriorPage";
 import { RunAuditDiagnosticsPage } from "../features/results/pages/RunAuditDiagnosticsPage";
+import { ResultsHistoryPage } from "../features/results/pages/ResultsHistoryPage";
 import { ScenarioExplorerPage } from "../features/results/pages/ScenarioExplorerPage";
 import { DocumentationPage } from "../shared/DocumentationPage";
 
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
       { path: "workflow/review-run", element: <ReviewRunPage /> },
       { path: "workflow/run-monitor", element: <RunMonitorPage /> },
       { path: "runs/:runId/monitor", element: <RunMonitorPage /> },
+      { path: "results/history", element: <ResultsHistoryPage /> },
       { path: "results/overview", element: <OverviewPage /> },
       { path: "results/:runId/overview", element: <OverviewPage /> },
       { path: "results/prior-sensitivity", element: <PriorSensitivityPage /> },

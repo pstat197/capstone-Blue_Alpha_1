@@ -125,7 +125,4 @@ methods:
   sensitivity_description: "LogNormal prior sensitivity is the primary analysis surface; percent change is shown only for stable baselines, with |Delta ROI| fallback when denominator stability is weak."
   visualization_description: "The dashboard emphasizes LogNormal grid exploration with channel-level drill-down, mu/sigma split diagnostics, box-and-whisker distributions, and ROI/contribution response surfaces."
 
-output:
-  write_dashboard: true
-  dashboard_filename: "dashboard.html"
-  dashboard_template: "dashboard_template.html"
+output: {}

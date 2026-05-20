@@ -3,10 +3,7 @@ from __future__ import annotations
 import json
 import math
 import re
-import shutil
 from pathlib import Path
-
-from jinja2 import Environment, FileSystemLoader
 
 from src.formatting import (
     fmt_money as _fmt_money,
@@ -572,6 +569,79 @@ def _build_qc_followup_summary(qc_gate: dict) -> dict:
     }
 
 
+def _status_from_check_counts(row: dict) -> str:
+    fail = int(float(row.get("fail_count", 0) or 0))
+    review = int(float(row.get("review_count", 0) or 0))
+    passed = int(float(row.get("pass_count", 0) or 0))
+    if fail > 0:
+        return "FAIL"
+    if review > 0:
+        return "REVIEW"
+    if passed > 0:
+        return "PASS"
+    return "UNAVAILABLE"
+
+
+def _recommendation_for_check(check: str, status: str) -> str:
+    name = _clean_text_safe(check, "Diagnostic")
+    if status == "PASS":
+        return f"{name} passed in the selected run diagnostics."
+    if status == "UNAVAILABLE":
+        return f"{name} diagnostics are unavailable in the selected run payload."
+    if name == "Convergence":
+        return "Inspect sampler and convergence diagnostics before interpreting affected runs."
+    if name == "GoodnessOfFit":
+        return "Inspect model fit diagnostics before relying on stronger conclusions."
+    if name == "PriorPosteriorShift":
+        return "Review prior-posterior shift before stronger interpretation."
+    if name == "ROIConsistency":
+        return "Review ROI prior consistency before budget-level interpretation."
+    return f"Review {name} diagnostics before stronger interpretation."
+
+
+def _build_health_card_data(decision_card: dict, diagnostics: dict) -> dict:
+    overview = diagnostics.get("overview", {}) if diagnostics else {}
+    score = _to_float_safe(decision_card.get("score_numeric"))
+    status = _clean_text_safe(decision_card.get("tier_class") or decision_card.get("tier"), "").upper()
+    if status not in {"PASS", "REVIEW", "FAIL", "GREEN", "YELLOW", "RED"}:
+        fail = int(float(overview.get("fail_runs", 0) or 0))
+        review = int(float(overview.get("review_runs", 0) or 0))
+        passed = int(float(overview.get("pass_runs", 0) or 0))
+        status = "FAIL" if fail > 0 else ("REVIEW" if review > 0 else ("PASS" if passed > 0 else "UNAVAILABLE"))
+    if status == "GREEN":
+        status = "PASS"
+    elif status == "YELLOW":
+        status = "REVIEW"
+    elif status == "RED":
+        status = "FAIL"
+
+    rows = []
+    for row in diagnostics.get("check_rows", []) or []:
+        check = _clean_text_safe(row.get("check"), "Diagnostic")
+        display = "".join(part.capitalize() for part in check.replace("_", " ").split()) or check
+        row_status = _status_from_check_counts(row)
+        rows.append(
+            {
+                "check": display,
+                "status": row_status,
+                "recommendation": _recommendation_for_check(display, row_status),
+                "pass_count": int(float(row.get("pass_count", 0) or 0)),
+                "review_count": int(float(row.get("review_count", 0) or 0)),
+                "fail_count": int(float(row.get("fail_count", 0) or 0)),
+                "unknown_count": int(float(row.get("unknown_count", 0) or 0)),
+            }
+        )
+
+    return {
+        "title": "Model Health Card",
+        "score_label": _clean_text_safe(decision_card.get("score_label"), "Model Health Score"),
+        "score": score,
+        "overall_status": status,
+        "summary": _clean_text_safe(decision_card.get("headline"), ""),
+        "rows": rows,
+    }
+
+
 def _load_theory_block(cfg: dict) -> dict:
     theory_cfg = cfg.get("theory", {})
     if not bool(theory_cfg.get("enabled", True)):
@@ -642,7 +712,7 @@ def _load_theory_block(cfg: dict) -> dict:
     }
 
 
-def render_dashboard_output(
+def render_dashboard_payload(
     metrics: dict,
     fig_paths: dict,
     cfg: dict,
@@ -651,20 +721,6 @@ def render_dashboard_output(
     source_files: dict | None = None,
     branding: dict | None = None,
 ) -> None:
-    template_dir = Path(__file__).resolve().parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)))
-    output_cfg = cfg.get("output", {}) or {}
-    write_report = bool(output_cfg.get("write_report", False))
-    report_template_name = "report_template.html"
-    report_template_path = template_dir / report_template_name
-    template = (
-        env.get_template(report_template_name)
-        if write_report and report_template_path.exists()
-        else None
-    )
-    if write_report and template is None:
-        write_report = False
-
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
     diagnostics = metrics.get("diagnostics", {"available": False})
@@ -1598,75 +1654,6 @@ def render_dashboard_output(
                 "n": int(row.get("n", 0) or 0),
             })
 
-    meridian_official_dir = outdir / "figures" / "meridian_official"
-    manifest_data = {}
-    manifest_path = meridian_official_dir / "manifest.json"
-    if manifest_path.exists() and manifest_path.is_file():
-        try:
-            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
-        except Exception:
-            manifest_data = {}
-    if not isinstance(manifest_data, dict):
-        manifest_data = {}
-
-    def _official_rel(filename: str) -> str | None:
-        p = meridian_official_dir / filename
-        if p.exists() and p.is_file():
-            return f"figures/meridian_official/{filename}"
-        return None
-
-    official_chart_keys = [
-        "spend_vs_contribution",
-        "roi_by_channel",
-        "roi_vs_mroi",
-        "roi_vs_effectiveness",
-        "contribution_waterfall",
-        "contribution_over_time",
-    ]
-    official_chart_defaults = {
-        "spend_vs_contribution": "spend_vs_contribution.html",
-        "roi_by_channel": "roi_by_channel.html",
-        "roi_vs_mroi": "roi_vs_mroi.html",
-        "roi_vs_effectiveness": "roi_vs_effectiveness.html",
-        "contribution_waterfall": "contribution_waterfall.html",
-        "contribution_over_time": "contribution_over_time.html",
-    }
-    manifest_files_raw = manifest_data.get("files", {}) if isinstance(manifest_data, dict) else {}
-    manifest_files = manifest_files_raw if isinstance(manifest_files_raw, dict) else {}
-    meridian_official_files = {
-        key: _official_rel(str(manifest_files.get(key) or official_chart_defaults[key]))
-        for key in official_chart_keys
-    }
-
-    manifest_specs_raw = manifest_data.get("chart_specs", {}) if isinstance(manifest_data, dict) else {}
-    meridian_chart_specs = manifest_specs_raw if isinstance(manifest_specs_raw, dict) else {}
-
-    def _extract_vega_spec_from_html(path: Path) -> dict | None:
-        try:
-            text = path.read_text(encoding="utf-8-sig", errors="ignore")
-        except Exception:
-            return None
-        m = re.search(r"var\s+spec\s*=\s*(\{.*?\})\s*;\s*var\s+embedOpt", text, flags=re.S)
-        if not m:
-            return None
-        try:
-            spec = json.loads(m.group(1))
-        except Exception:
-            return None
-        return spec if isinstance(spec, dict) else None
-
-    for key in official_chart_keys:
-        if isinstance(meridian_chart_specs.get(key), dict):
-            continue
-        filename = str(manifest_files.get(key) or official_chart_defaults[key])
-        src_path = meridian_official_dir / filename
-        if src_path.exists() and src_path.is_file():
-            extracted = _extract_vega_spec_from_html(src_path)
-            if extracted:
-                meridian_chart_specs[key] = extracted
-
-    meridian_official_available = any(isinstance(meridian_chart_specs.get(key), dict) for key in official_chart_keys)
-
     dashboard_payload = {
         "meta": {
             "title": meta.get("title", "Report"),
@@ -1689,6 +1676,7 @@ def render_dashboard_output(
         "outcome_context": outcome_context,
         "thresholds": cfg.get("thresholds", {}),
         "decision_card": decision_card_block,
+        "health_card_data": _build_health_card_data(decision_card_block, diagnostics),
         "diagnostics": diagnostics,
         "diagnostics_overview": diagnostics.get("overview", {}),
         "rank_rows": rank_dashboard_rows,
@@ -1710,123 +1698,14 @@ def render_dashboard_output(
         "workbench": workbench_block,
         "target_channel_detail": _build_target_channel_detail_payload(metrics, source_files),
         "qc_followup": _build_qc_followup_summary(qc_gate),
-        "meridian_official": {
-            "available": bool(meridian_official_available),
-            "files": meridian_official_files,
-            "chart_specs": meridian_chart_specs,
-            "manifest": manifest_data,
-        },
-        "figures": {
-            "roi_prior_vs_posterior": (
-                f"figures/{fig_paths.get('roi_prior_vs_posterior')}"
-                if fig_paths.get("roi_prior_vs_posterior")
-                else None
-            ),
-        },
         "roi_prior_posterior_table": _build_roi_prior_posterior_table(source_files),
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
         "how_this_was_run": metrics.get("how_this_was_run", {"available": False}),
     }
     dashboard_payload = _json_compatible(dashboard_payload, float_decimals=3)
-    if write_report and template is not None:
-        html = template.render(
-            meta=meta,
-            methods=methods,
-            introduction=intro_block,
-            theory=theory_block,
-            scope=scope_block,
-            overview=overview,
-            diagnostics=diagnostics,
-            diagnostics_focus=diagnostics_focus,
-            qc_gate=qc_gate_block,
-            decision_card=decision_card_block,
-            dollar=dollar_block,
-            scenario_snapshot=scenario_block,
-            spend_effect=spend_effect_block,
-            structural=structural_block,
-            display=display_block,
-            quick_overview_lines=metrics.get("quick_overview_lines", []),
-            rank_table=rank_table_exec_df.to_dict(orient="records"),
-            rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
-            exec_table_mode=exec_table_mode,
-            recommendations=metrics["recommendations"],
-            figures={
-                "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
-                "tornado_dollar": (
-                    f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
-                ),
-                "spend_effect": (
-                    f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
-                ),
-                "adstock_curves": (
-                    f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
-                ),
-                "saturation_curves": (
-                    f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
-                ),
-                "carryover_decomposition": (
-                    f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
-                ),
-                "scenario_snapshot": (
-                    f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
-                ),
-            },
-            heatmap_pages=fig_paths.get("heatmap_pages", []),
-            heatmap_modes=fig_paths.get("heatmap_modes", []),
-            default_heatmap_mode=fig_paths.get("default_heatmap_mode"),
-            appendix_tables=appendix_tables,
-            show_appendix=bool(output_cfg.get("show_appendix", False)),
-        )
-
-        out_path = outdir / str(output_cfg.get("report_filename", "report.html"))
-        out_path.write_text(html, encoding="utf-8")
-    elif not write_report:
-        stale_report_path = outdir / str(output_cfg.get("report_filename", "report.html"))
-        if stale_report_path.exists() and stale_report_path.is_file():
-            try:
-                stale_report_path.unlink()
-            except Exception:
-                pass
-
     payload_path = outdir / "tables" / "dashboard_payload.json"
     payload_path.write_text(
         json.dumps(dashboard_payload, ensure_ascii=False, indent=2, allow_nan=False),
         encoding="utf-8",
     )
-
-    write_dashboard = bool(output_cfg.get("write_dashboard", True))
-    if write_dashboard:
-        dashboard_template_name = str(output_cfg.get("dashboard_template", "dashboard_template.html"))
-        dashboard_css_name = str(output_cfg.get("dashboard_css", "dashboard.css"))
-        dashboard_css_src = template_dir / dashboard_css_name
-        dashboard_css_href = dashboard_css_name
-        if dashboard_css_src.exists() and dashboard_css_src.is_file():
-            dashboard_css_dest = outdir / dashboard_css_name
-            dashboard_css_dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(dashboard_css_src, dashboard_css_dest)
-        dashboard_nav = {
-            "overview": str(output_cfg.get("dashboard_filename", "dashboard.html")),
-        }
-        try:
-            dashboard_template = env.get_template(dashboard_template_name)
-        except Exception:
-            dashboard_template = None
-        if dashboard_template is not None:
-            page_specs = [("overview", dashboard_nav["overview"])]
-            kept_files = set()
-            for page_key, page_filename in page_specs:
-                dashboard_html = dashboard_template.render(
-                    meta=meta,
-                    overview=overview,
-                    decision_card=decision_card_block,
-                    dashboard_payload=dashboard_payload,
-                    dashboard_page=page_key,
-                    dashboard_nav=dashboard_nav,
-                    dashboard_css_href=dashboard_css_href,
-                )
-                (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
-                kept_files.add(page_filename)
-
-# Backward-compatible alias for older imports.
-render_html_report = render_dashboard_output

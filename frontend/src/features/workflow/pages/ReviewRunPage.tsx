@@ -328,7 +328,8 @@ export function ReviewRunPage() {
     createFullGridRun({ workflow_id: workflowId, approved_config_preview: preview, mode: "real_full" })
       .then((run) => {
         window.sessionStorage.setItem(activeRunIdStorageKey, run.run_id);
-        navigate(`/workflow/run-monitor?run_id=${encodeURIComponent(run.run_id)}`);
+        const reused = run.status === "already_completed" ? "&reused=1" : "";
+        navigate(`/workflow/run-monitor?run_id=${encodeURIComponent(run.run_id)}${reused}`);
       })
       .catch((error: unknown) => setRunCreateError(error instanceof Error ? error.message : "Unable to start this configuration."))
       .finally(() => {

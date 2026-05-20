@@ -1,2 +1,0 @@
-run_id,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,is_baseline,qc_status_code,qc_summary_short,adstock_alpha_m,saturation_ec_m,saturation_slope_m,max_lag,adstock_decay_spec,total_abs_pct_change,n_channels,total_abs_value_change,struct_profile_id
-multi|meta|pmode=roi|rpk=40.0|target=meta|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,meta,1.0,1.0,LogNormal,True,PASS,PASS,0.3,0.5,1.2,4,geometric,0.0,1,0.0,alpha=0.3000|ec=0.5000|slope=1.2000|lag=4.0000|decay=geometric

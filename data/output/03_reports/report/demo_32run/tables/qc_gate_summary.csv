@@ -1,2 +1,0 @@
-gate_mode,gate_mode_requested,gate_matched_count,gate_missing_count,gate_warning,n_total_runs,pass_rate_pct,gate_result
-auto_from_runs,auto_from_runs,32,0,,32,15.625,REVIEW

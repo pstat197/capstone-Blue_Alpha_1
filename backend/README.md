@@ -157,13 +157,11 @@ curl http://127.0.0.1:8000/api/runs/{run_id}/logs
 After completion, the run status includes artifact paths when produced:
 
 - `dashboard_payload`
-- `report_html`
 - `runs_dir`
 - `tables_dir`
 - `figures_dir`
-- `tornado_outputs_dir`
 
-If `dashboard_payload.json` exists, `result_url` points to `/results/overview?run_id={run_id}`. If the tiny pipeline fails, the monitor still shows `failed` plus the captured log output.
+If `dashboard_payload.json` exists, `result_url` points to a React result route. If the tiny pipeline fails, the monitor still shows `failed` plus the captured log output.
 
 Common failure modes:
 

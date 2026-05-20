@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
 import { useCurrentResult } from "../data/resultLoader";
 import type { SystemImpactRow, TargetChannelSummary, TargetRobustness } from "../data/resultTypes";
 import { channelLabel, formatNumber, formatPercent } from "../data/resultSelectors";
+import { ChannelLogo } from "../../workflow/data/channelRegistry";
 
 type MetricMode = "pct" | "delta";
 
@@ -22,29 +23,12 @@ type MovementRow = {
   stablePct: boolean;
 };
 
-type StructuralContext = {
-  alpha: number | null;
-  ec: number | null;
-  slope: number | null;
-  maxLag: number | null;
-};
-
 const missing = "Unavailable";
 const robustnessWeights = {
   prior: 0.6,
   data: 0.25,
   cross: 0.15,
 };
-
-function downloadText(filename: string, text: string, type: string) {
-  const blob = new Blob([text], { type });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 function asNumber(value: unknown): number | null {
   const n = Number(value);
@@ -207,20 +191,6 @@ function getField(row: Record<string, unknown> | undefined, keys: string[]): unk
   return key ? row[key] : undefined;
 }
 
-function structuralContext(payload: { structural?: { selected_run_id?: string; response_rows?: Array<Record<string, unknown>>; profile_rows?: Array<Record<string, unknown>> } }): StructuralContext {
-  const selectedRunId = payload.structural?.selected_run_id;
-  const responseRows = payload.structural?.response_rows || [];
-  const profileRows = payload.structural?.profile_rows || [];
-  const responseRow = selectedRunId ? responseRows.find((row) => String(row.run_id || "") === selectedRunId) : responseRows[0];
-  const row = responseRow || profileRows[0];
-  return {
-    alpha: asNumber(getField(row, ["adstock_alpha_m", "alpha", "adstock_alpha"])),
-    ec: asNumber(getField(row, ["saturation_ec_m", "ec", "ec_m"])),
-    slope: asNumber(getField(row, ["saturation_slope_m", "slope", "hill_slope"])),
-    maxLag: asNumber(getField(row, ["max_lag", "lag"])),
-  };
-}
-
 function stabilityLabel(row: MovementRow): "Stable" | "Unstable" | "Review" {
   if (row.stablePct) return "Stable";
   if (row.baselineRoi === null) return "Review";
@@ -286,7 +256,7 @@ function buildRows(summary: TargetChannelSummary, target: string, minReliableBas
     .sort((a, b) => (b.maxAbsPct ?? b.maxAbsDeltaRoi ?? -1) - (a.maxAbsPct ?? a.maxAbsDeltaRoi ?? -1));
 }
 
-function RobustnessCard({ robustness, structural }: { robustness?: TargetRobustness; structural: StructuralContext }) {
+function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
   const subscores = normalizedRobustnessSubscores(robustness);
   const payloadScore = rawPayloadRobustnessScore(robustness);
   const calculatedScore = computedRobustnessScore(subscores);
@@ -348,15 +318,6 @@ function RobustnessCard({ robustness, structural }: { robustness?: TargetRobustn
           <div className="ps-band-interpretation">
             <h4>Band Interpretation</h4>
             <p>{bandInterpretation(robustnessBand)}</p>
-          </div>
-          <div className="ps-structural-context">
-            <h4>Selected Structural Profile</h4>
-            <dl>
-              <div><dt>alpha</dt><dd>{structural.alpha !== null ? formatNumber(structural.alpha, 3) : missing}</dd></div>
-              <div><dt>EC midpoint</dt><dd>{structural.ec !== null ? formatNumber(structural.ec, 3) : missing}</dd></div>
-              <div><dt>response slope</dt><dd>{structural.slope !== null ? formatNumber(structural.slope, 3) : missing}</dd></div>
-              <div><dt>max lag</dt><dd>{structural.maxLag !== null ? formatNumber(structural.maxLag, 0) : missing}</dd></div>
-            </dl>
           </div>
           <details className="ps-robustness-explainer">
             <summary>How robustness score is calculated</summary>
@@ -433,10 +394,30 @@ export function PriorSensitivityPage() {
   const initialTarget = payload.target_channel_detail?.default_channel || options[0]?.value || Object.keys(summaries)[0] || "";
   const [selectedTarget, setSelectedTarget] = useState(initialTarget);
   const [metricMode, setMetricMode] = useState<MetricMode>("pct");
+  const [selectorOpen, setSelectorOpen] = useState(false);
+  const selectorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!selectedTarget && initialTarget) setSelectedTarget(initialTarget);
   }, [initialTarget, selectedTarget]);
+
+  useEffect(() => {
+    if (!selectorOpen) return;
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!selectorRef.current?.contains(event.target as Node)) {
+        setSelectorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [selectorOpen]);
+
+  const selectorOptions = options.length
+    ? options.flatMap((option) => option.value ? [{ value: option.value, label: option.label }] : [])
+    : selectedTarget
+      ? [{ value: selectedTarget, label: channelLabel(selectedTarget) }]
+      : [];
+  const selectedOptionLabel = selectorOptions.find((option) => option.value === selectedTarget)?.label || channelLabel(selectedTarget);
 
   const summary = normalizeSummary(summaries[selectedTarget]);
   const minReliableBaseline = asNumber((payload.overview as Record<string, unknown> | undefined)?.pct_guardrail_min_abs_baseline_roi) ?? 0.05;
@@ -454,7 +435,6 @@ export function PriorSensitivityPage() {
   const rankingRows = [...selectedRows].sort((a, b) => Math.abs(b.medianPct ?? b.maxAbsPct ?? 0) - Math.abs(a.medianPct ?? a.maxAbsPct ?? 0));
   const selfRow = selectedRows.find((row) => row.isSelf);
   const robustness = summary.robustness;
-  const structural = structuralContext(payload);
   const settings = payload.how_this_was_run?.settings || [];
   const priorDist = selfRow ? "ROI" : getSetting(settings, "Prior mode") || missing;
   const gridType = getSetting(settings, "Run mode") || getSetting(settings, "Prior grid scope") || summary.system_source || missing;
@@ -463,13 +443,6 @@ export function PriorSensitivityPage() {
   const topDecrease = selectedRows.filter((row) => (metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) !== null && ((metricMode === "pct" ? row.medianPct : row.medianDeltaRoi) as number) < 0).slice(0, 3);
   const unstableRows = selectedRows.filter((row) => !row.stablePct);
 
-  const exportPayload = {
-    run_id: result.activeRunId,
-    selected_target_channel: selectedTarget,
-    target_summary: summary,
-    movement_rows: selectedRows,
-  };
-
   return (
     <SectionScaffold
       title="Results / Prior Sensitivity"
@@ -477,25 +450,44 @@ export function PriorSensitivityPage() {
       sourceKind={result.sourceKind}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
-      headerAside={
-        <button className="ps-export-button" type="button" onClick={() => downloadText(`prior-sensitivity-${selectedTarget || "target"}.json`, JSON.stringify(exportPayload, null, 2), "application/json")}>
-          <span className="ps-export-button__icon" aria-hidden="true" />
-          Export
-          <span className="ps-export-button__chevron" aria-hidden="true" />
-        </button>
-      }
     >
       <div className="prior-sensitivity-page prior-sensitivity-page--drilldown">
         <section className="content-panel ps-target-selector-card">
-          <label>
+          <div className="ps-target-selector-field" ref={selectorRef}>
             <span>Select Target Channel</span>
-            <select value={selectedTarget} onChange={(event) => setSelectedTarget(event.target.value)}>
-              {options.map((option) => (
-                <option value={option.value} key={option.value}>{option.label || channelLabel(option.value)}</option>
-              ))}
-              {!options.length && selectedTarget ? <option value={selectedTarget}>{channelLabel(selectedTarget)}</option> : null}
-            </select>
-          </label>
+            <button
+              className="ps-target-select-button"
+              type="button"
+              aria-haspopup="listbox"
+              aria-expanded={selectorOpen}
+              onClick={() => setSelectorOpen((open) => !open)}
+            >
+              {selectedTarget ? <ChannelLogo channel={selectedTarget} /> : null}
+              <strong>{selectedOptionLabel}</strong>
+              <span className="ps-target-select-chevron" aria-hidden="true" />
+            </button>
+            {selectorOpen ? (
+              <div className="ps-target-select-menu" role="listbox" aria-label="Select target channel">
+                {selectorOptions.map((option) => (
+                  <button
+                    className={option.value === selectedTarget ? "ps-target-select-option active" : "ps-target-select-option"}
+                    type="button"
+                    role="option"
+                    aria-selected={option.value === selectedTarget}
+                    value={option.value}
+                    key={option.value}
+                    onClick={() => {
+                      setSelectedTarget(option.value);
+                      setSelectorOpen(false);
+                    }}
+                  >
+                    <ChannelLogo channel={option.value} />
+                    <span>{option.label || channelLabel(option.value)}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
           <div className="ps-selector-callout">
             <span aria-hidden="true">i</span>
             <p>This view shows full-system response to the selected target channel's prior changes. Overview page summarizes only each channel's self-response.</p>
@@ -514,7 +506,7 @@ export function PriorSensitivityPage() {
                 <div><dt>Baseline period</dt><dd>{getSetting(settings, "Date range") || missing}</dd></div>
               </dl>
             </article>
-            <RobustnessCard robustness={robustness} structural={structural} />
+            <RobustnessCard robustness={robustness} />
           </aside>
 
           <main className="ps-main-column">

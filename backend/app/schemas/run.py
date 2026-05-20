@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-RunLifecycleStatus = Literal["queued", "running", "completed", "failed", "cancelled"]
+RunLifecycleStatus = Literal["queued", "running", "completed", "failed", "cancelled", "already_completed"]
 RunMode = Literal["mock", "real_tiny", "real_full"]
 
 
@@ -51,6 +51,12 @@ class RunStatus(BaseModel):
     process_id: int | None = None
     output_tag: str | None = None
     result_artifacts: dict[str, Any] = Field(default_factory=dict)
+    display_result_id: str | None = None
+    config_fingerprint: str | None = None
+    original_csv_filename: str | None = None
+    csv_name_prefix: str | None = None
+    dataset_hash: str | None = None
+    history_id: str | None = None
 
 
 class RunCreateResponse(RunStatus):

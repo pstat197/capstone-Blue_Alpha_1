@@ -105,7 +105,44 @@ export type ResultPayloadResponse<TPayload = unknown> = {
   payload: TPayload;
 };
 
-export type RunLifecycleStatus = "queued" | "running" | "completed" | "failed" | "cancelled";
+export type ResultHistoryItem = {
+  history_id: string;
+  run_id: string;
+  output_tag: string;
+  display_result_id?: string | null;
+  config_fingerprint?: string | null;
+  original_csv_filename?: string | null;
+  csv_name_prefix?: string | null;
+  dataset_hash?: string | null;
+  generated_at?: string | null;
+  completed_at?: string | null;
+  kpi?: string | null;
+  kpi_path?: string | null;
+  revenue_handling?: string | null;
+  channels: string[];
+  channel_count: number;
+  completed_runs?: number | null;
+  qc_pass_runs?: number | null;
+  qc_review_runs?: number | null;
+  qc_fail_runs?: number | null;
+  qc_mix?: Record<string, number>;
+  report_path?: string | null;
+  dashboard_path?: string | null;
+  payload_path: string;
+  react_result_url?: string | null;
+  static_report_path?: string | null;
+};
+
+export type ResultHistoryResponse = {
+  items: ResultHistoryItem[];
+};
+
+export type ResultHistoryPayloadResponse<TPayload = unknown> = ResultPayloadResponse<TPayload> & {
+  history_id: string;
+  history_item: ResultHistoryItem;
+};
+
+export type RunLifecycleStatus = "queued" | "running" | "completed" | "failed" | "cancelled" | "already_completed";
 
 export type RunProgress = {
   total_runs: number;
@@ -144,6 +181,12 @@ export type RunStatus = {
   process_id?: number | null;
   output_tag?: string | null;
   result_artifacts?: Record<string, unknown>;
+  display_result_id?: string | null;
+  config_fingerprint?: string | null;
+  original_csv_filename?: string | null;
+  csv_name_prefix?: string | null;
+  dataset_hash?: string | null;
+  history_id?: string | null;
 };
 
 export type RunCreateRequest = {

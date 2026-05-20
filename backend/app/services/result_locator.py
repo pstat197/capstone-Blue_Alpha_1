@@ -2,10 +2,14 @@ from __future__ import annotations
 
 import json
 import csv
+import base64
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from backend.app.services.paths import PROJECT_ROOT
+
+REPORTS_ROOT = PROJECT_ROOT / "data" / "output" / "03_reports"
 
 
 def _roi_csv_path(output_tag: str) -> Path:
@@ -123,38 +127,28 @@ def locate_result_artifacts(output_tag: str) -> dict[str, Any]:
     runs_dir = PROJECT_ROOT / "data" / "output" / "01_runs" / output_tag
     tables_dir = PROJECT_ROOT / "data" / "output" / "02_tables" / output_tag
     report_dir = PROJECT_ROOT / "data" / "output" / "03_reports" / "report" / output_tag
-    tornado_dir = PROJECT_ROOT / "data" / "output" / "03_reports" / "tornado_outputs" / output_tag
     roi_csv_path = _roi_csv_path(output_tag)
     payload_path = report_dir / "tables" / "dashboard_payload.json"
-    report_html_path = report_dir / "dashboard.html"
 
     artifacts: dict[str, Any] = {
         "output_tag": output_tag,
         "dashboard_payload": str(payload_path) if payload_path.exists() else None,
-        "report_html": str(report_html_path) if report_html_path.exists() else None,
+        "payload_path": str(payload_path) if payload_path.exists() else None,
+        "static_report_path": None,
         "runs_dir": str(runs_dir) if runs_dir.exists() else None,
         "tables_dir": str(tables_dir) if tables_dir.exists() else None,
         "report_dir": str(report_dir) if report_dir.exists() else None,
         "figures_dir": str(report_dir / "figures") if (report_dir / "figures").exists() else None,
-        "tornado_outputs_dir": str(tornado_dir) if tornado_dir.exists() else None,
         "roi_csv": str(roi_csv_path) if roi_csv_path.exists() else None,
     }
     return artifacts
 
 
-def load_payload_for_run(run_id: str, output_tag: str | None = None) -> dict[str, Any]:
-    if not output_tag:
-        raise FileNotFoundError(f"No output tag is recorded for run {run_id}.")
-    payload = locate_result_artifacts(output_tag).get("dashboard_payload")
-    if not payload:
-        raise FileNotFoundError(
-            f"Results are not available for run {run_id}. Expected dashboard artifact "
-            f"data/output/03_reports/report/{output_tag}/tables/dashboard_payload.json was not found."
-        )
-    with Path(str(payload)).open("r", encoding="utf-8") as f:
+def _load_payload_from_path(payload_path: Path, output_tag: str) -> dict[str, Any]:
+    with payload_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
-    tables_dir = Path(str(payload)).parent
+    tables_dir = payload_path.parent
     diagnostics: dict[str, Any] = dict(data.get("diagnostics") or {})
     diagnostics.setdefault("overview", data.get("diagnostics_overview") or {})
     diagnostics_files = {
@@ -180,3 +174,180 @@ def load_payload_for_run(run_id: str, output_tag: str | None = None) -> dict[str
         data["roi_prior_posterior_table"] = _build_roi_prior_posterior_table_from_csv(output_tag)
     data["result_artifacts"] = locate_result_artifacts(output_tag)
     return data
+
+
+def load_payload_for_run(run_id: str, output_tag: str | None = None) -> dict[str, Any]:
+    if not output_tag:
+        raise FileNotFoundError(f"No output tag is recorded for run {run_id}.")
+    payload = locate_result_artifacts(output_tag).get("dashboard_payload")
+    if not payload:
+        raise FileNotFoundError(
+            f"Results are not available for run {run_id}. Expected dashboard artifact "
+            f"data/output/03_reports/report/{output_tag}/tables/dashboard_payload.json was not found."
+        )
+    return _load_payload_from_path(Path(str(payload)), output_tag)
+
+
+def _relative_path(path: Path) -> str:
+    return path.relative_to(PROJECT_ROOT).as_posix()
+
+
+def _history_id_for_payload(path: Path) -> str:
+    raw = _relative_path(path).encode("utf-8")
+    return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
+
+
+def _payload_path_for_history_id(history_id: str) -> Path:
+    try:
+        padded = history_id + ("=" * (-len(history_id) % 4))
+        rel = base64.urlsafe_b64decode(padded.encode("ascii")).decode("utf-8")
+    except Exception as exc:
+        raise FileNotFoundError("Saved result id is not valid.") from exc
+
+    path = (PROJECT_ROOT / rel).resolve()
+    reports_root = REPORTS_ROOT.resolve()
+    try:
+        path.relative_to(reports_root)
+    except ValueError as exc:
+        raise FileNotFoundError("Saved result id does not point to a report payload.") from exc
+    if not path.is_file():
+        raise FileNotFoundError("Saved result payload was not found.")
+    if path.name != "dashboard_payload.json":
+        raise FileNotFoundError("Saved result id does not point to a dashboard payload.")
+    return path
+
+
+def _string_or_none(value: Any) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _int_or_none(value: Any) -> int | None:
+    try:
+        parsed = int(float(value))
+    except (TypeError, ValueError):
+        return None
+    return parsed
+
+
+def _channels_from_payload(data: dict[str, Any]) -> list[str]:
+    options = data.get("target_channel_detail", {}).get("options", [])
+    channels: list[str] = []
+    if isinstance(options, list):
+        for option in options:
+            if isinstance(option, dict):
+                value = _string_or_none(option.get("label") or option.get("value"))
+            else:
+                value = _string_or_none(option)
+            if value and value not in channels:
+                channels.append(value)
+    if not channels:
+        workbench_channels = data.get("workbench", {}).get("available_channels", [])
+        if isinstance(workbench_channels, list):
+            channels = [channel for channel in (_string_or_none(item) for item in workbench_channels) if channel]
+    return channels
+
+
+def _history_item_from_payload_path(path: Path) -> dict[str, Any] | None:
+    try:
+        with path.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+
+    report_dir = path.parent.parent
+    output_tag = report_dir.name
+    identity_record: dict[str, Any] = {}
+    try:
+        from backend.app.services.saved_result_identity import list_index_records
+
+        path_text = str(path)
+        identity_record = next(
+            (
+                record for record in list_index_records()
+                if record.get("output_tag") == output_tag
+                or record.get("dashboard_path") == path_text
+                or record.get("payload_path") == path_text
+            ),
+            {},
+        )
+    except Exception:
+        identity_record = {}
+    payload_rel = _relative_path(path)
+    history_id = _history_id_for_payload(path)
+    diagnostics = data.get("diagnostics_overview") or data.get("diagnostics", {}).get("overview") or {}
+    overview = data.get("overview") or {}
+    outcome = data.get("outcome_context") or {}
+    meta = data.get("meta") or {}
+    channels = _channels_from_payload(data)
+    generated_at = _string_or_none(meta.get("generated_at"))
+    if not generated_at:
+        generated_at = _string_or_none(data.get("generated_at"))
+    if not generated_at:
+        generated_at = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat()
+
+    qc_pass = _int_or_none(diagnostics.get("pass_runs"))
+    qc_review = _int_or_none(diagnostics.get("review_runs"))
+    qc_fail = _int_or_none(diagnostics.get("fail_runs"))
+    qc_mix = identity_record.get("qc_mix") if isinstance(identity_record.get("qc_mix"), dict) else {}
+    return {
+        "history_id": history_id,
+        "run_id": output_tag,
+        "output_tag": output_tag,
+        "display_result_id": identity_record.get("display_result_id") or output_tag,
+        "config_fingerprint": identity_record.get("config_fingerprint"),
+        "original_csv_filename": identity_record.get("original_csv_filename"),
+        "csv_name_prefix": identity_record.get("csv_name_prefix"),
+        "dataset_hash": identity_record.get("dataset_hash"),
+        "generated_at": generated_at,
+        "completed_at": identity_record.get("completed_at"),
+        "kpi": _string_or_none(outcome.get("metric_label") or outcome.get("kpi_type") or data.get("kpi")),
+        "kpi_path": identity_record.get("kpi_path") or _string_or_none(outcome.get("metric_label") or outcome.get("kpi_type") or data.get("kpi")),
+        "revenue_handling": identity_record.get("revenue_handling"),
+        "channels": channels,
+        "channel_count": len(channels) or (_int_or_none(overview.get("n_channels")) or 0),
+        "completed_runs": _int_or_none(diagnostics.get("n_runs") or overview.get("n_rows")),
+        "qc_pass_runs": _int_or_none(qc_mix.get("pass")) or qc_pass,
+        "qc_review_runs": _int_or_none(qc_mix.get("review")) or qc_review,
+        "qc_fail_runs": _int_or_none(qc_mix.get("fail")) or qc_fail,
+        "qc_mix": {
+            "pass": _int_or_none(qc_mix.get("pass")) or qc_pass or 0,
+            "review": _int_or_none(qc_mix.get("review")) or qc_review or 0,
+            "fail": _int_or_none(qc_mix.get("fail")) or qc_fail or 0,
+        },
+        "report_path": None,
+        "static_report_path": None,
+        "dashboard_path": identity_record.get("dashboard_path") or payload_rel,
+        "payload_path": payload_rel,
+        "react_result_url": f"/results/overview?history_id={history_id}",
+    }
+
+
+def list_saved_result_history() -> list[dict[str, Any]]:
+    if not REPORTS_ROOT.exists():
+        return []
+    items = []
+    for payload_path in REPORTS_ROOT.glob("**/dashboard_payload.json"):
+        item = _history_item_from_payload_path(payload_path)
+        if item:
+            items.append(item)
+    deduped: dict[str, dict[str, Any]] = {}
+    for item in items:
+        key = str(item.get("display_result_id") or item.get("output_tag") or item.get("history_id"))
+        existing = deduped.get(key)
+        if not existing or str(item.get("generated_at") or "") > str(existing.get("generated_at") or ""):
+            deduped[key] = item
+    return sorted(deduped.values(), key=lambda item: str(item.get("generated_at") or ""), reverse=True)
+
+
+def load_saved_history_payload(history_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    payload_path = _payload_path_for_history_id(history_id)
+    item = _history_item_from_payload_path(payload_path)
+    if not item:
+        raise FileNotFoundError("Saved result payload is missing or malformed.")
+    data = _load_payload_from_path(payload_path, item["output_tag"])
+    return item, data

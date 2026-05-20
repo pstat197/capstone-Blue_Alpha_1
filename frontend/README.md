@@ -64,7 +64,6 @@ Result pages try the API first:
 
 - Endpoint: `GET /api/runs/{run_id}/results/payload`
 - Fallback payload: `data/output/03_reports/report/demo_32run/tables/dashboard_payload.json`
-- Figure asset: `data/output/03_reports/report/demo_32run/figures/roi_prior_vs_posterior.png`
 - Loader/hook: `src/features/results/data/resultLoader.ts`
 
 The fallback is intentional: the frontend remains usable without the backend while making the data source visible in each result page.
@@ -153,7 +152,6 @@ The generated pipeline artifacts are expected under:
 - `data/output/01_runs/phase5a_tiny_{run_id}/`
 - `data/output/02_tables/phase5a_tiny_{run_id}/`
 - `data/output/03_reports/report/phase5a_tiny_{run_id}/`
-- `data/output/03_reports/tornado_outputs/phase5a_tiny_{run_id}/`
 
 The Run Monitor polls status and logs. Completed runs show artifact paths and an `Open completed results` link when `dashboard_payload.json` was produced. Failed runs keep the logs visible for inspection. Full 240-run execution remains disabled.
 

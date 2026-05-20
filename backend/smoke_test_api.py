@@ -124,9 +124,14 @@ def main() -> None:
         assert advanced.json()["status"] in {"running", "completed"}
         assert advanced.json()["progress"]["completed_runs"] > 0
 
-        payload = client.get("/api/runs/demo_32run/results/payload")
+        history = client.get("/api/results/history")
+        assert history.status_code == 200, history.text
+        history_items = history.json()["items"]
+        assert history_items, "Expected at least one saved result payload."
+        history_id = history_items[0]["history_id"]
+        payload = client.get(f"/api/results/history/{history_id}")
         assert payload.status_code == 200, payload.text
-        assert payload.json()["run_id"] == "demo_32run"
+        assert payload.json()["history_id"] == history_id
         assert isinstance(payload.json()["payload"], dict)
 
         target = args.base_url or "in-process TestClient"

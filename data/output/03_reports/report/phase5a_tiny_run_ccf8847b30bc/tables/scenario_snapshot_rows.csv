@@ -1,2 +1,0 @@
-run_id,channel,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,estimated_roi,baseline_roi,pct_change,abs_pct_change,delta_value_used,qc_status_code,qc_summary_short
-multi|meta|pmode=roi|rpk=40.0|target=meta|mu=1.000000|sigma=1.000000|dist=LogNormal|1.000000|1.000000|LogNormal|alpha=0p3|ec=0p5|slope=1p2|lag=4|decay=geometric,meta,meta,1.0,1.0,LogNormal,0.5670040667057037,0.5670040667057037,0.0,0.0,,PASS,PASS

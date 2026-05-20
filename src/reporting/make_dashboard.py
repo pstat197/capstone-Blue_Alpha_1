@@ -9,14 +9,10 @@ import yaml
 
 try:
     from .metrics import compute_all_metrics
-    from .figures import make_all_figures
-    from .render import render_dashboard_output
-    from src.viz.roi_prior_vs_posterior import make_plot as make_roi_prior_vs_posterior_plot
+    from .render import render_dashboard_payload
 except ImportError:  # Allow direct script execution.
     from metrics import compute_all_metrics
-    from figures import make_all_figures
-    from render import render_dashboard_output
-    from src.viz.roi_prior_vs_posterior import make_plot as make_roi_prior_vs_posterior_plot
+    from render import render_dashboard_payload
 
 
 _REQUIRED_COLS = {
@@ -32,6 +28,7 @@ _LEGACY_REPORT_FIGURE_PREFIXES = ("scenario_snapshot_", "heatmap_board_")
 _LEGACY_REPORT_FIGURE_NAMES = {
     "tornado_top_sensitivity.png",
     "tornado_dollar_sensitivity.png",
+    "roi_prior_vs_posterior.png",
     "spend_vs_effect_onepager.png",
     "structural_adstock_curves.png",
     "structural_saturation_curves.png",
@@ -102,8 +99,10 @@ def _ensure_inferable_baseline_flags(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _cleanup_legacy_report_outputs(outdir: Path, report_filename: str) -> None:
-    report_path = outdir / report_filename
-    if report_path.exists() and report_path.is_file():
+    legacy_files = [outdir / report_filename, outdir / "dashboard.html", outdir / "dashboard.css"]
+    for report_path in legacy_files:
+        if not report_path.exists() or not report_path.is_file():
+            continue
         try:
             report_path.unlink()
         except Exception:
@@ -129,6 +128,12 @@ def _cleanup_legacy_report_outputs(outdir: Path, report_filename: str) -> None:
                 p.unlink()
             except Exception:
                 continue
+    meridian_official_dir = figures_dir / "meridian_official"
+    if meridian_official_dir.exists() and meridian_official_dir.is_dir():
+        try:
+            shutil.rmtree(meridian_official_dir)
+        except Exception:
+            pass
 
 
 def load_results(csv_path: Path) -> pd.DataFrame:
@@ -172,7 +177,7 @@ def main():
     parser.add_argument(
         "--clean-output",
         action="store_true",
-        help="Remove existing generated files before regeneration, while preserving figures/meridian_official.",
+        help="Remove existing generated files before regeneration.",
     )
     args = parser.parse_args()
 
@@ -190,34 +195,17 @@ def main():
     if not args.source_roi_csv:
         args.source_roi_csv = _infer_roi_source_csv(input_path)
 
-    output_cfg = cfg.setdefault("output", {})
-    write_dashboard = bool(output_cfg.get("write_dashboard", True))
-    write_report = bool(output_cfg.get("write_report", False))
-    report_filename = str(output_cfg.get("report_filename", "report.html"))
-    cleanup_report_outputs = bool(output_cfg.get("cleanup_report_outputs", True))
-
     outdir.mkdir(parents=True, exist_ok=True)
     tables_dir = outdir / "tables"
     tables_dir.mkdir(parents=True, exist_ok=True)
 
-    figures_dir = outdir / "figures"
-    if write_report:
-        figures_dir.mkdir(parents=True, exist_ok=True)
-
-    assets_dir = outdir / "assets"
-    if write_report:
-        assets_dir.mkdir(parents=True, exist_ok=True)
-
     if args.clean_output:
         clean_dirs = [tables_dir]
+        figures_dir = outdir / "figures"
         if figures_dir.exists():
-            clean_dirs.append(figures_dir)
-        if assets_dir.exists():
-            clean_dirs.append(assets_dir)
+            shutil.rmtree(figures_dir)
         for d in clean_dirs:
             for p in d.iterdir():
-                if d == figures_dir and p.is_dir() and p.name == "meridian_official":
-                    continue
                 if p.is_dir():
                     shutil.rmtree(p)
                 else:
@@ -225,33 +213,12 @@ def main():
 
     df = load_results(input_path)
     metrics = compute_all_metrics(df, cfg, tables_dir)
-    fig_paths = make_all_figures(df, metrics, cfg, figures_dir) if write_report else _empty_figure_paths()
-    if args.source_roi_csv:
-        figures_dir.mkdir(parents=True, exist_ok=True)
-        roi_prior_plot_path = figures_dir / "roi_prior_vs_posterior.png"
-        make_roi_prior_vs_posterior_plot(
-            args.source_roi_csv,
-            roi_prior_plot_path,
-            title="ROI Prior vs Posterior with 50% Posterior Intervals",
-        )
-        fig_paths["roi_prior_vs_posterior"] = roi_prior_plot_path.name
+    fig_paths = _empty_figure_paths()
     branding_cfg = cfg.get("branding", {})
     branding = {
         "cobrand_label": branding_cfg.get("cobrand_label", "UCSB x BlueAlpha AI"),
         "logos": {},
     }
-    logo_cfg = branding_cfg.get("logos", {})
-    if write_report:
-        for key in ["ucsb", "bluealpha"]:
-            raw = logo_cfg.get(key)
-            if not raw:
-                continue
-            src = Path(raw)
-            if not src.exists():
-                continue
-            dst = assets_dir / src.name
-            shutil.copy2(src, dst)
-            branding["logos"][key] = f"assets/{dst.name}"
 
     source_files = {
         "report_input": str(input_path),
@@ -259,17 +226,10 @@ def main():
         "roi_csv": args.source_roi_csv,
         "tornado_csv": args.source_tornado_csv,
     }
-    render_dashboard_output(metrics, fig_paths, cfg, input_path, outdir, source_files, branding)
+    render_dashboard_payload(metrics, fig_paths, cfg, input_path, outdir, source_files, branding)
 
-    if (not write_report) and cleanup_report_outputs:
-        _cleanup_legacy_report_outputs(outdir, report_filename)
-
-    if write_dashboard:
-        print("Dashboard updated.")
-    elif write_report:
-        print("Report updated.")
-    else:
-        print("Dashboard tables updated.")
+    _cleanup_legacy_report_outputs(outdir, "report.html")
+    print("Dashboard payload and tables updated.")
 
 
 if __name__ == "__main__":

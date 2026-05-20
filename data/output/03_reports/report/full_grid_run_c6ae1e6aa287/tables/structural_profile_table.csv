@@ -1,0 +1,2 @@
+struct_profile_id,adstock_alpha_m,saturation_ec_m,saturation_slope_m,max_lag,adstock_decay_spec,immediate_share,carryover_share,avg_lag,half_life_lag,n_runs,n_baseline_runs,mean_total_abs_pct_change,max_total_abs_pct_change
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,0.64,1.53,1.2,4,geometric,0.4033044898566016,0.5966955101433984,1.1763265297694208,1.6076388888888888,40,6,,

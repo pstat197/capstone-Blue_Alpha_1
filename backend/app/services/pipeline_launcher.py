@@ -17,6 +17,7 @@ import yaml
 from backend.app.schemas.run import ChannelRunProgress, RunStatus
 from backend.app.services.paths import PROJECT_ROOT, RUNS_DIR, ensure_storage_dirs
 from backend.app.services.result_locator import locate_result_artifacts
+from backend.app.services.saved_result_identity import register_completed_result
 
 MAX_PHASE5A_REAL_RUNS = 3
 REQUIRED_MODEL_MODULES = ("platformdirs", "tensorflow", "tensorflow_probability", "meridian")
@@ -46,6 +47,16 @@ def _write_run(status: RunStatus) -> RunStatus:
 def _append_message_once(status: RunStatus, message: str) -> None:
     if message not in status.messages:
         status.messages.append(message)
+
+
+def _config_for_status(status: RunStatus) -> dict[str, Any]:
+    if not status.config_path:
+        return {}
+    try:
+        raw = yaml.safe_load(Path(status.config_path).read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return raw if isinstance(raw, dict) else {}
 
 
 def _config_from_request_preview(preview: dict[str, Any]) -> dict[str, Any]:
@@ -464,6 +475,10 @@ def _apply_artifact_progress(status: RunStatus) -> bool:
             status.status = "completed"
             status.completed_at = status.completed_at or _now_iso()
             status.result_url = f"/results/overview?run_id={status.run_id}"
+            record = register_completed_result(status, _config_for_status(status))
+            if record and record.get("history_id"):
+                status.history_id = str(record["history_id"])
+                status.result_url = f"/results/overview?history_id={record['history_id']}"
             _append_message_once(status, "Recovered completed run state from output artifacts.")
         elif not process_alive and status.status in {"queued", "running"}:
             status.status = "failed"
@@ -535,7 +550,19 @@ def sync_run_progress_from_logs(status: RunStatus) -> RunStatus:
     return status
 
 
-def create_real_tiny_run_status(run_id: str, workflow_id: str, approved_config_preview: dict[str, Any]) -> RunStatus:
+def _identity_fields(identity: dict[str, Any] | None) -> dict[str, Any]:
+    if not identity:
+        return {}
+    return {
+        "display_result_id": identity.get("display_result_id"),
+        "config_fingerprint": identity.get("config_fingerprint"),
+        "original_csv_filename": identity.get("original_csv_filename"),
+        "csv_name_prefix": identity.get("csv_name_prefix"),
+        "dataset_hash": identity.get("dataset_hash"),
+    }
+
+
+def create_real_tiny_run_status(run_id: str, workflow_id: str, approved_config_preview: dict[str, Any], identity: dict[str, Any] | None = None) -> RunStatus:
     base_config = _config_from_request_preview(approved_config_preview)
     tiny_config, metadata = _build_tiny_config(base_config, run_id)
     estimated_run_count = int(metadata["estimated_run_count"])
@@ -583,11 +610,12 @@ def create_real_tiny_run_status(run_id: str, workflow_id: str, approved_config_p
         config_path=str(config_path),
         log_path=str(log_path),
         output_tag=str(metadata["output_tag"]),
+        **_identity_fields(identity),
     )
     return _write_run(status)
 
 
-def create_real_full_run_status(run_id: str, workflow_id: str, approved_config_preview: dict[str, Any]) -> RunStatus:
+def create_real_full_run_status(run_id: str, workflow_id: str, approved_config_preview: dict[str, Any], identity: dict[str, Any] | None = None) -> RunStatus:
     base_config = _config_from_request_preview(approved_config_preview)
     full_config, metadata = _build_full_config(base_config, run_id)
     estimated_run_count = int(metadata["estimated_run_count"])
@@ -638,6 +666,7 @@ def create_real_full_run_status(run_id: str, workflow_id: str, approved_config_p
         config_path=str(config_path),
         log_path=str(log_path),
         output_tag=str(metadata["output_tag"]),
+        **_identity_fields(identity),
     )
     return _write_run(status)
 
@@ -761,7 +790,12 @@ def launch_real_tiny_run(status: RunStatus) -> RunStatus:
                 channel.status = "completed"
                 channel.completedRuns = channel.total_runs
             if current.result_artifacts.get("dashboard_payload"):
-                current.result_url = f"/results/overview?run_id={current.run_id}"
+                record = register_completed_result(current, _config_for_status(current))
+                if record and record.get("history_id"):
+                    current.history_id = str(record["history_id"])
+                    current.result_url = f"/results/overview?history_id={record['history_id']}"
+                else:
+                    current.result_url = f"/results/overview?run_id={current.run_id}"
             else:
                 current.messages.append("Pipeline completed, but no dashboard_payload.json was discovered.")
             current.messages.append(

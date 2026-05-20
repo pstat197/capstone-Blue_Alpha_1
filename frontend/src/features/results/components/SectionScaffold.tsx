@@ -22,6 +22,8 @@ type SectionScaffoldProps = {
 export function SectionScaffold({
   title,
   summary,
+  sourceLabel,
+  sourceDetail,
   sourceKind = "missing",
   headerAside,
   runSummary,
@@ -57,7 +59,16 @@ export function SectionScaffold({
 
   return (
     <article className="result-page">
-      <ResultsPageHeader title={title} summary={summary} aside={headerAside} />
+      <ResultsPageHeader
+        title={title}
+        summary={summary}
+        aside={headerAside || (sourceKind === "api" && sourceLabel ? (
+          <div className="result-source-chip">
+            <span>{sourceLabel}</span>
+            {sourceDetail ? <small>{sourceDetail}</small> : null}
+          </div>
+        ) : null)}
+      />
       {statusMessage ? (
         <div className="content-panel">
           <h3>{statusMessage.title}</h3>

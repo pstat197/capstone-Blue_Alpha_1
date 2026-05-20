@@ -1,3 +1,10 @@
+"""Optional research/export utility for standalone tornado visualizations.
+
+This script is intentionally not part of the default React dashboard pipeline.
+React renders tornado charts from rows in ``dashboard_payload.json`` instead.
+Run this module manually when advisor-facing PNG/HTML exports are useful.
+"""
+
 import argparse
 import json
 from datetime import datetime
@@ -45,9 +52,9 @@ FIXED_SUBSCRIPTION_AMOUNT = 100.0
 # Disable CSV dataset outputs by default; keep only the tornado figure output.
 WRITE_SUMMARY_DATASETS = False
 
-# HTML outputs for report integration.
-WRITE_HTML_REPORT = True
-WRITE_HTML_FRAGMENT = True
+# HTML outputs are opt-in; the React dashboard does not consume them.
+WRITE_HTML_REPORT = False
+WRITE_HTML_FRAGMENT = False
 WRITE_GLOBAL_REPORT = False
 
 # Objective for selecting the "best" overall prior distribution setup.
@@ -119,9 +126,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Write per-scenario summary CSV files in addition to plots/reports.",
     )
     parser.add_argument(
+        "--write-html",
+        action="store_true",
+        help="Write optional standalone HTML report outputs in addition to PNG plots.",
+    )
+    parser.add_argument(
         "--no-html",
         action="store_true",
-        help="Disable HTML report outputs and generate PNG plots only.",
+        help="Deprecated compatibility flag; HTML output is disabled by default.",
     )
     parser.add_argument(
         "--no-html-fragment",
@@ -898,8 +910,8 @@ def main():
     SUBSCRIPTION_SCALING_MODE = args.subscription_scaling_mode
     FIXED_SUBSCRIPTION_AMOUNT = float(args.fixed_subscription_amount)
     WRITE_SUMMARY_DATASETS = bool(args.write_summary_datasets)
-    WRITE_HTML_REPORT = not bool(args.no_html)
-    WRITE_HTML_FRAGMENT = (not bool(args.no_html)) and (not bool(args.no_html_fragment))
+    WRITE_HTML_REPORT = bool(args.write_html) and not bool(args.no_html)
+    WRITE_HTML_FRAGMENT = bool(args.write_html) and not bool(args.no_html) and not bool(args.no_html_fragment)
     WRITE_GLOBAL_REPORT = bool(args.write_global_report)
     BEST_CONFIG_OBJECTIVE = args.best_config_objective
 

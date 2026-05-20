@@ -19,6 +19,7 @@ const workflowSteps = [
 ];
 
 function labelForStatus(status?: string) {
+  if (status === "already_completed") return "Completed";
   if (status === "completed") return "Completed";
   if (status === "failed") return "Failed";
   if (status === "cancelled") return "Cancelled";
@@ -27,6 +28,7 @@ function labelForStatus(status?: string) {
 }
 
 function summaryStatusLabel(status?: string) {
+  if (status === "already_completed") return "EXISTING RESULT";
   if (status === "completed") return "COMPLETED";
   if (status === "failed" || status === "cancelled") return "FAILED";
   if (status === "queued") return "QUEUED";
@@ -73,6 +75,7 @@ function elapsedSeconds(run: RunStatus | null) {
 
 function estimatedRemainingLabel(run: RunStatus | null) {
   if (!run) return "Calculating...";
+  if (run.status === "already_completed") return "Complete";
   if (run.status === "completed") return "Complete";
   if (run.status === "failed" || run.status === "cancelled") return "Unavailable";
   const completed = run.progress.completed_runs + run.progress.failed_runs;
@@ -97,7 +100,7 @@ function channelPercent(completed: number, total: number) {
 }
 
 function pillTone(status: RunLifecycleStatus | string) {
-  if (status === "completed") return "complete";
+  if (status === "completed" || status === "already_completed") return "complete";
   if (status === "running") return "running";
   if (status === "failed" || status === "cancelled") return "failed";
   return "pending";
@@ -111,7 +114,7 @@ function isFinalizing(run: RunStatus | null) {
 
 function activeStageIndex(run: RunStatus | null) {
   if (!run || run.status === "queued") return 0;
-  if (run.status === "completed") return 4;
+  if (run.status === "completed" || run.status === "already_completed") return 4;
   if (run.status === "failed" || run.status === "cancelled") {
     if (!run.started_at) return 0;
     return isFinalizing(run) ? 3 : 2;
@@ -124,7 +127,7 @@ function activeStageIndex(run: RunStatus | null) {
 function timelineState(run: RunStatus | null, index: number): StageState {
   const active = activeStageIndex(run);
   if ((run?.status === "failed" || run?.status === "cancelled") && index === active) return "failed";
-  if (run?.status === "completed" || index < active) return "complete";
+  if (run?.status === "completed" || run?.status === "already_completed" || index < active) return "complete";
   if (index === active) return "active";
   return "pending";
 }
@@ -156,6 +159,7 @@ export function RunMonitorPage() {
   const params = useParams();
   const [searchParams] = useSearchParams();
   const queryRunId = searchParams.get("run_id")?.trim() || null;
+  const reusedExistingResult = searchParams.get("reused") === "1";
   const routeRunId = params.runId && params.runId !== "current" ? params.runId : null;
   const sessionRunId = window.sessionStorage.getItem(activeRunIdStorageKey)?.trim() || null;
   const demoRunsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_RUNS === "true";
@@ -212,7 +216,7 @@ export function RunMonitorPage() {
   }, [run?.status, resolvedRunId]);
 
   useEffect(() => {
-    if (run?.status === "completed" && run.run_id) {
+    if ((run?.status === "completed" || run?.status === "already_completed") && run.run_id) {
       writeActiveResultsRunId(run.run_id);
     }
   }, [run?.run_id, run?.status]);
@@ -220,12 +224,12 @@ export function RunMonitorPage() {
   const percentComplete = useMemo(() => progressPercent(run), [run]);
   const activeChannel = run?.progress.active_target_channel;
   const hasResults = Boolean(
-    run?.status === "completed" &&
+    (run?.status === "completed" || run?.status === "already_completed") &&
     (run.result_url || run.result_artifacts?.dashboard_payload)
   );
   const resultsUrl =
-    run?.status === "completed" && run?.run_id
-      ? (run.result_url && run.result_url.includes("run_id=")) || run.result_url?.includes(`/results/${run.run_id}/`)
+    (run?.status === "completed" || run?.status === "already_completed") && run?.run_id
+      ? run.result_url && (run.result_url.includes("run_id=") || run.result_url.includes("history_id=") || run.result_url.includes(`/results/${run.run_id}/`))
         ? run.result_url
         : `/results/overview?run_id=${encodeURIComponent(run.run_id)}`
       : null;
@@ -240,6 +244,8 @@ export function RunMonitorPage() {
     ? "Start a run from Review & Start Run, or open a completed run from Results History."
     : isFailed
     ? "The run failed before completion. Review the error details below."
+    : run?.status === "already_completed" || reusedExistingResult
+      ? "Existing completed result found. This saved result is ready to review."
     : run?.status === "completed"
       ? "Your run has completed. Results are ready to review."
       : "Your run is in progress. Keep this page open to monitor execution status.";
@@ -274,6 +280,8 @@ export function RunMonitorPage() {
 
   const detailRows = [
     ["Configuration ID", run?.workflow_id ?? "Unavailable"],
+    ["Result ID", run?.display_result_id ?? run?.output_tag ?? run?.run_id ?? "Unavailable"],
+    ["Config ID", run?.config_fingerprint ?? "Unavailable"],
     ["KPI", String(workflowValue(workflow, "outcome", "kpi_col") ?? "Unavailable")],
     ["Revenue handling", revenueHandling(workflow)],
     ["Total combinations", totalCombinations ? `${formatNumber(totalCombinations)} (${formatNumber(run?.channel_progress.length ?? 0)} channels)` : "Unavailable"],
@@ -365,8 +373,8 @@ export function RunMonitorPage() {
           <span className={`run-status-orb run-status-orb--${pillTone(run?.status ?? "queued")}`} aria-hidden="true" />
           <div>
             <span className="run-summary-state">{summaryStatusLabel(run?.status)}</span>
-            <strong>{run?.output_tag || run?.run_id || resolvedRunId}</strong>
-            <small>Started {formatStarted(run?.started_at)}</small>
+            <strong>{run?.display_result_id || run?.output_tag || run?.run_id || resolvedRunId}</strong>
+            <small>{run?.status === "already_completed" || reusedExistingResult ? "Saved result reused" : `Started ${formatStarted(run?.started_at)}`}</small>
           </div>
         </div>
         <div className="run-summary-metrics">
@@ -386,7 +394,7 @@ export function RunMonitorPage() {
           <div>
             <span>Status</span>
             <strong>{runStatus}</strong>
-            <small>{activeChannel ? `Active: ${displayChannelName(activeChannel)}` : isFinalizing(run) ? "Aggregating outputs and preparing dashboard results." : "No active channel reported"}</small>
+            <small>{run?.status === "already_completed" || reusedExistingResult ? "Meridian was not relaunched." : activeChannel ? `Active: ${displayChannelName(activeChannel)}` : isFinalizing(run) ? "Aggregating outputs and preparing dashboard results." : "No active channel reported"}</small>
           </div>
           <div>
             <span>Run source</span>
@@ -394,11 +402,18 @@ export function RunMonitorPage() {
             <small>{run?.mode === "real_full" ? "Full grid backend launcher" : run?.mode === "real_tiny" ? "Tiny backend launcher" : isDevelopmentMock ? "Development-only control" : "Backend run state"}</small>
           </div>
         </div>
-        {hasResults && resultsUrl ? (
-          <Link className="run-open-results" to={resultsUrl}>
-            Open Results
-          </Link>
-        ) : null}
+        <div className="run-result-actions">
+          {hasResults && resultsUrl ? (
+            <Link className="run-open-results" to={resultsUrl}>
+              Open Results
+            </Link>
+          ) : null}
+          {run?.status === "completed" || run?.status === "already_completed" ? (
+            <Link className="run-browse-results" to="/results/history">
+              Browse Saved Results
+            </Link>
+          ) : null}
+        </div>
       </section>
 
       <section className="content-panel run-timeline-card">

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { getResultPayload } from "../../../api/results";
+import { getResultHistoryPayload, getResultPayload } from "../../../api/results";
 import { getLatestCompletedRun, getRunStatus } from "../../../api/runs";
 import type { RunStatus } from "../../../api/types";
 import { resultNavItems } from "../../../app/navigation";
@@ -12,6 +12,7 @@ export type ResultSourceKind = "api" | "loading" | "missing" | "error";
 export type ResultDataSource = {
   id: string;
   activeRunId: string | null;
+  activeHistoryId?: string | null;
   label: string;
   sourceKind: ResultSourceKind;
   sourceLabel: string;
@@ -64,6 +65,13 @@ export function buildResultsPath(pathOrSlug: string, runId?: string | null): str
   return runId ? `${basePath}?run_id=${encodeURIComponent(runId)}` : basePath;
 }
 
+export function buildHistoryResultsPath(pathOrSlug: string, historyId: string): string {
+  const basePath = pathOrSlug.startsWith("/results/")
+    ? pathOrSlug
+    : resultNavItems.find((item) => item.path.endsWith(`/${pathOrSlug}`))?.path || `/results/${pathOrSlug}`;
+  return `${basePath}?history_id=${encodeURIComponent(historyId)}`;
+}
+
 function emptyResult(runId: string, sourceKind: ResultSourceKind, message: string): ResultDataSource {
   return {
     id: runId || "unselected",
@@ -88,11 +96,12 @@ export function useActiveResultsRun(): ActiveResultsRun {
   const location = useLocation();
   const navigate = useNavigate();
   const queryRunId = new URLSearchParams(location.search).get("run_id")?.trim() || null;
+  const queryHistoryId = new URLSearchParams(location.search).get("history_id")?.trim() || null;
   const routeRunId = params.runId?.trim() || null;
-  const initialRunId = queryRunId || routeRunId || readStoredActiveRunId();
+  const initialRunId = queryHistoryId ? null : queryRunId || routeRunId || readStoredActiveRunId();
   const [activeRunId, setActiveRunId] = useState<string | null>(initialRunId);
   const [runSummary, setRunSummary] = useState<RunStatus | null>(null);
-  const [loading, setLoading] = useState(!initialRunId);
+  const [loading, setLoading] = useState(!queryHistoryId && !initialRunId);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,12 +109,22 @@ export function useActiveResultsRun(): ActiveResultsRun {
 
     const persistAndReflect = (runId: string) => {
       writeActiveResultsRunId(runId);
-      if (!queryRunId && location.pathname.startsWith("/results/")) {
+      if (!queryRunId && !queryHistoryId && location.pathname.startsWith("/results/")) {
         const search = new URLSearchParams(location.search);
         search.set("run_id", runId);
         navigate(`${location.pathname}?${search.toString()}`, { replace: true });
       }
     };
+
+    if (queryHistoryId) {
+      setActiveRunId(null);
+      setRunSummary(null);
+      setError(null);
+      setLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const loadLatestCompleted = () => {
       setLoading(true);
@@ -158,7 +177,7 @@ export function useActiveResultsRun(): ActiveResultsRun {
     return () => {
       cancelled = true;
     };
-  }, [location.pathname, location.search, navigate, queryRunId, routeRunId]);
+  }, [location.pathname, location.search, navigate, queryHistoryId, queryRunId, routeRunId]);
 
   return {
     activeRunId,
@@ -171,6 +190,8 @@ export function useActiveResultsRun(): ActiveResultsRun {
 
 export function useCurrentResult(): ResultDataSource {
   const activeResultsRun = useActiveResultsRun();
+  const location = useLocation();
+  const queryHistoryId = new URLSearchParams(location.search).get("history_id")?.trim() || null;
   const requestedRunId = activeResultsRun.activeRunId || "";
   const [result, setResult] = useState<ResultDataSource>(() =>
     emptyResult(requestedRunId, requestedRunId || activeResultsRun.loading ? "loading" : "missing", "Loading result payload.")
@@ -178,6 +199,42 @@ export function useCurrentResult(): ResultDataSource {
 
   useEffect(() => {
     let cancelled = false;
+
+    if (queryHistoryId) {
+      setResult(emptyResult(queryHistoryId, "loading", "Loading saved result payload."));
+      getResultHistoryPayload(queryHistoryId)
+        .then((response) => {
+          if (cancelled) {
+            return;
+          }
+          setResult({
+            id: response.history_id,
+            activeRunId: null,
+            activeHistoryId: response.history_id,
+            label: response.history_item.display_result_id || response.history_item.output_tag,
+            sourceKind: "api",
+            sourceLabel: "Saved local result",
+            sourceDetail: `Loaded from ${response.history_item.payload_path}.`,
+            payload: response.payload,
+            assetBasePath: "",
+            assets: {
+              roiPriorPosteriorFigure: "",
+            },
+            runSummary: null,
+            buildResultsPath: (pathOrSlug: string) => buildHistoryResultsPath(pathOrSlug, response.history_id),
+          });
+        })
+        .catch((error: unknown) => {
+          if (cancelled) {
+            return;
+          }
+          const message = error instanceof Error ? error.message : "Saved result payload unavailable.";
+          setResult(emptyResult(queryHistoryId, "error", `Saved local result is not available. ${message}`));
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
 
     if (!requestedRunId) {
       setResult(
@@ -204,9 +261,9 @@ export function useCurrentResult(): ResultDataSource {
         setResult({
           id: response.run_id,
           activeRunId: response.run_id,
-          label: `Run ${response.run_id}`,
+          label: activeResultsRun.runSummary?.display_result_id || `Run ${response.run_id}`,
           sourceKind: "api",
-          sourceLabel: `Run ${response.run_id}`,
+          sourceLabel: activeResultsRun.runSummary?.display_result_id || `Run ${response.run_id}`,
           sourceDetail: response.output_tag
             ? `${response.source || "Backend"} artifact: ${response.output_tag}.`
             : `${response.source || "Backend"} artifact loaded for this run.`,
@@ -230,7 +287,11 @@ export function useCurrentResult(): ResultDataSource {
     return () => {
       cancelled = true;
     };
-  }, [activeResultsRun.loading, activeResultsRun.runSummary, requestedRunId]);
+  }, [activeResultsRun.loading, activeResultsRun.runSummary, queryHistoryId, requestedRunId]);
+
+  if (queryHistoryId) {
+    return result;
+  }
 
   return {
     ...result,

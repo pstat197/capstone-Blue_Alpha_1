@@ -13,6 +13,7 @@ from backend.app.services.pipeline_launcher import (
     launch_real_tiny_run_async,
     sync_run_progress_from_logs,
 )
+from backend.app.services.saved_result_identity import prepare_result_identity
 from backend.app.services.workflow_store import get_workflow
 
 
@@ -61,12 +62,93 @@ def _active_grid(config: dict) -> tuple[list[str], list[float], list[float], lis
 def create_run(request: RunCreateRequest) -> RunStatus:
     get_workflow(request.workflow_id)
     if request.mode == "real_full":
+        config = _config_from_request(request)
+        identity, existing = prepare_result_identity(config)
+        if existing:
+            completed_runs = int(existing.get("completed_runs") or 0)
+            channels = [str(channel) for channel in existing.get("channels") or []]
+            history_id = existing.get("history_id")
+            result_url = f"/results/overview?history_id={history_id}" if history_id else "/results/history"
+            return RunStatus(
+                run_id=str(existing.get("run_id") or existing.get("display_result_id")),
+                workflow_id=request.workflow_id,
+                status="already_completed",
+                created_at=_now_iso(),
+                started_at=existing.get("generated_at"),
+                completed_at=existing.get("completed_at") or existing.get("generated_at"),
+                progress={
+                    "total_runs": completed_runs,
+                    "completed_runs": completed_runs,
+                    "failed_runs": 0,
+                    "active_target_channel": None,
+                    "active_mu": None,
+                    "active_sigma": None,
+                    "active_dist": None,
+                },
+                channel_progress=[
+                    ChannelRunProgress(channel=channel, total_runs=0, completedRuns=0, status="completed")
+                    for channel in channels
+                ],
+                messages=[
+                    "Existing completed result found.",
+                    f"{existing.get('display_result_id')} is ready to review.",
+                    "Meridian was not relaunched for this duplicate configuration.",
+                ],
+                monitor_url=f"/workflow/run-monitor?run_id={existing.get('run_id')}&reused=1",
+                result_url=result_url,
+                mode=request.mode,
+                output_tag=existing.get("output_tag"),
+                result_artifacts={
+                    "dashboard_payload": existing.get("dashboard_path") or existing.get("payload_path"),
+                    "payload_path": existing.get("payload_path") or existing.get("dashboard_path"),
+                },
+                display_result_id=existing.get("display_result_id"),
+                config_fingerprint=existing.get("config_fingerprint"),
+                original_csv_filename=existing.get("original_csv_filename"),
+                csv_name_prefix=existing.get("csv_name_prefix"),
+                dataset_hash=existing.get("dataset_hash"),
+                history_id=history_id,
+            )
         run_id = f"run_{uuid4().hex[:12]}"
-        status = create_real_full_run_status(run_id, request.workflow_id, request.approved_config_preview)
+        status = create_real_full_run_status(run_id, request.workflow_id, request.approved_config_preview, identity)
         return launch_real_full_run_async(status)
     if request.mode == "real_tiny":
+        config = _config_from_request(request)
+        identity, existing = prepare_result_identity(config)
+        if existing:
+            completed_runs = int(existing.get("completed_runs") or 0)
+            history_id = existing.get("history_id")
+            return RunStatus(
+                run_id=str(existing.get("run_id") or existing.get("display_result_id")),
+                workflow_id=request.workflow_id,
+                status="already_completed",
+                created_at=_now_iso(),
+                started_at=existing.get("generated_at"),
+                completed_at=existing.get("completed_at") or existing.get("generated_at"),
+                progress={"total_runs": completed_runs, "completed_runs": completed_runs, "failed_runs": 0},
+                channel_progress=[],
+                messages=[
+                    "Existing completed result found.",
+                    f"{existing.get('display_result_id')} is ready to review.",
+                    "Meridian was not relaunched for this duplicate configuration.",
+                ],
+                monitor_url=f"/workflow/run-monitor?run_id={existing.get('run_id')}&reused=1",
+                result_url=f"/results/overview?history_id={history_id}" if history_id else "/results/history",
+                mode=request.mode,
+                output_tag=existing.get("output_tag"),
+                result_artifacts={
+                    "dashboard_payload": existing.get("dashboard_path") or existing.get("payload_path"),
+                    "payload_path": existing.get("payload_path") or existing.get("dashboard_path"),
+                },
+                display_result_id=existing.get("display_result_id"),
+                config_fingerprint=existing.get("config_fingerprint"),
+                original_csv_filename=existing.get("original_csv_filename"),
+                csv_name_prefix=existing.get("csv_name_prefix"),
+                dataset_hash=existing.get("dataset_hash"),
+                history_id=history_id,
+            )
         run_id = f"run_{uuid4().hex[:12]}"
-        status = create_real_tiny_run_status(run_id, request.workflow_id, request.approved_config_preview)
+        status = create_real_tiny_run_status(run_id, request.workflow_id, request.approved_config_preview, identity)
         return launch_real_tiny_run_async(status)
 
     config = _config_from_request(request)

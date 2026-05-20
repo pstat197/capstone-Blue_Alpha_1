@@ -1,0 +1,6 @@
+struct_profile_id,lag,weight,adstock_alpha_m,max_lag,adstock_decay_spec
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,0,0.4033044898566016,0.64,4,geometric
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,1,0.25811487350822504,0.64,4,geometric
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,2,0.16519351904526403,0.64,4,geometric
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,3,0.10572385218896899,0.64,4,geometric
+alpha=0.6400|ec=1.5300|slope=1.2000|lag=4.0000|decay=geometric,4,0.06766326540094014,0.64,4,geometric

@@ -24,7 +24,7 @@ from src.run_config import load_run_config
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, compute robustness score, build dashboard.",
+        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, compute robustness score, build dashboard payload.",
     )
     parser.add_argument(
         "targets",
@@ -73,23 +73,6 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override auto-selection rule for single-scenario snapshot in dashboard.",
     )
     parser.add_argument(
-        "--tornado-outdir",
-        default="data/output/03_reports/tornado_outputs",
-        help="Base output directory for tornado PNG/HTML outputs; target tag subfolder is appended automatically.",
-    )
-    parser.add_argument(
-        "--tornado-range-mode",
-        choices=["minmax", "p05p95"],
-        default="p05p95",
-        help="Range mode for tornado bars.",
-    )
-    parser.add_argument(
-        "--tornado-top-n",
-        type=int,
-        default=20,
-        help="Max channels shown in tornado plot.",
-    )
-    parser.add_argument(
         "--skip-main",
         action="store_true",
         help="Skip src.main and reuse existing run/ROI outputs.",
@@ -98,11 +81,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "--skip-summarize",
         action="store_true",
         help="Skip src.summarize_sensitivity and reuse existing tornado CSV.",
-    )
-    parser.add_argument(
-        "--skip-tornado",
-        action="store_true",
-        help="Skip src.viz.tornado_plots.",
     )
     parser.add_argument(
         "--skip-robustness",
@@ -222,13 +200,12 @@ def _cleanup_tag_outputs(
     tag: str,
     project_root: Path,
     dashboard_outdir_base: Path,
-    tornado_outdir_base: Path,
 ) -> None:
     tag_paths = [
         RUNS_DIR / tag,
         Path("data/output/02_tables") / tag,
         dashboard_outdir_base / tag,
-        tornado_outdir_base / tag,
+        Path("data/output/03_reports/tornado_outputs") / tag,
         report_input_csv_path(tag),
         run_csv_path(tag),
         roi_csv_path(tag),
@@ -419,9 +396,6 @@ def main() -> None:
     dashboard_outdir_base_abs = Path(args.dashboard_outdir)
     if not dashboard_outdir_base_abs.is_absolute():
         dashboard_outdir_base_abs = (project_root / dashboard_outdir_base_abs).resolve()
-    tornado_outdir_base_abs = Path(args.tornado_outdir)
-    if not tornado_outdir_base_abs.is_absolute():
-        tornado_outdir_base_abs = (project_root / tornado_outdir_base_abs).resolve()
 
     built_tags: list[str] = []
     for targets in target_sets:
@@ -431,11 +405,10 @@ def main() -> None:
 
         tornado_csv = tornado_csv_path(tag)
         dashboard_outdir = Path(args.dashboard_outdir) / tag
-        tornado_outdir = Path(args.tornado_outdir) / tag
 
         if not args.skip_main:
             print(f"[clean] Removing existing outputs for tag={tag} before fixed full-grid run.")
-            _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs, tornado_outdir_base_abs)
+            _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs)
             cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(config_path)]
             _run_step(cmd, project_root)
 
@@ -449,25 +422,6 @@ def main() -> None:
                 str(float(args.dollars_per_subscription)),
                 "--tag",
                 tag,
-            ]
-            _run_step(cmd, project_root)
-
-        if not args.skip_tornado:
-            tornado_outdir.mkdir(parents=True, exist_ok=True)
-            cmd = [
-                sys.executable,
-                "-m",
-                "src.viz.tornado_plots",
-                "--input-mode",
-                "single",
-                "--csv",
-                str(tornado_csv.relative_to(project_root)),
-                "--outdir",
-                str(tornado_outdir),
-                "--range-mode",
-                args.tornado_range_mode,
-                "--top-n",
-                str(int(args.tornado_top_n)),
             ]
             _run_step(cmd, project_root)
 

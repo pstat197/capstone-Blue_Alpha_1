@@ -15,7 +15,7 @@ export const workflowNavItems: NavItem[] = [
     description: "Review Meridian CSV requirements before uploading data.",
   },
   {
-    label: "New Analysis / Upload Data",
+    label: "Upload Data",
     path: "/workflow/upload",
     section: "workflow",
     description: "Start a new analysis draft and prepare the input CSV.",
@@ -57,45 +57,51 @@ export const documentationNavItem: NavItem = {
   label: "Help / Documentation",
   path: "/documentation",
   section: "workflow",
-  description: "Read dashboard methodology, interpretation guidance, and CSV requirements.",
+  description: "Guides, docs & resources",
 };
 
 export const resultNavItems: NavItem[] = [
   {
-    label: "Results / Overview",
+    label: "Saved Results",
+    path: "/results/history",
+    section: "results",
+    description: "Browse past runs & reports",
+  },
+  {
+    label: "Overview",
     path: "/results/overview",
     section: "results",
-    description: "Completed-run summary, diagnostics context, and directional interpretation.",
+    description: "Dashboard summary & key insights",
   },
   {
-    label: "Results / Prior Sensitivity",
+    label: "Prior Sensitivity",
     path: "/results/prior-sensitivity",
     section: "results",
-    description: "Explore full-system prior response for completed outputs.",
+    description: "Analyze prior sensitivity outputs",
   },
   {
-    label: "Results / Prior vs Posterior",
+    label: "Prior vs Posterior",
     path: "/results/prior-vs-posterior",
     section: "results",
-    description: "Compare prior assumptions against posterior evidence.",
+    description: "Compare prior and posterior estimates",
   },
   {
-    label: "Results / Scenario Explorer",
+    label: "Scenario Explorer",
     path: "/results/scenario-explorer",
     section: "results",
-    description: "Filter already-computed prior scenarios.",
+    description: "Explore scenarios & what-if analysis",
   },
   {
-    label: "Results / Model Structure",
+    label: "Model Structure",
     path: "/results/model-structure",
     section: "results",
-    description: "Review adstock, saturation, and structural run evidence.",
+    description: "Model components & configuration",
   },
   {
-    label: "Results / Run Audit & Diagnostics",
+    label: "Run Audit & Diagnostics",
     path: "/results/run-audit-diagnostics",
     section: "results",
-    description: "Inspect run setup, QC gates, and diagnostics outputs.",
+    description: "Audit logs & diagnostic results",
   },
 ];
 

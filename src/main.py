@@ -274,23 +274,6 @@ def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: l
     return filtered
 
 
-def _is_baseline_prior_point(run_cfg: dict, prior_point: dict) -> bool:
-    mode = str(prior_point.get("effective_prior_mode", "") or "").strip().lower()
-    if mode != "roi":
-        return False
-    roi_grid = _roi_grid_for_target(run_cfg, str(prior_point.get("target_channel") or ""))
-    if roi_grid is None:
-        return False
-    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-    )
-    return (
-        abs(float(prior_point["roi_mu_display"]) - baseline_mu) <= 1e-9
-        and abs(float(prior_point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
-        and str(prior_point["roi_dist_display"]) == str(baseline_dist)
-    )
-
-
 def _build_structural_run_points(structural_grids: dict[str, list], structural_grid_scope: str) -> tuple[list[dict], dict]:
     baseline_structural = {
         "alpha_m": structural_grids["alpha_m"][0],
@@ -810,18 +793,6 @@ def main():
         baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(roi_cfg, run_cfg)
         has_global_baseline = all(v is not None for v in [baseline_mu, baseline_sigma, baseline_dist])
 
-    official_outdir = os.path.join(
-        project_root,
-        "data",
-        "output",
-        "03_reports",
-        "report",
-        output_tag,
-        "figures",
-        "meridian_official",
-    )
-    official_manifest = os.path.join(official_outdir, "manifest.json")
-    official_export_done = os.path.exists(official_manifest)
     if has_global_baseline:
         print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
     else:
@@ -1017,36 +988,6 @@ def main():
         if population_col:
             cmd.extend(["--population_col", population_col])
 
-        is_baseline_grid_point = (
-            _is_baseline_prior_point(run_cfg, prior_point)
-            and (
-                (alpha_m is None and baseline_structural["alpha_m"] is None)
-                or (
-                    alpha_m is not None
-                    and baseline_structural["alpha_m"] is not None
-                    and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9
-                )
-            )
-            and (
-                (ec_m is None and baseline_structural["ec_m"] is None)
-                or (
-                    ec_m is not None
-                    and baseline_structural["ec_m"] is not None
-                    and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9
-                )
-            )
-            and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
-            and int(max_lag) == int(baseline_structural["max_lag"])
-            and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
-        )
-        if is_baseline_grid_point and not official_export_done:
-            cmd.extend([
-                "--official_outdir",
-                official_outdir,
-                "--official_time_granularity",
-                "quarterly",
-            ])
-
         pending_jobs.append(
             {
                 "analysis_stage": analysis_stage,
@@ -1057,7 +998,6 @@ def main():
                 "target_channel": target_channel,
                 "tmp_run_out": tmp_run_out,
                 "tmp_roi_out": tmp_roi_out,
-                "is_baseline_grid_point": is_baseline_grid_point,
                 "cmd": cmd,
                 "mu": mu,
                 "sigma": sigma,
@@ -1074,7 +1014,7 @@ def main():
         print(f"Executing {pending_total} run(s) with parallel_workers={parallel_workers}...")
 
     def _finalize_completed_job(job: dict, result: dict, completed_idx: int) -> None:
-        nonlocal executed_runs, official_export_done
+        nonlocal executed_runs
         if result["returncode"] != 0:
             print("\n--- Subprocess STDOUT ---\n", result["stdout"])
             print("\n--- Subprocess STDERR ---\n", result["stderr"])
@@ -1111,9 +1051,6 @@ def main():
             os.remove(job["tmp_run_out"])
         if os.path.exists(job["tmp_roi_out"]):
             os.remove(job["tmp_roi_out"])
-        if job["is_baseline_grid_point"]:
-            official_export_done = True
-
         elapsed_sec = round(time.time() - float(job["t0"]), 2)
         executed_runs += 1
         print(

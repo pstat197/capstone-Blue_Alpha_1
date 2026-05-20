@@ -64,10 +64,9 @@ Pipeline artifacts are generated under `data/output/` after a run. For a target 
 - Tornado CSV: `data/output/02_tables/<tag>/tornado_<tag>.csv`
 - Report input CSV: `data/output/02_tables/<tag>/prior_sensitivity_report_input_<tag>.csv`
 - Robustness CSVs: `data/output/02_tables/<tag>/robustness_*_<tag>.csv`
-- Dashboard folder: `data/output/03_reports/report/<tag>/`
-- Tornado plot folder: `data/output/03_reports/tornado_outputs/<tag>/`
+- React dashboard payload: `data/output/03_reports/report/<tag>/tables/dashboard_payload.json`
 
-Generated Google/Tiktok dashboard artifacts are not committed as current outputs. Run the pipeline to create fresh dashboard files for the configured target tag.
+Generated Google/Tiktok dashboard payload artifacts are not committed as current outputs. Run the pipeline to create fresh payload files for the configured target tag.
 
 ## Main Commands
 
@@ -84,17 +83,28 @@ python -m src.summarize_sensitivity google
 # Compute robustness score
 python -m src.robustness_score google
 
-# Build dashboard after report input exists
+# Build the React dashboard payload after report input exists
 python -m src.reporting.make_dashboard \
   --input data/output/02_tables/google/prior_sensitivity_report_input_google.csv \
   --outdir data/output/03_reports/report/google \
   --config config/dashboard.yaml \
   --clean-output
 
-# Plot ROI prior vs posterior for primary one-channel rows
+```
+
+Optional research/export utilities live under `src/viz/`. They are not called by
+the default pipeline and are not required by the React runtime, but can be run
+manually for advisor-facing figures or sanity checks:
+
+```bash
 python -m src.viz.roi_prior_vs_posterior \
   --input data/output/01_runs/google/prior_sensitivity_roi_multi_google.csv \
-  --output data/output/03_reports/tornado_outputs/google/roi_prior_vs_posterior_google.png
+  --output /tmp/roi_prior_vs_posterior_google.png
+
+python -m src.viz.tornado_plots \
+  --input-mode single \
+  --csv data/output/02_tables/google/tornado_google.csv \
+  --outdir /tmp/bluealpha_tornado_exports
 ```
 
 ## Repo Map
@@ -135,9 +145,8 @@ src/main.py  -- one-channel ROI prior sweep -->  src/run_meridian_once.py
         v
 src/summarize_sensitivity.py
         |
-        +--> src/viz/tornado_plots.py
         +--> src/robustness_score.py
-        +--> src/reporting/make_dashboard.py --> dashboard artifacts
+        +--> src/reporting/make_dashboard.py --> dashboard_payload.json + tables
 ```
 
 ## Input Data (`data/raw/`)

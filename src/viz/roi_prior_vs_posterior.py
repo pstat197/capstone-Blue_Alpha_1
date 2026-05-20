@@ -1,4 +1,10 @@
-"""Plot one-channel ROI prior-vs-posterior results."""
+"""Optional research/export utility for one-channel ROI prior-vs-posterior plots.
+
+This script is intentionally not part of the default React dashboard pipeline.
+React reads prior/posterior rows from ``dashboard_payload.json`` instead of a
+standalone PNG. Run this module manually when a poster or advisor-facing figure
+is useful.
+"""
 
 from __future__ import annotations
 
