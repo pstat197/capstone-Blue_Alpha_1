@@ -193,7 +193,7 @@ export function ResultsHistoryPage() {
   return (
     <article className="result-page results-history-page">
       <ResultsPageHeader
-        title="Results / Saved Results"
+        title="Saved Results"
         summary="Open a previous local report, compare it with the latest completed run, or return to Run Monitor."
       />
 

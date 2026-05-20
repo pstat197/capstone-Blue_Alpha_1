@@ -100,16 +100,6 @@ function absoluteBandForScore(score: number | null): string {
   return "Low";
 }
 
-function currentTargetSummary(subscores: Array<{ id?: string; label?: string; value?: number | null }>): string {
-  const numeric = subscores
-    .map((item) => ({ label: item.label || item.id || "Subscore", value: asNumber(item.value) }))
-    .filter((item): item is { label: string; value: number } => item.value !== null);
-  if (!numeric.length) return "Subscore details are unavailable for this target.";
-  const strongest = [...numeric].sort((a, b) => b.value - a.value)[0];
-  const weakest = [...numeric].sort((a, b) => a.value - b.value)[0];
-  return `Strongest subscore: ${strongest.label}. Weakest subscore: ${weakest.label}.`;
-}
-
 function scoreField(row: Record<string, unknown> | undefined, keys: string[]): number | null {
   return asNumber(getField(row, keys));
 }
@@ -257,6 +247,7 @@ function buildRows(summary: TargetChannelSummary, target: string, minReliableBas
 }
 
 function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
+  const [explainerOpen, setExplainerOpen] = useState(false);
   const subscores = normalizedRobustnessSubscores(robustness);
   const payloadScore = rawPayloadRobustnessScore(robustness);
   const calculatedScore = computedRobustnessScore(subscores);
@@ -277,10 +268,19 @@ function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
       sourceRow: robustness?.source_row,
     });
   }, [calculatedScore, payloadScore, robustness?.source_row, scoreMismatch, subscores]);
+
+  useEffect(() => {
+    if (!explainerOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setExplainerOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [explainerOpen]);
+
   return (
     <article className="content-panel ps-context-card ps-robust-card">
       <div className="ps-card-heading">
-        <span className="ps-mini-icon ps-mini-icon--shield" aria-hidden="true" />
         <h3>Target-Level Robustness Framework</h3>
       </div>
       {robustness?.available ? (
@@ -319,24 +319,50 @@ function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
             <h4>Band Interpretation</h4>
             <p>{bandInterpretation(robustnessBand)}</p>
           </div>
-          <details className="ps-robustness-explainer">
-            <summary>How robustness score is calculated</summary>
-            <div>
-              <h4>Overall robustness score</h4>
-              <p>This robustness score is a project-defined prior sensitivity heuristic, not an official Meridian metric. It measures how stable each channel's posterior ROI/contribution estimates are under prior perturbations, conditional on the selected structural profile.</p>
-              <p>The channel score blends absolute 0-100 subscores: 60% Sensitivity Elasticity, 25% Data Influence, and 15% Cross-Channel. Higher values mean less observed fragility under the tested prior grid.</p>
-              <h4>Subscores</h4>
-              <p><strong>Sensitivity Elasticity:</strong> core metric: output movement divided by prior-input movement. Small posterior movement under larger prior perturbations increases robustness.</p>
-              <p><strong>Data Influence:</strong> combines diffuse-prior stability, prior-posterior distance where available, and credible-interval overlap where available.</p>
-              <p><strong>Cross-Channel:</strong> measures non-self channel movement when the selected target channel's prior is perturbed; the target channel itself is excluded.</p>
-              <p><strong>Near-zero guard:</strong> unreliable ROI percent movement falls back to contribution movement when available, otherwise log-scaled absolute delta ROI.</p>
-              <h4>Robustness band</h4>
-              <p>The main robustness band uses provisional fixed thresholds on the 0-100 score: Low &lt; 50, Medium 50-74, High &gt;= 75. These thresholds are project-defined and can be recalibrated after observing more runs.</p>
-              <p>Relative Rank shows where this channel falls among the tested channels in the current robustness run. Rank 1 means the most robust channel in this run. This rank is relative and should not be interpreted as an absolute quality label.</p>
-              <h4>Current target summary</h4>
-              <p>Overall score: {scoreText(robustnessScore)}. Band: {robustnessBand || "Unavailable"}. Relative Rank: {rankLabel}. {currentTargetSummary(subscores)}</p>
+          <button className="ps-robustness-explainer-trigger" type="button" onClick={() => setExplainerOpen(true)}>
+            How robustness score is calculated
+          </button>
+          {explainerOpen ? (
+            <div className="ps-modal-backdrop" role="presentation" onMouseDown={() => setExplainerOpen(false)}>
+              <section
+                className="ps-robustness-modal"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="ps-robustness-modal-title"
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <header>
+                  <h3 id="ps-robustness-modal-title">How robustness score is calculated</h3>
+                  <button type="button" aria-label="Close robustness score explanation" onClick={() => setExplainerOpen(false)}>
+                    <span aria-hidden="true">×</span>
+                  </button>
+                </header>
+                <div className="ps-robustness-modal-body">
+                  <section>
+                    <h4>Overall robustness score</h4>
+                    <p>This is a project-defined prior sensitivity score, not an official Meridian metric. It summarizes how stable a channel's posterior ROI/contribution estimates remain when prior assumptions are perturbed under the selected structural profile.</p>
+                  </section>
+                  <section>
+                    <h4>Score composition</h4>
+                    <ul>
+                      <li><strong>Sensitivity Elasticity (60%)</strong> — how much outputs move relative to the prior perturbation.</li>
+                      <li><strong>Data Influence (25%)</strong> — how strongly the observed data stabilizes the result.</li>
+                      <li><strong>Cross-Channel (15%)</strong> — how much other channels move when the selected target channel's prior changes.</li>
+                    </ul>
+                    <p>Higher scores mean less observed fragility under the tested prior grid.</p>
+                  </section>
+                  <section>
+                    <h4>Notes</h4>
+                    <ul>
+                      <li><strong>Near-zero guard:</strong> when ROI percent movement is unstable, use contribution movement when available; otherwise use a log-scaled absolute ROI change.</li>
+                      <li><strong>Robustness band:</strong> Low &lt; 50, Medium 50-74, High &gt;= 75. These project-defined thresholds can be recalibrated later.</li>
+                      <li><strong>Relative Rank:</strong> shows where the current channel ranks among tested channels in this run. Rank 1 = most robust in this run.</li>
+                    </ul>
+                  </section>
+                </div>
+              </section>
             </div>
-          </details>
+          ) : null}
         </>
       ) : (
         <div className="ps-empty-state">Target-level robustness is unavailable for this run.</div>
@@ -445,7 +471,7 @@ export function PriorSensitivityPage() {
 
   return (
     <SectionScaffold
-      title="Results / Prior Sensitivity"
+      title="Prior Sensitivity"
       summary="Explore how the system responds when a target channel's prior assumptions are changed."
       sourceKind={result.sourceKind}
       runSummary={result.runSummary}

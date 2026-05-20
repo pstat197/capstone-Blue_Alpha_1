@@ -26,3 +26,4 @@ export const samplerSettings = {
 export const revenuePerKpiStorageKey = "adpilot.revenue_per_kpi";
 export const priorGridStorageKey = "adpilot.channel_prior_grids";
 export const priorGridModeStorageKey = "adpilot.prior_grid_mode";
+export const baselinePriorStorageKey = "adpilot.baseline_prior";

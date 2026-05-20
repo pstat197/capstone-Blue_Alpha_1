@@ -17,10 +17,9 @@ import {
 } from "../data/workflowState";
 
 type ProductIcon = "table" | "tag" | "dollar" | "target" | "chart" | "info" | "light" | "shield";
+type IconTone = "blue" | "green" | "amber" | "purple";
 
 type SummaryItem = {
-  icon: ProductIcon;
-  tone?: "blue" | "green" | "amber" | "purple";
   label: string;
   value: string;
 };
@@ -31,7 +30,7 @@ type ChecklistItem = {
   copy: string;
 };
 
-function IconBadge({ icon, tone = "blue" }: { icon: ProductIcon; tone?: SummaryItem["tone"] }) {
+function IconBadge({ icon, tone = "blue" }: { icon: ProductIcon; tone?: IconTone }) {
   return <span className={`product-icon product-icon--${icon} product-icon--tone-${tone}`} aria-hidden="true" />;
 }
 
@@ -40,7 +39,6 @@ function SummaryStrip({ items }: { items: SummaryItem[] }) {
     <section className="kpi-setup-summary-strip" aria-label="KPI revenue setup summary">
       {items.map((item) => (
         <article className="kpi-setup-summary-item" key={item.label}>
-          <IconBadge icon={item.icon} tone={item.tone} />
           <div>
             <span>{item.label}</span>
             <strong>{item.value}</strong>
@@ -82,7 +80,7 @@ function FlowStep({
   label: string;
   value: string;
   note: string;
-  tone?: SummaryItem["tone"];
+  tone?: IconTone;
 }) {
   return (
     <article className="kpi-flow-step">
@@ -201,15 +199,13 @@ export function KpiRevenuePage() {
   }
 
   const summaryItems: SummaryItem[] = [
-    { icon: "table", label: "Dataset", value: profile.filename },
-    { icon: "target", label: "KPI", value: kpiColumn || "Not selected" },
+    { label: "Dataset", value: profile.filename },
+    { label: "KPI", value: kpiColumn || "Not selected" },
     {
-      icon: "dollar",
-      tone: isDirectRevenueMode ? "green" : "amber",
       label: "Revenue column",
       value: revenueColumnSummary,
     },
-    { icon: "chart", tone: "purple", label: "Channels detected", value: channelsSummary },
+    { label: "Channels detected", value: channelsSummary },
   ];
 
   if (isDirectRevenueMode) {

@@ -370,7 +370,6 @@ export function RunMonitorPage() {
 
       <section className={`run-summary-card run-summary-card--${pillTone(run?.status ?? "queued")}`}>
         <div className="run-summary-identity">
-          <span className={`run-status-orb run-status-orb--${pillTone(run?.status ?? "queued")}`} aria-hidden="true" />
           <div>
             <span className="run-summary-state">{summaryStatusLabel(run?.status)}</span>
             <strong>{run?.display_result_id || run?.output_tag || run?.run_id || resolvedRunId}</strong>

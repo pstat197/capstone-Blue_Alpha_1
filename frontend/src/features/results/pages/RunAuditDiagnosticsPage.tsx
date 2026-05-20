@@ -78,6 +78,43 @@ function fallbackRecommendation(checkName: string, status: DiagnosticStatus): st
   return `Review ${checkName} diagnostics before stronger interpretation.`;
 }
 
+function checkMeaning(checkName: string, status: DiagnosticStatus): string {
+  const needsCaution = status === "FAIL" || status === "REVIEW";
+  if (checkName === "Convergence") {
+    return needsCaution
+      ? "Whether sampling is stable; review means posterior estimates may need cautious interpretation."
+      : "Whether the sampler appears stable and posterior estimates are reliable enough to interpret.";
+  }
+  if (checkName === "Baseline") {
+    return needsCaution
+      ? "Whether the non-media baseline behaves reasonably; review can signal baseline attribution risk."
+      : "Whether the baseline / non-media component behaves reasonably in the selected diagnostics.";
+  }
+  if (checkName === "BayesianPPP") {
+    return needsCaution
+      ? "Posterior predictive check; review can mean simulated outcomes do not resemble observed KPI patterns."
+      : "Posterior predictive check: whether simulated outcomes resemble the observed data.";
+  }
+  if (checkName === "GoodnessOfFit") {
+    return needsCaution
+      ? "Whether model fit is acceptable; review can make channel-level interpretation less trustworthy."
+      : "Whether the fitted model explains the observed KPI pattern with acceptable accuracy.";
+  }
+  if (checkName === "PriorPosteriorShift") {
+    return needsCaution
+      ? "Whether posterior estimates moved meaningfully from the prior; review flags prior influence or instability."
+      : "Whether posterior estimates moved meaningfully from the prior, showing how data updated assumptions.";
+  }
+  if (checkName === "ROIConsistency") {
+    return needsCaution
+      ? "Whether ROI outputs are stable and internally consistent; review weakens strong budget interpretation."
+      : "Whether ROI-related outputs are stable and internally consistent across selected diagnostics.";
+  }
+  return needsCaution
+    ? "Diagnostic review item from the selected run payload; interpret affected outputs cautiously."
+    : "Diagnostic check from the selected run payload.";
+}
+
 function issueDescription(checkName: string): string {
   if (checkName === "PriorPosteriorShift") {
     return "PriorPosteriorShift means the posterior moved substantially away from the prior or did not shift enough under this diagnostic definition, so this run needs follow-up review before stronger interpretation.";
@@ -176,24 +213,6 @@ function guidanceFor(rows: DiagnosticCheckRow[], primaryCheck: string): Array<{ 
   return items;
 }
 
-function downloadAuditReport(payload: DashboardPayload, runId: string | null) {
-  const report = {
-    run_id: runId,
-    generated_at: payload.meta?.generated_at ?? null,
-    diagnostics_overview: payload.diagnostics_overview ?? payload.diagnostics?.overview ?? null,
-    diagnostics: payload.diagnostics ?? null,
-    qc_followup: payload.qc_followup ?? null,
-    decision_card: payload.decision_card ?? null,
-  };
-  const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `audit-diagnostics-${runId || "selected-run"}.json`;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 export function RunAuditDiagnosticsPage() {
   const result = useCurrentResult();
   const { payload } = result;
@@ -220,22 +239,9 @@ export function RunAuditDiagnosticsPage() {
       ? "Ready for interpretation"
       : "Unavailable";
 
-  const headerAside = (
-    <button
-      className="audit-export-button"
-      type="button"
-      onClick={() => downloadAuditReport(payload, result.activeRunId)}
-      disabled={!payload.diagnostics && !payload.diagnostics_overview}
-    >
-      <span className="audit-export-button__icon" aria-hidden="true" />
-      Export Audit Report
-      <span className="audit-export-button__chevron" aria-hidden="true" />
-    </button>
-  );
-
   return (
     <SectionScaffold
-      title="Results / Run Audit & Diagnostics"
+      title="Run Audit & Diagnostics"
       summary="Model health, review checks, and audit context for the completed runs."
       sourceLabel={result.sourceLabel}
       sourceDetail={result.sourceDetail}
@@ -243,7 +249,7 @@ export function RunAuditDiagnosticsPage() {
       activeRunId={result.activeRunId}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
-      headerAside={headerAside}
+      headerAside={null}
     >
       <div className="run-audit-dashboard">
         <section className={`audit-alert audit-alert--${hasIssue ? "review" : "pass"}`}>
@@ -253,7 +259,6 @@ export function RunAuditDiagnosticsPage() {
 
         <section className="audit-summary-grid" aria-label="Run audit summary">
           <article className="audit-summary-card">
-            <span className="audit-summary-icon audit-summary-icon--runs" aria-hidden="true" />
             <div>
               <span>Completed Runs</span>
               <strong>{displayNumber(completedRuns)}</strong>
@@ -261,7 +266,6 @@ export function RunAuditDiagnosticsPage() {
             </div>
           </article>
           <article className="audit-summary-card">
-            <span className={`audit-summary-icon audit-summary-icon--${health.status.toLowerCase()}`} aria-hidden="true" />
             <div>
               <span>Overall Model Health</span>
               <strong>{health.score === null ? "NA" : `${displayNumber(health.score, 1)} / ${health.status}`}</strong>
@@ -269,7 +273,6 @@ export function RunAuditDiagnosticsPage() {
             </div>
           </article>
           <article className="audit-summary-card audit-summary-card--wide">
-            <span className="audit-summary-icon audit-summary-icon--mix" aria-hidden="true" />
             <div>
               <span>QC Status Mix</span>
               <strong>PASS {displayNumber(pass)} / REVIEW {displayNumber(review)} / FAIL {displayNumber(fail)}</strong>
@@ -282,7 +285,6 @@ export function RunAuditDiagnosticsPage() {
             </div>
           </article>
           <article className="audit-summary-card">
-            <span className="audit-summary-icon audit-summary-icon--review" aria-hidden="true" />
             <div>
               <span>Primary Review Check</span>
               <strong>{primary.check}</strong>
@@ -314,6 +316,7 @@ export function RunAuditDiagnosticsPage() {
                   <tr>
                     <th>Check</th>
                     <th>Status</th>
+                    <th>Meaning / Why it matters</th>
                     <th>Recommendation</th>
                   </tr>
                 </thead>
@@ -326,13 +329,14 @@ export function RunAuditDiagnosticsPage() {
                         <tr key={String(row.check || name)}>
                           <td>{name}</td>
                           <td><span className={`audit-pill audit-pill--${status.toLowerCase()}`}>{status}</span></td>
+                          <td>{checkMeaning(name, status)}</td>
                           <td>{row.recommendation || fallbackRecommendation(name, status)}</td>
                         </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan={3}>Diagnostic checks are unavailable in the selected run payload.</td>
+                      <td colSpan={4}>Diagnostic checks are unavailable in the selected run payload.</td>
                     </tr>
                   )}
                 </tbody>
@@ -387,7 +391,6 @@ export function RunAuditDiagnosticsPage() {
             <div className="audit-guidance-list">
               {guidance.map((item) => (
                 <div className="audit-guidance-item" key={item.title}>
-                  <span className={`audit-guidance-icon audit-guidance-icon--${item.tone}`} aria-hidden="true" />
                   <div>
                     <strong>{item.title}</strong>
                     <p>{item.body}</p>

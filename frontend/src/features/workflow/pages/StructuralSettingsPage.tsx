@@ -330,7 +330,7 @@ export function StructuralSettingsPage() {
   return (
     <WorkflowScaffold
       title="Structural Controls"
-      summary="Adjust one initial structural profile for carryover and saturation before the audit run."
+      summary="Adjust one shared structural profile for carryover and saturation before the audit run."
       nextHelperText="Review & Start Run"
     >
       <section className="structural-layout">
@@ -354,7 +354,7 @@ export function StructuralSettingsPage() {
             </div>
 
             <div className="structural-info-strip">
-              Adjust values and preview impact in real time. Only one final structural profile will be used for the run.
+              Adjust values and preview impact in real time. One shared structural profile will be used for all selected channels.
             </div>
 
             <div className="structural-chart-grid">
@@ -393,7 +393,7 @@ export function StructuralSettingsPage() {
         <aside className="structural-readout-card">
           <div>
             <h3>Structural Readout</h3>
-            <p>Derived metrics for the current profile.</p>
+            <p>Derived metrics for the shared run profile.</p>
           </div>
           <div className="structural-metric-grid">
             <div><span>Immediate Share</span><strong>{(readout.immediateShare * 100).toFixed(2)}%</strong></div>
@@ -405,7 +405,7 @@ export function StructuralSettingsPage() {
             <div className="structural-metric-wide"><span>Max Lag</span><strong>{profile.maxLag} periods</strong></div>
           </div>
           <div className="structural-readout-note">
-            Use this page to explore one structural setting set. After you settle on values, continue to run the audit with this single structural profile.
+            Use this page to explore one global structural setting set. After you settle on values, continue to run the audit with this shared profile for all selected channels.
           </div>
           <NavLink className="structural-primary-action" to="/workflow/review-run">
             Use These Structural Settings

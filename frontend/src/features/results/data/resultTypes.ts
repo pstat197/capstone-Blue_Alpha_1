@@ -58,6 +58,8 @@ export type DashboardPayload = {
   rank_rows?: RankRow[];
   roi_tornado_rows?: RoiTornadoRow[];
   dollar_tornado_rows?: DollarTornadoRow[];
+  spend_effect_rows?: Array<Record<string, unknown>>;
+  baseline_prior?: Record<string, unknown>;
   target_channel_detail?: TargetChannelDetail;
   quick_overview_lines?: string[];
   recommendations?: string[];
@@ -199,6 +201,7 @@ export type StructuralSection = {
 export type WorkbenchSection = {
   available?: boolean;
   notes?: string;
+  baseline_prior?: Record<string, unknown>;
   explicit_baseline?: Record<string, unknown>;
   dist_config?: Record<string, unknown>;
   contribution_col?: string;

@@ -33,7 +33,7 @@ export function OverviewPage() {
 
   return (
     <SectionScaffold
-      title="Results / Overview"
+      title="Overview"
       summary="Summary of completed prior sensitivity outputs and key audit signals."
       sourceLabel={result.sourceLabel}
       sourceDetail={result.sourceDetail}
@@ -41,25 +41,22 @@ export function OverviewPage() {
       activeRunId={result.activeRunId}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
+      headerAside={null}
     >
       <section className="summary-metric-row" aria-label="Completed run summary">
-        <MetricCard icon="runs" tone="blue" label="Completed Runs" value={formatNumber(stats.completedRuns)} note={`Generated ${header.generatedAt}`} />
-        <MetricCard icon="channels" tone="blue" label="Channels" value={formatNumber(stats.modeledChannels)} note="Active channels" />
+        <MetricCard label="Completed Runs" value={formatNumber(stats.completedRuns)} note={`Generated ${header.generatedAt}`} />
+        <MetricCard label="Channels" value={formatNumber(stats.modeledChannels)} note="Active channels" />
         <MetricCard
-          icon="qc"
-          tone={stats.failRuns > 0 ? "amber" : "green"}
           label="QC Pass Rate"
           value={formatPercent(stats.passRatePct, 1)}
           note={`PASS ${stats.passRuns} / REVIEW ${stats.reviewRuns} / FAIL ${stats.failRuns}`}
         />
         <MetricCard
-          icon="kpi"
-          tone="violet"
           label="KPI Path"
           value={stats.metricLabel}
           note={`${stats.kpiType} KPI -> ${stats.effectiveKpiType}${stats.revenuePerKpi ? `, value=${formatNumber(stats.revenuePerKpi, 2)}` : ""}`}
         />
-        <MetricCard icon="scope" tone="amber" label="Run Type / Scope" value={runScope.value} note={runScope.note} />
+        <MetricCard label="Run Type / Scope" value={runScope.value} note={runScope.note} />
       </section>
 
       <section className="overview-insight-grid" aria-label="Main result insights">
@@ -69,7 +66,6 @@ export function OverviewPage() {
           <p className="large-stat">{formatMovementValue(largestMovement)}</p>
           <p className="muted">Largest {movementDescriptor} in the completed self-response audit.</p>
           <p className="supporting-line">{baselineText}</p>
-          <span className="movement-accent" aria-hidden="true" />
         </div>
 
         <div className="content-panel movement-card">
@@ -101,7 +97,7 @@ export function OverviewPage() {
 
       <section className="interpretation-grid">
         <div className="content-panel result-list-card">
-          <h3><span className="list-heading-icon list-heading-icon--info" aria-hidden="true" />Interpretation Notes</h3>
+          <h3>Interpretation Notes</h3>
           <ul className="dashboard-list dashboard-list--info">
             {diagnostic.interpretationNotes.slice(0, 4).map((note) => (
               <li key={note}>{note}</li>
@@ -110,7 +106,7 @@ export function OverviewPage() {
           </ul>
         </div>
         <div className="content-panel result-list-card">
-          <h3><span className="list-heading-icon list-heading-icon--warning" aria-hidden="true" />Caution Flags</h3>
+          <h3>Caution Flags</h3>
           <ul className="dashboard-list dashboard-list--warning">
             {diagnostic.cautionFlags.slice(0, 4).map((flag) => (
               <li key={flag}>{flag}</li>

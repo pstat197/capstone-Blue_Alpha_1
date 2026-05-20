@@ -1,6 +1,7 @@
 import type { CsvProfile } from "../../../api/types";
 import {
   defaultFullPriorGrid,
+  baselinePriorStorageKey,
   priorGridModeStorageKey,
   priorGridStorageKey,
   revenuePerKpiStorageKey,
@@ -100,6 +101,8 @@ export function clearDatasetSelections() {
     revenuePerKpiStorageKey,
     priorGridStorageKey,
     priorGridModeStorageKey,
+    baselinePriorStorageKey,
+    `${baselinePriorStorageKey}.confirmed`,
   ].forEach((key) => window.localStorage.removeItem(key));
 }
 

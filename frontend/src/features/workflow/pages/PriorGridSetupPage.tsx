@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChannelLogo, displayChannelName } from "../data/channelRegistry";
-import { defaultFullPriorGrid, priorGridModeStorageKey, priorGridStorageKey } from "../data/mockWorkflow";
+import { baselinePriorStorageKey, defaultFullPriorGrid, priorGridModeStorageKey, priorGridStorageKey } from "../data/mockWorkflow";
 import {
   type ChannelPriorGrid,
   type ChannelPriorGrids,
@@ -33,17 +33,52 @@ type ChannelDraft = {
   distributions: string[];
 };
 
+type BaselinePrior = {
+  mu: number;
+  sigma: number;
+  distribution: string;
+};
+
 const defaultFullGrid = defaultFullPriorGrid;
 const distributionOptions = ["LogNormal", "Normal", "HalfNormal"];
-const baselinePrior = {
+const defaultBaselinePrior: BaselinePrior = {
   mu: 1,
   sigma: 1,
-  distribution: defaultFullGrid.distributions[0] ?? "LogNormal",
+  distribution: "LogNormal",
 };
-const baselineRequirementText = `Baseline prior required: every active channel must include mu = ${formatNumber(baselinePrior.mu)}, sigma = ${formatNumber(baselinePrior.sigma)}, and ${baselinePrior.distribution} so reporting can compare each grid against a reference run.`;
-const baselineHelperText = "Required baseline value for reporting and sensitivity comparison.";
+const baselineHelperText = "Baseline prior is the reference scenario used for delta ROI and sensitivity comparisons.";
+const baselineRemovalWarning = "This value is part of the selected baseline. Choose a new baseline before removing it.";
 const defaultMuRange = { start: "0.5", end: "5.0", increment: "0.5" };
 const defaultSigmaRange = { start: "0.5", end: "1.5", increment: "0.5" };
+
+function baselineRequirementText(baseline: BaselinePrior) {
+  return `Baseline prior required: every included channel must include MU=${formatNumber(baseline.mu)}, Sigma=${formatNumber(baseline.sigma)}, ${baseline.distribution}.`;
+}
+
+function missingBaselineText(channel: string, baseline: BaselinePrior, grid?: ChannelPriorGrid) {
+  const gridLabel = grid?.use_custom ? "custom grid" : "active grid";
+  return `Baseline prior is missing from ${displayChannelName(channel)}'s ${gridLabel}. Add MU=${formatNumber(baseline.mu)}, Sigma=${formatNumber(baseline.sigma)}, ${baseline.distribution} or choose another baseline before continuing.`;
+}
+
+function readBaselinePrior(): BaselinePrior {
+  const stored = window.localStorage.getItem(baselinePriorStorageKey);
+  if (!stored) {
+    return defaultBaselinePrior;
+  }
+  try {
+    const parsed = JSON.parse(stored) as Partial<BaselinePrior>;
+    const mu = typeof parsed.mu === "number" && Number.isFinite(parsed.mu) && parsed.mu > 0 ? parsed.mu : defaultBaselinePrior.mu;
+    const sigma = typeof parsed.sigma === "number" && Number.isFinite(parsed.sigma) && parsed.sigma > 0 ? parsed.sigma : defaultBaselinePrior.sigma;
+    const distribution = parsed.distribution && distributionOptions.includes(parsed.distribution) ? parsed.distribution : defaultBaselinePrior.distribution;
+    return { mu, sigma, distribution };
+  } catch {
+    return defaultBaselinePrior;
+  }
+}
+
+function writeBaselinePrior(baseline: BaselinePrior) {
+  window.localStorage.setItem(baselinePriorStorageKey, JSON.stringify(baseline));
+}
 function normalizeStoredGrids(raw: unknown, channels: string[]): ChannelPriorGrids {
   const fallback = makeChannelGrids(channels);
   const parsed = raw && typeof raw === "object" ? (raw as ChannelPriorGrids) : {};
@@ -115,19 +150,19 @@ function removeNumber(values: number[], value: number) {
   return values.filter((item) => item !== value);
 }
 
-function gridIncludesBaseline(grid: ChannelPriorGrid) {
+function gridIncludesBaseline(grid: ChannelPriorGrid, baseline: BaselinePrior) {
   if (!grid.enabled) {
     return true;
   }
   return (
-    includesNumber(grid.roi_mu_values, baselinePrior.mu) &&
-    includesNumber(grid.roi_sigma_values, baselinePrior.sigma) &&
-    grid.roi_dist_values.includes(baselinePrior.distribution)
+    includesNumber(grid.roi_mu_values, baseline.mu) &&
+    includesNumber(grid.roi_sigma_values, baseline.sigma) &&
+    grid.roi_dist_values.includes(baseline.distribution)
   );
 }
 
-function draftIncludesBaseline(draft: ChannelDraft) {
-  return gridIncludesBaseline(gridFromDraft(draft));
+function draftIncludesBaseline(draft: ChannelDraft, baseline: BaselinePrior) {
+  return gridIncludesBaseline(gridFromDraft(draft), baseline);
 }
 
 function gridStatus(grid: ChannelPriorGrid): ChannelMode {
@@ -138,7 +173,7 @@ function gridStatus(grid: ChannelPriorGrid): ChannelMode {
 }
 
 function draftFromGrid(grid: ChannelPriorGrid): ChannelDraft {
-  const mode = gridStatus(grid);
+  const mode = grid.enabled ? gridStatus(grid) : "default";
   return {
     mode,
     muMode: mode === "custom" ? "list" : "range",
@@ -173,14 +208,19 @@ function gridFromDraft(draft: ChannelDraft): ChannelPriorGrid {
   };
 }
 
-function modeConfigPreview(channelGrids: ChannelPriorGrids, channels: string[]) {
+function modeConfigPreview(channelGrids: ChannelPriorGrids, channels: string[], baseline: BaselinePrior, baselineConfirmed: boolean) {
   return {
     mode: "per_channel_custom",
+    baseline: {
+      roi_mu: baseline.mu,
+      roi_sigma: baseline.sigma,
+      roi_dist: baseline.distribution,
+      confirmed: baselineConfirmed,
+    },
     default_grid: {
       mu: { start: 0.5, end: 5.0, increment: 0.5, count: defaultFullGrid.muValues.length },
       sigma: { values: defaultFullGrid.sigmaValues, count: defaultFullGrid.sigmaValues.length },
       distribution: defaultFullGrid.distributions,
-      applies_unless: "customized_or_excluded",
     },
     channels: Object.fromEntries(
       channels.map((channel) => {
@@ -259,11 +299,13 @@ function CustomListInput({
   label,
   values,
   onChange,
+  onBlockedBaselineRemove,
 }: {
   baselineValue?: number;
   label: string;
   values: number[];
   onChange: (values: number[]) => void;
+  onBlockedBaselineRemove?: () => void;
 }) {
   const [entry, setEntry] = useState("");
   const isEmpty = values.length === 0;
@@ -284,11 +326,16 @@ function CustomListInput({
           return (
             <button
               className={isBaseline ? "prior-chip prior-chip--locked" : "prior-chip"}
-              disabled={isBaseline}
               key={value}
               title={isBaseline ? baselineHelperText : undefined}
               type="button"
-              onClick={() => onChange(removeNumber(values, value))}
+              onClick={() => {
+                if (isBaseline) {
+                  onBlockedBaselineRemove?.();
+                  return;
+                }
+                onChange(removeNumber(values, value));
+              }}
             >
               {formatNumber(value)}
               {isBaseline ? " baseline" : <span aria-hidden="true">×</span>}
@@ -371,6 +418,7 @@ function DrawerValueEditor({
   onModeChange,
   onRangeChange,
   onValuesChange,
+  onBlockedBaselineRemove,
 }: {
   baselineValue: number;
   label: string;
@@ -380,6 +428,7 @@ function DrawerValueEditor({
   onModeChange: (mode: ValueInputMode) => void;
   onRangeChange: (range: RangeDraft) => void;
   onValuesChange: (values: number[]) => void;
+  onBlockedBaselineRemove: () => void;
 }) {
   const displayedValues = mode === "range" ? buildRange(range.start, range.end, range.increment) : values;
 
@@ -399,7 +448,13 @@ function DrawerValueEditor({
           <ValueChips baselineValue={baselineValue} values={displayedValues} />
         </>
       ) : (
-        <CustomListInput baselineValue={baselineValue} label={label} values={values} onChange={onValuesChange} />
+        <CustomListInput
+          baselineValue={baselineValue}
+          label={label}
+          values={values}
+          onBlockedBaselineRemove={onBlockedBaselineRemove}
+          onChange={onValuesChange}
+        />
       )}
       <p className="prior-helper-text">Custom List supports irregular values without fixed increments.</p>
     </section>
@@ -407,33 +462,40 @@ function DrawerValueEditor({
 }
 
 function DistributionCards({
+  baselineDistribution,
   selected,
   onChange,
+  onBlockedBaselineRemove,
   compact = false,
 }: {
+  baselineDistribution: string;
   selected: string[];
   onChange: (selected: string[]) => void;
+  onBlockedBaselineRemove: () => void;
   compact?: boolean;
 }) {
   return (
     <div className={compact ? "prior-distribution-grid prior-distribution-grid--compact" : "prior-distribution-grid"}>
       {distributionOptions.map((distribution) => (
-        <label className="prior-distribution-card" key={distribution} title={distribution === baselinePrior.distribution ? baselineHelperText : undefined}>
+        <label className="prior-distribution-card" key={distribution} title={distribution === baselineDistribution ? baselineHelperText : undefined}>
           <input
             checked={selected.includes(distribution)}
-            disabled={distribution === baselinePrior.distribution && selected.includes(distribution)}
             onChange={(event) => {
+              if (!event.target.checked && distribution === baselineDistribution) {
+                onBlockedBaselineRemove();
+                return;
+              }
               const next = event.target.checked
                 ? Array.from(new Set([...selected, distribution]))
                 : selected.filter((value) => value !== distribution);
-              onChange(next.length ? next : [baselinePrior.distribution]);
+              onChange(next.length ? next : [baselineDistribution]);
             }}
             type="checkbox"
           />
           <span aria-hidden="true" className="prior-distribution-curve" />
           <strong>
             {distribution}
-            {distribution === baselinePrior.distribution ? <span className="prior-baseline-tag"> baseline</span> : null}
+            {distribution === baselineDistribution ? <span className="prior-baseline-tag"> baseline</span> : null}
           </strong>
           {!compact ? (
             <small>
@@ -450,6 +512,81 @@ function DistributionCards({
   );
 }
 
+function BaselinePriorCard({
+  baseline,
+  confirmed,
+  onChange,
+  onConfirm,
+}: {
+  baseline: BaselinePrior;
+  confirmed: boolean;
+  onChange: (baseline: BaselinePrior) => void;
+  onConfirm: () => void;
+}) {
+  const updateNumeric = (key: "mu" | "sigma", raw: string) => {
+    const parsed = parseNumber(raw);
+    if (parsed !== null) {
+      onChange({ ...baseline, [key]: parsed });
+    }
+  };
+
+  return (
+    <section className="content-panel prior-baseline-panel">
+      <div className="prior-baseline-heading">
+        <div>
+          <span className="eyebrow">Baseline Prior for Comparison</span>
+          <p>{baselineHelperText}</p>
+        </div>
+        <span className={confirmed ? "prior-baseline-confirm prior-baseline-confirm--ok" : "prior-baseline-confirm"}>
+          {confirmed ? "Confirmed" : "Needs confirmation"}
+        </span>
+      </div>
+      <div className="prior-baseline-fields">
+        <label>
+          <span>MU baseline</span>
+          <input
+            defaultValue={formatNumber(baseline.mu)}
+            inputMode="decimal"
+            onBlur={(event) => updateNumeric("mu", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                updateNumeric("mu", event.currentTarget.value);
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        </label>
+        <label>
+          <span>Sigma baseline</span>
+          <input
+            defaultValue={formatNumber(baseline.sigma)}
+            inputMode="decimal"
+            onBlur={(event) => updateNumeric("sigma", event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                updateNumeric("sigma", event.currentTarget.value);
+                event.currentTarget.blur();
+              }
+            }}
+          />
+        </label>
+        <label>
+          <span>Distribution baseline</span>
+          <select
+            value={baseline.distribution}
+            onChange={(event) => onChange({ ...baseline, distribution: event.target.value })}
+          >
+            {distributionOptions.map((distribution) => (
+              <option key={distribution} value={distribution}>{distribution}</option>
+            ))}
+          </select>
+        </label>
+        <button type="button" onClick={onConfirm}>Confirm Baseline</button>
+      </div>
+    </section>
+  );
+}
+
 export function PriorGridSetupPage() {
   const profile = useMemo(() => readActiveProfile(), []);
   const channels = useMemo(() => activePaidChannels(profile), [profile]);
@@ -457,6 +594,9 @@ export function PriorGridSetupPage() {
   const [channelGrids, setChannelGrids] = useState<ChannelPriorGrids>(() => hydrateChannelGrids(channels));
   const [activeChannel, setActiveChannel] = useState(() => channels[0] ?? "");
   const [channelDraft, setChannelDraft] = useState<ChannelDraft>(() => draftFromGrid(hydrateChannelGrids(channels)[channels[0] ?? ""] ?? makeDefaultChannelGrid()));
+  const [baselinePrior, setBaselinePrior] = useState<BaselinePrior>(() => readBaselinePrior());
+  const [baselineConfirmed, setBaselineConfirmed] = useState(() => window.localStorage.getItem(`${baselinePriorStorageKey}.confirmed`) === "true");
+  const [baselineRemoveMessage, setBaselineRemoveMessage] = useState("");
 
   useEffect(() => {
     if (activeChannel && channelGrids[activeChannel]) {
@@ -468,6 +608,18 @@ export function PriorGridSetupPage() {
     setChannelGrids(next);
     window.localStorage.setItem(priorGridStorageKey, JSON.stringify(next));
     window.localStorage.setItem(priorGridModeStorageKey, "custom");
+  };
+
+  const updateBaseline = (next: BaselinePrior) => {
+    setBaselinePrior(next);
+    writeBaselinePrior(next);
+    setBaselineConfirmed(false);
+    window.localStorage.setItem(`${baselinePriorStorageKey}.confirmed`, "false");
+  };
+
+  const confirmBaseline = () => {
+    setBaselineConfirmed(true);
+    window.localStorage.setItem(`${baselinePriorStorageKey}.confirmed`, "true");
   };
 
   const updateChannel = (channel: string, patch: Partial<ChannelPriorGrid>) => {
@@ -496,21 +648,57 @@ export function PriorGridSetupPage() {
 
   const applyChannelDraft = () => {
     const nextGrid = gridFromDraft(channelDraft);
-    if (!gridIncludesBaseline(nextGrid)) {
+    if (!gridIncludesBaseline(nextGrid, baselinePrior)) {
       return;
     }
     if (activeChannel) {
-      updateChannel(activeChannel, nextGrid);
+      updateChannel(activeChannel, {
+        ...nextGrid,
+        enabled: channelGrids[activeChannel]?.enabled ?? nextGrid.enabled,
+      });
     }
+  };
+
+  const withBaseline = (grid: ChannelPriorGrid): ChannelPriorGrid => ({
+    ...grid,
+    roi_mu_values: includesNumber(grid.roi_mu_values, baselinePrior.mu)
+      ? grid.roi_mu_values
+      : addNumber(grid.roi_mu_values, String(baselinePrior.mu)),
+    roi_sigma_values: includesNumber(grid.roi_sigma_values, baselinePrior.sigma)
+      ? grid.roi_sigma_values
+      : addNumber(grid.roi_sigma_values, String(baselinePrior.sigma)),
+    roi_dist_values: grid.roi_dist_values.includes(baselinePrior.distribution)
+      ? grid.roi_dist_values
+      : [...grid.roi_dist_values, baselinePrior.distribution],
+  });
+
+  const addBaselineToChannel = (channel: string) => {
+    const grid = channelGrids[channel];
+    if (!grid || !grid.use_custom) {
+      return;
+    }
+    updateChannel(channel, withBaseline(grid));
+  };
+
+  const addBaselineToAllCustomGrids = () => {
+    persistGrids(
+      Object.fromEntries(
+        channels.map((channel) => {
+          const grid = channelGrids[channel];
+          return [channel, grid.use_custom ? withBaseline(grid) : grid];
+        }),
+      ),
+    );
   };
 
   const customModeInvalid = channels.some((channel) => {
     const grid = channelGrids[channel];
     return grid.enabled && grid.use_custom && (!grid.roi_mu_values.length || !grid.roi_sigma_values.length || !grid.roi_dist_values.length);
   });
-  const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelGrids[channel]));
+  const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelGrids[channel], baselinePrior));
   const baselineInvalid = baselineInvalidChannels.length > 0;
-  const activeDraftBaselineInvalid = channelDraft.mode === "custom" && !draftIncludesBaseline(channelDraft);
+  const activeDraftBaselineInvalid = channelDraft.mode === "custom" && !draftIncludesBaseline(channelDraft, baselinePrior);
+  const baselineConfirmationInvalid = !baselineConfirmed;
 
   const perChannelRows = channels.map((channel) => ({
     channel,
@@ -519,8 +707,8 @@ export function PriorGridSetupPage() {
   }));
   const totalRuns = perChannelRows.reduce((total, row) => total + row.runs, 0);
   const preview = useMemo(
-    () => modeConfigPreview(channelGrids, channels),
-    [channelGrids, channels],
+    () => modeConfigPreview(channelGrids, channels, baselinePrior, baselineConfirmed),
+    [baselineConfirmed, baselinePrior, channelGrids, channels],
   );
 
   if (!profile || !channels.length) {
@@ -554,16 +742,37 @@ export function PriorGridSetupPage() {
     <WorkflowScaffold
       title="Prior Grid Setup"
       summary="Define default and per-channel prior grids for the production sensitivity audit."
-      primaryActionDisabled={customModeInvalid || baselineInvalid}
-      nextHelperText={baselineInvalid ? "Add the required baseline prior to every active channel." : undefined}
+      primaryActionDisabled={customModeInvalid || baselineInvalid || baselineConfirmationInvalid}
+      nextHelperText={
+        baselineConfirmationInvalid
+          ? "Confirm the baseline prior before continuing."
+          : baselineInvalid
+            ? "Add the required baseline prior to every included channel."
+            : undefined
+      }
     >
       <div className="prior-warning">Custom grids may increase run time and should be reviewed before production runs.</div>
       {baselineInvalid ? (
         <div className="prior-warning prior-warning--error" role="alert">
-          {baselineRequirementText}
+          {missingBaselineText(baselineInvalidChannels[0], baselinePrior, channelGrids[baselineInvalidChannels[0]])}
           <span>
             Missing baseline in: {baselineInvalidChannels.map((channel) => displayChannelName(channel)).join(", ")}.
           </span>
+          <div className="prior-warning-actions">
+            {channelGrids[baselineInvalidChannels[0]]?.use_custom ? (
+              <button type="button" onClick={() => addBaselineToChannel(baselineInvalidChannels[0])}>Add baseline to this channel</button>
+            ) : null}
+            <button type="button" onClick={addBaselineToAllCustomGrids}>Add baseline to all custom grids</button>
+            <button
+              type="button"
+              onClick={() => {
+                setBaselineConfirmed(false);
+                window.localStorage.setItem(`${baselinePriorStorageKey}.confirmed`, "false");
+              }}
+            >
+              Choose different baseline
+            </button>
+          </div>
         </div>
       ) : null}
       <div className="prior-custom-layout">
@@ -573,7 +782,6 @@ export function PriorGridSetupPage() {
                   <div>
                     <span className="eyebrow">Default Full Grid (Baseline)</span>
                   </div>
-                  <span className="subtle-chip">Applies unless customized or excluded</span>
                 </div>
                 <div className="prior-default-summary">
                   <div>
@@ -593,6 +801,13 @@ export function PriorGridSetupPage() {
                   </div>
                 </div>
               </section>
+
+              <BaselinePriorCard
+                baseline={baselinePrior}
+                confirmed={baselineConfirmed}
+                onChange={updateBaseline}
+                onConfirm={confirmBaseline}
+              />
 
               <section className="content-panel prior-channel-panel">
                 <div className="section-title-row">
@@ -683,17 +898,18 @@ export function PriorGridSetupPage() {
                 <button aria-label="Close editor" type="button" onClick={() => setActiveChannel(activeChannel)}>×</button>
               </div>
               <div className="prior-drawer-mode-toggle">
-                {(["default", "custom", "excluded"] as ChannelMode[]).map((state) => (
+                {(["default", "custom"] as ChannelMode[]).map((state) => (
                   <button
                     className={channelDraft.mode === state ? "is-active" : ""}
                     key={state}
                     type="button"
                     onClick={() => setChannelDraft((current) => ({ ...current, mode: state }))}
                   >
-                    {state === "default" ? "Use Default" : state === "custom" ? "Custom Grid" : "Exclude"}
+                    {state === "default" ? "Use Default" : "Custom Grid"}
                   </button>
                 ))}
               </div>
+              {baselineRemoveMessage ? <p className="prior-validation-text">{baselineRemoveMessage}</p> : null}
 
               {channelDraft.mode === "custom" ? (
                 <>
@@ -703,6 +919,7 @@ export function PriorGridSetupPage() {
                     mode={channelDraft.muMode}
                     range={channelDraft.muRange}
                     values={channelDraft.muValues}
+                    onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
                     onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, muMode: nextMode }))}
                     onRangeChange={(range) => setChannelDraft((current) => ({ ...current, muRange: range }))}
                     onValuesChange={(values) => setChannelDraft((current) => ({ ...current, muValues: values }))}
@@ -713,6 +930,7 @@ export function PriorGridSetupPage() {
                     mode={channelDraft.sigmaMode}
                     range={channelDraft.sigmaRange}
                     values={channelDraft.sigmaValues}
+                    onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
                     onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, sigmaMode: nextMode }))}
                     onRangeChange={(range) => setChannelDraft((current) => ({ ...current, sigmaRange: range }))}
                     onValuesChange={(values) => setChannelDraft((current) => ({ ...current, sigmaValues: values }))}
@@ -723,21 +941,21 @@ export function PriorGridSetupPage() {
                       <span>{channelDraft.distributions.length} selected</span>
                     </div>
                     <DistributionCards
+                      baselineDistribution={baselinePrior.distribution}
                       compact
                       selected={channelDraft.distributions}
+                      onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
                       onChange={(distributions) => setChannelDraft((current) => ({ ...current, distributions }))}
                     />
                     <p className="prior-helper-text">{baselineHelperText}</p>
                   </section>
                   {activeDraftBaselineInvalid ? (
-                    <p className="prior-validation-text">{baselineRequirementText}</p>
+                    <p className="prior-validation-text">{baselineRequirementText(baselinePrior)}</p>
                   ) : null}
                 </>
               ) : (
                 <p className="prior-drawer-empty">
-                  {channelDraft.mode === "default"
-                    ? "This channel will inherit the default full grid unless you switch to Custom Grid."
-                    : "This channel is excluded from the estimated run count."}
+                  This channel will inherit the default full grid unless you switch to Custom Grid.
                 </p>
               )}
 

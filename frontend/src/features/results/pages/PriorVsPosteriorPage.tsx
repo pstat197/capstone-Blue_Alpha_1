@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { SectionScaffold } from "../components/SectionScaffold";
 import { useCurrentResult } from "../data/resultLoader";
 import { formatNumber } from "../data/resultSelectors";
@@ -6,7 +8,7 @@ type PosteriorPoint = {
   channel: string;
   variant: string;
   variantShort: string;
-  mu: number | null;
+  priorMean: number | null;
   sigma: number | null;
   mean: number;
   lower50: number;
@@ -79,7 +81,7 @@ function parsePosteriorRows(rows: Array<Record<string, unknown>> | undefined): P
         channel,
         variant,
         variantShort: variant,
-        mu: toNumber(row.prior_roi_mu),
+        priorMean: toNumber(row.prior_roi_mu),
         sigma: toNumber(row.prior_roi_sigma),
         mean,
         lower50,
@@ -90,11 +92,11 @@ function parsePosteriorRows(rows: Array<Record<string, unknown>> | undefined): P
 }
 
 function nearestBaseline(points: PosteriorPoint[]): PosteriorPoint | null {
-  const withPrior = points.filter((point) => point.mu !== null || point.sigma !== null);
+  const withPrior = points.filter((point) => point.priorMean !== null || point.sigma !== null);
   const candidates = withPrior.length ? withPrior : points;
   return [...candidates].sort((a, b) => {
-    const aScore = Math.abs((a.mu ?? 1) - 1) + Math.abs((a.sigma ?? 1) - 1);
-    const bScore = Math.abs((b.mu ?? 1) - 1) + Math.abs((b.sigma ?? 1) - 1);
+    const aScore = Math.abs((a.priorMean ?? 1) - 1) + Math.abs((a.sigma ?? 1) - 1);
+    const bScore = Math.abs((b.priorMean ?? 1) - 1) + Math.abs((b.sigma ?? 1) - 1);
     return aScore - bScore;
   })[0] || null;
 }
@@ -155,24 +157,28 @@ function EmptyState({ message }: { message: string }) {
   return <div className="pvp-empty-state">{message}</div>;
 }
 
+function InfoPopover({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <details className="pvp-info-popover">
+      <summary aria-label={label}>i</summary>
+      <div className="pvp-info-popover-panel" role="note">
+        {children}
+      </div>
+    </details>
+  );
+}
+
 function SummaryCard({
-  icon,
   title,
   value,
   subtitle,
-  tone,
 }: {
-  icon: string;
   title: string;
   value: string;
   subtitle: string;
-  tone: "blue" | "amber" | "violet" | "navy";
 }) {
   return (
     <article className="pvp-summary-card">
-      <span className={`pvp-summary-icon pvp-summary-icon--${tone}`} aria-hidden="true">
-        {icon}
-      </span>
       <div>
         <h3>{title}</h3>
         <strong>{value}</strong>
@@ -187,16 +193,16 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
 
   const channels = [...new Set(points.map((point) => point.channel))];
   const variants = [...new Set(points.map((point) => point.variantShort))];
-  const values = points.flatMap((point) => [point.lower50, point.upper50, point.mean, point.mu ?? 1]);
+  const values = points.flatMap((point) => [point.lower50, point.upper50, point.mean, point.priorMean ?? 1]);
   const minValue = Math.min(0, ...values);
   const maxValue = Math.max(1, ...values);
   const span = maxValue - minValue || 1;
-  const width = 820;
-  const rowHeight = 38;
-  const top = 28;
-  const left = 104;
-  const right = 26;
-  const bottom = 48;
+  const width = 1060;
+  const rowHeight = 46;
+  const top = 26;
+  const left = 112;
+  const right = 34;
+  const bottom = 50;
   const plotWidth = width - left - right;
   const height = top + channels.length * rowHeight + bottom;
   const x = (value: number) => left + ((value - minValue) / span) * plotWidth;
@@ -205,46 +211,58 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
 
   return (
     <div className="pvp-chart-shell">
-      <svg className="pvp-main-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="ROI prior vs posterior chart">
-        {ticks.map((tick) => (
-          <g key={tick}>
-            <line x1={x(tick)} x2={x(tick)} y1={top - 8} y2={height - bottom} className="pvp-chart-grid" />
-            <text x={x(tick)} y={height - 18} textAnchor="middle" className="pvp-chart-tick">
-              {formatMaybe(tick, 1)}
-            </text>
-          </g>
-        ))}
-        {baselineX >= left && baselineX <= width - right ? <line x1={baselineX} x2={baselineX} y1={top - 10} y2={height - bottom} className="pvp-chart-baseline" /> : null}
-        {channels.map((channel, channelIndex) => {
-          const yBase = top + channelIndex * rowHeight + rowHeight / 2;
-          const channelPoints = points.filter((point) => point.channel === channel);
-          return (
-            <g key={channel}>
-              <text x={left - 14} y={yBase + 4} textAnchor="end" className="pvp-chart-channel">
-                {channel}
+      <div className="pvp-plot-scroll">
+        <svg className="pvp-main-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="ROI prior vs posterior chart">
+          {ticks.map((tick) => (
+            <g key={tick}>
+              <line x1={x(tick)} x2={x(tick)} y1={top - 8} y2={height - bottom} className="pvp-chart-grid" />
+              <text x={x(tick)} y={height - 18} textAnchor="middle" className="pvp-chart-tick">
+                {formatMaybe(tick, 1)}
               </text>
-              <line x1={left} x2={width - right} y1={yBase} y2={yBase} className="pvp-chart-row" />
-              {channelPoints.map((point, variantIndex) => {
-                const offset = ((variantIndex % variants.length) - (variants.length - 1) / 2) * Math.min(4, 22 / Math.max(variants.length, 1));
-                const color = variantColors[variants.indexOf(point.variantShort) % variantColors.length];
-                const y = yBase + offset;
-                return (
-                  <g key={`${channel}-${point.variantShort}`}>
-                    <line x1={x(point.lower50)} x2={x(point.upper50)} y1={y} y2={y} stroke={color} strokeWidth="2.2" opacity="0.78" />
-                    <line x1={x(point.lower50)} x2={x(point.lower50)} y1={y - 3} y2={y + 3} stroke={color} strokeWidth="1.6" opacity="0.72" />
-                    <line x1={x(point.upper50)} x2={x(point.upper50)} y1={y - 3} y2={y + 3} stroke={color} strokeWidth="1.6" opacity="0.72" />
-                    <circle cx={x(point.mean)} cy={y} r="4" fill={color} stroke="#ffffff" strokeWidth="1.4" />
-                  </g>
-                );
-              })}
             </g>
-          );
-        })}
-        <text x={left + plotWidth / 2} y={height - 2} textAnchor="middle" className="pvp-chart-axis">
-          {metricLabel}
-        </text>
-      </svg>
-      <aside className="pvp-legend-card">
+          ))}
+          {baselineX >= left && baselineX <= width - right ? <line x1={baselineX} x2={baselineX} y1={top - 10} y2={height - bottom} className="pvp-chart-baseline" /> : null}
+          {channels.map((channel, channelIndex) => {
+            const yBase = top + channelIndex * rowHeight + rowHeight / 2;
+            const channelPoints = points.filter((point) => point.channel === channel);
+            return (
+              <g key={channel}>
+                <text x={left - 14} y={yBase + 4} textAnchor="end" className="pvp-chart-channel">
+                  {channel}
+                </text>
+                <line x1={left} x2={width - right} y1={yBase} y2={yBase} className="pvp-chart-row" />
+                {channelPoints.map((point, variantIndex) => {
+                  const offset = ((variantIndex % variants.length) - (variants.length - 1) / 2) * Math.min(4, 22 / Math.max(variants.length, 1));
+                  const color = variantColors[variants.indexOf(point.variantShort) % variantColors.length];
+                  const y = yBase + offset;
+                  return (
+                    <g key={`${channel}-${point.variantShort}`}>
+                      <line x1={x(point.lower50)} x2={x(point.upper50)} y1={y} y2={y} stroke={color} strokeWidth="2.7" opacity="0.82" />
+                      <line x1={x(point.lower50)} x2={x(point.lower50)} y1={y - 3.6} y2={y + 3.6} stroke={color} strokeWidth="1.8" opacity="0.76" />
+                      <line x1={x(point.upper50)} x2={x(point.upper50)} y1={y - 3.6} y2={y + 3.6} stroke={color} strokeWidth="1.8" opacity="0.76" />
+                      {point.priorMean !== null ? (
+                        <rect
+                          x={x(point.priorMean) - 5.4}
+                          y={y - 5.4}
+                          width="10.8"
+                          height="10.8"
+                          className="pvp-prior-mean-marker"
+                          transform={`rotate(45 ${x(point.priorMean)} ${y})`}
+                        />
+                      ) : null}
+                      <circle cx={x(point.mean)} cy={y} r="4.8" fill={color} stroke="#ffffff" strokeWidth="1.5" />
+                    </g>
+                  );
+                })}
+              </g>
+            );
+          })}
+          <text x={left + plotWidth / 2} y={height - 2} textAnchor="middle" className="pvp-chart-axis">
+            {metricLabel}
+          </text>
+        </svg>
+      </div>
+      <div className="pvp-legend-card">
         <h4>Prior Variants</h4>
         <div className="pvp-legend-list">
           {variants.map((variant, index) => (
@@ -254,8 +272,13 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
             </div>
           ))}
         </div>
-        <p>Points = posterior mean<br />Lines = 50% interval</p>
-      </aside>
+        <div className="pvp-marker-legend" aria-label="Chart marker legend">
+          <span><i className="pvp-marker-dot" /> Colored points = posterior mean by prior variant</span>
+          <span><i className="pvp-marker-line" /> Colored lines = 50% posterior interval</span>
+          <span><i className="pvp-marker-diamond" /> Gray diamond = channel prior mean</span>
+          <span><i className="pvp-marker-dash" /> Dashed line = ROI 1.0 reference</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -328,7 +351,7 @@ export function PriorVsPosteriorPage() {
 
   return (
     <SectionScaffold
-      title="Results / Prior vs Posterior"
+      title="Prior vs Posterior"
       summary="Evidence of how strongly the data updated each channel's prior assumptions."
       sourceLabel={result.sourceLabel}
       sourceDetail={result.sourceDetail}
@@ -336,32 +359,28 @@ export function PriorVsPosteriorPage() {
       activeRunId={result.activeRunId}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
-      headerAside={
-        <div className="pvp-header-controls">
-          <button type="button" className="pvp-control-chip">
-            <span aria-hidden="true">↗</span>
-            {metricLabel}
-          </button>
-          <button type="button" className="pvp-control-chip pvp-control-chip--export">
-            <span aria-hidden="true">⇩</span>
-            Export
-            <span aria-hidden="true">⌄</span>
-          </button>
-        </div>
-      }
+      headerAside={null}
     >
       <section className="pvp-summary-grid">
-        <SummaryCard icon="◎" tone="blue" title="Channels with Strong Prior Updating" value={points.length ? String(strongRows.length) : "NA"} subtitle="Updated meaningfully by the data" />
-        <SummaryCard icon="△" tone="amber" title="Channels Needing Follow-up" value={points.length ? String(followUpCount) : "NA"} subtitle="Weak updates or high sensitivity" />
-        <SummaryCard icon="↗" tone="violet" title="Median Posterior Shift" value={formatMaybe(median(channelRows.map((row) => row.avgAbsShift)), 2)} subtitle="Median of avg abs shift across channels" />
-        <SummaryCard icon="KPI" tone="navy" title="KPI Path" value={metricLabel} subtitle={kpiSubtitle} />
+        <SummaryCard title="Channels with Strong Prior Updating" value={points.length ? String(strongRows.length) : "NA"} subtitle="Updated meaningfully by the data" />
+        <SummaryCard title="Channels Needing Follow-up" value={points.length ? String(followUpCount) : "NA"} subtitle="Weak updates or high sensitivity" />
+        <SummaryCard title="Median Posterior Shift" value={formatMaybe(median(channelRows.map((row) => row.avgAbsShift)), 2)} subtitle="Median of avg abs shift across channels" />
+        <SummaryCard title="KPI Path" value={metricLabel} subtitle={kpiSubtitle} />
       </section>
 
       <section className="pvp-main-grid">
         <article className="content-panel pvp-chart-card">
           <div className="pvp-card-title">
             <h3>ROI Prior vs Posterior with 50% Posterior Intervals</h3>
-            <span>i</span>
+            <InfoPopover label="Explain ROI prior vs posterior chart">
+              <p>This chart compares how each channel's posterior ROI changes under different prior assumptions.</p>
+              <ul>
+                <li>Colored points = posterior mean by prior variant</li>
+                <li>Colored lines = 50% posterior interval</li>
+                <li>Gray diamond = channel prior mean</li>
+                <li>Dashed vertical line = ROI 1.0 reference</li>
+              </ul>
+            </InfoPopover>
           </div>
           {table?.available === false ? <EmptyState message={table.reason || "Prior-vs-posterior table unavailable in this payload."} /> : <PriorPosteriorChart points={points} metricLabel={metricLabel} />}
         </article>
@@ -369,14 +388,13 @@ export function PriorVsPosteriorPage() {
         <aside className="content-panel pvp-interpretation-card">
           <div className="pvp-card-title">
             <h3>Prior-Updating Summary</h3>
-            <span>i</span>
           </div>
           {points.length ? (
             <>
-              <SummaryGroup title="Strongly updated" rows={strongRows} tone="green" description="Posteriors moved meaningfully across tested prior variants." />
-              <SummaryGroup title="Moderately updated" rows={moderateRows} tone="amber" description="Some movement across priors, with partial overlap." />
-              <SummaryGroup title="Weakly updated" rows={weakRows} tone="orange" description="Posteriors remain comparatively clustered with minimal movement." />
-              <SummaryGroup title="Most prior-sensitive channels" rows={sensitiveRows} tone="violet" description="Show wider posterior movement under alternative priors." />
+              <SummaryGroup title="Strongly updated" rows={strongRows} tone="green" description="Meaningful movement across priors." />
+              <SummaryGroup title="Moderately updated" rows={moderateRows} tone="amber" description="Some movement, with overlap." />
+              <SummaryGroup title="Weakly updated" rows={weakRows} tone="orange" description="Limited movement from priors." />
+              <SummaryGroup title="Most prior-sensitive channels" rows={sensitiveRows} tone="violet" description="Wider movement under alternatives." />
               <div className={`pvp-confidence pvp-confidence--${confidence.toLowerCase()}`}>
                 Interpretation confidence: <strong>{confidence}</strong>
               </div>
@@ -399,7 +417,14 @@ export function PriorVsPosteriorPage() {
         <article className="content-panel pvp-stability-card">
           <div className="pvp-card-title">
             <h3>Interval Overlap &amp; Stability</h3>
-            <span>i</span>
+            <InfoPopover label="Explain interval overlap and stability table">
+              <ul>
+                <li>Avg Posterior ROI = average posterior ROI across tested prior variants.</li>
+                <li>CI Width = average width of the posterior interval.</li>
+                <li>Prior Sensitivity = how much the posterior estimate moves across prior variants.</li>
+                <li>Update Strength = qualitative label summarizing whether the data strongly, moderately, or weakly updates the prior.</li>
+              </ul>
+            </InfoPopover>
           </div>
           {channelRows.length ? (
             <div className="table-shell">

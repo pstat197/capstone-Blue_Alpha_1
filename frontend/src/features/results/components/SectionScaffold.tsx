@@ -62,7 +62,7 @@ export function SectionScaffold({
       <ResultsPageHeader
         title={title}
         summary={summary}
-        aside={headerAside || (sourceKind === "api" && sourceLabel ? (
+        aside={headerAside !== undefined ? headerAside : (sourceKind === "api" && sourceLabel ? (
           <div className="result-source-chip">
             <span>{sourceLabel}</span>
             {sourceDetail ? <small>{sourceDetail}</small> : null}

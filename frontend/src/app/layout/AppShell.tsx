@@ -158,8 +158,8 @@ export function AppShell() {
           <div className="topbar-team" aria-label="Project team">
             <span>Jasper Luo</span>
             <span>Quinlan Wilson</span>
-            <span>Jimmy Wu</span>
             <span>Aidan Frazier</span>
+            <span>Jimmy Wu</span>
             <span>Coraline Zhu</span>
           </div>
           <button className="help-button" type="button" aria-label="Help">?</button>

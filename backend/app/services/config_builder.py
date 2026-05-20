@@ -89,6 +89,10 @@ def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
     mu_values = _list_or_default(prior_grid.get("roi_mu_values") or prior_grid.get("mu_values"), DEFAULT_MU_VALUES)
     sigma_values = _list_or_default(prior_grid.get("roi_sigma_values") or prior_grid.get("sigma_values"), DEFAULT_SIGMA_VALUES)
     dist_values = _list_or_default(prior_grid.get("roi_dist_values") or prior_grid.get("distributions"), DEFAULT_DIST_VALUES)
+    baseline = prior_grid.get("baseline") if isinstance(prior_grid.get("baseline"), dict) else {}
+    baseline_mu = baseline.get("roi_mu", 1.0)
+    baseline_sigma = baseline.get("roi_sigma", 1.0)
+    baseline_dist = baseline.get("roi_dist", "LogNormal")
     channel_prior_grids = _normalize_channel_prior_grids(
         prior_grid.get("channel_prior_grids"),
         channels,
@@ -116,6 +120,11 @@ def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
             "revenue_per_kpi": outcome.get("revenue_per_kpi"),
         },
         "prior_mode": "roi",
+        "baseline": {
+            "roi_mu": baseline_mu,
+            "roi_sigma": baseline_sigma,
+            "roi_dist": baseline_dist,
+        },
         "run_modes": {
             "roi_full": {
                 "roi_mu_values": mu_values,

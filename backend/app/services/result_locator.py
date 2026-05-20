@@ -7,9 +7,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import yaml
+
 from backend.app.services.paths import PROJECT_ROOT
 
 REPORTS_ROOT = PROJECT_ROOT / "data" / "output" / "03_reports"
+RUNS_ROOT = PROJECT_ROOT / "backend" / "storage" / "runs"
 
 
 def _roi_csv_path(output_tag: str) -> Path:
@@ -176,6 +179,38 @@ def _load_payload_from_path(payload_path: Path, output_tag: str) -> dict[str, An
     return data
 
 
+def _baseline_prior_from_config(run_id: str) -> dict[str, Any] | None:
+    config_path = RUNS_ROOT / run_id / "config.yaml"
+    if not config_path.exists():
+        return None
+    try:
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8")) or {}
+    except (OSError, yaml.YAMLError):
+        return None
+    baseline = raw.get("baseline")
+    if not isinstance(baseline, dict):
+        return None
+    mu = _to_float(baseline.get("roi_mu"))
+    sigma = _to_float(baseline.get("roi_sigma"))
+    dist = _string_or_none(baseline.get("roi_dist"))
+    if mu is None or sigma is None or not dist:
+        return None
+    return {"roi_mu": mu, "roi_sigma": sigma, "roi_dist": dist}
+
+
+def _attach_baseline_prior(data: dict[str, Any], run_id: str | None) -> dict[str, Any]:
+    if not run_id:
+        return data
+    baseline_prior = _baseline_prior_from_config(run_id)
+    if not baseline_prior:
+        return data
+    data["baseline_prior"] = baseline_prior
+    workbench = data.get("workbench")
+    if isinstance(workbench, dict):
+        workbench["baseline_prior"] = baseline_prior
+    return data
+
+
 def load_payload_for_run(run_id: str, output_tag: str | None = None) -> dict[str, Any]:
     if not output_tag:
         raise FileNotFoundError(f"No output tag is recorded for run {run_id}.")
@@ -185,7 +220,7 @@ def load_payload_for_run(run_id: str, output_tag: str | None = None) -> dict[str
             f"Results are not available for run {run_id}. Expected dashboard artifact "
             f"data/output/03_reports/report/{output_tag}/tables/dashboard_payload.json was not found."
         )
-    return _load_payload_from_path(Path(str(payload)), output_tag)
+    return _attach_baseline_prior(_load_payload_from_path(Path(str(payload)), output_tag), run_id)
 
 
 def _relative_path(path: Path) -> str:
@@ -349,5 +384,5 @@ def load_saved_history_payload(history_id: str) -> tuple[dict[str, Any], dict[st
     item = _history_item_from_payload_path(payload_path)
     if not item:
         raise FileNotFoundError("Saved result payload is missing or malformed.")
-    data = _load_payload_from_path(payload_path, item["output_tag"])
+    data = _attach_baseline_prior(_load_payload_from_path(payload_path, item["output_tag"]), _string_or_none(item.get("run_id")))
     return item, data

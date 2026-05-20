@@ -5,6 +5,7 @@ import type { ConfigPreview, WorkflowDraftRequest } from "../../../api/types";
 import { createWorkflowDraft, previewWorkflowConfig } from "../../../api/workflows";
 import { WorkflowScaffold } from "../components/WorkflowScaffold";
 import {
+  baselinePriorStorageKey,
   defaultFullPriorGrid,
   priorGridStorageKey,
   samplerSettings,
@@ -36,6 +37,18 @@ type ValidationItem = {
   status: CheckStatus;
 };
 
+type BaselinePrior = {
+  mu: number;
+  sigma: number;
+  distribution: string;
+};
+
+const defaultBaselinePrior: BaselinePrior = {
+  mu: 1,
+  sigma: 1,
+  distribution: "LogNormal",
+};
+
 function readChannelPriorGrids(channels: string[]): ChannelPriorGrids {
   const fallback = makeChannelGrids(channels);
   const stored = window.localStorage.getItem(priorGridStorageKey);
@@ -48,6 +61,37 @@ function readChannelPriorGrids(channels: string[]): ChannelPriorGrids {
   } catch {
     return fallback;
   }
+}
+
+function readBaselinePrior(): BaselinePrior {
+  const stored = window.localStorage.getItem(baselinePriorStorageKey);
+  if (!stored) {
+    return defaultBaselinePrior;
+  }
+  try {
+    const parsed = JSON.parse(stored) as Partial<BaselinePrior>;
+    const mu = typeof parsed.mu === "number" && Number.isFinite(parsed.mu) && parsed.mu > 0 ? parsed.mu : defaultBaselinePrior.mu;
+    const sigma = typeof parsed.sigma === "number" && Number.isFinite(parsed.sigma) && parsed.sigma > 0 ? parsed.sigma : defaultBaselinePrior.sigma;
+    const distribution = typeof parsed.distribution === "string" && parsed.distribution ? parsed.distribution : defaultBaselinePrior.distribution;
+    return { mu, sigma, distribution };
+  } catch {
+    return defaultBaselinePrior;
+  }
+}
+
+function includesNumber(values: number[], required: number) {
+  return values.some((value) => Math.abs(value - required) <= 1e-9);
+}
+
+function gridIncludesBaseline(grid: ChannelPriorGrid, baseline: BaselinePrior) {
+  if (!grid.enabled) {
+    return true;
+  }
+  return (
+    includesNumber(grid.roi_mu_values, baseline.mu) &&
+    includesNumber(grid.roi_sigma_values, baseline.sigma) &&
+    grid.roi_dist_values.includes(baseline.distribution)
+  );
 }
 
 function clampStructuralNumber(value: unknown, min: number, max: number, fallback: number) {
@@ -125,6 +169,8 @@ export function ReviewRunPage() {
   const revenuePerKpi = readRevenuePerKpi();
   const roiMode = readRoiMode(profile);
   const channelPriorGrids = useMemo(() => readChannelPriorGrids(channels), [channels]);
+  const baselinePrior = useMemo(() => readBaselinePrior(), []);
+  const baselineConfirmed = window.localStorage.getItem(`${baselinePriorStorageKey}.confirmed`) === "true";
   const structuralProfile = useMemo(() => readStructuralProfile(), []);
   const [preview, setPreview] = useState<ConfigPreview | null>(null);
   const [workflowId, setWorkflowId] = useState<string | null>(null);
@@ -141,6 +187,7 @@ export function ReviewRunPage() {
   const timeColumn = profile?.detected.time_candidates[0] ?? "";
   const hasLargeRunWarning = previewRunCount >= 200;
   const runLabel = getPriorRunLabel(channels, channelPriorGrids);
+  const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelPriorGrids[channel], baselinePrior));
   const missingItems = [
     !profile ? "Complete Step 1: upload and profile a CSV." : "",
     profileHasBlockingErrors(profile) ? "Return to Step 1: resolve upload profile validation errors." : "",
@@ -151,6 +198,8 @@ export function ReviewRunPage() {
     !channels.length ? "Return to Step 1: upload data with detectable spend channels." : "",
     enabledChannelCount === 0 ? "Return to Step 3: select at least one channel." : "",
     estimatedRuns <= 0 && enabledChannelCount > 0 ? "Return to Step 3: configure at least one prior-grid value." : "",
+    !baselineConfirmed ? "Return to Step 3: confirm the baseline prior." : "",
+    baselineInvalidChannels.length ? `Return to Step 3: add the selected baseline prior to ${baselineInvalidChannels.join(", ")}.` : "",
   ].filter(Boolean);
   const isComplete = missingItems.length === 0 && Boolean(profile);
 
@@ -184,6 +233,11 @@ export function ReviewRunPage() {
         roi_mu_values: defaultFullPriorGrid.muValues,
         roi_sigma_values: defaultFullPriorGrid.sigmaValues,
         roi_dist_values: defaultFullPriorGrid.distributions,
+        baseline: {
+          roi_mu: baselinePrior.mu,
+          roi_sigma: baselinePrior.sigma,
+          roi_dist: baselinePrior.distribution,
+        },
         channel_prior_grids: channelPriorGrids,
       },
       structural: {
@@ -202,7 +256,7 @@ export function ReviewRunPage() {
         parallel_workers: samplerSettings.parallelWorkers,
       },
     };
-  }, [channelPriorGrids, channels, isComplete, kpiColumn, kpiType, profile, revenueColumn, revenuePerKpi, roiMode, structuralProfile, timeColumn]);
+  }, [baselinePrior, channelPriorGrids, channels, isComplete, kpiColumn, kpiType, profile, revenueColumn, revenuePerKpi, roiMode, structuralProfile, timeColumn]);
 
   useEffect(() => {
     if (!workflowRequest) {

@@ -70,9 +70,30 @@ function getField(row: Record<string, unknown>, keys: string[]): unknown {
   return keys.map((key) => row[key]).find((value) => value !== undefined && value !== null && value !== "");
 }
 
+function parseChannelsFromRunId(runId?: string | null): string[] {
+  const parts = String(runId || "").split("|");
+  if (parts[0] !== "multi" || !parts[1]) return [];
+  return parts[1]
+    .split(",")
+    .map((channel) => channel.trim())
+    .filter(Boolean);
+}
+
+function selectPayloadChannels(payload: DashboardPayload): string[] {
+  const fromRunId = parseChannelsFromRunId(payload.structural?.selected_run_id);
+  if (fromRunId.length) return fromRunId;
+  const fromTargetOptions = payload.target_channel_detail?.options?.map((option) => String(option.value || "").trim()).filter(Boolean) || [];
+  return [...new Set(fromTargetOptions)];
+}
+
+function structuralKey(param: StructuralParam): string {
+  return [param.alpha, param.ec, param.slope, param.maxLag].map((value) => (value === null ? "NA" : String(value))).join("|");
+}
+
 function buildStructuralParams(payload: DashboardPayload): StructuralParam[] {
   const structural = payload.structural;
   const selectedRunId = structural?.selected_run_id;
+  const selectedChannels = new Set(selectPayloadChannels(payload).map((channel) => channel.toLowerCase()));
   const responseRows = structural?.response_rows || [];
   const filteredResponseRows =
     selectedRunId && responseRows.some((row) => String(row.run_id || "") === selectedRunId)
@@ -106,7 +127,9 @@ function buildStructuralParams(payload: DashboardPayload): StructuralParam[] {
   });
 
   if (byChannel.size) {
-    return [...byChannel.values()].sort((a, b) => a.channel.localeCompare(b.channel));
+    const rows = [...byChannel.values()];
+    const scopedRows = selectedChannels.size ? rows.filter((row) => selectedChannels.has(row.channel.toLowerCase())) : rows;
+    return scopedRows.sort((a, b) => a.channel.localeCompare(b.channel));
   }
 
   const profile = structural?.profile_rows?.[0];
@@ -213,16 +236,13 @@ function SummaryCard({
   title,
   value,
   subtitle,
-  tone,
 }: {
   title: string;
   value: string;
   subtitle: string;
-  tone: "blue" | "green" | "violet" | "amber";
 }) {
   return (
     <article className="ms-summary-card">
-      <span className={`ms-summary-icon ms-summary-icon--${tone}`} aria-hidden="true" />
       <div>
         <span>{title}</span>
         <strong>{value}</strong>
@@ -388,6 +408,8 @@ export function ModelStructurePage() {
   const result = useCurrentResult();
   const { payload } = result;
   const params = useMemo(() => buildStructuralParams(payload), [payload]);
+  const uniqueStructuralKeys = new Set(params.map(structuralKey));
+  const usesSharedStructuralProfile = params.length > 1 && uniqueStructuralKeys.size === 1;
   const aggregateAlpha = median(params.map((param) => param.alpha));
   const aggregateEc = median(params.map((param) => param.ec));
   const aggregateSlope = median(params.map((param) => param.slope));
@@ -398,46 +420,39 @@ export function ModelStructurePage() {
   const immediate = immediateShareFromPoints(carryoverPoints);
   const carryover = immediate === null ? null : 100 - immediate;
   const isChannelAggregate = params.length > 1;
-  const aggregateSubtitle = isChannelAggregate ? "median across channels" : "controls carryover decay";
-  const channelSeries = params
-    .filter((param) => param.channel !== "Aggregate" && param.ec !== null && param.slope !== null)
-    .map((param, index) => ({
-      channel: param.channel,
-      color: chartColors[index % chartColors.length],
-      points: saturationPoints(param.ec, param.slope),
-    }))
-    .filter((series) => series.points.length);
+  const aggregateSubtitle = usesSharedStructuralProfile
+    ? "shared across selected channels"
+    : isChannelAggregate
+      ? "median across channels"
+      : "controls carryover decay";
+  const uniqueParams = [...new Map(params.map((param) => [structuralKey(param), param])).values()];
+  const chartParams = usesSharedStructuralProfile ? uniqueParams : params;
+  const channelSeries = usesSharedStructuralProfile
+    ? saturationPoints(aggregateEc, aggregateSlope).length
+      ? [
+          {
+            channel: "Shared structural response curve",
+            color: chartColors[0],
+            points: saturationPoints(aggregateEc, aggregateSlope),
+          },
+        ]
+      : []
+    : params
+        .filter((param) => param.channel !== "Aggregate" && param.ec !== null && param.slope !== null)
+        .map((param, index) => ({
+          channel: param.channel,
+          color: chartColors[index % chartColors.length],
+          points: saturationPoints(param.ec, param.slope),
+        }))
+        .filter((series) => series.points.length);
+  const sharedProfileRows = [
+    ["Alpha", formatValue(aggregateAlpha, 2)],
+    ["EC Midpoint", formatValue(aggregateEc, 2)],
+    ["Response Slope", formatValue(aggregateSlope, 2)],
+    ["Max Lag", formatLag(aggregateMaxLag)],
+    ["Half-Life", formatValue(halfLife, 2)],
+  ];
   const tableRows = params.filter((param) => param.channel !== "Aggregate").length ? params.filter((param) => param.channel !== "Aggregate") : params;
-
-  const exportPayload = {
-    run_id: result.activeRunId,
-    structural_selected_run_id: payload.structural?.selected_run_id ?? null,
-    structural_selected_profile_id: payload.structural?.selected_profile_id ?? null,
-    aggregate: {
-      alpha: aggregateAlpha,
-      ec: aggregateEc,
-      slope: aggregateSlope,
-      max_lag: aggregateMaxLag,
-      half_life: halfLife,
-      avg_lag: avgLag,
-      immediate_share_pct: immediate,
-      carryover_share_pct: carryover,
-      aggregation: isChannelAggregate ? "median across channels" : "single profile",
-    },
-    channels: tableRows.map((param) => ({
-      channel: param.channel,
-      alpha: param.alpha,
-      ec: param.ec,
-      slope: param.slope,
-      max_lag: param.maxLag,
-      half_life: geometricHalfLife(param.alpha),
-    })),
-    raw_structural: payload.structural ?? null,
-  };
-
-  const handleExport = () => {
-    downloadText(`model-structure-${result.activeRunId || "run"}.json`, JSON.stringify(exportPayload, null, 2), "application/json");
-  };
 
   const handleCsv = () => {
     const rows = [
@@ -460,7 +475,7 @@ export function ModelStructurePage() {
 
   return (
     <SectionScaffold
-      title="Results / Model Structure"
+      title="Model Structure"
       summary="Inspect the structural assumptions behind carryover, saturation, and response behavior."
       sourceLabel={result.sourceLabel}
       sourceDetail={result.sourceDetail}
@@ -468,20 +483,14 @@ export function ModelStructurePage() {
       activeRunId={result.activeRunId}
       runSummary={result.runSummary}
       buildResultsPath={result.buildResultsPath}
-      headerAside={
-        <button className="ms-export-button" type="button" onClick={handleExport}>
-          <span aria-hidden="true" />
-          Export Model Structure
-          <i aria-hidden="true" />
-        </button>
-      }
+      headerAside={null}
     >
       <div className="model-structure-page">
         <section className="ms-summary-grid" aria-label="Model structure summary">
-          <SummaryCard title="Alpha / Adstock Memory" value={formatValue(aggregateAlpha, 2)} subtitle={aggregateSubtitle} tone="blue" />
-          <SummaryCard title="EC Midpoint" value={formatValue(aggregateEc, 2)} subtitle={isChannelAggregate ? "median across channels" : "spend index at 50% response"} tone="green" />
-          <SummaryCard title="Response Slope" value={formatValue(aggregateSlope, 2)} subtitle={isChannelAggregate ? "median across channels" : "steepness of response curve"} tone="violet" />
-          <SummaryCard title="Max Lag" value={formatLag(aggregateMaxLag)} subtitle={isChannelAggregate ? "median across channels" : "maximum lag periods included"} tone="amber" />
+          <SummaryCard title="Alpha / Adstock Memory" value={formatValue(aggregateAlpha, 2)} subtitle={aggregateSubtitle} />
+          <SummaryCard title="EC Midpoint" value={formatValue(aggregateEc, 2)} subtitle={usesSharedStructuralProfile ? "shared across selected channels" : isChannelAggregate ? "median across channels" : "spend index at 50% response"} />
+          <SummaryCard title="Response Slope" value={formatValue(aggregateSlope, 2)} subtitle={usesSharedStructuralProfile ? "shared across selected channels" : isChannelAggregate ? "median across channels" : "steepness of response curve"} />
+          <SummaryCard title="Max Lag" value={formatLag(aggregateMaxLag)} subtitle={usesSharedStructuralProfile ? "shared across selected channels" : isChannelAggregate ? "median across channels" : "maximum lag periods included"} />
         </section>
 
         <section className="ms-top-grid">
@@ -515,7 +524,7 @@ export function ModelStructurePage() {
                 <span><i />Reference Guides</span>
               </div>
             </div>
-            <SaturationChart params={params} aggregateEc={aggregateEc} aggregateSlope={aggregateSlope} />
+            <SaturationChart params={chartParams} aggregateEc={aggregateEc} aggregateSlope={aggregateSlope} />
             <Note>EC midpoint is the spend index at which response reaches 50% of its maximum.</Note>
           </article>
         </section>
@@ -524,26 +533,26 @@ export function ModelStructurePage() {
           <article className="content-panel ms-chart-card">
             <div className="ms-card-header">
               <div>
-                <h3>Channel Response Curves</h3>
-                <p>Median saturation curves by channel (normalized).</p>
+                <h3>{usesSharedStructuralProfile ? "Shared Response Curve" : "Channel Response Curves"}</h3>
+                <p>{usesSharedStructuralProfile ? "One global saturation curve used by all selected channels." : "Median saturation curves by channel (normalized)."}</p>
               </div>
             </div>
             {channelSeries.length ? (
               <div className="ms-compact-legend">
                 {channelSeries.map((series) => (
-                  <span key={series.channel}><i style={{ background: series.color }} />{channelLabel(series.channel)}</span>
+                  <span key={series.channel}><i style={{ background: series.color }} />{usesSharedStructuralProfile ? series.channel : channelLabel(series.channel)}</span>
                 ))}
               </div>
             ) : null}
             <ChannelCurvesChart series={channelSeries} />
-            <Note>Curves show median structural shape by channel for comparison only.</Note>
+            <Note>{usesSharedStructuralProfile ? "The repeated channel rows in the source payload share the same structural assumptions, so only one curve is shown." : "Curves show median structural shape by channel for comparison only."}</Note>
           </article>
 
           <article className="content-panel ms-readout-card">
             <div className="ms-card-header">
               <div>
                 <h3>Structural Readout</h3>
-                <p>Key structural metrics aggregated across channels.</p>
+                <p>{usesSharedStructuralProfile ? "Key metrics for the global structural profile." : "Key structural metrics aggregated across channels."}</p>
               </div>
             </div>
             <div className="ms-readout-grid">
@@ -560,12 +569,12 @@ export function ModelStructurePage() {
               <div className="ms-readout-tile">
                 <span>Current Alpha</span>
                 <strong>{formatValue(aggregateAlpha, 2)}</strong>
-                <p>{isChannelAggregate ? "median adstock memory" : "adstock memory"}</p>
+                <p>{usesSharedStructuralProfile ? "shared adstock memory" : isChannelAggregate ? "median adstock memory" : "adstock memory"}</p>
               </div>
               <div className="ms-readout-tile">
                 <span>Current EC / Slope</span>
                 <strong>{aggregateEc !== null && aggregateSlope !== null ? `${formatValue(aggregateEc, 2)} / ${formatValue(aggregateSlope, 2)}` : "Unavailable"}</strong>
-                <p>{isChannelAggregate ? "median midpoint / steepness" : "midpoint / steepness"}</p>
+                <p>{usesSharedStructuralProfile ? "shared midpoint / steepness" : isChannelAggregate ? "median midpoint / steepness" : "midpoint / steepness"}</p>
               </div>
             </div>
             <Note>
@@ -578,12 +587,21 @@ export function ModelStructurePage() {
           <article className="content-panel ms-table-card">
             <div className="ms-card-header ms-card-header--table">
               <div>
-                <h3>Channel Structure Table</h3>
-                <p>Structural parameters by channel, median across runs.</p>
+                <h3>{usesSharedStructuralProfile ? "Shared Structural Profile" : "Channel Structure Table"}</h3>
+                <p>{usesSharedStructuralProfile ? "Global structural assumptions used for this run." : "Structural parameters by channel, median across runs."}</p>
               </div>
-              <button className="ms-secondary-button" type="button" onClick={handleCsv}>Download CSV</button>
+              {usesSharedStructuralProfile ? null : <button className="ms-secondary-button" type="button" onClick={handleCsv}>Download CSV</button>}
             </div>
-            {tableRows.length ? (
+            {usesSharedStructuralProfile ? (
+              <div className="ms-shared-profile-grid">
+                {sharedProfileRows.map(([label, value]) => (
+                  <div key={label}>
+                    <span>{label}</span>
+                    <strong>{value}</strong>
+                  </div>
+                ))}
+              </div>
+            ) : tableRows.length ? (
               <div className="table-shell ms-table-shell">
                 <table>
                   <thead>
@@ -613,7 +631,7 @@ export function ModelStructurePage() {
             ) : (
               <MissingState>Channel-level structural parameters are unavailable for this run.</MissingState>
             )}
-            <Note>Parameters reflect structural assumptions used in the final model.</Note>
+            <Note>{usesSharedStructuralProfile ? "This run does not define separate structural parameters per channel." : "Parameters reflect structural assumptions used in the final model."}</Note>
           </article>
         </section>
 
