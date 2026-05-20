@@ -30,6 +30,27 @@ NON_MEDIA_CHANNEL_PREFIXES = {
     "total",
 }
 
+DIRECT_REVENUE_NAMES = {
+    "revenue",
+    "sales",
+    "total_revenue",
+    "net_revenue",
+    "gross_revenue",
+    "gmv",
+    "income",
+    "turnover",
+}
+
+REVENUE_PER_KPI_PREFIXES = (
+    "revenue_per_",
+    "rev_per_",
+    "value_per_",
+    "dollars_per_",
+    "dollar_per_",
+)
+
+CONTROL_LIKE_TOKENS = ("promo", "holiday", "competitor", "control", "sentiment", "season", "price")
+
 
 def _infer_type(series: pd.Series) -> str:
     if pd.api.types.is_bool_dtype(series):
@@ -91,10 +112,15 @@ def _detect_columns(column_names: list[str]) -> DetectedColumns:
         for name, lower in lowered.items()
         if lower in {"date", "week", "month", "time", "period", "time_period"} or lower.endswith("_date")
     ]
+    revenue_per_kpi_candidates = [
+        name
+        for name, lower in lowered.items()
+        if _is_revenue_per_kpi_column(lower)
+    ]
     revenue_candidates = [
         name
         for name, lower in lowered.items()
-        if any(token in lower for token in ["revenue", "sales", "gmv", "income", "turnover"])
+        if name not in revenue_per_kpi_candidates and _is_direct_revenue_column(lower)
     ]
     spend_suffixes = ("_spend", "_cost", "_costs")
     activity_suffixes = ("_impressions", "_impression", "_clicks", "_click", "_views", "_view", "_conversions", "_conversion")
@@ -122,7 +148,13 @@ def _detect_columns(column_names: list[str]) -> DetectedColumns:
             ignored_channel_metric_columns.add(name)
     geo_candidates = [name for name, lower in lowered.items() if lower in {"geo", "state", "region", "dma", "market"}]
     population_candidates = [name for name, lower in lowered.items() if "population" in lower or lower == "pop"]
-    excluded = set(time_candidates) | set(revenue_candidates) | set(geo_candidates) | set(population_candidates)
+    excluded = (
+        set(time_candidates)
+        | set(revenue_candidates)
+        | set(revenue_per_kpi_candidates)
+        | set(geo_candidates)
+        | set(population_candidates)
+    )
     excluded.update(item["column"] for item in spend_channel_candidates)
     excluded.update(item["column"] for item in media_activity_candidates)
     excluded.update(ignored_channel_metric_columns)
@@ -138,11 +170,7 @@ def _detect_columns(column_names: list[str]) -> DetectedColumns:
         if name not in excluded
         and any(token in lower for token in ["promo", "holiday", "competitor", "control", "season", "price"])
     ]
-    direct_revenue_kpis = [
-        name
-        for name in revenue_candidates
-        if lowered[name] in {"revenue", "sales", "gmv", "income", "turnover", "total_revenue"}
-    ]
+    direct_revenue_kpis = [name for name in revenue_candidates if lowered[name] in DIRECT_REVENUE_NAMES]
     kpi_candidates = [*direct_revenue_kpis, *[name for name in kpi_candidates if name not in direct_revenue_kpis]]
 
     return DetectedColumns(
@@ -151,10 +179,32 @@ def _detect_columns(column_names: list[str]) -> DetectedColumns:
         media_activity_candidates=media_activity_candidates,
         spend_channel_candidates=spend_channel_candidates,
         revenue_candidates=revenue_candidates,
+        revenue_per_kpi_candidates=revenue_per_kpi_candidates,
         control_candidates=control_candidates,
         geo_candidates=geo_candidates,
         population_candidates=population_candidates,
     )
+
+
+def _is_revenue_per_kpi_column(lower: str) -> bool:
+    normalized = lower.replace("-", "_").replace(" ", "_")
+    if _is_control_like_column(normalized):
+        return False
+    return normalized.startswith(REVENUE_PER_KPI_PREFIXES) or "_revenue_per_" in normalized
+
+
+def _is_direct_revenue_column(lower: str) -> bool:
+    normalized = lower.replace("-", "_").replace(" ", "_")
+    if _is_control_like_column(normalized):
+        return False
+    if normalized in DIRECT_REVENUE_NAMES:
+        return True
+    tokens = {token for token in normalized.split("_") if token}
+    return bool(tokens & {"revenue", "sales", "gmv", "income", "turnover"})
+
+
+def _is_control_like_column(normalized: str) -> bool:
+    return any(token in normalized for token in CONTROL_LIKE_TOKENS)
 
 
 def _infer_frequency(parsed: pd.Series) -> str | None:
@@ -312,8 +362,8 @@ def _validation_badges(detected: DetectedColumns, date_profile: DateProfile, cha
             "label": f"{len(inactive)} inactive channel excluded" if inactive else "No inactive paid channels",
         },
         {
-            "status": "valid" if detected.revenue_candidates else "warning",
-            "label": "Revenue column detected" if detected.revenue_candidates else "Revenue column not detected",
+            "status": "valid" if detected.revenue_candidates or detected.revenue_per_kpi_candidates else "warning",
+            "label": _revenue_detection_label(detected),
         },
         {
             "status": "valid" if detected.geo_candidates and detected.population_candidates else "info",
@@ -328,6 +378,14 @@ def _validation_badges(detected: DetectedColumns, date_profile: DateProfile, cha
             }
         )
     return badges
+
+
+def _revenue_detection_label(detected: DetectedColumns) -> str:
+    if detected.revenue_candidates:
+        return "Revenue column detected"
+    if detected.revenue_per_kpi_candidates:
+        return "Revenue-per-KPI helper detected"
+    return "Revenue column not detected"
 
 
 def profile_csv(upload_id: str, filename: str, path: Path) -> CsvProfile:

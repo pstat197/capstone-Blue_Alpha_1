@@ -70,6 +70,20 @@ BASE_ROI_SIGMA = 0.5
 _ALLOWED_DECAYS = {"geometric", "binomial"}
 
 
+def _resolve_column_name(df: pd.DataFrame, preferred: str, alternatives: list[str] | None = None) -> str | None:
+    candidates = [preferred, *(alternatives or [])]
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+
+    by_lower = {str(column).lower(): str(column) for column in df.columns}
+    for candidate in candidates:
+        resolved = by_lower.get(str(candidate).lower())
+        if resolved:
+            return resolved
+    return None
+
+
 def _natural_to_lognormal_params(mu_vec: np.ndarray, sigma_vec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     mu_safe = np.maximum(mu_vec.astype(np.float32), np.float32(1e-8))
     sigma_safe = np.maximum(sigma_vec.astype(np.float32), np.float32(1e-8))
@@ -527,6 +541,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--kpi_col", default="subscriptions")
     parser.add_argument("--kpi_type", default="non_revenue", choices=["revenue", "non_revenue"])
     parser.add_argument("--revenue_per_kpi", type=float, default=None)
+    parser.add_argument("--revenue_per_kpi_col", default=None)
     parser.add_argument("--time_col", default="date")
     parser.add_argument("--geo_col", default=None)
     parser.add_argument("--population_col", default=None)
@@ -616,6 +631,7 @@ def _load_input_data(
     kpi_col: str,
     kpi_type: str,
     revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None,
     time_col: Optional[str],
     geo_col: Optional[str],
     population_col: Optional[str],
@@ -632,8 +648,15 @@ def _load_input_data(
     if df[kpi_col].isna().all():
         raise ValueError(f"KPI column '{kpi_col}' has no numeric values after parsing.")
 
-    spend_cols = [f"{c}_spend" for c in channels]
-    missing_spend = [c for c in spend_cols if c not in df.columns]
+    spend_cols = []
+    missing_spend = []
+    for c in channels:
+        expected_spend_col = f"{c}_spend"
+        resolved_spend_col = _resolve_column_name(df, expected_spend_col)
+        if resolved_spend_col is None:
+            missing_spend.append(expected_spend_col)
+        else:
+            spend_cols.append(resolved_spend_col)
     if missing_spend:
         raise ValueError(
             "Missing spend columns for configured channels: "
@@ -643,11 +666,11 @@ def _load_input_data(
 
     media_cols = []
     missing_impressions = []
-    for c in channels:
+    for c, spend_col in zip(channels, spend_cols):
         imp_col = f"{c}_impressions"
-        spend_col = f"{c}_spend"
-        if imp_col in df.columns:
-            media_cols.append(imp_col)
+        resolved_imp_col = _resolve_column_name(df, imp_col, [f"{c}_impression"])
+        if resolved_imp_col is not None:
+            media_cols.append(resolved_imp_col)
         else:
             media_cols.append(spend_col)
             missing_impressions.append(imp_col)
@@ -659,12 +682,24 @@ def _load_input_data(
     outcome_col_used = kpi_col
     kpi_type_effective = kpi_type_norm
     revenue_per_kpi_value = None if revenue_per_kpi is None else float(revenue_per_kpi)
+    revenue_per_kpi_col_value = str(revenue_per_kpi_col).strip() if revenue_per_kpi_col not in (None, "", "null", "none") else None
     if kpi_type_norm == "non_revenue" and revenue_per_kpi_value is not None:
         if revenue_per_kpi_value <= 0:
             raise ValueError("revenue_per_kpi must be > 0 when provided.")
         outcome_col_used = "__revenue_equiv__"
         df[outcome_col_used] = pd.to_numeric(df[kpi_col], errors="coerce") * revenue_per_kpi_value
         kpi_type_effective = "revenue"
+    elif kpi_type_norm == "non_revenue" and revenue_per_kpi_col_value is not None:
+        resolved_rpk_col = _resolve_column_name(df, revenue_per_kpi_col_value)
+        if resolved_rpk_col is None:
+            raise ValueError(f"Revenue-per-KPI column '{revenue_per_kpi_col_value}' is not present in input CSV: {csv_path}")
+        rpk_series = pd.to_numeric(df[resolved_rpk_col], errors="coerce")
+        if rpk_series.isna().all() or (rpk_series <= 0).all():
+            raise ValueError(f"Revenue-per-KPI column '{revenue_per_kpi_col_value}' has no positive numeric values after parsing.")
+        outcome_col_used = "__revenue_equiv__"
+        df[outcome_col_used] = pd.to_numeric(df[kpi_col], errors="coerce") * rpk_series
+        kpi_type_effective = "revenue"
+        revenue_per_kpi_col_value = resolved_rpk_col
 
     builder = data_frame_input_data_builder.DataFrameInputDataBuilder(
         kpi_type=kpi_type_effective,
@@ -704,6 +739,7 @@ def _load_input_data(
         "kpi_type_effective": kpi_type_effective,
         "outcome_col_used": outcome_col_used,
         "revenue_per_kpi": revenue_per_kpi_value,
+        "revenue_per_kpi_col": revenue_per_kpi_col_value,
         "input_data_csv": str(Path(csv_path).resolve()),
         "media_impressions_fallback_count": int(len(missing_impressions)),
     }
@@ -782,6 +818,7 @@ def main():
         kpi_col=str(args.kpi_col),
         kpi_type=str(args.kpi_type),
         revenue_per_kpi=args.revenue_per_kpi,
+        revenue_per_kpi_col=args.revenue_per_kpi_col,
         time_col=(None if args.time_col is None else str(args.time_col)),
         geo_col=(None if args.geo_col is None else str(args.geo_col)),
         population_col=(None if args.population_col is None else str(args.population_col)),
@@ -827,6 +864,7 @@ def main():
         "kpi_type_effective": str(data_profile.get("kpi_type_effective", args.kpi_type)),
         "outcome_col_used": str(data_profile.get("outcome_col_used", args.kpi_col)),
         "revenue_per_kpi": data_profile.get("revenue_per_kpi"),
+        "revenue_per_kpi_col": data_profile.get("revenue_per_kpi_col"),
         "target_channels": str(target_channels_value),
         "sweep_type": str(args.sweep_type),
         "two_layer_enabled": bool(two_layer_enabled),
@@ -983,6 +1021,7 @@ def main():
         "kpi_type_effective": metadata.get("kpi_type_effective"),
         "outcome_col_used": metadata.get("outcome_col_used"),
         "revenue_per_kpi": metadata.get("revenue_per_kpi"),
+        "revenue_per_kpi_col": metadata.get("revenue_per_kpi_col"),
         "target_channels": metadata.get("target_channels"),
         "sweep_type": metadata.get("sweep_type"),
         "two_layer_enabled": metadata.get("two_layer_enabled"),

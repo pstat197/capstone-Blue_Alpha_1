@@ -1,0 +1,6 @@
+channel,n_rows,n_applicable,n_fail,max_prior_neg_prob,fail_rate_pct
+channel0,45,45,0,0.0,0.0
+channel1,45,45,0,0.0,0.0
+channel2,45,45,0,0.0,0.0
+channel3,45,45,0,0.0,0.0
+channel4,45,45,0,0.0,0.0

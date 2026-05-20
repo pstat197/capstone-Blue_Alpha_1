@@ -51,6 +51,7 @@ export type CsvProfile = {
     media_activity_candidates: Array<{ column: string; channel: string }>;
     spend_channel_candidates: Array<{ column: string; channel: string }>;
     revenue_candidates: string[];
+    revenue_per_kpi_candidates: string[];
     control_candidates: string[];
     geo_candidates: string[];
     population_candidates: string[];

@@ -1,14 +1,26 @@
-import amazonLogo from "../../../assets/channel-logos/amazon.svg";
-import beehiivLogo from "../../../assets/channel-logos/beehiiv.svg";
-import facebookLogo from "../../../assets/channel-logos/facebook.svg";
-import googleLogo from "../../../assets/channel-logos/google.svg";
-import instagramLogo from "../../../assets/channel-logos/instagram.svg";
-import linkedinLogo from "../../../assets/channel-logos/linkedin.svg";
-import liveintentLogo from "../../../assets/channel-logos/liveintent.svg";
-import metaLogo from "../../../assets/channel-logos/meta.svg";
-import molocoLogo from "../../../assets/channel-logos/moloco.svg";
-import snapchatLogo from "../../../assets/channel-logos/snapchat.svg";
-import tiktokLogo from "../../../assets/channel-logos/tiktok.svg";
+import amazonLogo from "../../../assets/channel-logos/amazon.jpg";
+import beehiivLogo from "../../../assets/channel-logos/beehiiv.jpg";
+import facebookLogo from "../../../assets/channel-logos/facebook.jpg";
+import googleLogo from "../../../assets/channel-logos/google.jpg";
+import instagramLogo from "../../../assets/channel-logos/instagram.jpg";
+import liveintentLogo from "../../../assets/channel-logos/liveintent.jpg";
+import metaLogo from "../../../assets/channel-logos/meta.jpg";
+import molocoLogo from "../../../assets/channel-logos/moloco.jpg";
+import snapchatLogo from "../../../assets/channel-logos/snapchat.jpg";
+import tiktokLogo from "../../../assets/channel-logos/tiktok.jpg";
+
+const knownChannelNames = new Set([
+  "amazon",
+  "beehiiv",
+  "facebook",
+  "google",
+  "instagram",
+  "liveintent",
+  "meta",
+  "moloco",
+  "snapchat",
+  "tiktok",
+]);
 
 const channelAliases: Record<string, string> = {
   fb: "facebook",
@@ -18,8 +30,11 @@ const channelAliases: Record<string, string> = {
   instagram: "instagram",
   google_ads: "google",
   googleads: "google",
+  live_intent: "liveintent",
   linked_in: "linkedin",
   linkedin: "linkedin",
+  tik_tok: "tiktok",
+  tiktok: "tiktok",
 };
 
 export const nonMediaChannelPrefixes = new Set([
@@ -41,7 +56,6 @@ export const channelLogoRegistry: Record<string, string> = {
   facebook: facebookLogo,
   google: googleLogo,
   instagram: instagramLogo,
-  linkedin: linkedinLogo,
   liveintent: liveintentLogo,
   meta: metaLogo,
   moloco: molocoLogo,
@@ -57,7 +71,21 @@ export function normalizeChannelName(value: string) {
     .replace(/^_+|_+$/g, "")
     .replace(/_+/g, "_");
   const aliasKey = normalized.replace(/_/g, "");
-  return channelAliases[normalized] ?? channelAliases[aliasKey] ?? normalized;
+  const directMatch = channelAliases[normalized] ?? channelAliases[aliasKey];
+  if (directMatch) return directMatch;
+  if (knownChannelNames.has(normalized)) return normalized;
+
+  const parts = normalized.split("_").filter(Boolean);
+  for (let end = parts.length; end > 0; end -= 1) {
+    const candidate = parts.slice(0, end).join("_");
+    const compactCandidate = candidate.replace(/_/g, "");
+    const match = channelAliases[candidate] ?? channelAliases[compactCandidate];
+    if (match) return match;
+    if (knownChannelNames.has(candidate)) return candidate;
+    if (knownChannelNames.has(compactCandidate)) return compactCandidate;
+  }
+
+  return normalized;
 }
 
 export function isValidMediaChannel(value: string) {

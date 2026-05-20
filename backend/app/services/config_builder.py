@@ -17,6 +17,43 @@ def _list_or_default(raw: Any, default: list[Any]) -> list[Any]:
     return default
 
 
+def _is_revenue_per_kpi_column_name(raw: Any) -> bool:
+    if raw in (None, "", "null", "none"):
+        return False
+    normalized = str(raw).strip().lower().replace("-", "_").replace(" ", "_")
+    return (
+        normalized.startswith(("revenue_per_", "rev_per_", "value_per_", "dollars_per_", "dollar_per_"))
+        or "_revenue_per_" in normalized
+    )
+
+
+def _normalize_outcome(outcome: dict[str, Any], column_mapping: dict[str, Any]) -> dict[str, Any]:
+    kpi_col = outcome.get("kpi_col") or column_mapping.get("kpi_col")
+    kpi_type = str(outcome.get("kpi_type", "non_revenue")).strip().lower()
+    roi_mode = outcome.get("roi_mode")
+    revenue_col = outcome.get("revenue_col")
+    revenue_per_kpi = outcome.get("revenue_per_kpi")
+    revenue_per_kpi_col = outcome.get("revenue_per_kpi_col")
+
+    if revenue_per_kpi_col:
+        kpi_type = "non_revenue"
+    elif _is_revenue_per_kpi_column_name(revenue_col):
+        kpi_type = "non_revenue"
+        revenue_per_kpi_col = revenue_col
+        revenue_col = None
+    elif kpi_type == "revenue" and roi_mode == "direct_revenue_column" and revenue_col and revenue_col != kpi_col:
+        kpi_col = revenue_col
+
+    return {
+        "kpi_col": kpi_col,
+        "kpi_type": kpi_type,
+        "roi_mode": roi_mode,
+        "revenue_col": revenue_col,
+        "revenue_per_kpi": revenue_per_kpi,
+        "revenue_per_kpi_col": revenue_per_kpi_col,
+    }
+
+
 def _normalize_channel_prior_grids(
     raw: Any,
     channels: list[str],
@@ -80,6 +117,7 @@ def _estimate_run_count(config: dict[str, Any]) -> int:
 def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
     column_mapping = draft.column_mapping or {}
     outcome = draft.outcome or {}
+    normalized_outcome = _normalize_outcome(outcome, column_mapping)
     prior_grid = draft.prior_grid or {}
     structural = draft.structural or {}
     sampler = draft.sampler or {}
@@ -113,11 +151,7 @@ def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
             "population_col": column_mapping.get("population_col"),
         },
         "outcome": {
-            "kpi_col": outcome.get("kpi_col") or column_mapping.get("kpi_col"),
-            "kpi_type": outcome.get("kpi_type", "non_revenue"),
-            "roi_mode": outcome.get("roi_mode"),
-            "revenue_col": outcome.get("revenue_col"),
-            "revenue_per_kpi": outcome.get("revenue_per_kpi"),
+            **normalized_outcome,
         },
         "prior_mode": "roi",
         "baseline": {
@@ -172,8 +206,12 @@ def build_config_preview(draft: WorkflowDraft) -> ConfigPreview:
         errors.append("Time column is required.")
     if not normalized_config["outcome"].get("kpi_col"):
         errors.append("KPI column is required.")
-    if normalized_config["outcome"]["kpi_type"] == "non_revenue" and not normalized_config["outcome"].get("revenue_per_kpi"):
-        errors.append("Non-revenue KPI requires outcome.revenue_per_kpi for revenue-equivalent ROI.")
+    if (
+        normalized_config["outcome"]["kpi_type"] == "non_revenue"
+        and not normalized_config["outcome"].get("revenue_per_kpi")
+        and not normalized_config["outcome"].get("revenue_per_kpi_col")
+    ):
+        errors.append("Non-revenue KPI requires outcome.revenue_per_kpi or outcome.revenue_per_kpi_col for revenue-equivalent ROI.")
     if not active_channels:
         errors.append("At least one active channel is required.")
     if estimated_run_count > 0:

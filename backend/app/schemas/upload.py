@@ -21,6 +21,7 @@ class DetectedColumns(BaseModel):
     media_activity_candidates: list[dict[str, str]]
     spend_channel_candidates: list[dict[str, str]]
     revenue_candidates: list[str]
+    revenue_per_kpi_candidates: list[str] = []
     control_candidates: list[str]
     geo_candidates: list[str]
     population_candidates: list[str]

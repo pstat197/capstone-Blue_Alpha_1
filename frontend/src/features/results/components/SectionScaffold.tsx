@@ -37,6 +37,7 @@ export function SectionScaffold({
   const previousItem = currentIndex > 0 ? resultNavItems[currentIndex - 1] : currentIndex === 0 ? monitorNavItem : null;
   const nextItem = currentIndex > -1 && currentIndex < resultNavItems.length - 1 ? resultNavItems[currentIndex + 1] : null;
   const finalItem = resultNavItems[0];
+  const isFinalResultsScreen = currentIndex === resultNavItems.length - 1;
   const pathFor = buildResultsPath || ((path: string) => path);
   const monitorPath = runSummary?.run_id ? `/workflow/run-monitor?run_id=${encodeURIComponent(runSummary.run_id)}` : "/workflow/run-monitor";
   const statusMessage =
@@ -80,9 +81,11 @@ export function SectionScaffold({
         <ResultsPageNavigation
           previousPath={previousItem?.section === "monitor" ? monitorPath : previousItem ? pathFor(previousItem.path) : undefined}
           previousLabel={previousItem?.label}
-          nextPath={nextItem ? pathFor(nextItem.path) : pathFor(finalItem.path)}
-          nextLabel={nextItem?.label || finalItem.label}
-          nextActionLabel={nextItem ? "Continue" : "Back to Overview"}
+          nextPath={nextItem ? pathFor(nextItem.path) : "/workflow/welcome"}
+          nextLabel={nextItem?.label || "Upload CSV"}
+          nextActionLabel={nextItem ? "Continue" : "Start New Analysis"}
+          secondaryActionPath={isFinalResultsScreen ? finalItem.path : undefined}
+          secondaryActionLabel={isFinalResultsScreen ? "Back to Overview" : undefined}
         />
       ) : null}
     </article>

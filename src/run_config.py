@@ -8,7 +8,7 @@ import yaml
 
 ROI_PRIOR_POLICY_ERROR = (
     "ROI prior mode for non-revenue KPI requires outcome.revenue_per_kpi. "
-    "Please add a business-defined revenue_per_kpi value to config/sensitivity.yaml "
+    "Please add a business-defined revenue_per_kpi value or revenue_per_kpi_col to config/sensitivity.yaml "
     "to run revenue-equivalent ROI analysis."
 )
 
@@ -45,6 +45,7 @@ DEFAULT_RUN_CONFIG: dict[str, Any] = {
         "kpi_col": "subscriptions",
         "kpi_type": "non_revenue",  # auto | revenue | non_revenue
         "revenue_per_kpi": None,
+        "revenue_per_kpi_col": None,
         "revenue_per_kpi_values": None,
     },
     "prior_mode": "roi",
@@ -409,6 +410,8 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     if revenue_per_kpi is not None and revenue_per_kpi <= 0:
         raise ValueError("Config field 'outcome.revenue_per_kpi' must be > 0 when provided.")
     outcome["revenue_per_kpi"] = None if revenue_per_kpi is None else round(float(revenue_per_kpi), 6)
+    revenue_per_kpi_col = outcome.get("revenue_per_kpi_col")
+    outcome["revenue_per_kpi_col"] = str(revenue_per_kpi_col).strip() if revenue_per_kpi_col not in (None, "", "null", "none") else None
 
     rpk_values = _as_numeric_list(outcome.get("revenue_per_kpi_values"), "outcome.revenue_per_kpi_values")
     if rpk_values:
@@ -433,7 +436,7 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
     if prior_mode not in {"auto", "roi"}:
         raise ValueError("Config field 'prior_mode' must be one of: auto, roi.")
-    if kpi_type == "non_revenue" and outcome["revenue_per_kpi"] is None:
+    if kpi_type == "non_revenue" and outcome["revenue_per_kpi"] is None and outcome["revenue_per_kpi_col"] is None:
         raise ValueError(ROI_PRIOR_POLICY_ERROR)
     channel_prior_grids = _normalize_channel_prior_grids(active_profile, model["channels"])
     allow_reduced_prior_grid = bool((config.get("sweep", {}) or {}).get("allow_reduced_prior_grid", False))

@@ -126,6 +126,95 @@ def _build_roi_prior_posterior_table_from_csv(output_tag: str) -> dict[str, Any]
     return {"available": True, "interval": "50%", "has_95": has_95, "rows": rows, "reason": "", "source_csv": str(path)}
 
 
+def _status_from_check_row(row: dict[str, Any]) -> str:
+    fail = int(float(row.get("fail_count", 0) or 0))
+    review = int(float(row.get("review_count", 0) or 0))
+    passed = int(float(row.get("pass_count", 0) or 0))
+    if fail > 0:
+        return "FAIL"
+    if review > 0:
+        return "REVIEW"
+    if passed > 0:
+        return "PASS"
+    return "UNAVAILABLE"
+
+
+def _display_check_name(check: Any) -> str:
+    raw = str(check or "").strip()
+    known = {
+        "bayesianppp": "BayesianPPP",
+        "bayesian_ppp": "BayesianPPP",
+        "gof": "GoodnessOfFit",
+        "goodness_of_fit": "GoodnessOfFit",
+        "prior_posterior_shift": "PriorPosteriorShift",
+        "roi_consistency": "ROIConsistency",
+    }
+    normalized = raw.lower().replace("-", "_").replace(" ", "_")
+    if normalized in known:
+        return known[normalized]
+    return "".join(part.capitalize() for part in normalized.split("_") if part) or "Diagnostic"
+
+
+def _build_diagnostic_health_card(data: dict[str, Any], diagnostics: dict[str, Any]) -> dict[str, Any]:
+    overview = diagnostics.get("overview") or data.get("diagnostics_overview") or {}
+    passed = int(float(overview.get("pass_runs", 0) or 0))
+    review = int(float(overview.get("review_runs", 0) or 0))
+    fail = int(float(overview.get("fail_runs", 0) or 0))
+    unknown = int(float(overview.get("unknown_runs", 0) or 0))
+    total = passed + review + fail + unknown
+    score = (100.0 * passed / float(total)) if total > 0 else None
+    status = "FAIL" if fail > 0 else ("REVIEW" if review > 0 or unknown > 0 else ("PASS" if passed > 0 else "UNAVAILABLE"))
+    summary = (
+        "All completed runs and available diagnostic checks passed."
+        if status == "PASS"
+        else "One or more completed runs failed diagnostics."
+        if status == "FAIL"
+        else "One or more completed runs need diagnostic review."
+        if status == "REVIEW"
+        else "Diagnostic health is unavailable for this run payload."
+    )
+    rows = []
+    for row in diagnostics.get("check_rows", []) or []:
+        display = _display_check_name(row.get("check"))
+        row_status = _status_from_check_row(row)
+        rows.append(
+            {
+                "check": display,
+                "status": row_status,
+                "pass_count": int(float(row.get("pass_count", 0) or 0)),
+                "review_count": int(float(row.get("review_count", 0) or 0)),
+                "fail_count": int(float(row.get("fail_count", 0) or 0)),
+                "unknown_count": int(float(row.get("unknown_count", 0) or 0)),
+            }
+        )
+
+    decision = data.get("decision_card") or {}
+    decision_score = _to_float(decision.get("score_numeric"))
+    decision_status = str(decision.get("tier_class") or decision.get("tier") or "").strip().upper()
+    decision_status = {"GREEN": "PASS", "YELLOW": "REVIEW", "RED": "FAIL"}.get(decision_status, decision_status)
+    robustness_context = None
+    if decision_score is not None and decision_status in {"PASS", "REVIEW", "FAIL"}:
+        differs = score is None or abs(decision_score - score) > 0.05 or decision_status != status
+        if differs:
+            triggered = next((str(rule) for rule in (decision.get("triggered_rules") or []) if str(rule or "").strip()), "")
+            robustness_context = {
+                "score_label": str(decision.get("score_label") or "Prior-Sensitivity Robustness"),
+                "score": decision_score,
+                "overall_status": decision_status,
+                "reason": triggered or str(decision.get("headline") or ""),
+            }
+
+    return {
+        "title": "Model Health Card",
+        "score_label": "Diagnostic Health Score",
+        "score": score,
+        "overall_status": status,
+        "summary": summary,
+        "rows": rows,
+        "robustness_context": robustness_context,
+    }
+
+
 def locate_result_artifacts(output_tag: str) -> dict[str, Any]:
     runs_dir = PROJECT_ROOT / "data" / "output" / "01_runs" / output_tag
     tables_dir = PROJECT_ROOT / "data" / "output" / "02_tables" / output_tag
@@ -171,6 +260,7 @@ def _load_payload_from_path(payload_path: Path, output_tag: str) -> dict[str, An
     if diagnostics:
         diagnostics.setdefault("available", bool(diagnostics.get("overview") or diagnostics.get("check_rows")))
         data["diagnostics"] = diagnostics
+        data["health_card_data"] = _build_diagnostic_health_card(data, diagnostics)
 
     table = data.get("roi_prior_posterior_table")
     if not isinstance(table, dict) or not table.get("rows"):

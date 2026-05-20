@@ -12,6 +12,7 @@ export const activeProfileStorageKey = "adpilot.active_csv_profile";
 export const kpiColumnStorageKey = "adpilot.kpi_column";
 export const kpiTypeStorageKey = "adpilot.kpi_type";
 export const revenueColumnStorageKey = "adpilot.revenue_column";
+export const revenuePerKpiColumnStorageKey = "adpilot.revenue_per_kpi_column";
 export const roiModeStorageKey = "adpilot.roi_mode";
 export const revenueAssumptionSavedStorageKey = "adpilot.revenue_assumption_saved";
 export const activeRunIdStorageKey = "adpilot.active_run_id";
@@ -62,6 +63,7 @@ function sanitizeProfile(profile: CsvProfile): CsvProfile {
       media_activity_candidates: sanitizeDetectedCandidates(profile.detected.media_activity_candidates ?? []),
       spend_channel_candidates: sanitizeDetectedCandidates(profile.detected.spend_channel_candidates ?? []),
       revenue_candidates: profile.detected.revenue_candidates ?? [],
+      revenue_per_kpi_candidates: profile.detected.revenue_per_kpi_candidates ?? [],
       control_candidates: profile.detected.control_candidates ?? [],
       geo_candidates: profile.detected.geo_candidates ?? [],
       population_candidates: profile.detected.population_candidates ?? [],
@@ -96,6 +98,7 @@ export function clearDatasetSelections() {
     kpiColumnStorageKey,
     kpiTypeStorageKey,
     revenueColumnStorageKey,
+    revenuePerKpiColumnStorageKey,
     roiModeStorageKey,
     revenueAssumptionSavedStorageKey,
     revenuePerKpiStorageKey,
@@ -189,6 +192,18 @@ export function readRevenueColumn(profile: CsvProfile | null): string {
     return stored;
   }
   return profile.detected.revenue_candidates[0] ?? "";
+}
+
+export function readRevenuePerKpiColumn(profile: CsvProfile | null): string {
+  if (!profile) {
+    return "";
+  }
+  const candidates = profile.detected.revenue_per_kpi_candidates ?? [];
+  const stored = window.localStorage.getItem(revenuePerKpiColumnStorageKey);
+  if (stored && candidates.includes(stored)) {
+    return stored;
+  }
+  return candidates[0] ?? "";
 }
 
 export function readKpiType(profile: CsvProfile | null): KpiType {

@@ -23,7 +23,6 @@ type RangeDraft = {
 };
 
 type ChannelDraft = {
-  mode: ChannelMode;
   muMode: ValueInputMode;
   sigmaMode: ValueInputMode;
   muRange: RangeDraft;
@@ -134,6 +133,42 @@ function buildRange(startRaw: string, endRaw: string, incrementRaw: string) {
   return values;
 }
 
+function rangeDraftFromValues(values: number[], fallback: RangeDraft): RangeDraft | null {
+  if (!values.length) {
+    return null;
+  }
+  if (values.length === 1) {
+    return {
+      start: formatNumber(values[0]),
+      end: formatNumber(values[0]),
+      increment: fallback.increment,
+    };
+  }
+
+  const increment = Number((values[1] - values[0]).toFixed(6));
+  if (increment <= 0) {
+    return null;
+  }
+
+  const isRegular = values
+    .slice(1)
+    .every((value, index) => Math.abs(value - values[index] - increment) <= 1e-9);
+  if (!isRegular) {
+    return null;
+  }
+
+  const draft = {
+    start: formatNumber(values[0]),
+    end: formatNumber(values[values.length - 1]),
+    increment: formatNumber(increment),
+  };
+
+  const generated = buildRange(draft.start, draft.end, draft.increment);
+  return generated.length === values.length && generated.every((value, index) => Math.abs(value - values[index]) <= 1e-9)
+    ? draft
+    : null;
+}
+
 function includesNumber(values: number[], required: number) {
   return values.some((value) => Math.abs(value - required) <= 1e-9);
 }
@@ -173,32 +208,23 @@ function gridStatus(grid: ChannelPriorGrid): ChannelMode {
 }
 
 function draftFromGrid(grid: ChannelPriorGrid): ChannelDraft {
-  const mode = grid.enabled ? gridStatus(grid) : "default";
+  const muValues = grid.roi_mu_values.length ? grid.roi_mu_values : defaultFullGrid.muValues;
+  const sigmaValues = grid.roi_sigma_values.length ? grid.roi_sigma_values : defaultFullGrid.sigmaValues;
+  const muRange = rangeDraftFromValues(muValues, defaultMuRange);
+  const sigmaRange = rangeDraftFromValues(sigmaValues, defaultSigmaRange);
+
   return {
-    mode,
-    muMode: mode === "custom" ? "list" : "range",
-    sigmaMode: mode === "custom" ? "list" : "range",
-    muRange: defaultMuRange,
-    sigmaRange: defaultSigmaRange,
-    muValues: grid.roi_mu_values.length ? grid.roi_mu_values : defaultFullGrid.muValues,
-    sigmaValues: grid.roi_sigma_values.length ? grid.roi_sigma_values : defaultFullGrid.sigmaValues,
+    muMode: muRange ? "range" : "list",
+    sigmaMode: sigmaRange ? "range" : "list",
+    muRange: muRange ?? defaultMuRange,
+    sigmaRange: sigmaRange ?? defaultSigmaRange,
+    muValues,
+    sigmaValues,
     distributions: grid.roi_dist_values.length ? grid.roi_dist_values : defaultFullGrid.distributions,
   };
 }
 
 function gridFromDraft(draft: ChannelDraft): ChannelPriorGrid {
-  if (draft.mode === "excluded") {
-    return {
-      ...makeDefaultChannelGrid(),
-      enabled: false,
-      use_custom: false,
-    };
-  }
-
-  if (draft.mode === "default") {
-    return makeDefaultChannelGrid();
-  }
-
   return {
     enabled: true,
     use_custom: true,
@@ -641,9 +667,43 @@ export function PriorGridSetupPage() {
     updateChannel(channel, state === "default" ? makeDefaultChannelGrid() : { enabled: true, use_custom: true });
   };
 
-  const resetToDefaults = () => {
-    const defaults = makeChannelGrids(channels);
-    persistGrids(defaults);
+  const selectAllChannels = () => {
+    persistGrids(
+      Object.fromEntries(
+        channels.map((channel) => [
+          channel,
+          {
+            ...channelGrids[channel],
+            enabled: true,
+          },
+        ]),
+      ),
+    );
+  };
+
+  const clearAllChannels = () => {
+    persistGrids(
+      Object.fromEntries(
+        channels.map((channel) => [
+          channel,
+          {
+            ...channelGrids[channel],
+            enabled: false,
+          },
+        ]),
+      ),
+    );
+  };
+
+  const resetSelectedToDefaults = () => {
+    persistGrids(
+      Object.fromEntries(
+        channels.map((channel) => {
+          const grid = channelGrids[channel];
+          return [channel, grid.enabled ? makeDefaultChannelGrid() : grid];
+        }),
+      ),
+    );
   };
 
   const applyChannelDraft = () => {
@@ -697,7 +757,7 @@ export function PriorGridSetupPage() {
   });
   const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelGrids[channel], baselinePrior));
   const baselineInvalid = baselineInvalidChannels.length > 0;
-  const activeDraftBaselineInvalid = channelDraft.mode === "custom" && !draftIncludesBaseline(channelDraft, baselinePrior);
+  const activeDraftBaselineInvalid = !draftIncludesBaseline(channelDraft, baselinePrior);
   const baselineConfirmationInvalid = !baselineConfirmed;
 
   const perChannelRows = channels.map((channel) => ({
@@ -817,9 +877,9 @@ export function PriorGridSetupPage() {
                     <p>Click a channel to edit in the drawer.</p>
                   </div>
                   <div className="prior-table-actions">
-                    <button type="button" onClick={() => channels.forEach((channel) => setChannelState(channel, "default"))}>Select All</button>
-                    <button type="button" onClick={() => channels.forEach((channel) => setChannelState(channel, "excluded"))}>Clear All</button>
-                    <button type="button" onClick={resetToDefaults}>Reset to Defaults</button>
+                    <button type="button" onClick={selectAllChannels}>Select All</button>
+                    <button type="button" onClick={clearAllChannels}>Clear All</button>
+                    <button type="button" onClick={resetSelectedToDefaults}>Reset Selected to Defaults</button>
                   </div>
                 </div>
 
@@ -897,78 +957,55 @@ export function PriorGridSetupPage() {
                 <h3>Edit Channel: {displayChannelName(activeChannel)}</h3>
                 <button aria-label="Close editor" type="button" onClick={() => setActiveChannel(activeChannel)}>×</button>
               </div>
-              <div className="prior-drawer-mode-toggle">
-                {(["default", "custom"] as ChannelMode[]).map((state) => (
-                  <button
-                    className={channelDraft.mode === state ? "is-active" : ""}
-                    key={state}
-                    type="button"
-                    onClick={() => setChannelDraft((current) => ({ ...current, mode: state }))}
-                  >
-                    {state === "default" ? "Use Default" : "Custom Grid"}
-                  </button>
-                ))}
-              </div>
               {baselineRemoveMessage ? <p className="prior-validation-text">{baselineRemoveMessage}</p> : null}
 
-              {channelDraft.mode === "custom" ? (
-                <>
-                  <DrawerValueEditor
-                    baselineValue={baselinePrior.mu}
-                    label="MU Values"
-                    mode={channelDraft.muMode}
-                    range={channelDraft.muRange}
-                    values={channelDraft.muValues}
-                    onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
-                    onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, muMode: nextMode }))}
-                    onRangeChange={(range) => setChannelDraft((current) => ({ ...current, muRange: range }))}
-                    onValuesChange={(values) => setChannelDraft((current) => ({ ...current, muValues: values }))}
-                  />
-                  <DrawerValueEditor
-                    baselineValue={baselinePrior.sigma}
-                    label="Sigma Values"
-                    mode={channelDraft.sigmaMode}
-                    range={channelDraft.sigmaRange}
-                    values={channelDraft.sigmaValues}
-                    onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
-                    onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, sigmaMode: nextMode }))}
-                    onRangeChange={(range) => setChannelDraft((current) => ({ ...current, sigmaRange: range }))}
-                    onValuesChange={(values) => setChannelDraft((current) => ({ ...current, sigmaValues: values }))}
-                  />
-                  <section className="prior-drawer-section">
-                    <div className="prior-value-editor__header">
-                      <strong>Distribution(s)</strong>
-                      <span>{channelDraft.distributions.length} selected</span>
-                    </div>
-                    <DistributionCards
-                      baselineDistribution={baselinePrior.distribution}
-                      compact
-                      selected={channelDraft.distributions}
-                      onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
-                      onChange={(distributions) => setChannelDraft((current) => ({ ...current, distributions }))}
-                    />
-                    <p className="prior-helper-text">{baselineHelperText}</p>
-                  </section>
-                  {activeDraftBaselineInvalid ? (
-                    <p className="prior-validation-text">{baselineRequirementText(baselinePrior)}</p>
-                  ) : null}
-                </>
-              ) : (
-                <p className="prior-drawer-empty">
-                  This channel will inherit the default full grid unless you switch to Custom Grid.
-                </p>
-              )}
+              <DrawerValueEditor
+                baselineValue={baselinePrior.mu}
+                label="MU Values"
+                mode={channelDraft.muMode}
+                range={channelDraft.muRange}
+                values={channelDraft.muValues}
+                onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
+                onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, muMode: nextMode }))}
+                onRangeChange={(range) => setChannelDraft((current) => ({ ...current, muRange: range }))}
+                onValuesChange={(values) => setChannelDraft((current) => ({ ...current, muValues: values }))}
+              />
+              <DrawerValueEditor
+                baselineValue={baselinePrior.sigma}
+                label="Sigma Values"
+                mode={channelDraft.sigmaMode}
+                range={channelDraft.sigmaRange}
+                values={channelDraft.sigmaValues}
+                onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
+                onModeChange={(nextMode) => setChannelDraft((current) => ({ ...current, sigmaMode: nextMode }))}
+                onRangeChange={(range) => setChannelDraft((current) => ({ ...current, sigmaRange: range }))}
+                onValuesChange={(values) => setChannelDraft((current) => ({ ...current, sigmaValues: values }))}
+              />
+              <section className="prior-drawer-section">
+                <div className="prior-value-editor__header">
+                  <strong>Distribution(s)</strong>
+                  <span>{channelDraft.distributions.length} selected</span>
+                </div>
+                <DistributionCards
+                  baselineDistribution={baselinePrior.distribution}
+                  compact
+                  selected={channelDraft.distributions}
+                  onBlockedBaselineRemove={() => setBaselineRemoveMessage(baselineRemovalWarning)}
+                  onChange={(distributions) => setChannelDraft((current) => ({ ...current, distributions }))}
+                />
+                <p className="prior-helper-text">{baselineHelperText}</p>
+              </section>
+              {activeDraftBaselineInvalid ? (
+                <p className="prior-validation-text">{baselineRequirementText(baselinePrior)}</p>
+              ) : null}
 
               <div className="prior-drawer-actions">
                 <button type="button" onClick={() => setChannelDraft(draftFromGrid(channelGrids[activeChannel]))}>Cancel</button>
                 <button
                   disabled={
-                    channelDraft.mode === "custom" &&
-                    (
-                      !gridFromDraft(channelDraft).roi_mu_values.length ||
-                      !gridFromDraft(channelDraft).roi_sigma_values.length ||
-                      activeDraftBaselineInvalid
-                    )
+                    !gridFromDraft(channelDraft).roi_mu_values.length ||
+                    !gridFromDraft(channelDraft).roi_sigma_values.length ||
+                    activeDraftBaselineInvalid
                   }
                   type="button"
                   onClick={applyChannelDraft}

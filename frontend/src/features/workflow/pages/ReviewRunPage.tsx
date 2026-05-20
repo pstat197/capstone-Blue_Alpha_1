@@ -25,6 +25,7 @@ import {
   readKpiType,
   readRevenueColumn,
   readRevenuePerKpi,
+  readRevenuePerKpiColumn,
   readRoiMode,
   activeRunIdStorageKey,
 } from "../data/workflowState";
@@ -167,6 +168,7 @@ export function ReviewRunPage() {
   const kpiType = readKpiType(profile);
   const revenueColumn = readRevenueColumn(profile);
   const revenuePerKpi = readRevenuePerKpi();
+  const revenuePerKpiColumn = readRevenuePerKpiColumn(profile);
   const roiMode = readRoiMode(profile);
   const channelPriorGrids = useMemo(() => readChannelPriorGrids(channels), [channels]);
   const baselinePrior = useMemo(() => readBaselinePrior(), []);
@@ -194,7 +196,7 @@ export function ReviewRunPage() {
     !timeColumn ? "Return to Step 1: select or provide a time column." : "",
     !kpiColumn ? "Return to Step 2: choose a KPI column." : "",
     kpiType === "revenue" && !revenueColumn ? "Return to Step 2: choose a revenue column." : "",
-    kpiType === "non_revenue" && !revenuePerKpi ? "Return to Step 2: enter revenue_per_kpi." : "",
+    kpiType === "non_revenue" && !revenuePerKpi && !revenuePerKpiColumn ? "Return to Step 2: enter revenue_per_kpi." : "",
     !channels.length ? "Return to Step 1: upload data with detectable spend channels." : "",
     enabledChannelCount === 0 ? "Return to Step 3: select at least one channel." : "",
     estimatedRuns <= 0 && enabledChannelCount > 0 ? "Return to Step 3: configure at least one prior-grid value." : "",
@@ -228,6 +230,7 @@ export function ReviewRunPage() {
         roi_mode: roiMode,
         revenue_col: kpiType === "revenue" ? revenueColumn : null,
         revenue_per_kpi: kpiType === "non_revenue" ? revenuePerKpi : null,
+        revenue_per_kpi_col: kpiType === "non_revenue" ? revenuePerKpiColumn || null : null,
       },
       prior_grid: {
         roi_mu_values: defaultFullPriorGrid.muValues,
@@ -312,10 +315,10 @@ export function ReviewRunPage() {
       name: "KPI, KPI type, and revenue settings complete",
       detail: kpiColumn
         ? kpiType === "non_revenue"
-          ? `${kpiColumn}; non-revenue; revenue_per_kpi=${revenuePerKpi ?? "missing"}`
+          ? `${kpiColumn}; non-revenue; ${revenuePerKpiColumn ? `revenue_per_kpi_col=${revenuePerKpiColumn}` : `revenue_per_kpi=${revenuePerKpi ?? "missing"}`}`
           : `${kpiColumn}; revenue KPI; revenue column=${revenueColumn || "missing"}`
         : "Missing in Step 2.",
-      status: kpiColumn && ((kpiType === "non_revenue" && revenuePerKpi) || (kpiType === "revenue" && revenueColumn)) ? "passed" : "missing",
+      status: kpiColumn && ((kpiType === "non_revenue" && (revenuePerKpi || revenuePerKpiColumn)) || (kpiType === "revenue" && revenueColumn)) ? "passed" : "missing",
     },
     {
       name: "Channels detected and selected",

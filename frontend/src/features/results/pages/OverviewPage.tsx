@@ -26,6 +26,8 @@ export function OverviewPage() {
   const diagnostic = selectDiagnosticContext(payload);
   const primaryMetricIsDelta = String(largestMovement?.primary_metric || "").toLowerCase().includes("delta");
   const movementDescriptor = primaryMetricIsDelta ? "max |Delta ROI|" : "fixed-grid movement";
+  const movementValue = formatMovementValue(largestMovement);
+  const movementValueSize = movementValue.length >= 7 ? "extra-long" : movementValue.length >= 6 ? "long" : "standard";
   const baselineText =
     largestMovement?.baseline_roi !== undefined
       ? `Baseline ROI ${formatNumber(largestMovement.baseline_roi, 3)} under ${largestMovement.roi_prior_dist || "Not available"} prior.`
@@ -63,7 +65,7 @@ export function OverviewPage() {
         <div className="content-panel overview-main-card overview-main-card--primary">
           <span className="eyebrow">Largest Self-Response Movement</span>
           <h3>{channelLabel(largestMovement?.channel)}</h3>
-          <p className="large-stat">{formatMovementValue(largestMovement)}</p>
+          <p className={`large-stat large-stat--${movementValueSize}`}>{movementValue}</p>
           <p className="muted">Largest {movementDescriptor} in the completed self-response audit.</p>
           <p className="supporting-line">{baselineText}</p>
         </div>

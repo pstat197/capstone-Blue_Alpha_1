@@ -49,6 +49,21 @@ class ExperimentConfig:
     roi_sigma_values: List[float]
     roi_dist_values: List[str]
 
+
+def _resolve_column_name(df: pd.DataFrame, preferred: str, alternatives: list[str] | None = None) -> str | None:
+    candidates = [preferred, *(alternatives or [])]
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+
+    by_lower = {str(column).lower(): str(column) for column in df.columns}
+    for candidate in candidates:
+        resolved = by_lower.get(str(candidate).lower())
+        if resolved:
+            return resolved
+    return None
+
+
 def build_experiment_config(
     channels: List[str],
     roi_mu_values: List[float],
@@ -76,8 +91,15 @@ def build_experiment_config(
         output_file = os.path.join(output_dir, output_file)
 
     df = pd.read_csv(data_csv)
-    spend_cols = [f"{ch}{spend_suffix}" for ch in channels]
-    missing = [c for c in spend_cols if c not in df.columns]
+    spend_cols: list[str] = []
+    missing: list[str] = []
+    for ch in channels:
+        expected = f"{ch}{spend_suffix}"
+        resolved = _resolve_column_name(df, expected)
+        if resolved is None:
+            missing.append(expected)
+        else:
+            spend_cols.append(resolved)
     if missing:
         raise KeyError(
             "Missing spend columns in CSV: "
@@ -132,10 +154,11 @@ def _load_dataset_context(data_csv: str, channels: list[str], kpi_col: str) -> d
     missing_spend_cols: list[str] = []
     for ch in channels:
         spend_col = f"{ch}_spend"
-        if spend_col not in df.columns:
+        resolved_spend_col = _resolve_column_name(df, spend_col)
+        if resolved_spend_col is None:
             missing_spend_cols.append(spend_col)
             continue
-        spend_by_channel[ch] = float(pd.to_numeric(df[spend_col], errors="coerce").fillna(0).sum())
+        spend_by_channel[ch] = float(pd.to_numeric(df[resolved_spend_col], errors="coerce").fillna(0).sum())
     if missing_spend_cols:
         raise ValueError(
             "Missing spend columns in dataset: "
@@ -159,6 +182,12 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
     revenue_per_kpi = _as_optional_float(outcome_cfg.get("revenue_per_kpi"))
     if revenue_per_kpi is not None and revenue_per_kpi <= 0:
         raise ValueError("outcome.revenue_per_kpi must be > 0 when provided.")
+    revenue_per_kpi_col_raw = outcome_cfg.get("revenue_per_kpi_col")
+    revenue_per_kpi_col = (
+        str(revenue_per_kpi_col_raw).strip()
+        if revenue_per_kpi_col_raw not in (None, "", "null", "none")
+        else None
+    )
 
     rpk_values_raw = outcome_cfg.get("revenue_per_kpi_values")
     revenue_per_kpi_values: list[float] = []
@@ -179,7 +208,7 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
     revenue_per_kpi_values = sorted(set(revenue_per_kpi_values))
 
     if raw_kpi_type == "auto":
-        if revenue_per_kpi is not None or revenue_per_kpi_values:
+        if revenue_per_kpi is not None or revenue_per_kpi_values or revenue_per_kpi_col:
             kpi_type = "non_revenue"
         else:
             kpi_type = _infer_kpi_type_from_name(kpi_col)
@@ -192,6 +221,8 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
         scenarios = revenue_per_kpi_values
     elif revenue_per_kpi is not None:
         scenarios = [round(revenue_per_kpi, 6)]
+    elif revenue_per_kpi_col:
+        scenarios = [None]
     else:
         scenarios = [None]
 
@@ -199,25 +230,38 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
         "kpi_col": kpi_col,
         "kpi_type": kpi_type,
         "revenue_per_kpi": None if revenue_per_kpi is None else round(revenue_per_kpi, 6),
+        "revenue_per_kpi_col": revenue_per_kpi_col,
         "revenue_per_kpi_values": scenarios,
     }
 
 
-def _resolve_effective_prior_mode(run_cfg: dict, *, kpi_type: str, revenue_per_kpi: float | None) -> str:
+def _resolve_effective_prior_mode(
+    run_cfg: dict,
+    *,
+    kpi_type: str,
+    revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None = None,
+) -> str:
     mode = str(run_cfg.get("prior_mode", "auto")).strip().lower()
     if mode == CONTRIBUTION_PRIOR_MODE:
         raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
     if mode not in {"auto", "roi"}:
         raise ValueError("prior_mode must be one of: auto, roi.")
-    if kpi_type == "non_revenue" and revenue_per_kpi is None:
+    if kpi_type == "non_revenue" and revenue_per_kpi is None and not revenue_per_kpi_col:
         raise ValueError(ROI_PRIOR_POLICY_ERROR)
     return "roi"
 
 
-def _resolve_prior_label(*, effective_prior_mode: str, kpi_type: str, revenue_per_kpi: float | None) -> str:
+def _resolve_prior_label(
+    *,
+    effective_prior_mode: str,
+    kpi_type: str,
+    revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None = None,
+) -> str:
     if effective_prior_mode != "roi":
         raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only.")
-    if revenue_per_kpi is not None:
+    if revenue_per_kpi is not None or revenue_per_kpi_col:
         return "Revenue-equivalent ROI"
     return "ROI"
 
@@ -387,11 +431,13 @@ def _build_prior_run_points(
             run_cfg,
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
+            revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
         )
         prior_label = _resolve_prior_label(
             effective_prior_mode=effective_prior_mode,
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
+            revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
         )
         for target_channel in targets:
             roi_grid = _roi_grid_for_target(run_cfg, target_channel)
@@ -421,16 +467,21 @@ def _build_prior_run_points(
                         "prior_grid_type": "roi",
                         "prior_design_label": prior_label,
                         "revenue_per_kpi": revenue_per_kpi,
+                        "revenue_per_kpi_col": outcome_plan.get("revenue_per_kpi_col"),
                         "kpi_type": outcome_plan["kpi_type"],
                         "kpi_type_effective": "revenue"
-                        if (outcome_plan["kpi_type"] == "revenue" or revenue_per_kpi is not None)
+                        if (
+                            outcome_plan["kpi_type"] == "revenue"
+                            or revenue_per_kpi is not None
+                            or outcome_plan.get("revenue_per_kpi_col")
+                        )
                         else "non_revenue",
                         "roi_mu_display": float(mu),
                         "roi_sigma_display": float(sigma),
                         "roi_dist_display": str(dist),
                         "roi_overrides": roi_overrides,
                         "scope_suffix": (
-                            f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
+                            f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else outcome_plan.get('revenue_per_kpi_col') or 'none'}|"
                             f"target={target_channel}|mu={float(mu):.6f}|sigma={float(sigma):.6f}|dist={str(dist)}"
                         ),
                     }
@@ -749,7 +800,8 @@ def main():
     print(
         "Outcome mode:",
         f"kpi_col={kpi_col}; kpi_type={outcome_plan['kpi_type']}; "
-        f"revenue_per_kpi_values={outcome_plan['revenue_per_kpi_values']}",
+        f"revenue_per_kpi_values={outcome_plan['revenue_per_kpi_values']}; "
+        f"revenue_per_kpi_col={outcome_plan.get('revenue_per_kpi_col') or 'none'}",
     )
     print("Input data CSV =", data_csv)
     print("Run output file =", run_output_file)
@@ -778,6 +830,7 @@ def main():
         run_cfg,
         kpi_type=outcome_plan["kpi_type"],
         revenue_per_kpi=baseline_revenue_per_kpi,
+        revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
     )
     if baseline_prior_mode == "roi":
         roi_grid_cfg = _roi_grid_from_config(run_cfg)
@@ -911,6 +964,8 @@ def main():
             str(prior_point["kpi_type"]),
             "--revenue_per_kpi",
             str(prior_point["revenue_per_kpi"]) if prior_point["revenue_per_kpi"] is not None else "",
+            "--revenue_per_kpi_col",
+            str(prior_point.get("revenue_per_kpi_col") or ""),
             "--time_col",
             time_col,
             "--channels_json",

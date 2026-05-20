@@ -163,12 +163,14 @@ def _load_channel_spend(project_root: str, channels: list[str], data_csv: str | 
             "Set input_data_csv metadata or provide the expected dataset path."
         )
     raw_df = pd.read_csv(data_csv)
+    cols_by_lower = {str(column).lower(): str(column) for column in raw_df.columns}
 
     records = []
     for channel in channels:
         spend_col = f"{channel}_spend"
-        if spend_col in raw_df.columns:
-            spend_total = float(pd.to_numeric(raw_df[spend_col], errors="coerce").fillna(0).sum())
+        resolved_spend_col = spend_col if spend_col in raw_df.columns else cols_by_lower.get(spend_col.lower())
+        if resolved_spend_col:
+            spend_total = float(pd.to_numeric(raw_df[resolved_spend_col], errors="coerce").fillna(0).sum())
             records.append({"channel": channel, "channel_total_spend": spend_total})
 
     return pd.DataFrame(records)

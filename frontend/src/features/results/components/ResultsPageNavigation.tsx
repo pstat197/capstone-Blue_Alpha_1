@@ -6,6 +6,8 @@ type ResultsPageNavigationProps = {
   nextPath: string;
   nextLabel: string;
   nextActionLabel?: string;
+  secondaryActionPath?: string;
+  secondaryActionLabel?: string;
 };
 
 export function ResultsPageNavigation({
@@ -14,9 +16,12 @@ export function ResultsPageNavigation({
   nextPath,
   nextLabel,
   nextActionLabel = "Continue",
+  secondaryActionPath,
+  secondaryActionLabel,
 }: ResultsPageNavigationProps) {
-  const isFinalAction = nextActionLabel.toLowerCase().includes("overview");
+  const hasSecondaryAction = Boolean(secondaryActionPath && secondaryActionLabel);
   const helperLabel = nextLabel.replace(/^Results\s*\/\s*/i, "");
+  const previousContextLabel = previousLabel === "Model Structure" ? "Run Structure" : previousLabel;
 
   return (
     <nav className="results-bottom-nav" aria-label="Results page navigation">
@@ -27,18 +32,25 @@ export function ResultsPageNavigation({
               <span className="results-nav-button__icon results-nav-button__icon--back" aria-hidden="true" />
               Back
             </Link>
-            {previousLabel ? <span className="results-nav-context">{previousLabel}</span> : null}
+            {previousContextLabel ? <span className="results-nav-context">Previous: {previousContextLabel}</span> : null}
           </>
         ) : null}
       </div>
 
       <div className="results-bottom-nav__side results-bottom-nav__side--next">
-        <Link className="results-nav-button results-nav-button--continue" to={nextPath} aria-label={`${nextActionLabel} to ${nextLabel}`}>
-          {nextActionLabel}
-          <span className="results-nav-button__icon results-nav-button__icon--continue" aria-hidden="true" />
-        </Link>
+        <div className="results-nav-action-row">
+          {hasSecondaryAction ? (
+            <Link className="results-nav-button results-nav-button--secondary" to={secondaryActionPath!}>
+              {secondaryActionLabel}
+            </Link>
+          ) : null}
+          <Link className="results-nav-button results-nav-button--continue" to={nextPath} aria-label={`${nextActionLabel} to ${nextLabel}`}>
+            {nextActionLabel}
+            <span className="results-nav-button__icon results-nav-button__icon--continue" aria-hidden="true" />
+          </Link>
+        </div>
         <div className="results-next-screen">
-          <span>{isFinalAction ? "Final screen" : "Next screen:"}</span>
+          <span>{hasSecondaryAction ? "Next:" : "Next screen:"}</span>
           <strong>{helperLabel}</strong>
         </div>
       </div>

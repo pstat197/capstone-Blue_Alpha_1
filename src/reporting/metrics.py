@@ -207,9 +207,14 @@ def _derive_kpi_path(run_level: pd.DataFrame) -> str:
         revenue_vals = pd.to_numeric(run_level["revenue_per_kpi"], errors="coerce").dropna().unique().tolist()
         if revenue_vals:
             revenue_per_kpi = float(revenue_vals[0])
+    revenue_per_kpi_col = ""
+    if "revenue_per_kpi_col" in run_level.columns:
+        revenue_per_kpi_col = _dominant_text(run_level, "revenue_per_kpi_col")
 
     if revenue_per_kpi is not None:
         return f"Non-revenue KPI -> revenue-equivalent ROI (value={revenue_per_kpi:.2f})"
+    if revenue_per_kpi_col:
+        return f"Non-revenue KPI -> revenue-equivalent ROI ({revenue_per_kpi_col})"
     if kpi_effective == "revenue":
         return "Revenue KPI -> ROI directly"
     if kpi_effective == "non_revenue":

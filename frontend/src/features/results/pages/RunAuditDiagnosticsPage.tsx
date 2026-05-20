@@ -143,74 +143,78 @@ function primaryReview(payload: DashboardPayload, rows: DiagnosticCheckRow[]) {
   };
 }
 
-function overallHealth(payload: DashboardPayload, overview: DashboardPayload["diagnostics_overview"]) {
+function diagnosticHealth(overview: DashboardPayload["diagnostics_overview"], rows: DiagnosticCheckRow[]) {
+  let pass = asNumber(overview?.pass_runs);
+  let review = asNumber(overview?.review_runs);
+  let fail = asNumber(overview?.fail_runs);
+  let unknown = asNumber(overview?.unknown_runs);
+
+  if (pass === null && review === null && fail === null && unknown === null && rows.length) {
+    pass = rows.reduce((sum, row) => sum + (asNumber(row.pass_count) || 0), 0);
+    review = rows.reduce((sum, row) => sum + (asNumber(row.review_count) || 0), 0);
+    fail = rows.reduce((sum, row) => sum + (asNumber(row.fail_count) || 0), 0);
+    unknown = rows.reduce((sum, row) => sum + (asNumber(row.unknown_count) || 0), 0);
+  }
+
+  const passCount = pass || 0;
+  const reviewCount = review || 0;
+  const failCount = fail || 0;
+  const unknownCount = unknown || 0;
+  const total = passCount + reviewCount + failCount + unknownCount;
+  const score = total > 0 ? (passCount / total) * 100 : null;
+  const status: DiagnosticStatus =
+    failCount > 0
+      ? "FAIL"
+      : reviewCount > 0 || unknownCount > 0
+        ? "REVIEW"
+        : passCount > 0
+          ? "PASS"
+          : "UNAVAILABLE";
+  const summary =
+    status === "PASS"
+      ? "All completed runs and available diagnostic checks passed."
+      : status === "FAIL"
+        ? "One or more completed runs failed diagnostics."
+        : status === "REVIEW"
+          ? "One or more completed runs need diagnostic review."
+          : "Diagnostic health is unavailable for the selected run payload.";
+  return { score, status, summary };
+}
+
+function robustnessContext(payload: DashboardPayload, healthStatus: DiagnosticStatus, healthScore: number | null) {
   const decision = payload.decision_card || {};
   const score = asNumber(decision.score_numeric) ?? asNumber(String(decision.score_value || "").match(/[-+]?\d*\.?\d+/)?.[0]);
   const status =
     normalizeStatus(decision.tier_class) !== "UNAVAILABLE"
       ? normalizeStatus(decision.tier_class)
-      : normalizeStatus(decision.tier) !== "UNAVAILABLE"
-        ? normalizeStatus(decision.tier)
-        : (asNumber(overview?.fail_runs) || 0) > 0
-          ? "FAIL"
-          : (asNumber(overview?.review_runs) || 0) > 0
-            ? "REVIEW"
-            : (asNumber(overview?.pass_runs) || 0) > 0
-              ? "PASS"
-              : "UNAVAILABLE";
-  return { score, status };
+      : normalizeStatus(decision.tier);
+  if (score === null || status === "UNAVAILABLE") return null;
+  const differsFromDiagnostics = healthScore === null || Math.abs(score - healthScore) > 0.05 || status !== healthStatus;
+  if (!differsFromDiagnostics) return null;
+  const triggered = (decision.triggered_rules || []).find((rule) => String(rule || "").trim());
+  return {
+    score,
+    status,
+    label: decision.score_label || "Prior-Sensitivity Robustness",
+    reason: triggered || decision.reasons?.find((reason) => String(reason || "").toLowerCase().includes("robustness")) || decision.headline || "",
+  };
 }
 
-function guidanceFor(rows: DiagnosticCheckRow[], primaryCheck: string): Array<{ title: string; body: string; tone: string }> {
-  const issueNames = new Set(rows.filter((row) => statusForCheck(row) !== "PASS").map((row) => displayCheckName(row.check)));
-  if (primaryCheck !== "NA") issueNames.add(primaryCheck);
-  if (!issueNames.size) {
-    return [{ title: "Diagnostics support interpretation.", body: "No review or fail checks are present in the selected run diagnostics.", tone: "pass" }];
-  }
+function robustnessReasonLines(reason: string) {
+  const sensitivity = reason.match(/stable-baseline sensitivity\s+([-+]?\d*\.?\d+%)/i)?.[1];
+  const threshold = reason.match(/threshold\s+([-+]?\d*\.?\d+%)/i)?.[1];
+  return {
+    sensitivityLine: `Largest stable-baseline sensitivity: ${sensitivity || "NA"}`,
+    thresholdLine: `Review threshold: ${threshold || "15.0%"}`,
+  };
+}
 
-  const items: Array<{ title: string; body: string; tone: string }> = [
-    {
-      title: "Resolve review runs before stronger conclusions.",
-      body: primaryCheck !== "NA" ? `Address ${primaryCheck} items and complete follow-up runs as needed.` : "Address review items before stronger interpretation.",
-      tone: "review",
-    },
-  ];
-  if (issueNames.has("PriorPosteriorShift")) {
-    items.push({
-      title: "Inspect prior-posterior shift.",
-      body: "Review channels with large or minimal posterior shift according to the selected run diagnostic definition.",
-      tone: "info",
-    });
-  }
-  if (issueNames.has("ROIConsistency")) {
-    items.push({
-      title: "Check ROI prior alignment.",
-      body: "Compare ROI posterior behavior with the custom priors before stronger ROI interpretation.",
-      tone: "review",
-    });
-  }
-  if (issueNames.has("Convergence")) {
-    items.push({
-      title: "Inspect sampler diagnostics.",
-      body: "Review convergence evidence before relying on affected run outputs.",
-      tone: "fail",
-    });
-  }
-  if (issueNames.has("GoodnessOfFit")) {
-    items.push({
-      title: "Inspect model fit.",
-      body: "Use fit diagnostics to identify where the selected run needs model review.",
-      tone: "review",
-    });
-  }
-  if (issueNames.has("Baseline")) {
-    items.push({
-      title: "Verify baseline-sensitive channels.",
-      body: "Visually inspect baseline fits and confirm no baseline risks are driving interpretation.",
-      tone: "purple",
-    });
-  }
-  return items;
+function orderedCheckRows(rows: DiagnosticCheckRow[]): DiagnosticCheckRow[] {
+  const order = ["Convergence", "Baseline", "BayesianPPP", "GoodnessOfFit", "PriorPosteriorShift", "ROIConsistency"];
+  const byName = new Map(rows.map((row) => [displayCheckName(row.check), row]));
+  const ordered = order.map((name) => byName.get(name) || { check: name });
+  const extras = rows.filter((row) => !order.includes(displayCheckName(row.check)));
+  return [...ordered, ...extras];
 }
 
 export function RunAuditDiagnosticsPage() {
@@ -220,7 +224,8 @@ export function RunAuditDiagnosticsPage() {
   const overview = diagnostics.overview || payload.diagnostics_overview || {};
   const checkRows = diagnostics.check_rows || [];
   const primary = primaryReview(payload, checkRows);
-  const health = overallHealth(payload, overview);
+  const health = diagnosticHealth(overview, checkRows);
+  const robustness = robustnessContext(payload, health.status, health.score);
   const pass = asNumber(overview.pass_runs) || 0;
   const review = asNumber(overview.review_runs) || 0;
   const fail = asNumber(overview.fail_runs) || 0;
@@ -232,12 +237,8 @@ export function RunAuditDiagnosticsPage() {
   const passPct = totalRuns ? (pass / totalRuns) * 100 : 0;
   const reviewPct = totalRuns ? (review / totalRuns) * 100 : 0;
   const failPct = totalRuns ? (fail / totalRuns) * 100 : 0;
-  const guidance = guidanceFor(checkRows, hasIssue ? primary.check : "NA");
-  const contextStatus = fail > 0 || review > 0 || health.status === "FAIL" || health.status === "REVIEW"
-    ? "Requires further testing"
-    : health.status === "PASS"
-      ? "Ready for interpretation"
-      : "Unavailable";
+  const diagnosticRows = orderedCheckRows(checkRows);
+  const robustnessLines = robustness ? robustnessReasonLines(robustness.reason) : null;
 
   return (
     <SectionScaffold
@@ -269,7 +270,7 @@ export function RunAuditDiagnosticsPage() {
             <div>
               <span>Overall Model Health</span>
               <strong>{health.score === null ? "NA" : `${displayNumber(health.score, 1)} / ${health.status}`}</strong>
-              <p>{payload.decision_card?.headline || "Health explanation unavailable."}</p>
+              <p>{health.summary}</p>
             </div>
           </article>
           <article className="audit-summary-card audit-summary-card--wide">
@@ -294,19 +295,37 @@ export function RunAuditDiagnosticsPage() {
         </section>
 
         <section className="audit-main-grid">
-          <article className="audit-card audit-health-card">
-            <h3>Model Health Score</h3>
-            <div
-              className={`audit-score-donut audit-score-donut--${health.status.toLowerCase()}`}
-              style={{ "--score-pct": `${scorePct}%` } as CSSProperties}
-            >
-              <div>
-                <strong>{health.score === null ? "NA" : displayNumber(health.score, 1)}</strong>
+          <div className="audit-left-column">
+            <article className="audit-card audit-health-card">
+              <h3>Model Health Score</h3>
+              <div
+                className={`audit-score-donut audit-score-donut--${health.status.toLowerCase()}`}
+                style={{ "--score-pct": `${scorePct}%` } as CSSProperties}
+              >
+                <div>
+                  <strong>{health.score === null ? "NA" : displayNumber(health.score, 1)}</strong>
+                </div>
               </div>
-            </div>
-            <span className={`audit-pill audit-pill--${health.status.toLowerCase()}`}>Overall: {health.status}</span>
-            <p>{payload.decision_card?.headline || "Model health score is unavailable in the selected run payload."}</p>
-          </article>
+              <span className={`audit-pill audit-pill--${health.status.toLowerCase()}`}>Overall: {health.status}</span>
+              <p>{health.summary}</p>
+            </article>
+
+            {robustness ? (
+              <article className="audit-card audit-robustness-card">
+                <h3>Sensitivity Robustness Context</h3>
+                <span className={`audit-pill audit-pill--${robustness.status.toLowerCase()}`}>{robustness.status}</span>
+                <div className="audit-robustness-reason">
+                  <strong>{robustnessLines?.sensitivityLine || "Largest stable-baseline sensitivity: NA"}</strong>
+                  <strong>{robustnessLines?.thresholdLine || "Review threshold: 15.0%"}</strong>
+                </div>
+                <p>Diagnostics passed, but prior sensitivity is high. Interpret results directionally rather than as a strong budget recommendation.</p>
+                <div className="audit-robustness-score">
+                  <span>Robustness score: {displayNumber(robustness.score, 1)}/100</span>
+                  <span>Separate from diagnostic health.</span>
+                </div>
+              </article>
+            ) : null}
+          </div>
 
           <article className="audit-card audit-check-card">
             <h3>Check Status & Recommendation</h3>
@@ -321,8 +340,8 @@ export function RunAuditDiagnosticsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {checkRows.length ? (
-                    checkRows.map((row) => {
+                  {diagnosticRows.length ? (
+                    diagnosticRows.map((row) => {
                       const name = displayCheckName(row.check);
                       const status = statusForCheck(row);
                       return (
@@ -345,60 +364,29 @@ export function RunAuditDiagnosticsPage() {
           </article>
         </section>
 
-        <section className="audit-bottom-grid">
-          <article className="audit-card audit-context-card">
-            <h3>Diagnostic Context</h3>
-            <div className="audit-context-layout">
-              <div
-                className="audit-mix-donut"
-                style={{
-                  "--pass-pct": `${passPct}%`,
-                  "--review-pct": `${reviewPct}%`,
-                  "--fail-pct": `${failPct}%`,
-                } as CSSProperties}
-              >
-                <div>
-                  <strong>{displayNumber(totalRuns)}</strong>
-                  <span>runs</span>
-                </div>
-              </div>
-              <div className="audit-context-stack">
-                <div className="audit-mini-card">
-                  <span>PASS / REVIEW / FAIL</span>
-                  <strong>{displayNumber(pass)} / {displayNumber(review)} / {displayNumber(fail)}</strong>
-                  <p>Completed-run diagnostics</p>
-                </div>
-                <div className="audit-mini-card">
-                  <span>Good Enough To Interpret?</span>
-                  <strong className={`audit-pill audit-pill--${contextStatus === "Ready for interpretation" ? "pass" : contextStatus === "Unavailable" ? "unavailable" : "review"}`}>
-                    {contextStatus}
-                  </strong>
-                </div>
-                <div className="audit-mini-card">
-                  <span>Primary Review Check</span>
-                  <strong>{primary.check}</strong>
-                  <p>{primary.count === null ? "Follow-up count unavailable." : `${displayNumber(primary.count)} runs need follow-up for this check.`}</p>
-                </div>
-              </div>
-            </div>
-            <p className="audit-context-note">
-              {contextStatus === "Ready for interpretation" ? "Diagnostics support interpretation for the selected run." : "Directional only: resolve QC or stability risks before stronger interpretation."}
-            </p>
-          </article>
-
-          <article className="audit-card audit-guidance-card">
+        <section className="audit-card audit-actionable-card">
+          <div className="audit-actionable-heading">
             <h3>Actionable Guidance</h3>
-            <div className="audit-guidance-list">
-              {guidance.map((item) => (
-                <div className="audit-guidance-item" key={item.title}>
-                  <div>
-                    <strong>{item.title}</strong>
-                    <p>{item.body}</p>
-                  </div>
-                </div>
-              ))}
+            <strong>Diagnostics support interpretation, but sensitivity robustness requires caution.</strong>
+          </div>
+          <div className="audit-actionable-list">
+            <div className="audit-actionable-item audit-actionable-item--pass">
+              <span aria-hidden="true" />
+              <p>All completed runs passed diagnostic checks.</p>
             </div>
-          </article>
+            <div className="audit-actionable-item audit-actionable-item--pass">
+              <span aria-hidden="true" />
+              <p>No review or fail checks are present in the diagnostic table.</p>
+            </div>
+            <div className="audit-actionable-item audit-actionable-item--review">
+              <span aria-hidden="true" />
+              <p>{robustnessLines ? `Stable-baseline sensitivity is high (${robustnessLines.sensitivityLine.replace("Largest stable-baseline sensitivity: ", "")} vs threshold ${robustnessLines.thresholdLine.replace("Review threshold: ", "")}).` : "Stable-baseline sensitivity may require prior review."}</p>
+            </div>
+            <div className="audit-actionable-item audit-actionable-item--pass">
+              <span aria-hidden="true" />
+              <p>Use results directionally and review prior sensitivity before making budget-level decisions.</p>
+            </div>
+          </div>
         </section>
       </div>
     </SectionScaffold>

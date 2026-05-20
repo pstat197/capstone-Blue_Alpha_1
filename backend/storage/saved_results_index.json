@@ -1,0 +1,36 @@
+[
+  {
+    "channels": [
+      "channel0",
+      "channel1",
+      "channel2",
+      "channel3",
+      "channel4"
+    ],
+    "completed_at": "2026-05-20T20:19:00.649766Z",
+    "completed_runs": 45,
+    "config_fingerprint": "cfg_795b2bbc26e1",
+    "csv_name_prefix": "national_all_channels",
+    "dashboard_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_db02208c1250/tables/dashboard_payload.json",
+    "dataset_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+    "display_result_id": "national_all_channels_01",
+    "generated_at": "2026-05-20T20:19:00.649766Z",
+    "history_id": "ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl9kYjAyMjA4YzEyNTAvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "kpi": "conversions",
+    "kpi_path": "Revenue-equivalent ROI",
+    "original_csv_filename": "national_all_channels.csv",
+    "output_tag": "full_grid_run_db02208c1250",
+    "payload_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_db02208c1250/tables/dashboard_payload.json",
+    "qc_mix": {
+      "fail": 0,
+      "pass": 45,
+      "review": 0
+    },
+    "react_result_url": "/results/overview?history_id=ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl9kYjAyMjA4YzEyNTAvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "report_path": null,
+    "revenue_handling": "revenue_per_kpi_col = revenue_per_conversion",
+    "run_id": "run_db02208c1250",
+    "static_report_path": null,
+    "status": "completed"
+  }
+]

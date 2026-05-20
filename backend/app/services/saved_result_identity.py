@@ -194,16 +194,19 @@ def revenue_handling_from_config(config: dict[str, Any]) -> str | None:
     outcome = config.get("outcome") if isinstance(config.get("outcome"), dict) else {}
     revenue_col = outcome.get("revenue_col")
     revenue_per_kpi = outcome.get("revenue_per_kpi")
+    revenue_per_kpi_col = outcome.get("revenue_per_kpi_col")
     if revenue_col:
         return "direct revenue column"
     if revenue_per_kpi is not None:
         return f"revenue_per_kpi = {revenue_per_kpi}"
+    if revenue_per_kpi_col:
+        return f"revenue_per_kpi_col = {revenue_per_kpi_col}"
     return None
 
 
 def kpi_path_from_config(config: dict[str, Any]) -> str | None:
     outcome = config.get("outcome") if isinstance(config.get("outcome"), dict) else {}
-    if outcome.get("kpi_type") == "non_revenue":
+    if outcome.get("kpi_type") == "non_revenue" and (outcome.get("revenue_per_kpi") is not None or outcome.get("revenue_per_kpi_col")):
         return "Revenue-equivalent ROI"
     if outcome.get("revenue_col"):
         return "Direct revenue ROI"

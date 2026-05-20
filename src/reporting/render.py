@@ -601,19 +601,22 @@ def _recommendation_for_check(check: str, status: str) -> str:
 
 def _build_health_card_data(decision_card: dict, diagnostics: dict) -> dict:
     overview = diagnostics.get("overview", {}) if diagnostics else {}
-    score = _to_float_safe(decision_card.get("score_numeric"))
-    status = _clean_text_safe(decision_card.get("tier_class") or decision_card.get("tier"), "").upper()
-    if status not in {"PASS", "REVIEW", "FAIL", "GREEN", "YELLOW", "RED"}:
-        fail = int(float(overview.get("fail_runs", 0) or 0))
-        review = int(float(overview.get("review_runs", 0) or 0))
-        passed = int(float(overview.get("pass_runs", 0) or 0))
-        status = "FAIL" if fail > 0 else ("REVIEW" if review > 0 else ("PASS" if passed > 0 else "UNAVAILABLE"))
-    if status == "GREEN":
-        status = "PASS"
-    elif status == "YELLOW":
-        status = "REVIEW"
-    elif status == "RED":
-        status = "FAIL"
+    passed = int(float(overview.get("pass_runs", 0) or 0))
+    review = int(float(overview.get("review_runs", 0) or 0))
+    fail = int(float(overview.get("fail_runs", 0) or 0))
+    unknown = int(float(overview.get("unknown_runs", 0) or 0))
+    total = passed + review + fail + unknown
+    score = (100.0 * passed / float(total)) if total > 0 else None
+    status = "FAIL" if fail > 0 else ("REVIEW" if review > 0 or unknown > 0 else ("PASS" if passed > 0 else "UNAVAILABLE"))
+    summary = (
+        "All completed runs and available diagnostic checks passed."
+        if status == "PASS"
+        else "One or more completed runs failed diagnostics."
+        if status == "FAIL"
+        else "One or more completed runs need diagnostic review."
+        if status == "REVIEW"
+        else "Diagnostic health is unavailable for this run payload."
+    )
 
     rows = []
     for row in diagnostics.get("check_rows", []) or []:
@@ -632,13 +635,37 @@ def _build_health_card_data(decision_card: dict, diagnostics: dict) -> dict:
             }
         )
 
+    decision_status = _clean_text_safe(decision_card.get("tier_class") or decision_card.get("tier"), "").upper()
+    if decision_status == "GREEN":
+        decision_status = "PASS"
+    elif decision_status == "YELLOW":
+        decision_status = "REVIEW"
+    elif decision_status == "RED":
+        decision_status = "FAIL"
+    decision_score = _to_float_safe(decision_card.get("score_numeric"))
+    robustness_context = None
+    if decision_score is not None and decision_status in {"PASS", "REVIEW", "FAIL"}:
+        score_differs = score is None or abs(float(decision_score) - float(score)) > 0.05 or decision_status != status
+        if score_differs:
+            triggered = next(
+                (str(rule) for rule in (decision_card.get("triggered_rules", []) or []) if str(rule or "").strip()),
+                "",
+            )
+            robustness_context = {
+                "score_label": _clean_text_safe(decision_card.get("score_label"), "Prior-Sensitivity Robustness"),
+                "score": decision_score,
+                "overall_status": decision_status,
+                "reason": triggered or _clean_text_safe(decision_card.get("headline"), ""),
+            }
+
     return {
         "title": "Model Health Card",
-        "score_label": _clean_text_safe(decision_card.get("score_label"), "Model Health Score"),
+        "score_label": "Diagnostic Health Score",
         "score": score,
         "overall_status": status,
-        "summary": _clean_text_safe(decision_card.get("headline"), ""),
+        "summary": summary,
         "rows": rows,
+        "robustness_context": robustness_context,
     }
 
 

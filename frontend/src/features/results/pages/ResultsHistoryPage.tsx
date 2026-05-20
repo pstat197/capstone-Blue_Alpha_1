@@ -304,10 +304,20 @@ export function ResultsHistoryPage() {
               {pagedItems.map((item) => {
                 const isSelected = item.history_id === selectedItem?.history_id;
                 return (
-                  <article className={`history-result-row ${isSelected ? "history-result-row--selected" : ""}`} key={item.history_id}>
-                    <button className="history-row-select" type="button" onClick={() => setSelectedId(item.history_id)} aria-label={`Preview ${runName(item)}`}>
-                      <span aria-hidden="true" />
-                    </button>
+                  <article
+                    className={`history-result-row ${isSelected ? "history-result-row--selected" : ""}`}
+                    key={item.history_id}
+                    onClick={() => setSelectedId(item.history_id)}
+                    onKeyDown={(event) => {
+                      if ((event.key === "Enter" || event.key === " ") && event.target === event.currentTarget) {
+                        event.preventDefault();
+                        setSelectedId(item.history_id);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    aria-pressed={isSelected}
+                  >
                     <div className="history-run-cell" title={runName(item)}>
                       <strong>{runName(item)}</strong>
                       <small>{subtitle(item)}</small>
@@ -338,13 +348,32 @@ export function ResultsHistoryPage() {
                       <strong>{compactPath(item)}</strong>
                     </div>
                     <div className="history-row-actions">
-                      <button className="history-mini-button" type="button" onClick={() => setSelectedId(item.history_id)}>
+                      <button
+                        className="history-mini-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedId(item.history_id);
+                        }}
+                      >
                         Preview
                       </button>
-                      <Link className="history-mini-button history-mini-button--primary" to={`/results/overview?history_id=${encodeURIComponent(item.history_id)}`}>
+                      <Link
+                        className="history-mini-button history-mini-button--primary"
+                        to={`/results/overview?history_id=${encodeURIComponent(item.history_id)}`}
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         Open Result
                       </Link>
-                      <button className="history-overflow-button" type="button" onClick={() => setSelectedId(item.history_id)} aria-label={`More actions for ${runName(item)}`}>
+                      <button
+                        className="history-overflow-button"
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          setSelectedId(item.history_id);
+                        }}
+                        aria-label={`More actions for ${runName(item)}`}
+                      >
                         ...
                       </button>
                     </div>

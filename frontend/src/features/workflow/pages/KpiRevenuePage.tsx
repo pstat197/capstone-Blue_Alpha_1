@@ -10,9 +10,11 @@ import {
   readKpiColumn,
   readRevenueColumn,
   readRevenuePerKpi,
+  readRevenuePerKpiColumn,
   readRoiMode,
   revenueAssumptionSavedStorageKey,
   revenueColumnStorageKey,
+  revenuePerKpiColumnStorageKey,
   roiModeStorageKey,
 } from "../data/workflowState";
 
@@ -104,6 +106,7 @@ export function KpiRevenuePage() {
   const channels = useMemo(() => detectedChannels(profile), [profile]);
   const [kpiColumn, setKpiColumn] = useState(() => readKpiColumn(profile));
   const [revenueColumn, setRevenueColumn] = useState(() => readRevenueColumn(profile));
+  const [revenuePerKpiColumn, setRevenuePerKpiColumn] = useState(() => readRevenuePerKpiColumn(profile));
   const [roiMode, setRoiMode] = useState(() => readRoiMode(profile));
   const storedRevenuePerKpi = readRevenuePerKpi();
   const [revenuePerKpiInput, setRevenuePerKpiInput] = useState(() => (storedRevenuePerKpi ? String(storedRevenuePerKpi) : ""));
@@ -112,10 +115,12 @@ export function KpiRevenuePage() {
   const [showKpiMapping, setShowKpiMapping] = useState(false);
   const hasProfile = Boolean(profile);
   const hasDetectedRevenueColumn = Boolean(profile?.detected.revenue_candidates.length);
+  const hasDetectedRevenuePerKpiColumn = Boolean(profile?.detected.revenue_per_kpi_candidates.length);
   const revenueCandidates = profile?.detected.revenue_candidates ?? [];
+  const revenuePerKpiCandidates = profile?.detected.revenue_per_kpi_candidates ?? [];
   const isDirectRevenueMode = hasDetectedRevenueColumn && roiMode === "direct_revenue_column";
   const validRevenuePerKpi = parseRevenuePerKpi(revenuePerKpiInput);
-  const canContinue = hasProfile && Boolean(kpiColumn) && (isDirectRevenueMode ? Boolean(revenueColumn) : Boolean(savedRevenuePerKpi));
+  const canContinue = hasProfile && Boolean(kpiColumn) && (isDirectRevenueMode ? Boolean(revenueColumn) : Boolean(savedRevenuePerKpi || revenuePerKpiColumn));
   const channelsSummary = `${channels.length} ${channels.length === 1 ? "channel" : "channels"}`;
   const revenueColumnSummary = isDirectRevenueMode ? revenueColumn || revenueCandidates[0] || "missing" : "missing";
 
@@ -141,12 +146,17 @@ export function KpiRevenuePage() {
     }
 
     setRoiMode("revenue_per_kpi_assumption");
+    const nextRevenuePerKpiColumn = revenuePerKpiColumn || revenuePerKpiCandidates[0] || "";
+    setRevenuePerKpiColumn(nextRevenuePerKpiColumn);
     window.localStorage.setItem(roiModeStorageKey, "revenue_per_kpi_assumption");
     window.localStorage.setItem(kpiTypeStorageKey, "non_revenue");
+    if (nextRevenuePerKpiColumn) {
+      window.localStorage.setItem(revenuePerKpiColumnStorageKey, nextRevenuePerKpiColumn);
+    }
     if (kpiColumn) {
       window.localStorage.setItem(kpiColumnStorageKey, kpiColumn);
     }
-  }, [hasDetectedRevenueColumn, kpiColumn, profile, revenueCandidates, revenueColumn]);
+  }, [hasDetectedRevenueColumn, kpiColumn, profile, revenueCandidates, revenueColumn, revenuePerKpiCandidates, revenuePerKpiColumn]);
 
   const handleKpiChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setKpiColumn(event.target.value);
@@ -156,6 +166,11 @@ export function KpiRevenuePage() {
   const handleRevenueColumnChange = (event: ChangeEvent<HTMLSelectElement>) => {
     setRevenueColumn(event.target.value);
     window.localStorage.setItem(revenueColumnStorageKey, event.target.value);
+  };
+
+  const handleRevenuePerKpiColumnChange = (event: ChangeEvent<HTMLSelectElement>) => {
+    setRevenuePerKpiColumn(event.target.value);
+    window.localStorage.setItem(revenuePerKpiColumnStorageKey, event.target.value);
   };
 
   const handleRevenuePerKpiChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -202,8 +217,8 @@ export function KpiRevenuePage() {
     { label: "Dataset", value: profile.filename },
     { label: "KPI", value: kpiColumn || "Not selected" },
     {
-      label: "Revenue column",
-      value: revenueColumnSummary,
+      label: isDirectRevenueMode ? "Revenue column" : "Revenue-per-KPI",
+      value: isDirectRevenueMode ? revenueColumnSummary : revenuePerKpiColumn || (savedRevenuePerKpi ? String(savedRevenuePerKpi) : "missing"),
     },
     { label: "Channels detected", value: channelsSummary },
   ];
@@ -277,10 +292,14 @@ export function KpiRevenuePage() {
   return (
     <WorkflowScaffold
       title="KPI & Revenue Setup"
-      summary="No revenue column was detected in your data. Configure a revenue-per-KPI assumption to enable ROI calculations."
+      summary={
+        hasDetectedRevenuePerKpiColumn
+          ? "A revenue-per-KPI column was detected in your data. Review the mapping before prior setup."
+          : "No revenue column was detected in your data. Configure a revenue-per-KPI assumption to enable ROI calculations."
+      }
       primaryActionDisabled={!canContinue}
       primaryActionLabel="Continue to Prior Grid Setup"
-      nextHelperText={canContinue ? "Prior Grid Setup" : "Save your assumption to continue"}
+      nextHelperText={canContinue ? "Prior Grid Setup" : "Save your assumption or choose a revenue-per-KPI column to continue"}
     >
       <SummaryStrip items={summaryItems} />
 
@@ -288,23 +307,40 @@ export function KpiRevenuePage() {
         <article className="content-panel kpi-setup-card">
           <div className="kpi-setup-card-heading">
             <h3>Revenue-equivalent ROI Assumption</h3>
-            <StatusPill tone="review">Needs review</StatusPill>
+            <StatusPill tone={revenuePerKpiColumn ? "ready" : "review"}>{revenuePerKpiColumn ? "Ready" : "Needs review"}</StatusPill>
           </div>
-          <p>Enter the business-defined revenue value for one unit of the selected KPI.</p>
+          <p>{revenuePerKpiColumn ? "The dataset provides a value for each KPI unit." : "Enter the business-defined revenue value for one unit of the selected KPI."}</p>
 
-          <label className="kpi-assumption-field">
-            <span>
-              Revenue per KPI unit
-              <small>USD per KPI</small>
-            </span>
-            <input
-              inputMode="decimal"
-              onChange={handleRevenuePerKpiChange}
-              type="text"
-              value={revenuePerKpiInput}
-            />
-          </label>
-          <p className="kpi-field-helper">Used to convert {kpiColumn || "the selected KPI"} into revenue-equivalent ROI for prior setup and outputs.</p>
+          {revenuePerKpiCandidates.length ? (
+            <label className="kpi-inline-field">
+              <span>Revenue-per-KPI column</span>
+              <select value={revenuePerKpiColumn} onChange={handleRevenuePerKpiColumnChange}>
+                {revenuePerKpiCandidates.map((column) => (
+                  <option key={column} value={column}>{column}</option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {!revenuePerKpiColumn ? (
+            <>
+              <label className="kpi-assumption-field">
+                <span>
+                  Revenue per KPI unit
+                  <small>USD per KPI</small>
+                </span>
+                <input
+                  inputMode="decimal"
+                  onChange={handleRevenuePerKpiChange}
+                  type="text"
+                  value={revenuePerKpiInput}
+                />
+              </label>
+              <p className="kpi-field-helper">Used to convert {kpiColumn || "the selected KPI"} into revenue-equivalent ROI for prior setup and outputs.</p>
+            </>
+          ) : (
+            <p className="kpi-field-helper">Used to convert {kpiColumn || "the selected KPI"} into revenue-equivalent ROI row by row.</p>
+          )}
 
           {showKpiMapping ? (
             <label className="kpi-inline-field">
@@ -326,17 +362,19 @@ export function KpiRevenuePage() {
             <button className="kpi-link-button" onClick={() => setShowKpiMapping((current) => !current)} type="button">
               Edit KPI mapping
             </button>
-            <div>
-              <button className="kpi-save-button" disabled={!validRevenuePerKpi} onClick={() => saveAssumption()} type="button">
-                Save assumption
-              </button>
-            </div>
+            {!revenuePerKpiColumn ? (
+              <div>
+                <button className="kpi-save-button" disabled={!validRevenuePerKpi} onClick={() => saveAssumption()} type="button">
+                  Save assumption
+                </button>
+              </div>
+            ) : null}
           </div>
         </article>
 
         <article className="content-panel kpi-explainer-card">
           <h3>Why this assumption is needed</h3>
-          <p>Because no revenue column was detected in your dataset, the model needs a business-defined value per KPI unit before prior grid setup.</p>
+          <p>{revenuePerKpiColumn ? "Because your dataset includes a revenue-per-KPI column, the KPI remains non-revenue while ROI outputs use the uploaded value-per-KPI helper." : "Because no revenue column was detected in your dataset, the model needs a business-defined value per KPI unit before prior grid setup."}</p>
           <Checklist
             items={[
               { icon: "dollar", title: "Revenue-equivalent ROI", copy: "Enables ROI-style outputs by converting your KPI into revenue-equivalent value." },
