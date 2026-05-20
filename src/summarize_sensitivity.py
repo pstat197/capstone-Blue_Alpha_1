@@ -16,14 +16,8 @@ from src.output_paths import (
     run_csv_path,
     tornado_csv_path,
 )
+from src.baseline_utils import require_explicit_baseline_rows
 from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
-
-
-def _pick_center(values):
-    vals = sorted(pd.Series(values).dropna().unique().tolist())
-    if not vals:
-        return None
-    return vals[len(vals) // 2]
 
 
 def _baseline_scope_columns(df: pd.DataFrame) -> list[str]:
@@ -40,43 +34,6 @@ def _baseline_scope_columns(df: pd.DataFrame) -> list[str]:
     ]
     cols.extend([c for c in scenario_cols if c in df.columns])
     return cols
-
-
-def _infer_baseline_rows(df: pd.DataFrame) -> pd.DataFrame:
-    """Fallback baseline inference when is_baseline flag is missing/empty.
-
-    Uses center-point prior values (middle mu, middle sigma, preferred dist)
-    per baseline scope group.
-    """
-    if df.empty:
-        return df.copy()
-
-    required = {"targets", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}
-    if not required.issubset(df.columns):
-        return df.iloc[0:0].copy()
-
-    picked = []
-    group_cols = _baseline_scope_columns(df)
-    for _, g in df.groupby(group_cols, dropna=False):
-        mu0 = _pick_center(g["roi_prior_mu"])
-        sigma0 = _pick_center(g["roi_prior_sigma"])
-        dists = [str(x) for x in g["roi_prior_dist"].dropna().unique().tolist()]
-        dist0 = "LogNormal" if "LogNormal" in dists else (_pick_center(dists) if dists else None)
-        if mu0 is None or sigma0 is None:
-            continue
-
-        mask = np.isclose(pd.to_numeric(g["roi_prior_mu"], errors="coerce"), float(mu0))
-        mask &= np.isclose(pd.to_numeric(g["roi_prior_sigma"], errors="coerce"), float(sigma0))
-        if dist0 is not None:
-            mask &= g["roi_prior_dist"].astype(str).eq(str(dist0))
-
-        gg = g[mask].copy()
-        if not gg.empty:
-            picked.append(gg)
-
-    if not picked:
-        return df.iloc[0:0].copy()
-    return pd.concat(picked, ignore_index=True)
 
 
 def _paths_for_tag(tag: str) -> dict[str, Path]:
@@ -274,22 +231,16 @@ def main():
     df = target_matched
     df = _filter_to_prior_stage(df)
 
-    if "is_baseline" not in df.columns:
-        raise ValueError("Missing column 'is_baseline' in results CSV. Cannot identify baseline reliably.")
+    require_explicit_baseline_rows(df, context="Sensitivity results")
 
     baseline_mask = df["is_baseline"].astype(str).str.lower().isin({"true", "1", "yes"})
     baseline_df = df[baseline_mask].copy()
     baseline_run_ids = None
     if baseline_df.empty:
-        baseline_df = _infer_baseline_rows(df)
-        if baseline_df.empty:
-            raise ValueError(
-                "No baseline rows found (is_baseline==True), and fallback inference failed. "
-                "Check baseline settings in main.py or ensure baseline prior combo exists in the CSV."
-            )
-        if "run_id" in baseline_df.columns:
-            baseline_run_ids = set(baseline_df["run_id"].dropna().astype(str).tolist())
-        print("[warn] No explicit baseline rows found; inferred baseline from center prior values.")
+        raise ValueError(
+            "Explicit baseline metadata is required. No valid is_baseline row was found. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
     baseline_metric_rename = {
         "estimated_roi": "roi_baseline",
         "posterior_roi_sd": "roi_baseline_sd",

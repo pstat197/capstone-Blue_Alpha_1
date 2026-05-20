@@ -1,0 +1,228 @@
+{
+  "files": {
+    "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
+      "canonical_upload_id": "upload_42cd406c6713",
+      "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
+      "first_original_filename": "Example Alpha(1).csv",
+      "first_uploaded_at": "2026-05-15T00:26:32.608502Z",
+      "size_bytes": 31451
+    },
+    "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "canonical_upload_id": "upload_1bc112d58beb",
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "first_original_filename": "monthly_mocha.csv",
+      "first_uploaded_at": "2026-05-16T21:03:09.911387Z",
+      "size_bytes": 9816
+    },
+    "ba232fbc6f03e58b4b586c8c93c953611e4b089f5fa7527548ff7adfae204acd": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_710c18f4ccc8_README.md",
+      "canonical_upload_id": "upload_710c18f4ccc8",
+      "content_hash": "ba232fbc6f03e58b4b586c8c93c953611e4b089f5fa7527548ff7adfae204acd",
+      "first_original_filename": "README.md",
+      "first_uploaded_at": "2026-05-14T23:41:00.655470Z",
+      "size_bytes": 6891
+    },
+    "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
+      "canonical_upload_id": "upload_bf8c998df637",
+      "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+      "first_original_filename": "national_all_channels.csv",
+      "first_uploaded_at": "2026-05-20T19:12:38.561317Z",
+      "size_bytes": 34024
+    }
+  },
+  "uploads": {
+    "upload_0e0e2f027de8": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_0e0e2f027de8_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_0e0e2f027de8",
+      "uploaded_at": "2026-05-16T21:27:46.886402Z"
+    },
+    "upload_1196b4b57dd1": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1196b4b57dd1_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_1196b4b57dd1",
+      "uploaded_at": "2026-05-16T20:28:00.789109Z"
+    },
+    "upload_1bc112d58beb": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": null,
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": false,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_1bc112d58beb",
+      "uploaded_at": "2026-05-16T21:03:09.911387Z"
+    },
+    "upload_25f8178d4d61": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_25f8178d4d61_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_25f8178d4d61",
+      "uploaded_at": "2026-05-16T20:11:51.181499Z"
+    },
+    "upload_35685b6dc391": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_35685b6dc391_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_35685b6dc391",
+      "uploaded_at": "2026-05-16T21:10:14.048393Z"
+    },
+    "upload_38ee1fa9a8c1": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_38ee1fa9a8c1_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_38ee1fa9a8c1",
+      "uploaded_at": "2026-05-16T20:52:15.562593Z"
+    },
+    "upload_3f140070af88": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_3f140070af88_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_3f140070af88",
+      "uploaded_at": "2026-05-14T23:41:00.470835Z"
+    },
+    "upload_42cd406c6713": {
+      "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
+      "legacy_physical_path": null,
+      "original_filename": "Example Alpha(1).csv",
+      "reused_existing": false,
+      "size_bytes": 31451,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
+      "upload_id": "upload_42cd406c6713",
+      "uploaded_at": "2026-05-15T00:26:32.608502Z"
+    },
+    "upload_4447a3c28e83": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_4447a3c28e83_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_4447a3c28e83",
+      "uploaded_at": "2026-05-16T20:09:13.200639Z"
+    },
+    "upload_58edefcffc5c": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_58edefcffc5c_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_58edefcffc5c",
+      "uploaded_at": "2026-05-15T01:49:03.848835Z"
+    },
+    "upload_710c18f4ccc8": {
+      "content_hash": "ba232fbc6f03e58b4b586c8c93c953611e4b089f5fa7527548ff7adfae204acd",
+      "legacy_physical_path": null,
+      "original_filename": "README.md",
+      "reused_existing": false,
+      "size_bytes": 6891,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_710c18f4ccc8_README.md",
+      "upload_id": "upload_710c18f4ccc8",
+      "uploaded_at": "2026-05-14T23:41:00.655470Z"
+    },
+    "upload_8ce52c632a82": {
+      "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_8ce52c632a82_national_all_channels.csv",
+      "original_filename": "national_all_channels.csv",
+      "reused_existing": true,
+      "size_bytes": 34024,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
+      "upload_id": "upload_8ce52c632a82",
+      "uploaded_at": "2026-05-20T19:50:49.720542Z"
+    },
+    "upload_a02b7b08b998": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a02b7b08b998_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_a02b7b08b998",
+      "uploaded_at": "2026-05-13T22:37:00.018689Z"
+    },
+    "upload_a28ce4cc5216": {
+      "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a28ce4cc5216_national_all_channels.csv",
+      "original_filename": "national_all_channels.csv",
+      "reused_existing": true,
+      "size_bytes": 34024,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
+      "upload_id": "upload_a28ce4cc5216",
+      "uploaded_at": "2026-05-20T18:53:44.172557Z"
+    },
+    "upload_a50b71037dc5": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a50b71037dc5_monthly_mocha.csv",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_a50b71037dc5",
+      "uploaded_at": "2026-05-16T21:15:20.931338Z"
+    },
+    "upload_ad79d45bea9c": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_ad79d45bea9c",
+      "uploaded_at": "2026-05-20T22:42:41.622342Z"
+    },
+    "upload_bf8c998df637": {
+      "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+      "legacy_physical_path": null,
+      "original_filename": "national_all_channels.csv",
+      "reused_existing": false,
+      "size_bytes": 34024,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
+      "upload_id": "upload_bf8c998df637",
+      "uploaded_at": "2026-05-20T19:12:38.561317Z"
+    },
+    "upload_c18cbdc003de": {
+      "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_c18cbdc003de_Example Alpha(1).csv",
+      "original_filename": "Example Alpha(1).csv",
+      "reused_existing": true,
+      "size_bytes": 31451,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
+      "upload_id": "upload_c18cbdc003de",
+      "uploaded_at": "2026-05-13T22:35:15.315950Z"
+    },
+    "upload_e75f9af2b0f2": {
+      "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
+      "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_e75f9af2b0f2_Example Alpha(1).csv",
+      "original_filename": "Example Alpha(1).csv",
+      "reused_existing": true,
+      "size_bytes": 31451,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
+      "upload_id": "upload_e75f9af2b0f2",
+      "uploaded_at": "2026-05-16T20:26:44.586067Z"
+    }
+  },
+  "version": 1
+}

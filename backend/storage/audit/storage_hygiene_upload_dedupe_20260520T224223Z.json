@@ -1,0 +1,232 @@
+{
+  "deleted": [
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_c18cbdc003de_Example Alpha(1).csv",
+      "remaining_references": [],
+      "upload_id": "upload_c18cbdc003de"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_e75f9af2b0f2_Example Alpha(1).csv",
+      "remaining_references": [],
+      "upload_id": "upload_e75f9af2b0f2"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_0e0e2f027de8_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_0e0e2f027de8"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1196b4b57dd1_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_1196b4b57dd1"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_25f8178d4d61_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_25f8178d4d61"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_35685b6dc391_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_35685b6dc391"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_38ee1fa9a8c1_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_38ee1fa9a8c1"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_3f140070af88_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_3f140070af88"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_4447a3c28e83_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_4447a3c28e83"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_58edefcffc5c_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_58edefcffc5c"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a02b7b08b998_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_a02b7b08b998"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a50b71037dc5_monthly_mocha.csv",
+      "remaining_references": [],
+      "upload_id": "upload_a50b71037dc5"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_8ce52c632a82_national_all_channels.csv",
+      "remaining_references": [],
+      "upload_id": "upload_8ce52c632a82"
+    },
+    {
+      "deleted": true,
+      "path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a28ce4cc5216_national_all_channels.csv",
+      "remaining_references": [],
+      "upload_id": "upload_a28ce4cc5216"
+    }
+  ],
+  "duplicate_groups": [
+    {
+      "all_upload_ids": [
+        "upload_42cd406c6713",
+        "upload_c18cbdc003de",
+        "upload_e75f9af2b0f2"
+      ],
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
+      "canonical_upload_id": "upload_42cd406c6713",
+      "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
+      "duplicate_paths": [
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_c18cbdc003de_Example Alpha(1).csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_e75f9af2b0f2_Example Alpha(1).csv"
+      ]
+    },
+    {
+      "all_upload_ids": [
+        "upload_0e0e2f027de8",
+        "upload_1196b4b57dd1",
+        "upload_1bc112d58beb",
+        "upload_25f8178d4d61",
+        "upload_35685b6dc391",
+        "upload_38ee1fa9a8c1",
+        "upload_3f140070af88",
+        "upload_4447a3c28e83",
+        "upload_58edefcffc5c",
+        "upload_a02b7b08b998",
+        "upload_a50b71037dc5"
+      ],
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "canonical_upload_id": "upload_1bc112d58beb",
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "duplicate_paths": [
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_0e0e2f027de8_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1196b4b57dd1_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_25f8178d4d61_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_35685b6dc391_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_38ee1fa9a8c1_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_3f140070af88_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_4447a3c28e83_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_58edefcffc5c_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a02b7b08b998_monthly_mocha.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a50b71037dc5_monthly_mocha.csv"
+      ]
+    },
+    {
+      "all_upload_ids": [
+        "upload_8ce52c632a82",
+        "upload_a28ce4cc5216",
+        "upload_bf8c998df637"
+      ],
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
+      "canonical_upload_id": "upload_bf8c998df637",
+      "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
+      "duplicate_paths": [
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_8ce52c632a82_national_all_channels.csv",
+        "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_a28ce4cc5216_national_all_channels.csv"
+      ]
+    }
+  ],
+  "generated_at": "2026-05-20T22:42:23.273187Z",
+  "metadata_updates": [
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/runs/run_db02208c1250/config.yaml",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_092ccce0dd88.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_1090627bffb3.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_1ad20d83f646.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_1c9d8fab5f2c.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_2356a674f2b8.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_2765c76af1ae.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_367d529eadf0.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_3c218569b260.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_5088f30e7731.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_575b35ebc743.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_7fe41de3306a.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_8a55a081ad04.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_a0e0d9c604de.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_f5f577ab96e0.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_f825d266a714.json",
+      "path_references_updated": 1
+    },
+    {
+      "metadata_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/workflows/wf_fcbafb4a0151.json",
+      "path_references_updated": 1
+    }
+  ],
+  "mode": "apply",
+  "summary": {
+    "duplicate_content_hash_count": 3,
+    "duplicate_physical_files": 14,
+    "manifest_content_hash_count_after": 4,
+    "manifest_upload_count_after": 18,
+    "metadata_files_to_update": 17,
+    "physical_files_deleted": 14,
+    "unique_content_hash_count": 4,
+    "unsafe_duplicate_files_kept": 0,
+    "upload_file_count": 18
+  },
+  "unsafe_kept": []
+}

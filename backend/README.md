@@ -24,6 +24,7 @@ The React frontend expects this API at `http://127.0.0.1:8000` by default. Overr
 ## Local State
 
 - Uploaded CSVs are stored under `backend/storage/uploads/`.
+- Future duplicate uploads are tracked in `backend/storage/upload_manifest.json` and reuse a canonical stored CSV by SHA-256 content hash.
 - Workflow drafts are stored under `backend/storage/workflows/`.
 - Mock run records are stored under `backend/storage/runs/`.
 - Tiny real run working directories are stored under `backend/storage/runs/{run_id}/`.
@@ -85,6 +86,15 @@ Against a running backend:
 ```bash
 .venv/bin/python backend/smoke_test_api.py --base-url http://127.0.0.1:8000
 ```
+
+Inspect storage hygiene without deleting files:
+
+```bash
+.venv/bin/python -m backend.storage_hygiene
+.venv/bin/python -m backend.storage_hygiene --dedupe-uploads
+```
+
+The default report lists duplicate uploads by content hash, unreferenced uploads, abandoned workflow drafts, failed runs past retention, and completed run folders with safety notes. `--dedupe-uploads` dry-runs the legacy upload migration: it chooses one canonical file per content hash, plans manifest entries for all old upload ids, identifies metadata references that would be rewritten, and lists duplicate physical files that would be removed. Add `--apply` only when you want that upload dedup migration to rewrite metadata and delete duplicate upload files.
 
 ## Mock Run Lifecycle
 

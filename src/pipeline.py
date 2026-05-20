@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.baseline_utils import require_explicit_baseline_rows
 from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 from src.output_paths import (
     OUTPUT_ROOT,
@@ -250,12 +251,13 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
 
     run_df = pd.read_csv(run_csv)
     roi_df = pd.read_csv(roi_csv)
+    if "target_channel" not in run_df.columns and "targets" in run_df.columns:
+        run_df["target_channel"] = run_df["targets"]
+    require_explicit_baseline_rows(run_df, context=f"Run CSV {run_csv}")
     tornado_csv = tornado_csv_path(tag)
 
     if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
         raise ValueError("Both run and ROI CSVs must include 'run_id'.")
-    if "target_channel" not in run_df.columns and "targets" in run_df.columns:
-        run_df["target_channel"] = run_df["targets"]
 
     run_base_cols = [
         "run_id",

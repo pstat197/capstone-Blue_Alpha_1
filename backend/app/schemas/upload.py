@@ -77,3 +77,7 @@ class UploadResponse(BaseModel):
     upload_id: str
     filename: str
     profile_url: str
+    content_hash: str | None = None
+    storage_path: str | None = None
+    reused_existing: bool = False
+    uploaded_at: str | None = None

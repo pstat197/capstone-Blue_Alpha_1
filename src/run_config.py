@@ -464,12 +464,20 @@ def _validate_and_normalize_config(config: dict[str, Any]) -> dict[str, Any]:
     baseline = config.setdefault("baseline", {})
     for baseline_key in ["roi_mu", "roi_sigma"]:
         baseline[baseline_key] = _as_optional_float(baseline.get(baseline_key), f"baseline.{baseline_key}")
+        if baseline[baseline_key] is None:
+            raise ValueError(
+                f"Explicit baseline metadata is required. Missing config field baseline.{baseline_key}. "
+                "Please regenerate the run/report with an explicit setup-confirmed baseline."
+            )
     if baseline["roi_sigma"] is not None and baseline["roi_sigma"] <= 0:
         raise ValueError("Config field 'baseline.roi_sigma' must be > 0 when provided.")
 
     raw_dist = baseline.get("roi_dist")
     if raw_dist is None or str(raw_dist).strip().lower() in {"", "null", "none"}:
-        baseline["roi_dist"] = None
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_dist. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
     else:
         baseline["roi_dist"] = str(raw_dist).strip()
 

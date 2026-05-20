@@ -7,6 +7,7 @@ from typing import Iterable
 import numpy as np
 import pandas as pd
 
+from src.baseline_utils import require_explicit_baseline_rows
 from src.output_paths import run_csv_path, tables_tag_dir, tornado_csv_path
 
 EPS = 1e-8
@@ -103,23 +104,6 @@ def _pick_run_csv(run_csv: str) -> str | None:
     if not os.path.exists(run_csv):
         return None
     return run_csv
-
-
-def _pick_center(values: pd.Series):
-    vals = sorted(pd.Series(values).dropna().unique().tolist())
-    if not vals:
-        return None
-    return vals[len(vals) // 2]
-
-
-def _infer_baseline_from_grid(df: pd.DataFrame) -> tuple[float, float, str]:
-    mu0 = _pick_center(pd.to_numeric(df.get("roi_prior_mu", pd.Series(dtype=float)), errors="coerce"))
-    sigma0 = _pick_center(pd.to_numeric(df.get("roi_prior_sigma", pd.Series(dtype=float)), errors="coerce"))
-    dists = [str(x) for x in pd.Series(df.get("roi_prior_dist", pd.Series(dtype=object))).dropna().unique().tolist()]
-    dist0 = "LogNormal" if "LogNormal" in dists else (_pick_center(pd.Series(dists)) if dists else None)
-    if mu0 is None or sigma0 is None or dist0 is None:
-        raise ValueError("Could not infer baseline prior parameters from run/tornado metadata.")
-    return float(mu0), float(sigma0), str(dist0)
 
 
 def _parse_flagged_channels(raw_value) -> set[str]:
@@ -841,6 +825,8 @@ def main() -> None:
         if c in tornado_df.columns:
             tornado_df[c] = pd.to_numeric(tornado_df[c], errors="coerce")
 
+    require_explicit_baseline_rows(run_df, context="Run CSV used for robustness scoring")
+
     baseline_mu = baseline_sigma = baseline_dist = None
     if not run_df.empty and {"is_baseline", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"}.issubset(run_df.columns):
         baseline_mask = run_df["is_baseline"].astype(str).str.lower().isin({"true", "1", "yes"})
@@ -850,7 +836,10 @@ def main() -> None:
             baseline_sigma = float(pd.to_numeric(baseline_rows["roi_prior_sigma"], errors="coerce").median())
             baseline_dist = str(baseline_rows["roi_prior_dist"].dropna().astype(str).mode().iloc[0])
     if baseline_mu is None or baseline_sigma is None or baseline_dist is None:
-        baseline_mu, baseline_sigma, baseline_dist = _infer_baseline_from_grid(tornado_df)
+        raise ValueError(
+            "Explicit baseline metadata is required. No valid is_baseline row was found. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
 
     run_channel_df = _build_run_channel_metrics(
         tornado_df,

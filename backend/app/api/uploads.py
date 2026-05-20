@@ -1,39 +1,37 @@
 from __future__ import annotations
 
-from uuid import uuid4
-from shutil import copyfile
-
 import pandas as pd
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile
 
 from backend.app.schemas.upload import CsvPreview, CsvProfile, UploadResponse
 from backend.app.services.csv_profiler import profile_csv
-from backend.app.services.paths import PROJECT_ROOT, UPLOADS_DIR, ensure_storage_dirs
+from backend.app.services.paths import PROJECT_ROOT, ensure_storage_dirs
+from backend.app.services.upload_store import register_upload_bytes, resolve_upload
 
 router = APIRouter(tags=["uploads"])
 
 
-def _upload_path(upload_id: str, filename: str):
-    safe_filename = filename.replace("/", "_").replace("\\", "_")
-    return UPLOADS_DIR / f"{upload_id}_{safe_filename}"
-
-
 def _find_uploaded_csv(upload_id: str):
-    matches = list(UPLOADS_DIR.glob(f"{upload_id}_*"))
-    if not matches:
+    try:
+        return resolve_upload(upload_id)
+    except FileNotFoundError:
         raise HTTPException(status_code=404, detail=f"Upload not found: {upload_id}")
-    path = matches[0]
-    filename = path.name.removeprefix(f"{upload_id}_")
-    return path, filename
 
 
 @router.post("/uploads", response_model=UploadResponse)
 async def create_upload(file: UploadFile = File(...)) -> UploadResponse:
     ensure_storage_dirs()
-    upload_id = f"upload_{uuid4().hex[:12]}"
-    path = _upload_path(upload_id, file.filename or "uploaded.csv")
-    path.write_bytes(await file.read())
-    return UploadResponse(upload_id=upload_id, filename=file.filename or "uploaded.csv", profile_url=f"/api/uploads/{upload_id}/profile")
+    record = register_upload_bytes(await file.read(), file.filename or "uploaded.csv")
+    upload_id = str(record["upload_id"])
+    return UploadResponse(
+        upload_id=upload_id,
+        filename=str(record["original_filename"]),
+        profile_url=f"/api/uploads/{upload_id}/profile",
+        content_hash=str(record["content_hash"]),
+        storage_path=str(record["stored_path"]),
+        reused_existing=bool(record["reused_existing"]),
+        uploaded_at=str(record["uploaded_at"]),
+    )
 
 
 @router.post("/uploads/examples/monthly-mocha", response_model=UploadResponse)
@@ -42,11 +40,18 @@ def load_monthly_mocha_example() -> UploadResponse:
     source = PROJECT_ROOT / "data" / "raw" / "monthly_mocha.csv"
     if not source.exists():
         raise HTTPException(status_code=404, detail="Example dataset not found: monthly_mocha.csv")
-    upload_id = f"upload_{uuid4().hex[:12]}"
     filename = "monthly_mocha.csv"
-    destination = _upload_path(upload_id, filename)
-    copyfile(source, destination)
-    return UploadResponse(upload_id=upload_id, filename=filename, profile_url=f"/api/uploads/{upload_id}/profile")
+    record = register_upload_bytes(source.read_bytes(), filename)
+    upload_id = str(record["upload_id"])
+    return UploadResponse(
+        upload_id=upload_id,
+        filename=filename,
+        profile_url=f"/api/uploads/{upload_id}/profile",
+        content_hash=str(record["content_hash"]),
+        storage_path=str(record["stored_path"]),
+        reused_existing=bool(record["reused_existing"]),
+        uploaded_at=str(record["uploaded_at"]),
+    )
 
 
 @router.get("/uploads/{upload_id}/profile", response_model=CsvProfile)

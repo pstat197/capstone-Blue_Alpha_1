@@ -554,38 +554,44 @@ def _resolve_roi_baseline_from_grid(
 
     baseline_mu_cfg = baseline_cfg.get("roi_mu")
     if baseline_mu_cfg is None:
-        baseline_mu = float(roi_mu_values[0])
-    else:
-        baseline_mu = round(float(baseline_mu_cfg), 6)
-        if not _contains_close(roi_mu_values, baseline_mu):
-            raise ValueError(
-                "Configured baseline.roi_mu is not in the active mu grid. "
-                f"baseline.roi_mu={baseline_mu}, active mu grid={roi_mu_values}"
-            )
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_mu. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    baseline_mu = round(float(baseline_mu_cfg), 6)
+    if not _contains_close(roi_mu_values, baseline_mu):
+        raise ValueError(
+            "Configured baseline.roi_mu is not in the active mu grid. "
+            f"baseline.roi_mu={baseline_mu}, active mu grid={roi_mu_values}"
+        )
 
     baseline_sigma_cfg = baseline_cfg.get("roi_sigma")
     if baseline_sigma_cfg is None:
-        baseline_sigma = float(roi_sigma_values[0])
-    else:
-        baseline_sigma = round(float(baseline_sigma_cfg), 6)
-        if not _contains_close(roi_sigma_values, baseline_sigma):
-            raise ValueError(
-                "Configured baseline.roi_sigma is not in the active sigma grid. "
-                f"baseline.roi_sigma={baseline_sigma}, active sigma grid={roi_sigma_values}"
-            )
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_sigma. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    baseline_sigma = round(float(baseline_sigma_cfg), 6)
+    if not _contains_close(roi_sigma_values, baseline_sigma):
+        raise ValueError(
+            "Configured baseline.roi_sigma is not in the active sigma grid. "
+            f"baseline.roi_sigma={baseline_sigma}, active sigma grid={roi_sigma_values}"
+        )
 
     baseline_dist_cfg = baseline_cfg.get("roi_dist")
     if baseline_dist_cfg is None:
-        baseline_dist = str(roi_dist_values[0])
-    else:
-        wanted = str(baseline_dist_cfg).strip().lower()
-        mapped = {str(d).strip().lower(): str(d) for d in roi_dist_values}
-        if wanted not in mapped:
-            raise ValueError(
-                "Configured baseline.roi_dist is not in the active dist grid. "
-                f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={roi_dist_values}"
-            )
-        baseline_dist = mapped[wanted]
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_dist. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    wanted = str(baseline_dist_cfg).strip().lower()
+    mapped = {str(d).strip().lower(): str(d) for d in roi_dist_values}
+    if wanted not in mapped:
+        raise ValueError(
+            "Configured baseline.roi_dist is not in the active dist grid. "
+            f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={roi_dist_values}"
+        )
+    baseline_dist = mapped[wanted]
 
     return round(float(baseline_mu), 6), round(float(baseline_sigma), 6), str(baseline_dist)
 
@@ -849,7 +855,10 @@ def main():
     if has_global_baseline:
         print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
     else:
-        print("Baseline (effective) = inferred at summarize stage (no explicit global ROI baseline for this mode)")
+        raise ValueError(
+            "Explicit baseline metadata is required. No configured ROI baseline could be resolved. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
     if prior_grid_scope == "baseline_only":
         print("Structural sensitivity Stage 1 = baseline prior only")
 
