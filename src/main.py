@@ -49,6 +49,21 @@ class ExperimentConfig:
     roi_sigma_values: List[float]
     roi_dist_values: List[str]
 
+
+def _resolve_column_name(df: pd.DataFrame, preferred: str, alternatives: list[str] | None = None) -> str | None:
+    candidates = [preferred, *(alternatives or [])]
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+
+    by_lower = {str(column).lower(): str(column) for column in df.columns}
+    for candidate in candidates:
+        resolved = by_lower.get(str(candidate).lower())
+        if resolved:
+            return resolved
+    return None
+
+
 def build_experiment_config(
     channels: List[str],
     roi_mu_values: List[float],
@@ -76,8 +91,15 @@ def build_experiment_config(
         output_file = os.path.join(output_dir, output_file)
 
     df = pd.read_csv(data_csv)
-    spend_cols = [f"{ch}{spend_suffix}" for ch in channels]
-    missing = [c for c in spend_cols if c not in df.columns]
+    spend_cols: list[str] = []
+    missing: list[str] = []
+    for ch in channels:
+        expected = f"{ch}{spend_suffix}"
+        resolved = _resolve_column_name(df, expected)
+        if resolved is None:
+            missing.append(expected)
+        else:
+            spend_cols.append(resolved)
     if missing:
         raise KeyError(
             "Missing spend columns in CSV: "
@@ -132,10 +154,11 @@ def _load_dataset_context(data_csv: str, channels: list[str], kpi_col: str) -> d
     missing_spend_cols: list[str] = []
     for ch in channels:
         spend_col = f"{ch}_spend"
-        if spend_col not in df.columns:
+        resolved_spend_col = _resolve_column_name(df, spend_col)
+        if resolved_spend_col is None:
             missing_spend_cols.append(spend_col)
             continue
-        spend_by_channel[ch] = float(pd.to_numeric(df[spend_col], errors="coerce").fillna(0).sum())
+        spend_by_channel[ch] = float(pd.to_numeric(df[resolved_spend_col], errors="coerce").fillna(0).sum())
     if missing_spend_cols:
         raise ValueError(
             "Missing spend columns in dataset: "
@@ -159,6 +182,12 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
     revenue_per_kpi = _as_optional_float(outcome_cfg.get("revenue_per_kpi"))
     if revenue_per_kpi is not None and revenue_per_kpi <= 0:
         raise ValueError("outcome.revenue_per_kpi must be > 0 when provided.")
+    revenue_per_kpi_col_raw = outcome_cfg.get("revenue_per_kpi_col")
+    revenue_per_kpi_col = (
+        str(revenue_per_kpi_col_raw).strip()
+        if revenue_per_kpi_col_raw not in (None, "", "null", "none")
+        else None
+    )
 
     rpk_values_raw = outcome_cfg.get("revenue_per_kpi_values")
     revenue_per_kpi_values: list[float] = []
@@ -179,7 +208,7 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
     revenue_per_kpi_values = sorted(set(revenue_per_kpi_values))
 
     if raw_kpi_type == "auto":
-        if revenue_per_kpi is not None or revenue_per_kpi_values:
+        if revenue_per_kpi is not None or revenue_per_kpi_values or revenue_per_kpi_col:
             kpi_type = "non_revenue"
         else:
             kpi_type = _infer_kpi_type_from_name(kpi_col)
@@ -192,6 +221,8 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
         scenarios = revenue_per_kpi_values
     elif revenue_per_kpi is not None:
         scenarios = [round(revenue_per_kpi, 6)]
+    elif revenue_per_kpi_col:
+        scenarios = [None]
     else:
         scenarios = [None]
 
@@ -199,25 +230,38 @@ def _resolve_outcome_plan(run_cfg: dict, model_cfg: dict) -> dict:
         "kpi_col": kpi_col,
         "kpi_type": kpi_type,
         "revenue_per_kpi": None if revenue_per_kpi is None else round(revenue_per_kpi, 6),
+        "revenue_per_kpi_col": revenue_per_kpi_col,
         "revenue_per_kpi_values": scenarios,
     }
 
 
-def _resolve_effective_prior_mode(run_cfg: dict, *, kpi_type: str, revenue_per_kpi: float | None) -> str:
+def _resolve_effective_prior_mode(
+    run_cfg: dict,
+    *,
+    kpi_type: str,
+    revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None = None,
+) -> str:
     mode = str(run_cfg.get("prior_mode", "auto")).strip().lower()
     if mode == CONTRIBUTION_PRIOR_MODE:
         raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only; contribution prior mode is not supported.")
     if mode not in {"auto", "roi"}:
         raise ValueError("prior_mode must be one of: auto, roi.")
-    if kpi_type == "non_revenue" and revenue_per_kpi is None:
+    if kpi_type == "non_revenue" and revenue_per_kpi is None and not revenue_per_kpi_col:
         raise ValueError(ROI_PRIOR_POLICY_ERROR)
     return "roi"
 
 
-def _resolve_prior_label(*, effective_prior_mode: str, kpi_type: str, revenue_per_kpi: float | None) -> str:
+def _resolve_prior_label(
+    *,
+    effective_prior_mode: str,
+    kpi_type: str,
+    revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None = None,
+) -> str:
     if effective_prior_mode != "roi":
         raise ValueError("This one-channel prior sensitivity workflow is ROI-prior only.")
-    if revenue_per_kpi is not None:
+    if revenue_per_kpi is not None or revenue_per_kpi_col:
         return "Revenue-equivalent ROI"
     return "ROI"
 
@@ -233,17 +277,35 @@ def _roi_grid_from_config(run_cfg: dict) -> dict:
     return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
 
 
+def _roi_grid_for_target(run_cfg: dict, target_channel: str) -> dict | None:
+    channel_grids = (run_cfg.get("active_prior_grids", {}) or {}).get("roi_by_channel", {}) or {}
+    channel_grid = channel_grids.get(target_channel)
+    if not isinstance(channel_grid, dict):
+        return _roi_grid_from_config(run_cfg)
+    if not channel_grid.get("enabled", True):
+        return None
+
+    mu_vals = [round(float(v), 6) for v in channel_grid.get("roi_mu_values", [])]
+    sigma_vals = [round(float(v), 6) for v in channel_grid.get("roi_sigma_values", [])]
+    dist_vals = [str(v) for v in channel_grid.get("roi_dist_values", [])]
+    if not mu_vals or not sigma_vals or not dist_vals:
+        raise ValueError(f"ROI prior grid is incomplete for target channel '{target_channel}'.")
+    return {"mu": mu_vals, "sigma": sigma_vals, "dist": dist_vals}
+
+
 def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: list[dict]) -> list[dict]:
     if not prior_run_points:
         return []
 
-    roi_grid = _roi_grid_from_config(run_cfg)
-    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-    )
-
     filtered: list[dict] = []
     for point in prior_run_points:
+        target_channel = str(point.get("target_channel") or "")
+        roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+        if roi_grid is None:
+            continue
+        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+        )
         if (
             abs(float(point["roi_mu_display"]) - baseline_mu) <= 1e-9
             and abs(float(point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
@@ -254,21 +316,6 @@ def _filter_prior_run_points_to_baseline_only(run_cfg: dict, prior_run_points: l
     if not filtered:
         raise ValueError("No baseline prior run point matched the active baseline settings.")
     return filtered
-
-
-def _is_baseline_prior_point(run_cfg: dict, prior_point: dict) -> bool:
-    mode = str(prior_point.get("effective_prior_mode", "") or "").strip().lower()
-    if mode != "roi":
-        return False
-    roi_grid = _roi_grid_from_config(run_cfg)
-    baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-        roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
-    )
-    return (
-        abs(float(prior_point["roi_mu_display"]) - baseline_mu) <= 1e-9
-        and abs(float(prior_point["roi_sigma_display"]) - baseline_sigma) <= 1e-9
-        and str(prior_point["roi_dist_display"]) == str(baseline_dist)
-    )
 
 
 def _build_structural_run_points(structural_grids: dict[str, list], structural_grid_scope: str) -> tuple[list[dict], dict]:
@@ -384,17 +431,21 @@ def _build_prior_run_points(
             run_cfg,
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
+            revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
         )
         prior_label = _resolve_prior_label(
             effective_prior_mode=effective_prior_mode,
             kpi_type=outcome_plan["kpi_type"],
             revenue_per_kpi=revenue_per_kpi,
-        )
-        roi_grid = _roi_grid_from_config(run_cfg)
-        baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
-            roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+            revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
         )
         for target_channel in targets:
+            roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+            if roi_grid is None:
+                continue
+            baseline_mu, baseline_sigma, baseline_dist = _resolve_roi_baseline_from_grid(
+                roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"], run_cfg
+            )
             for mu, sigma, dist in product(roi_grid["mu"], roi_grid["sigma"], roi_grid["dist"]):
                 roi_overrides = {
                     ch: {
@@ -416,16 +467,21 @@ def _build_prior_run_points(
                         "prior_grid_type": "roi",
                         "prior_design_label": prior_label,
                         "revenue_per_kpi": revenue_per_kpi,
+                        "revenue_per_kpi_col": outcome_plan.get("revenue_per_kpi_col"),
                         "kpi_type": outcome_plan["kpi_type"],
                         "kpi_type_effective": "revenue"
-                        if (outcome_plan["kpi_type"] == "revenue" or revenue_per_kpi is not None)
+                        if (
+                            outcome_plan["kpi_type"] == "revenue"
+                            or revenue_per_kpi is not None
+                            or outcome_plan.get("revenue_per_kpi_col")
+                        )
                         else "non_revenue",
                         "roi_mu_display": float(mu),
                         "roi_sigma_display": float(sigma),
                         "roi_dist_display": str(dist),
                         "roi_overrides": roi_overrides,
                         "scope_suffix": (
-                            f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else 'none'}|"
+                            f"pmode=roi|rpk={revenue_per_kpi if revenue_per_kpi is not None else outcome_plan.get('revenue_per_kpi_col') or 'none'}|"
                             f"target={target_channel}|mu={float(mu):.6f}|sigma={float(sigma):.6f}|dist={str(dist)}"
                         ),
                     }
@@ -498,38 +554,44 @@ def _resolve_roi_baseline_from_grid(
 
     baseline_mu_cfg = baseline_cfg.get("roi_mu")
     if baseline_mu_cfg is None:
-        baseline_mu = float(roi_mu_values[0])
-    else:
-        baseline_mu = round(float(baseline_mu_cfg), 6)
-        if not _contains_close(roi_mu_values, baseline_mu):
-            raise ValueError(
-                "Configured baseline.roi_mu is not in the active mu grid. "
-                f"baseline.roi_mu={baseline_mu}, active mu grid={roi_mu_values}"
-            )
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_mu. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    baseline_mu = round(float(baseline_mu_cfg), 6)
+    if not _contains_close(roi_mu_values, baseline_mu):
+        raise ValueError(
+            "Configured baseline.roi_mu is not in the active mu grid. "
+            f"baseline.roi_mu={baseline_mu}, active mu grid={roi_mu_values}"
+        )
 
     baseline_sigma_cfg = baseline_cfg.get("roi_sigma")
     if baseline_sigma_cfg is None:
-        baseline_sigma = float(roi_sigma_values[0])
-    else:
-        baseline_sigma = round(float(baseline_sigma_cfg), 6)
-        if not _contains_close(roi_sigma_values, baseline_sigma):
-            raise ValueError(
-                "Configured baseline.roi_sigma is not in the active sigma grid. "
-                f"baseline.roi_sigma={baseline_sigma}, active sigma grid={roi_sigma_values}"
-            )
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_sigma. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    baseline_sigma = round(float(baseline_sigma_cfg), 6)
+    if not _contains_close(roi_sigma_values, baseline_sigma):
+        raise ValueError(
+            "Configured baseline.roi_sigma is not in the active sigma grid. "
+            f"baseline.roi_sigma={baseline_sigma}, active sigma grid={roi_sigma_values}"
+        )
 
     baseline_dist_cfg = baseline_cfg.get("roi_dist")
     if baseline_dist_cfg is None:
-        baseline_dist = str(roi_dist_values[0])
-    else:
-        wanted = str(baseline_dist_cfg).strip().lower()
-        mapped = {str(d).strip().lower(): str(d) for d in roi_dist_values}
-        if wanted not in mapped:
-            raise ValueError(
-                "Configured baseline.roi_dist is not in the active dist grid. "
-                f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={roi_dist_values}"
-            )
-        baseline_dist = mapped[wanted]
+        raise ValueError(
+            "Explicit baseline metadata is required. Missing config field baseline.roi_dist. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
+    wanted = str(baseline_dist_cfg).strip().lower()
+    mapped = {str(d).strip().lower(): str(d) for d in roi_dist_values}
+    if wanted not in mapped:
+        raise ValueError(
+            "Configured baseline.roi_dist is not in the active dist grid. "
+            f"baseline.roi_dist={baseline_dist_cfg}, active dist grid={roi_dist_values}"
+        )
+    baseline_dist = mapped[wanted]
 
     return round(float(baseline_mu), 6), round(float(baseline_sigma), 6), str(baseline_dist)
 
@@ -565,6 +627,14 @@ def _resolve_data_tag(*, data_csv: str, geo_col: str | None, explicit_data_tag: 
     if geo_col:
         return _sanitize_tag_token(Path(data_csv).stem)
     return None
+
+
+def _resolve_output_tag(run_cfg: dict, fallback_tag: str) -> str:
+    output_cfg = run_cfg.get("output", {}) or {}
+    explicit_tag = output_cfg.get("tag")
+    if explicit_tag is None or str(explicit_tag).strip().lower() in {"", "null", "none"}:
+        return fallback_tag
+    return _sanitize_tag_token(str(explicit_tag))
 
 
 def _resolve_runner_python(project_root: str) -> str:
@@ -693,7 +763,8 @@ def main():
     targets = sorted(str(x) for x in targets)
     targets_tag = "_".join(targets)
     data_tag = _resolve_data_tag(data_csv=data_csv, geo_col=geo_col, explicit_data_tag=explicit_data_tag)
-    output_tag = f"{targets_tag}__{data_tag}" if data_tag else targets_tag
+    default_output_tag = f"{targets_tag}__{data_tag}" if data_tag else targets_tag
+    output_tag = _resolve_output_tag(run_cfg, default_output_tag)
     targets_str = ",".join(targets)
 
     run_output_file = str(run_csv_path(output_tag, RUNS_DIR))
@@ -735,7 +806,8 @@ def main():
     print(
         "Outcome mode:",
         f"kpi_col={kpi_col}; kpi_type={outcome_plan['kpi_type']}; "
-        f"revenue_per_kpi_values={outcome_plan['revenue_per_kpi_values']}",
+        f"revenue_per_kpi_values={outcome_plan['revenue_per_kpi_values']}; "
+        f"revenue_per_kpi_col={outcome_plan.get('revenue_per_kpi_col') or 'none'}",
     )
     print("Input data CSV =", data_csv)
     print("Run output file =", run_output_file)
@@ -764,6 +836,7 @@ def main():
         run_cfg,
         kpi_type=outcome_plan["kpi_type"],
         revenue_per_kpi=baseline_revenue_per_kpi,
+        revenue_per_kpi_col=outcome_plan.get("revenue_per_kpi_col"),
     )
     if baseline_prior_mode == "roi":
         roi_grid_cfg = _roi_grid_from_config(run_cfg)
@@ -779,22 +852,13 @@ def main():
         baseline_mu, baseline_sigma, baseline_dist = _resolve_baseline_from_config(roi_cfg, run_cfg)
         has_global_baseline = all(v is not None for v in [baseline_mu, baseline_sigma, baseline_dist])
 
-    official_outdir = os.path.join(
-        project_root,
-        "data",
-        "output",
-        "03_reports",
-        "report",
-        output_tag,
-        "figures",
-        "meridian_official",
-    )
-    official_manifest = os.path.join(official_outdir, "manifest.json")
-    official_export_done = os.path.exists(official_manifest)
     if has_global_baseline:
         print(f"Baseline (effective) = mu={baseline_mu}, sigma={baseline_sigma}, dist={baseline_dist}")
     else:
-        print("Baseline (effective) = inferred at summarize stage (no explicit global ROI baseline for this mode)")
+        raise ValueError(
+            "Explicit baseline metadata is required. No configured ROI baseline could be resolved. "
+            "Please regenerate the run/report with an explicit setup-confirmed baseline."
+        )
     if prior_grid_scope == "baseline_only":
         print("Structural sensitivity Stage 1 = baseline prior only")
 
@@ -817,6 +881,15 @@ def main():
         sigma = round(float(prior_point["roi_sigma_display"]), 6)
         dist = str(prior_point["roi_dist_display"])
         target_channel = str(prior_point.get("target_channel") or targets[0])
+        point_roi_grid = _roi_grid_for_target(run_cfg, target_channel)
+        if point_roi_grid is None:
+            continue
+        point_baseline_mu, point_baseline_sigma, point_baseline_dist = _resolve_roi_baseline_from_grid(
+            point_roi_grid["mu"],
+            point_roi_grid["sigma"],
+            point_roi_grid["dist"],
+            run_cfg,
+        )
         alpha_m = structural_point["alpha_m"]
         alpha_m = None if alpha_m is None else round(float(alpha_m), 6)
         ec_m = structural_point["ec_m"]
@@ -900,6 +973,8 @@ def main():
             str(prior_point["kpi_type"]),
             "--revenue_per_kpi",
             str(prior_point["revenue_per_kpi"]) if prior_point["revenue_per_kpi"] is not None else "",
+            "--revenue_per_kpi_col",
+            str(prior_point.get("revenue_per_kpi_col") or ""),
             "--time_col",
             time_col,
             "--channels_json",
@@ -964,41 +1039,18 @@ def main():
             idx = cmd.index("--revenue_per_kpi")
             del cmd[idx : idx + 2]
         if has_global_baseline:
-            cmd.extend(["--baseline_mu", str(baseline_mu), "--baseline_sigma", str(baseline_sigma), "--baseline_dist", str(baseline_dist)])
+            cmd.extend([
+                "--baseline_mu",
+                str(point_baseline_mu),
+                "--baseline_sigma",
+                str(point_baseline_sigma),
+                "--baseline_dist",
+                str(point_baseline_dist),
+            ])
         if geo_col:
             cmd.extend(["--geo_col", geo_col])
         if population_col:
             cmd.extend(["--population_col", population_col])
-
-        is_baseline_grid_point = (
-            _is_baseline_prior_point(run_cfg, prior_point)
-            and (
-                (alpha_m is None and baseline_structural["alpha_m"] is None)
-                or (
-                    alpha_m is not None
-                    and baseline_structural["alpha_m"] is not None
-                    and abs(float(alpha_m) - float(baseline_structural["alpha_m"])) <= 1e-9
-                )
-            )
-            and (
-                (ec_m is None and baseline_structural["ec_m"] is None)
-                or (
-                    ec_m is not None
-                    and baseline_structural["ec_m"] is not None
-                    and abs(float(ec_m) - float(baseline_structural["ec_m"])) <= 1e-9
-                )
-            )
-            and abs(float(slope_m) - float(baseline_structural["slope_m"])) <= 1e-9
-            and int(max_lag) == int(baseline_structural["max_lag"])
-            and str(adstock_decay) == str(baseline_structural["adstock_decay_spec"])
-        )
-        if is_baseline_grid_point and not official_export_done:
-            cmd.extend([
-                "--official_outdir",
-                official_outdir,
-                "--official_time_granularity",
-                "quarterly",
-            ])
 
         pending_jobs.append(
             {
@@ -1010,7 +1062,6 @@ def main():
                 "target_channel": target_channel,
                 "tmp_run_out": tmp_run_out,
                 "tmp_roi_out": tmp_roi_out,
-                "is_baseline_grid_point": is_baseline_grid_point,
                 "cmd": cmd,
                 "mu": mu,
                 "sigma": sigma,
@@ -1027,7 +1078,7 @@ def main():
         print(f"Executing {pending_total} run(s) with parallel_workers={parallel_workers}...")
 
     def _finalize_completed_job(job: dict, result: dict, completed_idx: int) -> None:
-        nonlocal executed_runs, official_export_done
+        nonlocal executed_runs
         if result["returncode"] != 0:
             print("\n--- Subprocess STDOUT ---\n", result["stdout"])
             print("\n--- Subprocess STDERR ---\n", result["stderr"])
@@ -1064,9 +1115,6 @@ def main():
             os.remove(job["tmp_run_out"])
         if os.path.exists(job["tmp_roi_out"]):
             os.remove(job["tmp_roi_out"])
-        if job["is_baseline_grid_point"]:
-            official_export_done = True
-
         elapsed_sec = round(time.time() - float(job["t0"]), 2)
         executed_runs += 1
         print(

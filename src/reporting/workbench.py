@@ -177,6 +177,10 @@ def _build_run_level_table(
     work["roi_prior_mu"] = pd.to_numeric(_col_series(work, "roi_prior_mu"), errors="coerce")
     work["roi_prior_sigma"] = pd.to_numeric(_col_series(work, "roi_prior_sigma"), errors="coerce")
     work["is_baseline"] = _col_series(work, "is_baseline", False).astype(str).str.lower().isin({"true", "1", "yes"})
+    baseline_mask = work["is_baseline"].astype(bool)
+    work.loc[baseline_mask & work["pct_change"].isna(), "pct_change"] = 0.0
+    work.loc[baseline_mask & work["delta_abs"].isna(), "delta_abs"] = 0.0
+    work.loc[baseline_mask & work["delta_pct"].isna(), "delta_pct"] = 0.0
 
     if contribution_col is not None:
         work["contribution_value"] = pd.to_numeric(work[contribution_col], errors="coerce")
@@ -483,6 +487,29 @@ def build_workbench_artifacts(
     if default_channel is None and available_channels_sorted:
         default_channel = available_channels_sorted[0]
 
+    baseline_rows = run_level_df.loc[run_level_df.get("is_baseline", pd.Series(dtype=bool)).astype(bool)].copy()
+    explicit_baseline = None
+    if not baseline_rows.empty:
+        baseline_mu_values = _sorted_numeric(baseline_rows["roi_prior_mu"])
+        baseline_sigma_values = _sorted_numeric(baseline_rows["roi_prior_sigma"])
+        baseline_dist_values = sorted(
+            baseline_rows.get("roi_prior_dist", pd.Series(dtype=object)).dropna().astype(str).str.strip().unique().tolist()
+        )
+        if len(baseline_mu_values) == 1 and len(baseline_sigma_values) == 1 and len(baseline_dist_values) == 1:
+            mu_values = _sorted_numeric(run_level_df.get("roi_prior_mu", pd.Series(dtype=float)))
+            sigma_values = _sorted_numeric(run_level_df.get("roi_prior_sigma", pd.Series(dtype=float)))
+            explicit_baseline = {
+                "mu": float(baseline_mu_values[0]),
+                "sigma": float(baseline_sigma_values[0]),
+                "dist": baseline_dist_values[0],
+                "source": "is_baseline",
+                "mu_index": mu_values.index(float(baseline_mu_values[0])) if float(baseline_mu_values[0]) in mu_values else 0,
+                "sigma_index": sigma_values.index(float(baseline_sigma_values[0])) if float(baseline_sigma_values[0]) in sigma_values else 0,
+            }
+
+    mu_values = _sorted_numeric(run_level_df.get("roi_prior_mu", pd.Series(dtype=float)))
+    sigma_values = _sorted_numeric(run_level_df.get("roi_prior_sigma", pd.Series(dtype=float)))
+
     return {
         "available": True,
         "dist_config": dist_cfg,
@@ -491,8 +518,9 @@ def build_workbench_artifacts(
         "contribution_delta_col": contribution_delta_col,
         "default_channel": default_channel,
         "available_channels": available_channels_sorted,
-        "mu_values": _sorted_numeric(run_level_df.get("roi_prior_mu", pd.Series(dtype=float))),
-        "sigma_values": _sorted_numeric(run_level_df.get("roi_prior_sigma", pd.Series(dtype=float))),
+        "mu_values": mu_values,
+        "sigma_values": sigma_values,
+        "explicit_baseline": explicit_baseline,
         "run_level_df": run_level_df,
         "channel_summary_df": channel_summary_df,
         "mu_marginal_df": mu_marginal_df,

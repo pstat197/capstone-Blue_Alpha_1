@@ -2,7 +2,6 @@
 import argparse
 import faulthandler
 import gc
-from html import escape
 import json
 import os
 import re
@@ -42,7 +41,6 @@ def _workspace_user_cache_dir(
 platformdirs.user_cache_dir = _workspace_user_cache_dir
 
 from meridian.analysis.review import reviewer
-from meridian.analysis import visualizer as meridian_visualizer
 from meridian.data import data_frame_input_data_builder
 from meridian.model import model, prior_distribution, spec
 import tensorflow_probability as tfp
@@ -70,6 +68,20 @@ def _configure_tensorflow_runtime() -> None:
 BASE_ROI_MU = 0.4
 BASE_ROI_SIGMA = 0.5
 _ALLOWED_DECAYS = {"geometric", "binomial"}
+
+
+def _resolve_column_name(df: pd.DataFrame, preferred: str, alternatives: list[str] | None = None) -> str | None:
+    candidates = [preferred, *(alternatives or [])]
+    for candidate in candidates:
+        if candidate in df.columns:
+            return candidate
+
+    by_lower = {str(column).lower(): str(column) for column in df.columns}
+    for candidate in candidates:
+        resolved = by_lower.get(str(candidate).lower())
+        if resolved:
+            return resolved
+    return None
 
 
 def _natural_to_lognormal_params(mu_vec: np.ndarray, sigma_vec: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -529,6 +541,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--kpi_col", default="subscriptions")
     parser.add_argument("--kpi_type", default="non_revenue", choices=["revenue", "non_revenue"])
     parser.add_argument("--revenue_per_kpi", type=float, default=None)
+    parser.add_argument("--revenue_per_kpi_col", default=None)
     parser.add_argument("--time_col", default="date")
     parser.add_argument("--geo_col", default=None)
     parser.add_argument("--population_col", default=None)
@@ -571,22 +584,6 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--gate_missing_count", type=int, default=None)
     parser.add_argument("--gate_warning", default=None)
     parser.add_argument("--data_tag", default=None)
-    parser.add_argument(
-        "--official_outdir",
-        default=None,
-        help="If provided, export Meridian official HTML outputs (health card + standard charts) to this directory.",
-    )
-    parser.add_argument(
-        "--official_time_granularity",
-        default="quarterly",
-        choices=["weekly", "quarterly"],
-        help="Time granularity for contribution-over-time chart export.",
-    )
-    parser.add_argument(
-        "--official_use_kpi",
-        action="store_true",
-        help="Use KPI units for official Meridian summaries instead of revenue units.",
-    )
     return parser
 
 
@@ -634,6 +631,7 @@ def _load_input_data(
     kpi_col: str,
     kpi_type: str,
     revenue_per_kpi: float | None,
+    revenue_per_kpi_col: str | None,
     time_col: Optional[str],
     geo_col: Optional[str],
     population_col: Optional[str],
@@ -650,8 +648,15 @@ def _load_input_data(
     if df[kpi_col].isna().all():
         raise ValueError(f"KPI column '{kpi_col}' has no numeric values after parsing.")
 
-    spend_cols = [f"{c}_spend" for c in channels]
-    missing_spend = [c for c in spend_cols if c not in df.columns]
+    spend_cols = []
+    missing_spend = []
+    for c in channels:
+        expected_spend_col = f"{c}_spend"
+        resolved_spend_col = _resolve_column_name(df, expected_spend_col)
+        if resolved_spend_col is None:
+            missing_spend.append(expected_spend_col)
+        else:
+            spend_cols.append(resolved_spend_col)
     if missing_spend:
         raise ValueError(
             "Missing spend columns for configured channels: "
@@ -661,11 +666,11 @@ def _load_input_data(
 
     media_cols = []
     missing_impressions = []
-    for c in channels:
+    for c, spend_col in zip(channels, spend_cols):
         imp_col = f"{c}_impressions"
-        spend_col = f"{c}_spend"
-        if imp_col in df.columns:
-            media_cols.append(imp_col)
+        resolved_imp_col = _resolve_column_name(df, imp_col, [f"{c}_impression"])
+        if resolved_imp_col is not None:
+            media_cols.append(resolved_imp_col)
         else:
             media_cols.append(spend_col)
             missing_impressions.append(imp_col)
@@ -677,12 +682,24 @@ def _load_input_data(
     outcome_col_used = kpi_col
     kpi_type_effective = kpi_type_norm
     revenue_per_kpi_value = None if revenue_per_kpi is None else float(revenue_per_kpi)
+    revenue_per_kpi_col_value = str(revenue_per_kpi_col).strip() if revenue_per_kpi_col not in (None, "", "null", "none") else None
     if kpi_type_norm == "non_revenue" and revenue_per_kpi_value is not None:
         if revenue_per_kpi_value <= 0:
             raise ValueError("revenue_per_kpi must be > 0 when provided.")
         outcome_col_used = "__revenue_equiv__"
         df[outcome_col_used] = pd.to_numeric(df[kpi_col], errors="coerce") * revenue_per_kpi_value
         kpi_type_effective = "revenue"
+    elif kpi_type_norm == "non_revenue" and revenue_per_kpi_col_value is not None:
+        resolved_rpk_col = _resolve_column_name(df, revenue_per_kpi_col_value)
+        if resolved_rpk_col is None:
+            raise ValueError(f"Revenue-per-KPI column '{revenue_per_kpi_col_value}' is not present in input CSV: {csv_path}")
+        rpk_series = pd.to_numeric(df[resolved_rpk_col], errors="coerce")
+        if rpk_series.isna().all() or (rpk_series <= 0).all():
+            raise ValueError(f"Revenue-per-KPI column '{revenue_per_kpi_col_value}' has no positive numeric values after parsing.")
+        outcome_col_used = "__revenue_equiv__"
+        df[outcome_col_used] = pd.to_numeric(df[kpi_col], errors="coerce") * rpk_series
+        kpi_type_effective = "revenue"
+        revenue_per_kpi_col_value = resolved_rpk_col
 
     builder = data_frame_input_data_builder.DataFrameInputDataBuilder(
         kpi_type=kpi_type_effective,
@@ -722,6 +739,7 @@ def _load_input_data(
         "kpi_type_effective": kpi_type_effective,
         "outcome_col_used": outcome_col_used,
         "revenue_per_kpi": revenue_per_kpi_value,
+        "revenue_per_kpi_col": revenue_per_kpi_col_value,
         "input_data_csv": str(Path(csv_path).resolve()),
         "media_impressions_fallback_count": int(len(missing_impressions)),
     }
@@ -782,203 +800,6 @@ def _round_or_none(v):
     return None if v is None else round(float(v), 6)
 
 
-def _compute_review_health_score(review_summary) -> tuple[float, str]:
-    status = str(getattr(getattr(review_summary, "overall_status", None), "name", "UNKNOWN"))
-    status_to_score = {"PASS": 1.0, "REVIEW": 0.6, "FAIL": 0.0}
-    parts = []
-    for r in list(getattr(review_summary, "results", []) or []):
-        check_status = str(getattr(getattr(getattr(r, "case", None), "status", None), "name", "UNKNOWN"))
-        parts.append(status_to_score.get(check_status, 0.5))
-    if parts:
-        score = round(float(np.mean(parts) * 100.0), 1)
-    else:
-        score = round(float(status_to_score.get(status, 0.5) * 100.0), 1)
-    score = max(0.0, min(100.0, score))
-    return score, status
-
-
-def _build_health_card_data(review_summary) -> dict:
-    health_score, status = _compute_review_health_score(review_summary)
-    summary_message = str(getattr(review_summary, "summary_message", "No summary available."))
-    rows = []
-    for r in list(getattr(review_summary, "results", []) or []):
-        cls_name = r.__class__.__name__
-        title = cls_name[:-11] if cls_name.endswith("CheckResult") else cls_name
-        check_status = str(getattr(getattr(getattr(r, "case", None), "status", None), "name", "UNKNOWN"))
-        rec = getattr(r, "recommendation", None)
-        rec_txt = str(rec) if rec else "No recommendation."
-        rows.append({
-            "check": str(title),
-            "status": str(check_status),
-            "recommendation": str(rec_txt),
-        })
-    return {
-        "title": "Model Health Card",
-        "score_label": "Model health score",
-        "score": float(health_score),
-        "overall_status": str(status),
-        "summary": str(summary_message),
-        "rows": rows,
-    }
-
-
-def _write_fallback_health_card_html(review_summary, out_path: Path) -> None:
-    card = _build_health_card_data(review_summary)
-    health_score = float(card["score"])
-    status = str(card["overall_status"])
-    summary_message = str(card["summary"])
-
-    row_html = "".join(
-        f"<tr><td>{escape(str(row.get('check', '')))}</td><td>{escape(str(row.get('status', '')))}</td><td>{escape(str(row.get('recommendation', '')))}</td></tr>"
-        for row in list(card.get("rows", []) or [])
-    ) or "<tr><td colspan='3'>No check rows available.</td></tr>"
-
-    html = f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Model Health Card</title>
-  <style>
-    body{{font-family:Arial,Helvetica,sans-serif;margin:16px;color:#173a66;background:#fff;}}
-    .card{{border:1px solid #d7e4f5;border-radius:12px;padding:14px;background:#f9fcff;}}
-    .chip{{display:inline-block;padding:4px 10px;border-radius:999px;border:1px solid #b8cbe6;font-weight:700;}}
-    .layout{{display:grid;grid-template-columns:minmax(280px, 360px) 1fr;gap:24px;align-items:start;}}
-    .score-wrap{{display:flex;align-items:center;gap:20px;margin:8px 0 12px;}}
-    .score-ring{{width:130px;height:130px;border-radius:50%;
-      background:conic-gradient(#6ea4ff {health_score}%, #dbe8ff 0);
-      position:relative;flex:0 0 130px;}}
-    .score-ring::after{{content:'';position:absolute;inset:14px;border-radius:50%;background:#f9fcff;}}
-    .score-value{{font-size:56px;line-height:1;font-weight:700;color:#173a66;}}
-    .score-label{{font-size:28px;line-height:1.2;font-weight:700;color:#173a66;}}
-    table{{width:100%;border-collapse:collapse;margin-top:0;}}
-    th,td{{border-bottom:1px solid #e4ecf8;padding:8px 6px;text-align:left;font-size:13px;vertical-align:top;}}
-    th{{color:#355a86;font-weight:700;}}
-    .muted{{color:#5a7396;font-size:13px;margin-top:8px;}}
-    .left h2{{margin:0 0 8px;}}
-    .right{{padding-top:4px;}}
-    body.embedded{{margin:0;padding:0;background:transparent;}}
-    body.embedded .card{{border:0;border-radius:0;padding:0;background:transparent;box-shadow:none;}}
-    @media (max-width: 920px) {{
-      .layout{{grid-template-columns:1fr;gap:14px;}}
-      .right{{padding-top:0;}}
-    }}
-  </style>
-</head>
-<body>
-  <div class="card">
-    <div class="layout">
-      <div class="left">
-        <h2>Model Health Card</h2>
-        <div class="score-label">Model health score</div>
-        <div class="score-wrap">
-          <div class="score-ring" aria-label="Model health score ring"></div>
-          <div class="score-value">{health_score:.1f}</div>
-        </div>
-        <div class="chip">Overall: {escape(status)}</div>
-        <p class="muted">{escape(summary_message)}</p>
-      </div>
-      <div class="right">
-        <table>
-          <thead><tr><th>Check</th><th>Status</th><th>Recommendation</th></tr></thead>
-          <tbody>{row_html}</tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  <script>
-    (function () {{
-      try {{
-        if (window.self !== window.top) {{
-          document.body.classList.add("embedded");
-        }}
-      }} catch (_) {{}}
-    }})();
-  </script>
-</body>
-</html>"""
-    out_path.write_text(html, encoding="utf-8")
-
-
-def _export_meridian_official_outputs(
-    mmm,
-    review_summary,
-    outdir: Path,
-    *,
-    time_granularity: str = "quarterly",
-    use_kpi: bool = False,
-) -> None:
-    outdir = Path(outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
-
-    files = {}
-    chart_specs = {}
-    errors = []
-    health_card_data = _build_health_card_data(review_summary)
-    health_score_baseline = float(health_card_data["score"])
-    health_status_baseline = str(health_card_data["overall_status"])
-
-    prior_ready = False
-    try:
-        if hasattr(mmm, "sample_prior"):
-            try:
-                mmm.sample_prior()
-            except TypeError:
-                mmm.sample_prior(n_draws=1000)
-            prior_ready = True
-        else:
-            errors.append("sample_prior: Meridian model object does not expose sample_prior().")
-    except Exception as exc:
-        errors.append(f"sample_prior: {exc}")
-
-    if prior_ready:
-        try:
-            media_summary = meridian_visualizer.MediaSummary(mmm, use_kpi=use_kpi)
-            chart_jobs = [
-                ("spend_vs_contribution", "plot_spend_vs_contribution", {}, "spend_vs_contribution.html"),
-                ("roi_by_channel", "plot_roi_bar_chart", {"include_ci": True}, "roi_by_channel.html"),
-                ("roi_vs_mroi", "plot_roi_vs_mroi", {}, "roi_vs_mroi.html"),
-                ("roi_vs_effectiveness", "plot_roi_vs_effectiveness", {}, "roi_vs_effectiveness.html"),
-                ("contribution_waterfall", "plot_contribution_waterfall_chart", {}, "contribution_waterfall.html"),
-                (
-                    "contribution_over_time",
-                    "plot_channel_contribution_area_chart",
-                    {"time_granularity": str(time_granularity).strip().lower()},
-                    "contribution_over_time.html",
-                ),
-            ]
-            for key, fn_name, kwargs, filename in chart_jobs:
-                try:
-                    chart = getattr(media_summary, fn_name)(**kwargs)
-                    try:
-                        chart_specs[key] = chart.to_dict()
-                    except Exception as exc:
-                        errors.append(f"{key}_spec: {exc}")
-                    try:
-                        chart.save(str(outdir / filename))
-                        files[key] = filename
-                    except Exception as exc:
-                        errors.append(f"{key}_html: {exc}")
-                except Exception as exc:
-                    errors.append(f"{key}: {exc}")
-        except Exception as exc:
-            errors.append(f"media_summary_init: {exc}")
-    else:
-        errors.append("media_summary_init: skipped because sample_prior() was unavailable or failed.")
-
-    manifest = {
-        "files": files,
-        "chart_specs": chart_specs,
-        "errors": errors,
-        "health_score_baseline": health_score_baseline,
-        "health_status_baseline": health_status_baseline,
-        "health_card_data": health_card_data,
-        "time_granularity": str(time_granularity).strip().lower(),
-        "use_kpi": bool(use_kpi),
-    }
-    (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding="utf-8")
-
-
 def main():
     args = _build_parser().parse_args()
     _configure_tensorflow_runtime()
@@ -997,6 +818,7 @@ def main():
         kpi_col=str(args.kpi_col),
         kpi_type=str(args.kpi_type),
         revenue_per_kpi=args.revenue_per_kpi,
+        revenue_per_kpi_col=args.revenue_per_kpi_col,
         time_col=(None if args.time_col is None else str(args.time_col)),
         geo_col=(None if args.geo_col is None else str(args.geo_col)),
         population_col=(None if args.population_col is None else str(args.population_col)),
@@ -1024,18 +846,6 @@ def main():
         target_channels=qc_target_channels,
     )
     qc_rollup = derive_qc_rollup(qc_status, review_needed, check_details, qc_report_full)
-    if args.official_outdir:
-        try:
-            _export_meridian_official_outputs(
-                mmm,
-                qc,
-                Path(args.official_outdir),
-                time_granularity=args.official_time_granularity,
-                use_kpi=bool(args.official_use_kpi),
-            )
-        except Exception as exc:
-            print(f"[warn] Failed to export official Meridian outputs: {exc}")
-
     shared_mu = mode["shared_mu"]
     shared_sigma = mode["shared_sigma"]
     shared_dist = mode["shared_dist"]
@@ -1054,6 +864,7 @@ def main():
         "kpi_type_effective": str(data_profile.get("kpi_type_effective", args.kpi_type)),
         "outcome_col_used": str(data_profile.get("outcome_col_used", args.kpi_col)),
         "revenue_per_kpi": data_profile.get("revenue_per_kpi"),
+        "revenue_per_kpi_col": data_profile.get("revenue_per_kpi_col"),
         "target_channels": str(target_channels_value),
         "sweep_type": str(args.sweep_type),
         "two_layer_enabled": bool(two_layer_enabled),
@@ -1097,6 +908,7 @@ def main():
     for k, v in metadata.items():
         roi_df[k] = v
     roi_df = roi_df.merge(channel_prior_df, on="channel", how="left")
+    roi_df["is_target_channel"] = roi_df["channel"].astype(str) == roi_df["target_channel"].astype(str)
 
     roi_df["prior_posterior_kl_gaussian"] = _kl_gaussian_from_moments(
         post_mean=roi_df["estimated_roi"],
@@ -1128,9 +940,18 @@ def main():
 
     roi_df["prior_posterior_wasserstein"] = roi_df["channel"].map(w1_by_channel)
 
-    for col in ["roi_prior_mu", "roi_prior_sigma", "adstock_alpha_m", "saturation_ec_m", "saturation_slope_m", "max_lag"]:
+    for col in [
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "prior_roi_mu_channel",
+        "prior_roi_sigma_channel",
+        "adstock_alpha_m",
+        "saturation_ec_m",
+        "saturation_slope_m",
+        "max_lag",
+    ]:
         roi_df[col] = pd.to_numeric(roi_df[col], errors="coerce").round(6)
-    for col in ["roi_prior_dist", "adstock_decay_spec"]:
+    for col in ["roi_prior_dist", "prior_roi_dist_channel", "adstock_decay_spec"]:
         roi_df[col] = roi_df[col].astype(str)
 
     has_prior_baseline = all(v is not None for v in [args.baseline_mu, args.baseline_sigma, args.baseline_dist])
@@ -1159,11 +980,9 @@ def main():
     for k, v in qc_metrics.items():
         roi_df[k] = v
 
-    primary_target_channel = str(mode["targets_str"])
-    roi_df = roi_df[roi_df["channel"].astype(str) == primary_target_channel].copy()
-    if roi_df.empty:
+    if not roi_df["is_target_channel"].any():
         raise ValueError(
-            f"No ROI posterior row matched target_channel='{primary_target_channel}'. "
+            f"No ROI posterior row matched target_channel='{mode['targets_str']}'. "
             f"Available channels: {channels}"
         )
 
@@ -1202,6 +1021,7 @@ def main():
         "kpi_type_effective": metadata.get("kpi_type_effective"),
         "outcome_col_used": metadata.get("outcome_col_used"),
         "revenue_per_kpi": metadata.get("revenue_per_kpi"),
+        "revenue_per_kpi_col": metadata.get("revenue_per_kpi_col"),
         "target_channels": metadata.get("target_channels"),
         "sweep_type": metadata.get("sweep_type"),
         "two_layer_enabled": metadata.get("two_layer_enabled"),

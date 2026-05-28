@@ -9,6 +9,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.baseline_utils import require_explicit_baseline_rows
 from src.io_utils import EXPERIMENT_METADATA_COLUMNS, STRUCTURAL_COLUMNS
 from src.output_paths import (
     OUTPUT_ROOT,
@@ -24,7 +25,7 @@ from src.run_config import load_run_config
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, plot tornado, compute robustness score, build dashboard.",
+        description="End-to-end pipeline: run sensitivity, summarize tornado CSV, compute robustness score, build dashboard payload.",
     )
     parser.add_argument(
         "targets",
@@ -73,23 +74,6 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override auto-selection rule for single-scenario snapshot in dashboard.",
     )
     parser.add_argument(
-        "--tornado-outdir",
-        default="data/output/03_reports/tornado_outputs",
-        help="Base output directory for tornado PNG/HTML outputs; target tag subfolder is appended automatically.",
-    )
-    parser.add_argument(
-        "--tornado-range-mode",
-        choices=["minmax", "p05p95"],
-        default="p05p95",
-        help="Range mode for tornado bars.",
-    )
-    parser.add_argument(
-        "--tornado-top-n",
-        type=int,
-        default=20,
-        help="Max channels shown in tornado plot.",
-    )
-    parser.add_argument(
         "--skip-main",
         action="store_true",
         help="Skip src.main and reuse existing run/ROI outputs.",
@@ -98,11 +82,6 @@ def _build_parser() -> argparse.ArgumentParser:
         "--skip-summarize",
         action="store_true",
         help="Skip src.summarize_sensitivity and reuse existing tornado CSV.",
-    )
-    parser.add_argument(
-        "--skip-tornado",
-        action="store_true",
-        help="Skip src.viz.tornado_plots.",
     )
     parser.add_argument(
         "--skip-robustness",
@@ -121,6 +100,28 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _unique_sorted(values: list[str]) -> list[str]:
     return sorted({str(v).strip() for v in values if str(v).strip()})
+
+
+def _sanitize_tag_token(raw: str) -> str:
+    s = str(raw).strip().lower()
+    out = []
+    for ch in s:
+        if ch.isalnum() or ch in {"-", "_"}:
+            out.append(ch)
+        else:
+            out.append("_")
+    token = "".join(out).strip("_")
+    while "__" in token:
+        token = token.replace("__", "_")
+    return token or "dataset"
+
+
+def _tag_for_target_set(targets: list[str], run_cfg: dict) -> str:
+    output_cfg = run_cfg.get("output", {}) or {}
+    explicit_tag = output_cfg.get("tag")
+    if explicit_tag is None or str(explicit_tag).strip().lower() in {"", "null", "none"}:
+        return "_".join(targets)
+    return _sanitize_tag_token(str(explicit_tag))
 
 
 def _resolve_target_sets(args: argparse.Namespace, run_cfg: dict) -> list[list[str]]:
@@ -200,13 +201,12 @@ def _cleanup_tag_outputs(
     tag: str,
     project_root: Path,
     dashboard_outdir_base: Path,
-    tornado_outdir_base: Path,
 ) -> None:
     tag_paths = [
         RUNS_DIR / tag,
         Path("data/output/02_tables") / tag,
         dashboard_outdir_base / tag,
-        tornado_outdir_base / tag,
+        Path("data/output/03_reports/tornado_outputs") / tag,
         report_input_csv_path(tag),
         run_csv_path(tag),
         roi_csv_path(tag),
@@ -251,12 +251,13 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
 
     run_df = pd.read_csv(run_csv)
     roi_df = pd.read_csv(roi_csv)
+    if "target_channel" not in run_df.columns and "targets" in run_df.columns:
+        run_df["target_channel"] = run_df["targets"]
+    require_explicit_baseline_rows(run_df, context=f"Run CSV {run_csv}")
     tornado_csv = tornado_csv_path(tag)
 
     if "run_id" not in run_df.columns or "run_id" not in roi_df.columns:
         raise ValueError("Both run and ROI CSVs must include 'run_id'.")
-    if "target_channel" not in run_df.columns and "targets" in run_df.columns:
-        run_df["target_channel"] = run_df["targets"]
 
     run_base_cols = [
         "run_id",
@@ -332,10 +333,22 @@ def _build_dashboard_input_csv(tag: str) -> tuple[Path, dict]:
         "run_id",
         "channel",
         "target_channel",
+        "is_target_channel",
         "roi_prior_mu",
         "roi_prior_sigma",
         "roi_prior_dist",
+        "prior_roi_mu_channel",
+        "prior_roi_sigma_channel",
+        "prior_roi_dist_channel",
         "estimated_roi",
+        "posterior_roi_sd",
+        "posterior_roi_p05",
+        "posterior_roi_p25",
+        "posterior_roi_p50",
+        "posterior_roi_p75",
+        "posterior_roi_p95",
+        "prior_posterior_kl_gaussian",
+        "prior_posterior_wasserstein",
     ]
     keep_cols.extend([c for c in run_extra_cols if c in merged.columns])
     keep_cols.extend(
@@ -385,23 +398,19 @@ def main() -> None:
     dashboard_outdir_base_abs = Path(args.dashboard_outdir)
     if not dashboard_outdir_base_abs.is_absolute():
         dashboard_outdir_base_abs = (project_root / dashboard_outdir_base_abs).resolve()
-    tornado_outdir_base_abs = Path(args.tornado_outdir)
-    if not tornado_outdir_base_abs.is_absolute():
-        tornado_outdir_base_abs = (project_root / tornado_outdir_base_abs).resolve()
 
     built_tags: list[str] = []
     for targets in target_sets:
-        tag = "_".join(targets)
+        tag = _tag_for_target_set(targets, run_cfg)
         built_tags.append(tag)
         print(f"\n=== Target set: {', '.join(targets)} ===")
 
         tornado_csv = tornado_csv_path(tag)
         dashboard_outdir = Path(args.dashboard_outdir) / tag
-        tornado_outdir = Path(args.tornado_outdir) / tag
 
         if not args.skip_main:
             print(f"[clean] Removing existing outputs for tag={tag} before fixed full-grid run.")
-            _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs, tornado_outdir_base_abs)
+            _cleanup_tag_outputs(tag, project_root, dashboard_outdir_base_abs)
             cmd = [sys.executable, "-m", "src.main", "--targets", *targets, "--config", str(config_path)]
             _run_step(cmd, project_root)
 
@@ -413,25 +422,8 @@ def main() -> None:
                 *targets,
                 "--dollars_per_subscription",
                 str(float(args.dollars_per_subscription)),
-            ]
-            _run_step(cmd, project_root)
-
-        if not args.skip_tornado:
-            tornado_outdir.mkdir(parents=True, exist_ok=True)
-            cmd = [
-                sys.executable,
-                "-m",
-                "src.viz.tornado_plots",
-                "--input-mode",
-                "single",
-                "--csv",
-                str(tornado_csv.relative_to(project_root)),
-                "--outdir",
-                str(tornado_outdir),
-                "--range-mode",
-                args.tornado_range_mode,
-                "--top-n",
-                str(int(args.tornado_top_n)),
+                "--tag",
+                tag,
             ]
             _run_step(cmd, project_root)
 
@@ -444,6 +436,8 @@ def main() -> None:
                 *targets,
                 "--out-dir",
                 str(robustness_outdir),
+                "--tag",
+                tag,
             ]
             _run_step(cmd, project_root)
 
