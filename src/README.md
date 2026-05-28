@@ -17,11 +17,11 @@ Run mode is controlled from `config/sensitivity.yaml`:
 
 - `main.py`: resolves outcome/prior-design mode, runs fixed full-grid, writes run/ROI outputs.
 - `run_meridian_once.py`: one model fit + diagnostics + ROI extraction (includes ModelSpec building).
-- `summarize_sensitivity.py`: merges split outputs, writes tornado table.
+- `summarize_sensitivity.py`: merges split outputs, writes the tornado table consumed by the React payload.
 - `pipeline.py`: one-command orchestrator for fixed full-grid workflow.
 - `formatting.py`: shared formatting, value-safety, and QC status helpers.
-- `reporting/make_dashboard.py`: builds dashboard artifacts (includes CSV loading).
-- `viz/tornado_plots.py`: tornado sensitivity visualizations.
+- `reporting/make_dashboard.py`: builds the React dashboard payload and supporting tables.
+- `viz/tornado_plots.py`, `viz/roi_prior_vs_posterior.py`: optional manual research/export utilities, not part of the default React runtime.
 
 ## Input Contract (minimum)
 
@@ -38,7 +38,7 @@ For tag `<tag>`:
 - `data/output/01_runs/<tag>/prior_sensitivity_runs_multi_<tag>.csv`
 - `data/output/01_runs/<tag>/prior_sensitivity_roi_multi_<tag>.csv`
 - `data/output/02_tables/<tag>/tornado_<tag>.csv`
-- `data/output/03_reports/report/<tag>/dashboard.html`
+- `data/output/03_reports/report/<tag>/tables/dashboard_payload.json`
 
 Default workflow is fixed full-grid sweep (`sweep.type: fixed_full_grid`).
 
@@ -57,5 +57,3 @@ Default workflow is fixed full-grid sweep (`sweep.type: fixed_full_grid`).
 
 - Extremely large `%` changes  
   Often near-zero baseline ROI; check `Delta ROI` and stability flags.
-
-

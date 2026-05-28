@@ -1,8 +1,7 @@
 """Shared formatting and value-safety helpers.
 
 Consolidates duplicated utilities that were previously defined independently
-in reporting.render, reporting.metrics, reporting.make_qc_gate, and
-viz.tornado_plots.
+in reporting.render, reporting.metrics, and reporting.make_qc_gate.
 """
 
 from __future__ import annotations

@@ -3,10 +3,7 @@ from __future__ import annotations
 import json
 import math
 import re
-import shutil
 from pathlib import Path
-
-from jinja2 import Environment, FileSystemLoader
 
 from src.formatting import (
     fmt_money as _fmt_money,
@@ -20,6 +17,10 @@ def _clean_text_safe(x, missing_label: str = "-") -> str:
     if _is_missing_value(x):
         return missing_label
     return str(x).strip()
+
+
+def _to_bool_safe(x) -> bool:
+    return str(x).strip().lower() in {"true", "1", "yes"}
 
 
 def _truncate_text(s: str, max_len: int = 58) -> str:
@@ -59,6 +60,632 @@ def _json_compatible(value, *, float_decimals: int | None = None):
         except Exception:
             pass
     return value
+
+
+def _build_target_channel_detail_payload(metrics: dict, source_files: dict | None = None) -> dict:
+    """Build selected target-channel sensitivity slices from existing CSV/report rows."""
+    import pandas as pd
+
+    source_files = source_files or {}
+    preferred_order = ["google", "meta", "tiktok", "snapchat", "moloco", "liveintent", "beehiiv", "amazon"]
+
+    def _read_csv(path_value):
+        if not path_value:
+            return pd.DataFrame()
+        try:
+            path = Path(path_value)
+            if path.exists() and path.is_file():
+                return pd.read_csv(path)
+        except Exception:
+            return pd.DataFrame()
+        return pd.DataFrame()
+
+    def _ensure_target_col(df):
+        if df is None or df.empty:
+            return pd.DataFrame()
+        out = df.copy()
+        if "target_channel" not in out.columns:
+            for alt in ["targets", "target_channels", "qc_target_channels"]:
+                if alt in out.columns:
+                    out["target_channel"] = out[alt]
+                    break
+        if "target_channel" in out.columns:
+            out["target_channel"] = out["target_channel"].astype(str).str.strip().str.lower()
+        if "channel" in out.columns:
+            out["channel"] = out["channel"].astype(str).str.strip().str.lower()
+        return out
+
+    def _status_bucket(value) -> str:
+        text = _clean_text_safe(value, "UNKNOWN").upper()
+        if "FAIL" in text:
+            return "FAIL"
+        if "REVIEW" in text or "WARN" in text:
+            return "REVIEW"
+        if "PASS" in text:
+            return "PASS"
+        return text or "UNKNOWN"
+
+    def _status_col(df):
+        for col in ["qc_status_code", "qc_overall_status", "qc_pass_fail"]:
+            if col in df.columns:
+                return col
+        return None
+
+    def _boolish(value) -> bool:
+        if value is None:
+            return False
+        try:
+            if pd.isna(value):
+                return False
+        except Exception:
+            pass
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return bool(value)
+        return str(value).strip().lower() in {"true", "1", "yes", "y"}
+
+    def _sort_key(channel: str):
+        c = str(channel).lower()
+        return (preferred_order.index(c) if c in preferred_order else len(preferred_order), c)
+
+    decision_card = metrics.get("decision_card", {}) or {}
+    robust_source = metrics.get("robustness_score", {}) or {}
+    robust_available = bool(robust_source.get("available")) and _to_float_safe(
+        robust_source.get("overall_model_robustness_score")
+    ) is not None
+    robustness_channel_df = _read_csv(robust_source.get("channel_csv"))
+    if not robustness_channel_df.empty and "channel" in robustness_channel_df.columns:
+        robustness_channel_df = robustness_channel_df.copy()
+        robustness_channel_df["channel"] = robustness_channel_df["channel"].astype(str).str.strip().str.lower()
+    else:
+        robustness_channel_df = pd.DataFrame()
+    robust_subscores = [
+        {
+            "id": _clean_text_safe(item.get("id"), ""),
+            "label": _clean_text_safe(item.get("label"), ""),
+            "value": _to_float_safe(item.get("value")),
+        }
+        for item in (decision_card.get("score_subscores", []) or [])
+    ]
+    if not robust_subscores:
+        robust_subscores = [
+            {"id": "prior", "label": "Sensitivity Elasticity", "value": None},
+            {"id": "data", "label": "Data Influence", "value": None},
+            {"id": "cross", "label": "Cross-Channel", "value": None},
+        ]
+    robustness_framework = {
+        "available": robust_available,
+        "score": _to_float_safe(robust_source.get("overall_model_robustness_score")),
+        "band": _clean_text_safe(robust_source.get("overall_model_robustness_band"), "Unavailable"),
+        "subscores": robust_subscores,
+        "note": (
+            _clean_text_safe(
+                (decision_card.get("score_meta", {}) or {}).get("methodology_note"),
+                "",
+            )
+            or _clean_text_safe(decision_card.get("score_note"), "")
+            or "Project-defined prior sensitivity heuristic loaded from the model-level robustness output; higher subscore meters indicate stronger stability."
+            if robust_available
+            else f"Robustness score unavailable: {_clean_text_safe(robust_source.get('reason'), 'required robustness output missing')}."
+        ),
+        "scope": "global",
+        "source_row": {},
+    }
+
+    report_df = _ensure_target_col(metrics.get("merged_df"))
+    roi_df = _ensure_target_col(_read_csv(source_files.get("roi_csv")))
+    run_df = _ensure_target_col(_read_csv(source_files.get("runs_csv")))
+    tornado_df = _ensure_target_col(_read_csv(source_files.get("tornado_csv")))
+    if tornado_df.empty:
+        tornado_df = report_df.copy()
+
+    channels = set()
+    for df in [report_df, roi_df, run_df, tornado_df]:
+        if df is not None and not df.empty and "target_channel" in df.columns:
+            channels.update([str(v).strip().lower() for v in df["target_channel"].dropna().tolist() if str(v).strip()])
+    options = sorted(channels, key=_sort_key)
+
+    summaries = {}
+    for target in options:
+        roi_target = roi_df.loc[roi_df.get("target_channel", pd.Series(dtype=str)) == target].copy() if not roi_df.empty else pd.DataFrame()
+        if not roi_target.empty and "channel" in roi_target.columns:
+            self_rows_df = roi_target.loc[roi_target["channel"] == target].copy()
+        else:
+            self_rows_df = pd.DataFrame()
+        if self_rows_df.empty and not report_df.empty:
+            fallback = report_df.loc[report_df.get("target_channel", pd.Series(dtype=str)) == target].copy()
+            if "channel" in fallback.columns:
+                self_rows_df = fallback.loc[fallback["channel"] == target].copy()
+
+        self_rows = []
+        for row in self_rows_df.to_dict(orient="records"):
+            self_rows.append(
+                {
+                    "run_id": _clean_text_safe(row.get("run_id"), ""),
+                    "target_channel": target,
+                    "channel": _clean_text_safe(row.get("channel"), target),
+                    "roi_prior_mu": _to_float_safe(row.get("roi_prior_mu")),
+                    "roi_prior_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+                    "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist"), _clean_text_safe(row.get("prior_roi_dist_channel"), "")),
+                    "estimated_roi": _to_float_safe(row.get("estimated_roi", row.get("roi_new"))),
+                    "posterior_roi_p25": _to_float_safe(row.get("posterior_roi_p25", row.get("roi_new_p25"))),
+                    "posterior_roi_p75": _to_float_safe(row.get("posterior_roi_p75", row.get("roi_new_p75"))),
+                    "posterior_roi_p50": _to_float_safe(row.get("posterior_roi_p50", row.get("roi_new_p50"))),
+                    "qc_status_code": _status_bucket(row.get("qc_status_code", row.get("qc_overall_status", row.get("qc_pass_fail")))),
+                    "is_baseline": _boolish(row.get("is_baseline", False)),
+                }
+            )
+        self_rows.sort(
+            key=lambda r: (
+                r["roi_prior_mu"] if r["roi_prior_mu"] is not None else float("inf"),
+                r["roi_prior_sigma"] if r["roi_prior_sigma"] is not None else float("inf"),
+                r["roi_prior_dist"],
+            )
+        )
+
+        settings_seen = {
+            (
+                r.get("roi_prior_mu"),
+                r.get("roi_prior_sigma"),
+                r.get("roi_prior_dist"),
+            )
+            for r in self_rows
+        }
+        posterior_vals = [r["estimated_roi"] for r in self_rows if r.get("estimated_roi") is not None]
+
+        run_target = run_df.loc[run_df.get("target_channel", pd.Series(dtype=str)) == target].copy() if not run_df.empty else pd.DataFrame()
+        qc_df = run_target if not run_target.empty else self_rows_df
+        qc_col = _status_col(qc_df) if qc_df is not None and not qc_df.empty else None
+        qc_mix: dict[str, int] = {}
+        if qc_col:
+            for status in qc_df[qc_col].map(_status_bucket).tolist():
+                qc_mix[status] = qc_mix.get(status, 0) + 1
+
+        system_candidates = []
+        for source_rank, (source_name, source_df) in enumerate(
+            [
+                ("tornado", tornado_df),
+                ("report_input", report_df),
+                ("roi_csv", roi_df),
+            ]
+        ):
+            if source_df is None or source_df.empty or "channel" not in source_df.columns:
+                continue
+            target_df = source_df.loc[source_df.get("target_channel", pd.Series(dtype=str)) == target].copy()
+            if target_df.empty:
+                continue
+            outcome_count = int(target_df["channel"].dropna().astype(str).str.lower().nunique())
+            has_movement = any(c in target_df.columns for c in ["delta_value_abs", "delta_pct", "delta_abs", "pct_change"])
+            system_candidates.append(
+                {
+                    "name": source_name,
+                    "df": target_df,
+                    "outcome_count": outcome_count,
+                    "has_movement": has_movement,
+                    "source_rank": source_rank,
+                }
+            )
+        system_choice = max(
+            system_candidates,
+            key=lambda item: (
+                item["outcome_count"],
+                1 if item["has_movement"] else 0,
+                -item["source_rank"],
+            ),
+            default=None,
+        )
+        system_df = system_choice["df"] if system_choice else pd.DataFrame()
+        system_source = system_choice["name"] if system_choice else ""
+
+        signed_candidates = [
+            item
+            for item in system_candidates
+            if item["name"] in {"report_input", "roi_csv"} and item["outcome_count"] > 1
+        ]
+        signed_choice = max(
+            signed_candidates,
+            key=lambda item: (item["outcome_count"], len(item["df"]), -item["source_rank"]),
+            default=None,
+        )
+        if signed_choice is not None:
+            system_df = signed_choice["df"]
+            system_source = f"{signed_choice['name']}_signed_reconstructed"
+
+        posterior_candidates = [
+            item
+            for item in system_candidates
+            if item["name"] in {"report_input", "roi_csv"} and item["outcome_count"] > 1
+        ]
+        posterior_choice = max(
+            posterior_candidates,
+            key=lambda item: (item["outcome_count"], len(item["df"]), -item["source_rank"]),
+            default=None,
+        )
+        posterior_df = posterior_choice["df"] if posterior_choice else system_df
+
+        system_rows = []
+        for row in system_df.to_dict(orient="records"):
+            roi_baseline = _to_float_safe(row.get("roi_baseline", row.get("baseline_roi")))
+            roi_new = _to_float_safe(row.get("roi_new", row.get("estimated_roi")))
+            signed_delta_pct = None
+            if roi_baseline is not None and roi_new is not None and abs(float(roi_baseline)) >= 1e-12:
+                signed_delta_pct = ((float(roi_new) / float(roi_baseline)) - 1.0) * 100.0
+            delta_abs = _to_float_safe(row.get("delta_abs"))
+            delta_value_abs = _to_float_safe(row.get("delta_value_abs"))
+            is_baseline = _boolish(row.get("is_baseline", False))
+            if is_baseline:
+                signed_delta_pct = 0.0
+            system_rows.append(
+                {
+                    "run_id": _clean_text_safe(row.get("run_id"), ""),
+                    "target_channel": target,
+                    "channel": _clean_text_safe(row.get("channel"), ""),
+                    "roi_prior_mu": _to_float_safe(row.get("roi_prior_mu", row.get("roi_mu"))),
+                    "roi_prior_sigma": _to_float_safe(row.get("roi_prior_sigma", row.get("roi_sigma"))),
+                    "roi_prior_dist": _clean_text_safe(row.get("roi_prior_dist", row.get("roi_dist")), ""),
+                    "roi_baseline": roi_baseline,
+                    "roi_new": roi_new,
+                    "delta_abs": delta_abs,
+                    "signed_delta_pct": signed_delta_pct,
+                    "delta_value_abs": delta_value_abs,
+                    "delta_outcome_abs": _to_float_safe(row.get("delta_outcome_abs")),
+                    "qc_status_code": _status_bucket(row.get("qc_status_code", row.get("qc_overall_status", row.get("qc_pass_fail")))),
+                    "is_baseline": is_baseline,
+                    "movement_value": next(
+                        (
+                            v
+                            for v in [
+                                abs(signed_delta_pct) if signed_delta_pct is not None and not is_baseline else None,
+                                delta_value_abs if not is_baseline else None,
+                                abs(delta_abs) if delta_abs is not None and not is_baseline else None,
+                            ]
+                            if v is not None
+                        ),
+                        None,
+                    ),
+                }
+            )
+
+        channel_groups: dict[str, list[dict]] = {}
+        for row in system_rows:
+            ch = str(row.get("channel") or "").lower()
+            if not ch:
+                continue
+            channel_groups.setdefault(ch, []).append(row)
+        impact_rows = []
+        for ch, rows in channel_groups.items():
+            movement_rows = [r for r in rows if not bool(r.get("is_baseline", False))]
+            pct_signed = [r["signed_delta_pct"] for r in movement_rows if r.get("signed_delta_pct") is not None]
+            abs_vals = [r["delta_abs"] for r in rows if r.get("delta_abs") is not None]
+            if not abs_vals:
+                roi_vals = [r["roi_new"] for r in rows if r.get("roi_new") is not None]
+                if len(roi_vals) >= 2:
+                    abs_vals = [max(roi_vals) - min(roi_vals)]
+            value_vals = [r["delta_value_abs"] for r in rows if r.get("delta_value_abs") is not None]
+            roi_signed = [r["delta_abs"] for r in rows if r.get("delta_abs") is not None]
+            left_pct = min(pct_signed) if pct_signed else None
+            right_pct = max(pct_signed) if pct_signed else None
+            impact_rows.append(
+                {
+                    "channel": ch,
+                    "is_self_response": ch == target,
+                    "response_scope": "Self-response" if ch == target else "Non-self",
+                    "min_signed_delta_pct": left_pct,
+                    "max_signed_delta_pct": right_pct,
+                    "max_abs_delta_pct": max([abs(v) for v in [left_pct, right_pct] if v is not None], default=None),
+                    "max_abs_delta_roi": max([abs(v) for v in abs_vals], default=None),
+                    "max_abs_delta_value": max(value_vals, default=None),
+                    "left_pct": left_pct,
+                    "right_pct": right_pct,
+                    "left_delta_roi": min(roi_signed) if roi_signed else None,
+                    "right_delta_roi": max(roi_signed) if roi_signed else None,
+                    "n_rows": len(movement_rows),
+                }
+            )
+        impact_rows.sort(
+            key=lambda r: next(
+                (v for v in [r.get("max_abs_delta_pct"), r.get("max_abs_delta_value"), r.get("max_abs_delta_roi")] if v is not None),
+                -1,
+            ),
+            reverse=True,
+        )
+        largest = impact_rows[0] if impact_rows else None
+        system_posterior_rows = int(len(posterior_df))
+        system_non_baseline_movement_rows = int(sum(1 for r in system_rows if not bool(r.get("is_baseline", False))))
+        target_robustness = robustness_framework
+        if not robustness_channel_df.empty:
+            robust_match = robustness_channel_df.loc[robustness_channel_df["channel"] == target].copy()
+            if not robust_match.empty:
+                robust_row = robust_match.iloc[-1].to_dict()
+                robust_score = _to_float_safe(robust_row.get("overall_channel_robustness_score"))
+                robust_band = _clean_text_safe(robust_row.get("robustness_band"), "Unavailable").title()
+                source_name = Path(str(robust_source.get("channel_csv", "") or "")).name
+                robust_runs = int(_to_float_safe(robust_row.get("n_runs_used")) or 0)
+                target_robustness = {
+                    "available": robust_score is not None,
+                    "score": robust_score,
+                    "overall_channel_robustness_score": robust_score,
+                    "band": robust_band,
+                    "robustness_band": robust_band,
+                    "absolute_band": _clean_text_safe(robust_row.get("absolute_band"), robust_band),
+                    "band_method": _clean_text_safe(robust_row.get("band_method"), ""),
+                    "relative_rank": _to_float_safe(robust_row.get("relative_rank")),
+                    "relative_rank_total": _to_float_safe(robust_row.get("relative_rank_total")),
+                    "relative_rank_label": _clean_text_safe(robust_row.get("relative_rank_label"), ""),
+                    "relative_rank_method": _clean_text_safe(robust_row.get("relative_rank_method"), ""),
+                    "subscores": [
+                        {
+                            "id": "prior",
+                            "label": "Sensitivity Elasticity",
+                            "value": _to_float_safe(robust_row.get("prior_sensitivity_subscore")),
+                        },
+                        {
+                            "id": "data",
+                            "label": "Data Influence",
+                            "value": _to_float_safe(robust_row.get("data_influence_subscore")),
+                        },
+                        {
+                            "id": "cross",
+                            "label": "Cross-Channel",
+                            "value": _to_float_safe(robust_row.get("cross_channel_subscore")),
+                        },
+                    ],
+                    "note": f"src={source_name or 'robustness_channel_<tag>.csv'} | channel={target} | n={robust_runs}",
+                    "scope": "target_channel",
+                    "source_row": _json_compatible(robust_row, float_decimals=6),
+                }
+
+        summaries[target] = {
+            "target_channel": target,
+            "label": target.upper(),
+            "prior_settings_tested": len(settings_seen),
+            "self_response_rows": self_rows,
+            "posterior_roi_mean_min": min(posterior_vals) if posterior_vals else None,
+            "posterior_roi_mean_max": max(posterior_vals) if posterior_vals else None,
+            "qc_status_mix": qc_mix,
+            "system_response_rows": system_rows,
+            "system_impact_rows": impact_rows,
+            "system_outcome_channel_count": len(channel_groups),
+            "system_posterior_rows": system_posterior_rows,
+            "system_non_baseline_movement_rows": system_non_baseline_movement_rows,
+            "system_source": system_source,
+            "largest_movement": largest,
+            "robustness": target_robustness,
+        }
+
+    default_channel = options[0] if options else ""
+    top_rows = metrics.get("recommendations", []) or []
+    return {
+        "available": bool(options),
+        "options": [{"value": c, "label": c.upper()} for c in options],
+        "default_channel": default_channel,
+        "recommended_channel": default_channel,
+        "recommendation_source": _clean_text_safe(top_rows[0], "") if top_rows else "",
+        "summaries": summaries,
+        "notes": [
+            "Self-response rows require target_channel == selected target and channel == selected target.",
+            "Full-system rows use target_channel == selected target and include every modeled outcome channel from each Meridian run.",
+        ],
+    }
+
+
+def _build_roi_prior_posterior_table(source_files: dict | None = None) -> dict:
+    """Mirror the source rows used by the global ROI prior-vs-posterior plot."""
+    import pandas as pd
+
+    source_files = source_files or {}
+    path_value = source_files.get("roi_csv")
+    if not path_value:
+        return {"available": False, "interval": "50%", "has_95": False, "rows": [], "reason": "ROI source CSV not provided."}
+    path = Path(path_value)
+    if not path.exists() or not path.is_file():
+        return {"available": False, "interval": "50%", "has_95": False, "rows": [], "reason": "ROI source CSV not found."}
+
+    try:
+        df = pd.read_csv(path)
+    except Exception as exc:
+        return {"available": False, "interval": "50%", "has_95": False, "rows": [], "reason": f"Failed to read ROI source CSV: {exc}"}
+
+    required = [
+        "target_channel",
+        "channel",
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "roi_prior_dist",
+        "estimated_roi",
+        "posterior_roi_p25",
+        "posterior_roi_p75",
+        "prior_roi_mu_channel",
+    ]
+    missing = [c for c in required if c not in df.columns]
+    if missing:
+        return {
+            "available": False,
+            "interval": "50%",
+            "has_95": False,
+            "rows": [],
+            "reason": f"ROI source CSV missing required columns: {', '.join(missing)}",
+        }
+
+    df = df[df["channel"].astype(str) == df["target_channel"].astype(str)].copy()
+    has_95 = {"posterior_roi_p05", "posterior_roi_p95"}.issubset(df.columns)
+    numeric_cols = [
+        "roi_prior_mu",
+        "roi_prior_sigma",
+        "prior_roi_mu_channel",
+        "estimated_roi",
+        "posterior_roi_p25",
+        "posterior_roi_p75",
+    ]
+    if has_95:
+        numeric_cols.extend(["posterior_roi_p05", "posterior_roi_p95"])
+    for col in numeric_cols:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = df.dropna(subset=["target_channel", "estimated_roi", "prior_roi_mu_channel", "posterior_roi_p25", "posterior_roi_p75"])
+    if df.empty:
+        return {"available": False, "interval": "50%", "has_95": has_95, "rows": [], "reason": "No plottable self-response rows found."}
+
+    df = df.sort_values(["target_channel", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"])
+    rows = []
+    baseline_meta = None
+    for row in df.to_dict(orient="records"):
+        is_baseline = _to_bool_safe(row.get("is_baseline")) if "is_baseline" in df.columns else False
+        row_payload = {
+            "channel": _clean_text_safe(row.get("target_channel"), ""),
+            "prior_variant": (
+                f"mu={_fmt_float_safe(row.get('roi_prior_mu'), digits=3)}, "
+                f"sigma={_fmt_float_safe(row.get('roi_prior_sigma'), digits=3)}, "
+                f"dist={_clean_text_safe(row.get('roi_prior_dist'), 'NA')}"
+            ),
+            "prior_roi_mu": _to_float_safe(row.get("prior_roi_mu_channel")),
+            "prior_roi_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+            "prior_roi_dist": _clean_text_safe(row.get("roi_prior_dist"), ""),
+            "posterior_roi_estimate": _to_float_safe(row.get("estimated_roi")),
+            "posterior_50_lower": _to_float_safe(row.get("posterior_roi_p25")),
+            "posterior_50_upper": _to_float_safe(row.get("posterior_roi_p75")),
+            "posterior_95_lower": _to_float_safe(row.get("posterior_roi_p05")) if has_95 else None,
+            "posterior_95_upper": _to_float_safe(row.get("posterior_roi_p95")) if has_95 else None,
+            "is_baseline": is_baseline,
+            "baseline_roi_mu": _to_float_safe(row.get("roi_prior_mu")) if is_baseline else None,
+            "baseline_roi_sigma": _to_float_safe(row.get("roi_prior_sigma")) if is_baseline else None,
+            "baseline_roi_dist": _clean_text_safe(row.get("roi_prior_dist"), "") if is_baseline else "",
+            "baseline_run_id": _clean_text_safe(row.get("run_id"), "") if is_baseline else "",
+        }
+        rows.append(row_payload)
+        if is_baseline and baseline_meta is None:
+            baseline_meta = {
+                "roi_mu": row_payload["baseline_roi_mu"],
+                "roi_sigma": row_payload["baseline_roi_sigma"],
+                "roi_dist": row_payload["baseline_roi_dist"],
+                "run_id": row_payload["baseline_run_id"],
+            }
+    return {"available": True, "interval": "50%", "has_95": has_95, "baseline": baseline_meta or {}, "rows": rows, "reason": ""}
+
+
+def _build_qc_followup_summary(qc_gate: dict) -> dict:
+    counts: dict[str, int] = {}
+    for row in qc_gate.get("run_rows", []) or []:
+        status = _clean_text_safe(row.get("qc_status_code"), "").upper()
+        check = _clean_text_safe(row.get("qc_primary_review_check"), "")
+        if not check or check == "-" or status == "PASS":
+            continue
+        counts[check] = counts.get(check, 0) + 1
+    if not counts:
+        return {
+            "available": False,
+            "primary_review_check": "",
+            "count": 0,
+            "reason": "Review reason unavailable in current payload.",
+        }
+    primary, count = sorted(counts.items(), key=lambda item: (-item[1], item[0]))[0]
+    return {
+        "available": True,
+        "primary_review_check": primary,
+        "count": count,
+        "reason": "",
+    }
+
+
+def _status_from_check_counts(row: dict) -> str:
+    fail = int(float(row.get("fail_count", 0) or 0))
+    review = int(float(row.get("review_count", 0) or 0))
+    passed = int(float(row.get("pass_count", 0) or 0))
+    if fail > 0:
+        return "FAIL"
+    if review > 0:
+        return "REVIEW"
+    if passed > 0:
+        return "PASS"
+    return "UNAVAILABLE"
+
+
+def _recommendation_for_check(check: str, status: str) -> str:
+    name = _clean_text_safe(check, "Diagnostic")
+    if status == "PASS":
+        return f"{name} passed in the selected run diagnostics."
+    if status == "UNAVAILABLE":
+        return f"{name} diagnostics are unavailable in the selected run payload."
+    if name == "Convergence":
+        return "Inspect sampler and convergence diagnostics before interpreting affected runs."
+    if name == "GoodnessOfFit":
+        return "Inspect model fit diagnostics before relying on stronger conclusions."
+    if name == "PriorPosteriorShift":
+        return "Review prior-posterior shift before stronger interpretation."
+    if name == "ROIConsistency":
+        return "Review ROI prior consistency before budget-level interpretation."
+    return f"Review {name} diagnostics before stronger interpretation."
+
+
+def _build_health_card_data(decision_card: dict, diagnostics: dict) -> dict:
+    overview = diagnostics.get("overview", {}) if diagnostics else {}
+    passed = int(float(overview.get("pass_runs", 0) or 0))
+    review = int(float(overview.get("review_runs", 0) or 0))
+    fail = int(float(overview.get("fail_runs", 0) or 0))
+    unknown = int(float(overview.get("unknown_runs", 0) or 0))
+    total = passed + review + fail + unknown
+    score = (100.0 * passed / float(total)) if total > 0 else None
+    status = "FAIL" if fail > 0 else ("REVIEW" if review > 0 or unknown > 0 else ("PASS" if passed > 0 else "UNAVAILABLE"))
+    summary = (
+        "All completed runs and available diagnostic checks passed."
+        if status == "PASS"
+        else "One or more completed runs failed diagnostics."
+        if status == "FAIL"
+        else "One or more completed runs need diagnostic review."
+        if status == "REVIEW"
+        else "Diagnostic health is unavailable for this run payload."
+    )
+
+    rows = []
+    for row in diagnostics.get("check_rows", []) or []:
+        check = _clean_text_safe(row.get("check"), "Diagnostic")
+        display = "".join(part.capitalize() for part in check.replace("_", " ").split()) or check
+        row_status = _status_from_check_counts(row)
+        rows.append(
+            {
+                "check": display,
+                "status": row_status,
+                "recommendation": _recommendation_for_check(display, row_status),
+                "pass_count": int(float(row.get("pass_count", 0) or 0)),
+                "review_count": int(float(row.get("review_count", 0) or 0)),
+                "fail_count": int(float(row.get("fail_count", 0) or 0)),
+                "unknown_count": int(float(row.get("unknown_count", 0) or 0)),
+            }
+        )
+
+    decision_status = _clean_text_safe(decision_card.get("tier_class") or decision_card.get("tier"), "").upper()
+    if decision_status == "GREEN":
+        decision_status = "PASS"
+    elif decision_status == "YELLOW":
+        decision_status = "REVIEW"
+    elif decision_status == "RED":
+        decision_status = "FAIL"
+    decision_score = _to_float_safe(decision_card.get("score_numeric"))
+    robustness_context = None
+    if decision_score is not None and decision_status in {"PASS", "REVIEW", "FAIL"}:
+        score_differs = score is None or abs(float(decision_score) - float(score)) > 0.05 or decision_status != status
+        if score_differs:
+            triggered = next(
+                (str(rule) for rule in (decision_card.get("triggered_rules", []) or []) if str(rule or "").strip()),
+                "",
+            )
+            robustness_context = {
+                "score_label": _clean_text_safe(decision_card.get("score_label"), "Prior-Sensitivity Robustness"),
+                "score": decision_score,
+                "overall_status": decision_status,
+                "reason": triggered or _clean_text_safe(decision_card.get("headline"), ""),
+            }
+
+    return {
+        "title": "Model Health Card",
+        "score_label": "Diagnostic Health Score",
+        "score": score,
+        "overall_status": status,
+        "summary": summary,
+        "rows": rows,
+        "robustness_context": robustness_context,
+    }
+
 
 def _load_theory_block(cfg: dict) -> dict:
     theory_cfg = cfg.get("theory", {})
@@ -130,7 +757,7 @@ def _load_theory_block(cfg: dict) -> dict:
     }
 
 
-def render_dashboard_output(
+def render_dashboard_payload(
     metrics: dict,
     fig_paths: dict,
     cfg: dict,
@@ -139,20 +766,6 @@ def render_dashboard_output(
     source_files: dict | None = None,
     branding: dict | None = None,
 ) -> None:
-    template_dir = Path(__file__).resolve().parent / "templates"
-    env = Environment(loader=FileSystemLoader(str(template_dir)))
-    output_cfg = cfg.get("output", {}) or {}
-    write_report = bool(output_cfg.get("write_report", False))
-    report_template_name = "report_template.html"
-    report_template_path = template_dir / report_template_name
-    template = (
-        env.get_template(report_template_name)
-        if write_report and report_template_path.exists()
-        else None
-    )
-    if write_report and template is None:
-        write_report = False
-
     overview = metrics["overview"]
     scope = metrics.get("scope", {})
     diagnostics = metrics.get("diagnostics", {"available": False})
@@ -286,7 +899,6 @@ def render_dashboard_output(
                 "tables/workbench_sigma_sensitivity_rank.csv",
             ]
         )
-
     rank_table_raw_df = metrics["rank_df"].copy()
     rank_table_df = rank_table_raw_df.copy()
     if "baseline_roi" in rank_table_df.columns:
@@ -495,8 +1107,12 @@ def render_dashboard_output(
                 "band_low_cutoff_q33": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_low_cutoff_q33")),
                 "band_high_cutoff_q67": _to_float_safe((decision_card.get("score_meta", {}) or {}).get("band_high_cutoff_q67")),
                 "band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("band_method"), ""),
-                "adstock_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("adstock_note"), ""),
+                "absolute_band_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("absolute_band_method"), ""),
+                "relative_rank_method": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("relative_rank_method"), ""),
                 "subscore_weights": (decision_card.get("score_meta", {}) or {}).get("subscore_weights", {}) or {},
+                "methodology_note": _clean_text_safe((decision_card.get("score_meta", {}) or {}).get("methodology_note"), ""),
+                "worst_channel": (decision_card.get("score_meta", {}) or {}).get("worst_channel"),
+                "top_sensitive_channels": (decision_card.get("score_meta", {}) or {}).get("top_sensitive_channels", []),
             },
         }
 
@@ -811,6 +1427,9 @@ def render_dashboard_output(
                         "adstock_decay_spec": _clean_text_safe(row.get("adstock_decay_spec"), ""),
                         "qc_status_code": _clean_text_safe(row.get("qc_status_code"), ""),
                         "qc_summary_short": _clean_text_safe(row.get("qc_summary_short"), ""),
+                        "qc_primary_review_check": _clean_text_safe(row.get("qc_primary_review_check"), ""),
+                        "qc_flagged_channels": _clean_text_safe(row.get("qc_flagged_channels"), ""),
+                        "qc_review_reason": _clean_text_safe(row.get("qc_review_reason"), ""),
                     }
                 )
 
@@ -850,6 +1469,7 @@ def render_dashboard_output(
             "available_channels": workbench.get("available_channels", []),
             "mu_values": [float(v) for v in workbench.get("mu_values", [])],
             "sigma_values": [float(v) for v in workbench.get("sigma_values", [])],
+            "explicit_baseline": workbench.get("explicit_baseline") or None,
             "dist_config": {
                 "primary_dist": _clean_text_safe(dist_cfg.get("primary_dist"), ""),
                 "primary_dist_requested": _clean_text_safe(dist_cfg.get("primary_dist_requested"), ""),
@@ -868,7 +1488,15 @@ def render_dashboard_output(
 
     import numpy as _np
     import pandas as _pd
-    merged_df_for_tornado = metrics.get("merged_df")
+    merged_df_for_tornado = metrics.get("overview_df")
+    if merged_df_for_tornado is None or merged_df_for_tornado.empty:
+        merged_df_for_tornado = metrics.get("merged_df")
+    if merged_df_for_tornado is not None and not merged_df_for_tornado.empty and "is_baseline" in merged_df_for_tornado.columns:
+        baseline_mask = merged_df_for_tornado["is_baseline"].astype(str).str.lower().isin({"true", "1", "yes"})
+        non_baseline_mask = ~baseline_mask
+        non_baseline_rows = merged_df_for_tornado.loc[non_baseline_mask].copy()
+        if not non_baseline_rows.empty:
+            merged_df_for_tornado = non_baseline_rows
     roi_tornado_rows: list[dict] = []
     if merged_df_for_tornado is not None and not merged_df_for_tornado.empty:
         tornado_range_mode = str(cfg.get("figures", {}).get("tornado_range_mode", "p05p95")).strip().lower()
@@ -1071,75 +1699,6 @@ def render_dashboard_output(
                 "n": int(row.get("n", 0) or 0),
             })
 
-    meridian_official_dir = outdir / "figures" / "meridian_official"
-    manifest_data = {}
-    manifest_path = meridian_official_dir / "manifest.json"
-    if manifest_path.exists() and manifest_path.is_file():
-        try:
-            manifest_data = json.loads(manifest_path.read_text(encoding="utf-8-sig"))
-        except Exception:
-            manifest_data = {}
-    if not isinstance(manifest_data, dict):
-        manifest_data = {}
-
-    def _official_rel(filename: str) -> str | None:
-        p = meridian_official_dir / filename
-        if p.exists() and p.is_file():
-            return f"figures/meridian_official/{filename}"
-        return None
-
-    official_chart_keys = [
-        "spend_vs_contribution",
-        "roi_by_channel",
-        "roi_vs_mroi",
-        "roi_vs_effectiveness",
-        "contribution_waterfall",
-        "contribution_over_time",
-    ]
-    official_chart_defaults = {
-        "spend_vs_contribution": "spend_vs_contribution.html",
-        "roi_by_channel": "roi_by_channel.html",
-        "roi_vs_mroi": "roi_vs_mroi.html",
-        "roi_vs_effectiveness": "roi_vs_effectiveness.html",
-        "contribution_waterfall": "contribution_waterfall.html",
-        "contribution_over_time": "contribution_over_time.html",
-    }
-    manifest_files_raw = manifest_data.get("files", {}) if isinstance(manifest_data, dict) else {}
-    manifest_files = manifest_files_raw if isinstance(manifest_files_raw, dict) else {}
-    meridian_official_files = {
-        key: _official_rel(str(manifest_files.get(key) or official_chart_defaults[key]))
-        for key in official_chart_keys
-    }
-
-    manifest_specs_raw = manifest_data.get("chart_specs", {}) if isinstance(manifest_data, dict) else {}
-    meridian_chart_specs = manifest_specs_raw if isinstance(manifest_specs_raw, dict) else {}
-
-    def _extract_vega_spec_from_html(path: Path) -> dict | None:
-        try:
-            text = path.read_text(encoding="utf-8-sig", errors="ignore")
-        except Exception:
-            return None
-        m = re.search(r"var\s+spec\s*=\s*(\{.*?\})\s*;\s*var\s+embedOpt", text, flags=re.S)
-        if not m:
-            return None
-        try:
-            spec = json.loads(m.group(1))
-        except Exception:
-            return None
-        return spec if isinstance(spec, dict) else None
-
-    for key in official_chart_keys:
-        if isinstance(meridian_chart_specs.get(key), dict):
-            continue
-        filename = str(manifest_files.get(key) or official_chart_defaults[key])
-        src_path = meridian_official_dir / filename
-        if src_path.exists() and src_path.is_file():
-            extracted = _extract_vega_spec_from_html(src_path)
-            if extracted:
-                meridian_chart_specs[key] = extracted
-
-    meridian_official_available = any(isinstance(meridian_chart_specs.get(key), dict) for key in official_chart_keys)
-
     dashboard_payload = {
         "meta": {
             "title": meta.get("title", "Report"),
@@ -1152,10 +1711,18 @@ def render_dashboard_output(
             "n_channels": int(overview.get("n_channels", 0) or 0),
             "n_dists": int(overview.get("n_dists", 0) or 0),
             "n_target_sets": int(overview.get("n_target_sets", 0) or 0),
+            "ranking_rows_total": int(overview.get("ranking_rows_total", 0) or 0),
+            "ranking_rows_total_full_system": int(overview.get("ranking_rows_total_full_system", 0) or 0),
+            "ranking_rows_used": int(overview.get("ranking_rows_used", 0) or 0),
+            "overview_response_scope": str(overview.get("overview_response_scope", "") or ""),
+            "overview_response_scope_fallback": bool(overview.get("overview_response_scope_fallback", False)),
+            "overview_self_response_rows": int(overview.get("overview_self_response_rows", 0) or 0),
         },
         "outcome_context": outcome_context,
         "thresholds": cfg.get("thresholds", {}),
         "decision_card": decision_card_block,
+        "health_card_data": _build_health_card_data(decision_card_block, diagnostics),
+        "diagnostics": diagnostics,
         "diagnostics_overview": diagnostics.get("overview", {}),
         "rank_rows": rank_dashboard_rows,
         "spend_effect_rows": spend_effect_dashboard_rows,
@@ -1174,115 +1741,16 @@ def render_dashboard_output(
         },
         "structural": structural_block,
         "workbench": workbench_block,
-        "meridian_official": {
-            "available": bool(meridian_official_available),
-            "files": meridian_official_files,
-            "chart_specs": meridian_chart_specs,
-            "manifest": manifest_data,
-        },
+        "target_channel_detail": _build_target_channel_detail_payload(metrics, source_files),
+        "qc_followup": _build_qc_followup_summary(qc_gate),
+        "roi_prior_posterior_table": _build_roi_prior_posterior_table(source_files),
         "quick_overview_lines": metrics.get("quick_overview_lines", []),
         "recommendations": metrics.get("recommendations", []),
         "how_this_was_run": metrics.get("how_this_was_run", {"available": False}),
     }
     dashboard_payload = _json_compatible(dashboard_payload, float_decimals=3)
-    if write_report and template is not None:
-        html = template.render(
-            meta=meta,
-            methods=methods,
-            introduction=intro_block,
-            theory=theory_block,
-            scope=scope_block,
-            overview=overview,
-            diagnostics=diagnostics,
-            diagnostics_focus=diagnostics_focus,
-            qc_gate=qc_gate_block,
-            decision_card=decision_card_block,
-            dollar=dollar_block,
-            scenario_snapshot=scenario_block,
-            spend_effect=spend_effect_block,
-            structural=structural_block,
-            display=display_block,
-            quick_overview_lines=metrics.get("quick_overview_lines", []),
-            rank_table=rank_table_exec_df.to_dict(orient="records"),
-            rank_table_unstable=rank_table_unstable_preview_df.to_dict(orient="records"),
-            exec_table_mode=exec_table_mode,
-            recommendations=metrics["recommendations"],
-            figures={
-                "tornado": f"figures/{fig_paths['tornado']}" if fig_paths.get("tornado") else None,
-                "tornado_dollar": (
-                    f"figures/{fig_paths['tornado_dollar']}" if fig_paths.get("tornado_dollar") else None
-                ),
-                "spend_effect": (
-                    f"figures/{fig_paths['spend_effect']}" if fig_paths.get("spend_effect") else None
-                ),
-                "adstock_curves": (
-                    f"figures/{fig_paths['adstock_curves']}" if fig_paths.get("adstock_curves") else None
-                ),
-                "saturation_curves": (
-                    f"figures/{fig_paths['saturation_curves']}" if fig_paths.get("saturation_curves") else None
-                ),
-                "carryover_decomposition": (
-                    f"figures/{fig_paths['carryover_decomposition']}" if fig_paths.get("carryover_decomposition") else None
-                ),
-                "scenario_snapshot": (
-                    f"figures/{fig_paths['scenario_snapshot']}" if fig_paths.get("scenario_snapshot") else None
-                ),
-            },
-            heatmap_pages=fig_paths.get("heatmap_pages", []),
-            heatmap_modes=fig_paths.get("heatmap_modes", []),
-            default_heatmap_mode=fig_paths.get("default_heatmap_mode"),
-            appendix_tables=appendix_tables,
-            show_appendix=bool(output_cfg.get("show_appendix", False)),
-        )
-
-        out_path = outdir / str(output_cfg.get("report_filename", "report.html"))
-        out_path.write_text(html, encoding="utf-8")
-    elif not write_report:
-        stale_report_path = outdir / str(output_cfg.get("report_filename", "report.html"))
-        if stale_report_path.exists() and stale_report_path.is_file():
-            try:
-                stale_report_path.unlink()
-            except Exception:
-                pass
-
     payload_path = outdir / "tables" / "dashboard_payload.json"
     payload_path.write_text(
         json.dumps(dashboard_payload, ensure_ascii=False, indent=2, allow_nan=False),
         encoding="utf-8",
     )
-
-    write_dashboard = bool(output_cfg.get("write_dashboard", True))
-    if write_dashboard:
-        dashboard_template_name = str(output_cfg.get("dashboard_template", "dashboard_template.html"))
-        dashboard_css_name = str(output_cfg.get("dashboard_css", "dashboard.css"))
-        dashboard_css_src = template_dir / dashboard_css_name
-        dashboard_css_href = dashboard_css_name
-        if dashboard_css_src.exists() and dashboard_css_src.is_file():
-            dashboard_css_dest = outdir / dashboard_css_name
-            dashboard_css_dest.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(dashboard_css_src, dashboard_css_dest)
-        dashboard_nav = {
-            "overview": str(output_cfg.get("dashboard_filename", "dashboard.html")),
-        }
-        try:
-            dashboard_template = env.get_template(dashboard_template_name)
-        except Exception:
-            dashboard_template = None
-        if dashboard_template is not None:
-            page_specs = [("overview", dashboard_nav["overview"])]
-            kept_files = set()
-            for page_key, page_filename in page_specs:
-                dashboard_html = dashboard_template.render(
-                    meta=meta,
-                    overview=overview,
-                    decision_card=decision_card_block,
-                    dashboard_payload=dashboard_payload,
-                    dashboard_page=page_key,
-                    dashboard_nav=dashboard_nav,
-                    dashboard_css_href=dashboard_css_href,
-                )
-                (outdir / page_filename).write_text(dashboard_html, encoding="utf-8")
-                kept_files.add(page_filename)
-
-# Backward-compatible alias for older imports.
-render_html_report = render_dashboard_output

@@ -1,10 +1,19 @@
-"""Plot one-channel ROI prior-vs-posterior results."""
+"""Optional research/export utility for one-channel ROI prior-vs-posterior plots.
+
+This script is intentionally not part of the default React dashboard pipeline.
+React reads prior/posterior rows from ``dashboard_payload.json`` instead of a
+standalone PNG. Run this module manually when a poster or advisor-facing figure
+is useful.
+"""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -29,12 +38,11 @@ def _require_columns(df: pd.DataFrame, columns: list[str]) -> None:
         raise ValueError(f"Input CSV missing required columns: {missing}")
 
 
-def _interval_columns(df: pd.DataFrame) -> tuple[str, str]:
-    if {"posterior_roi_p25", "posterior_roi_p75"}.issubset(df.columns):
-        return "posterior_roi_p25", "posterior_roi_p75"
-    if {"posterior_roi_p05", "posterior_roi_p95"}.issubset(df.columns):
-        return "posterior_roi_p05", "posterior_roi_p95"
-    raise ValueError("Input CSV must include posterior p25/p75 or p05/p95 interval columns.")
+def _uses_revenue_equivalent_roi(df: pd.DataFrame) -> bool:
+    if "revenue_per_kpi" not in df.columns:
+        return False
+    revenue_per_kpi = pd.to_numeric(df["revenue_per_kpi"], errors="coerce")
+    return bool((revenue_per_kpi > 0).any())
 
 
 def make_plot(input_csv: str | Path, output_png: str | Path, *, title: str = "ROI: Prior vs Posterior") -> Path:
@@ -50,15 +58,20 @@ def make_plot(input_csv: str | Path, output_png: str | Path, *, title: str = "RO
             "roi_prior_sigma",
             "roi_prior_dist",
             "estimated_roi",
+            "posterior_roi_p25",
+            "posterior_roi_p75",
             "prior_roi_mu_channel",
         ],
     )
 
-    df = df[df["channel"].astype(str) == df["target_channel"].astype(str)].copy()
+    target_mask = df["channel"].astype(str) == df["target_channel"].astype(str)
+    df = df[target_mask].copy()
     if df.empty:
         raise ValueError("No primary one-channel rows found where channel == target_channel.")
+    if not (df["channel"].astype(str) == df["target_channel"].astype(str)).all():
+        raise ValueError("Primary ROI rows must satisfy channel == target_channel.")
 
-    lo_col, hi_col = _interval_columns(df)
+    lo_col, hi_col = "posterior_roi_p25", "posterior_roi_p75"
     numeric_cols = ["roi_prior_mu", "roi_prior_sigma", "estimated_roi", "prior_roi_mu_channel", lo_col, hi_col]
     for col in numeric_cols:
         df[col] = pd.to_numeric(df[col], errors="coerce")
@@ -124,7 +137,8 @@ def make_plot(input_csv: str | Path, output_png: str | Path, *, title: str = "RO
     ax.axvline(1.0, color="#666666", linestyle="--", linewidth=1.0, alpha=0.8)
     ax.set_yticks([y_base[ch] for ch in channels])
     ax.set_yticklabels(channels)
-    ax.set_xlabel("ROI")
+    x_label = "Revenue-equivalent ROI" if _uses_revenue_equivalent_roi(df) else "ROI"
+    ax.set_xlabel(x_label)
     ax.set_ylabel("Channel")
     ax.set_title(title)
     ax.grid(axis="x", color="#e4e7eb", linewidth=0.8)

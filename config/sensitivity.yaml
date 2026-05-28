@@ -46,8 +46,8 @@ structural:
   adstock_decay_values: [geometric]
 
 baseline:
-  roi_mu: 1.5
-  roi_sigma: 1.5
+  roi_mu: 1.0
+  roi_sigma: 1.0
   roi_dist: LogNormal
 
 defaults:

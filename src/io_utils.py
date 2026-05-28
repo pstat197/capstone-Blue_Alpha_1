@@ -85,6 +85,7 @@ ROI_OUTPUT_COLUMNS = [
     "targets",
     "target_channel",
     "channel",
+    "is_target_channel",
     "roi_prior_mu",
     "roi_prior_sigma",
     "roi_prior_dist",
