@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
+import { ContextualHelpButton } from "../../../shared/ContextualHelp";
 import { useCurrentResult } from "../data/resultLoader";
 import { channelLabel, formatNumber } from "../data/resultSelectors";
 import { ChannelLogo, displayChannelName } from "../../workflow/data/channelRegistry";
@@ -184,19 +184,6 @@ function allocationFromSpendEffectRow(row: Row) {
       effect === undefined ? "effect_share_pct/contribution_share_pct" : "",
     ].filter(Boolean),
   };
-}
-
-function InfoTooltip({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <span className="scenario-info-tooltip">
-      <button className="help-dot" type="button" aria-label={label}>
-        i
-      </button>
-      <span className="scenario-info-tooltip-panel" role="tooltip">
-        {children}
-      </span>
-    </span>
-  );
 }
 
 function MiniLineChart({
@@ -545,10 +532,7 @@ export function ScenarioExplorerPage() {
               <article className="scenario-chart-card">
                 <h3>
                   Selected Channel Mu x Sigma ROI Heatmap
-                  <InfoTooltip label="Explain ROI heatmap">
-                    <p>Each cell shows selected-channel ROI for one Mu/Sigma prior setting.</p>
-                    <p>Columns vary ROI Mu and rows vary ROI Sigma. The outlined cell matches the current slider-selected scenario.</p>
-                  </InfoTooltip>
+                  <ContextualHelpButton sectionId="scenario-roi-heatmap" label="Explain ROI heatmap" />
                 </h3>
                 <div className="heatmap-shell">
                   <span className="heatmap-axis heatmap-axis--y">Sigma</span>
@@ -580,10 +564,7 @@ export function ScenarioExplorerPage() {
               <article className="scenario-chart-card">
                 <h3>
                   Mu Marginal Response (Selected Sigma)
-                  <InfoTooltip label="Explain Mu marginal response">
-                    <p>Shows how the selected channel changes as ROI Mu varies while ROI Sigma is held fixed at the selected value.</p>
-                    <p>The blue line shows ROI. The secondary line shows {secondaryLegend} when available. The emphasized point matches the current selected scenario.</p>
-                  </InfoTooltip>
+                  <ContextualHelpButton sectionId="scenario-mu-response" label="Explain Mu marginal response" />
                 </h3>
                 <MiniLineChart
                   xLabel="Mu"
@@ -597,10 +578,7 @@ export function ScenarioExplorerPage() {
               <article className="scenario-chart-card">
                 <h3>
                   Sigma Marginal Response (Selected Mu)
-                  <InfoTooltip label="Explain Sigma marginal response">
-                    <p>Shows how the selected channel changes as ROI Sigma varies while ROI Mu is held fixed at the selected value.</p>
-                    <p>The blue line shows ROI. The secondary line shows {secondaryLegend} when available. The emphasized point matches the current selected scenario.</p>
-                  </InfoTooltip>
+                  <ContextualHelpButton sectionId="scenario-sigma-response" label="Explain Sigma marginal response" />
                 </h3>
                 <MiniLineChart
                   xLabel="Sigma"
@@ -617,11 +595,7 @@ export function ScenarioExplorerPage() {
               <div className="allocation-copy">
                 <h3>
                   Allocation Gap
-                  <InfoTooltip label="Explain allocation gap">
-                    <p>Compares each channel&apos;s spend share with its {allocationShareLabel.toLowerCase()} share for the selected scenario.</p>
-                    <p>Gap = {allocationShareLabel.toLowerCase()} share - spend share, shown in percentage points. Positive values mean the channel contributes more than its spend share; negative values mean it contributes less.</p>
-                    {!allocationReady ? <p>This chart requires both spend share and effect/contribution share. If either is missing, the allocation gap cannot be computed.</p> : null}
-                  </InfoTooltip>
+                  <ContextualHelpButton sectionId="scenario-allocation-gap" label="Explain allocation gap" />
                 </h3>
                 <p>Dumbbell view by channel: {allocationShareLabel.toLowerCase()} share minus spend share.</p>
                 {allocationReady && largestGap ? (
@@ -641,28 +615,32 @@ export function ScenarioExplorerPage() {
                 {allocationReady ? <p className="allocation-footer-note">Axis interval: [0.0%, 100.0%]. Channels shown: {allocationRows.length}.</p> : null}
               </div>
               <div className="dumbbell-chart">
-                {allocationReady ? allocationRows.map((row) => {
-                  const spend = row.spend || 0;
-                  const effect = row.effect || 0;
-                  const left = Math.min(spend, effect) * 100;
-                  const width = Math.abs(effect - spend) * 100;
-                  const gap = row.gap || 0;
-                  const labelLeft = Math.min(93, Math.max(7, Math.max(spend, effect) * 100 + 3));
-                  const tooltip = `Spend: ${shareLabel(spend)}; ${allocationShareLabel}: ${shareLabel(effect)}; Gap: ${ppLabel(gap, 3)}`;
-                  return (
-                    <div className="dumbbell-row" key={row.channel} title={tooltip} aria-label={`${channelLabel(row.channel)} allocation gap. ${tooltip}`}>
-                      <strong>{channelLabel(row.channel)}</strong>
-                      <div className="dumbbell-track">
-                        {allocationTicks.map((tick) => <span key={tick} className="dumbbell-grid-line" style={{ left: `${tick}%` }} />)}
-                        <span className="dumbbell-axis-zero" aria-hidden="true" />
-                        <span className={gap >= 0 ? "dumbbell-line dumbbell-line--positive" : "dumbbell-line dumbbell-line--negative"} style={{ left: `${left}%`, width: `${width}%` }} />
-                        <span className="dumbbell-dot dumbbell-dot--spend" style={{ left: `${spend * 100}%` }} />
-                        <span className="dumbbell-dot dumbbell-dot--effect" style={{ left: `${effect * 100}%` }} />
-                        <span className={gap >= 0 ? "dumbbell-gap-inline dumbbell-gap-inline--positive" : "dumbbell-gap-inline dumbbell-gap-inline--negative"} style={{ left: `${labelLeft}%` }}>{ppLabel(gap, 3)}</span>
-                      </div>
-                    </div>
-                  );
-                }) : <div className="scenario-empty-state">Allocation gap chart unavailable for the selected scenario. Missing fields: {missingAllocationFields.length ? missingAllocationFields.join(", ") : "spend/effect/contribution share fields"}.</div>}
+                {allocationReady ? (
+                  <div className="dumbbell-row-group">
+                    {allocationRows.map((row) => {
+                      const spend = row.spend || 0;
+                      const effect = row.effect || 0;
+                      const left = Math.min(spend, effect) * 100;
+                      const width = Math.abs(effect - spend) * 100;
+                      const gap = row.gap || 0;
+                      const labelLeft = Math.min(93, Math.max(7, Math.max(spend, effect) * 100 + 3));
+                      const tooltip = `Spend: ${shareLabel(spend)}; ${allocationShareLabel}: ${shareLabel(effect)}; Gap: ${ppLabel(gap, 3)}`;
+                      return (
+                        <div className="dumbbell-row" key={row.channel} title={tooltip} aria-label={`${channelLabel(row.channel)} allocation gap. ${tooltip}`}>
+                          <strong>{channelLabel(row.channel)}</strong>
+                          <div className="dumbbell-track">
+                            {allocationTicks.map((tick) => <span key={tick} className="dumbbell-grid-line" style={{ left: `${tick}%` }} />)}
+                            <span className="dumbbell-axis-zero" aria-hidden="true" />
+                            <span className={gap >= 0 ? "dumbbell-line dumbbell-line--positive" : "dumbbell-line dumbbell-line--negative"} style={{ left: `${left}%`, width: `${width}%` }} />
+                            <span className="dumbbell-dot dumbbell-dot--spend" style={{ left: `${spend * 100}%` }} />
+                            <span className="dumbbell-dot dumbbell-dot--effect" style={{ left: `${effect * 100}%` }} />
+                            <span className={gap >= 0 ? "dumbbell-gap-inline dumbbell-gap-inline--positive" : "dumbbell-gap-inline dumbbell-gap-inline--negative"} style={{ left: `${labelLeft}%` }}>{ppLabel(gap, 3)}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : <div className="scenario-empty-state">Allocation gap chart unavailable for the selected scenario. Missing fields: {missingAllocationFields.length ? missingAllocationFields.join(", ") : "spend/effect/contribution share fields"}.</div>}
                 {allocationReady ? (
                   <div className="dumbbell-axis" aria-hidden="true">
                     <span />

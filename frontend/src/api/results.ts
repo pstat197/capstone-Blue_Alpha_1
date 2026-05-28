@@ -1,6 +1,6 @@
 import { apiRequest } from "./client";
 import type { DashboardPayload } from "../features/results/data/resultTypes";
-import type { ResultHistoryPayloadResponse, ResultHistoryResponse, ResultPayloadResponse } from "./types";
+import type { ResultHistoryDeleteResponse, ResultHistoryPayloadResponse, ResultHistoryResponse, ResultPayloadResponse } from "./types";
 
 export function getResultPayload(runId: string): Promise<ResultPayloadResponse<DashboardPayload>> {
   const cacheBust = Date.now();
@@ -29,5 +29,11 @@ export function getResultHistoryPayload(historyId: string): Promise<ResultHistor
     headers: {
       "Cache-Control": "no-cache",
     },
+  });
+}
+
+export function deleteResultHistory(historyId: string): Promise<ResultHistoryDeleteResponse> {
+  return apiRequest<ResultHistoryDeleteResponse>(`/api/results/history/${encodeURIComponent(historyId)}`, {
+    method: "DELETE",
   });
 }

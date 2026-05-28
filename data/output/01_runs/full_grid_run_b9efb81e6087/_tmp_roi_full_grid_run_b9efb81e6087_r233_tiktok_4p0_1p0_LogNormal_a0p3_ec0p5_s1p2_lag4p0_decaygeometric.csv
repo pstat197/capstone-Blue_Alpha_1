@@ -1,0 +1,257 @@
+channel,estimated_roi,posterior_roi_sd,posterior_roi_p05,posterior_roi_p25,posterior_roi_p50,posterior_roi_p75,posterior_roi_p95,target_channel,roi_prior_mu,roi_prior_sigma,roi_prior_dist,adstock_alpha_m,saturation_ec_m,saturation_slope_m,max_lag,adstock_decay_spec,run_mode,prior_mode_used,kpi_type,kpi_type_effective,outcome_col_used,revenue_per_kpi,revenue_per_kpi_col,target_channels,sweep_type,two_layer_enabled,prior_design_mode,prior_grid_type,prior_design_label,roi_mu,roi_sigma,roi_dist,qc_scope,qc_target_channels,gate_mode,gate_matched_count,gate_missing_count,gate_warning,data_tag,input_data_csv,prior_roi_mu_channel,prior_roi_sigma_channel,prior_roi_dist_channel,is_target_channel,prior_posterior_kl_gaussian,prior_posterior_wasserstein,is_baseline,targets,prior_key,roi_prior_overrides_json,structural_overrides_json,qc_overall_status,qc_summary,qc_pass_fail,qc_needs_review,qc_text,qc_r2,qc_mape,qc_wmape,qc_bayesian_ppp,qc_baseline_neg_prob
+amazon,1.0173785475237915,0.9858020389562219,0.19179358035326005,0.4015154018998146,0.7113350927829742,1.2201222777366638,2.9953981637954707,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.0003535533486817011,0.07058099093588306,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+beehiiv,1.0268969764529416,0.9835672720410841,0.16663894802331924,0.3890347257256508,0.7256483435630798,1.2967528402805328,2.898784351348877,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.0006332558267269084,0.03589203132003722,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+google,0.5027248113788665,0.3201156033954812,0.13479071706533433,0.2743702381849289,0.4203467220067978,0.6510848551988602,1.175646597146987,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.8139513941941072,0.484852068411077,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+liveintent,0.9803051522125801,0.8967471085610531,0.17682866901159286,0.39015692472457886,0.7117413878440857,1.280381053686142,2.726602518558502,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.011253018799372239,0.04999447669247527,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+meta,0.7728115646789472,0.5506136438336706,0.18352972716093063,0.38950834423303604,0.6176247894763947,0.9837511628866196,1.9597262740135184,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.274116891602707,0.2396086640322641,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+moloco,1.0820430295852324,0.9523359146882013,0.20664202496409417,0.47517118602991104,0.7758419513702393,1.3472133576869965,3.0236312270164483,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.00567483141927605,0.08006441034268404,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+snapchat,0.8231975444716711,0.5837392034336755,0.1761535719037056,0.40209969133138657,0.6676784157752991,1.0895383954048157,2.016047191619873,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,1.0,1.0,LogNormal,False,0.22430624831174695,0.17152627514775726,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0
+tiktok,3.401982328991095,0.7554701661403924,2.3110703587532044,2.8715330362319946,3.320019245147705,3.8872165083885193,4.750401091575622,tiktok,4.0,1.0,LogNormal,0.3,0.5,1.2,4,geometric,roi_full,roi,non_revenue,revenue,__revenue_equiv__,100.0,,tiktok,fixed_full_grid,False,roi,roi,Revenue-equivalent ROI,4.0,1.0,LogNormal,target_channels,tiktok,configured,,,,upload_1bc112d58beb_monthly_mocha,/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv,4.0,1.0,LogNormal,True,0.24459514032685536,0.6583736247658496,False,tiktok,"{""kpi_type"": ""non_revenue"", ""kpi_type_effective"": ""revenue"", ""prior_design_mode"": ""roi"", ""prior_grid_type"": ""roi"", ""revenue_per_kpi"": 100.0, ""roi_prior_overrides"": {""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}, ""run_mode"": ""roi_full"", ""structural_overrides"": {""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}, ""sweep_type"": ""fixed_full_grid"", ""target_channel"": ""tiktok"", ""two_layer_enabled"": false}","{""amazon"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""beehiiv"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""google"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""liveintent"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""meta"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""moloco"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""snapchat"": {""dist"": ""LogNormal"", ""mu"": 1.0, ""sigma"": 1.0}, ""tiktok"": {""dist"": ""LogNormal"", ""mu"": 4.0, ""sigma"": 1.0}}","{""adstock_decay_spec"": ""geometric"", ""alpha_m"": 0.3, ""ec_m"": 0.5, ""max_lag"": 4, ""slope_m"": 1.2}",PASS,Passed with reviews: Review is needed.,PASS,True,"========================================
+Model Quality Checks
+========================================
+Overall Status: PASS
+Summary: Passed with reviews: Review is needed.
+Health Score: 97.4
+
+Check Results:
+----------------------------------------
+Convergence Check:
+  Status: PASS
+  Recommendation: The model has likely converged, as all parameters have R-hat values < 1.2.
+----------------------------------------
+Baseline Check:
+  Status: PASS
+  Recommendation: The posterior probability that the baseline is negative is 0.00. We recommend visually inspecting the baseline time series in the Model Fit charts to confirm this.
+----------------------------------------
+BayesianPPP Check:
+  Status: PASS
+  Recommendation: The Bayesian posterior predictive p-value is 0.97. The observed total outcome is consistent with the model's posterior predictive distribution.
+----------------------------------------
+GoodnessOfFit Check:
+  Status: PASS
+  Recommendation: R-squared = 0.8896, MAPE = 0.0514, and wMAPE = 0.0510. These goodness-of-fit metrics are intended for guidance and relative comparison.
+----------------------------------------
+PriorPosteriorShift Check:
+  Status: REVIEW
+  Recommendation: We've detected channel(s) `amazon`, `beehiiv`, `liveintent` where the posterior distribution did not significantly shift from the prior. This suggests the data signal for these channels was not strong enough to update the model's beliefs. Please review these channels to see if this is expected (due to a strong priors) or problematic (due to a weak signal).
+----------------------------------------
+ROIConsistency Check:
+  Status: PASS
+  Recommendation: The posterior distribution of the ROI is within a reasonable range, aligning with the custom priors you provided.",0.8896,0.0514,0.051,0.97,0.0

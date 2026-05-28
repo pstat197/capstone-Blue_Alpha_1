@@ -1,0 +1,7 @@
+check,pass_count,review_count,fail_count,unknown_count,coverage_pct
+Convergence,236,0,4,0,100.0
+Baseline,240,0,0,0,100.0
+BayesianPPP,240,0,0,0,100.0
+GoodnessOfFit,240,0,0,0,100.0
+PriorPosteriorShift,23,217,0,0,100.0
+ROIConsistency,240,0,0,0,100.0

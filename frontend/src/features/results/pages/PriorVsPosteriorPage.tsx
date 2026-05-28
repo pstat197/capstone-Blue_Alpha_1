@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 
 import { SectionScaffold } from "../components/SectionScaffold";
 import { ContextualHelpButton } from "../../../shared/ContextualHelp";
@@ -28,6 +28,7 @@ type ChannelUpdate = {
   maxShift: number | null;
   strength: "Strong" | "Moderate" | "Weak" | "Unavailable";
   stability: "Stable" | "Watch" | "Prior-sensitive" | "High uncertainty" | "Unavailable";
+  stabilityReason: string;
 };
 
 type SensitivityRisk = "High" | "Medium" | "Low" | "Unavailable";
@@ -64,6 +65,14 @@ function formatRange(min: number | null, max: number | null): string {
 
 function stabilityClass(stability: ChannelUpdate["stability"]): string {
   return stability.toLowerCase().replace(/\s+/g, "-");
+}
+
+function stabilityReason(stability: ChannelUpdate["stability"]): string {
+  if (stability === "Prior-sensitive") return "Large ROI movement across prior grid";
+  if (stability === "Watch") return "Moderate prior-driven movement";
+  if (stability === "High uncertainty") return "Wide posterior interval";
+  if (stability === "Stable") return "Small prior movement and interval width";
+  return "Stability inputs unavailable";
 }
 
 function channelsText(rows: ChannelUpdate[]): string {
@@ -155,6 +164,7 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
       maxShift,
       strength: "Unavailable" as ChannelUpdate["strength"],
       stability: "Unavailable" as ChannelUpdate["stability"],
+      stabilityReason: "Stability inputs unavailable",
     };
   });
 
@@ -177,10 +187,11 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
             : row.avgAbsShift >= weakCut
               ? "Moderate"
               : "Weak";
-      // Stability summarizes whether the posterior conclusion remains similar as priors vary.
-      // It is derived from existing posterior means and 50% interval widths within the selected run:
-      // top-quartile max shift = Prior-sensitive, top-quartile CI width = High uncertainty,
-      // above-median max shift = Watch, otherwise Stable.
+      // Stability flag is a display summary derived from existing row metrics only:
+      // - Prior-sensitive: max shift is in the top quartile, so posterior ROI depends strongly on prior choice.
+      // - High uncertainty: 50% CI width is in the top quartile, so posterior uncertainty is the main concern.
+      // - Watch: max shift is above the median, so prior-driven movement is present but not extreme.
+      // - Stable: max shift and CI width are comparatively small among channels in this selected run.
       const stability: ChannelUpdate["stability"] =
         row.maxShift === null || row.ciWidth === null || watchShiftCut === null || priorSensitiveCut === null || highUncertaintyCut === null
           ? "Unavailable"
@@ -191,7 +202,7 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
               : row.maxShift >= watchShiftCut
                 ? "Watch"
                 : "Stable";
-      return { ...row, strength, stability };
+      return { ...row, strength, stability, stabilityReason: stabilityReason(stability) };
     })
     .sort((a, b) => Number(b.avgAbsShift ?? -1) - Number(a.avgAbsShift ?? -1));
 }
@@ -263,17 +274,6 @@ function sensitivityRiskGroups(rows: ChannelUpdate[]) {
 
 function EmptyState({ message }: { message: string }) {
   return <div className="pvp-empty-state">{message}</div>;
-}
-
-function InfoPopover({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <details className="pvp-info-popover">
-      <summary aria-label={label}>i</summary>
-      <div className="pvp-info-popover-panel" role="note">
-        {children}
-      </div>
-    </details>
-  );
 }
 
 function SummaryCard({
@@ -533,18 +533,7 @@ export function PriorVsPosteriorPage() {
                 <h3>ROI Prior vs Posterior with 50% Posterior Intervals</h3>
                 <p>Shows how posterior ROI estimates move under different prior assumptions.</p>
               </div>
-              <div className="inline-help-row">
-                <ContextualHelpButton sectionId="prior-posterior-chart" label="Open contextual help for this chart" />
-                <InfoPopover label="Explain ROI prior vs posterior chart">
-                  <p>This chart compares how each channel's posterior ROI changes under different prior assumptions.</p>
-                  <ul>
-                    <li>Colored points = posterior mean by prior variant</li>
-                    <li>Colored lines = 50% posterior interval</li>
-                    <li>Gray diamond = channel prior mean</li>
-                    <li>Dashed vertical line = ROI 1.0 reference</li>
-                  </ul>
-                </InfoPopover>
-              </div>
+              <ContextualHelpButton sectionId="prior-posterior-chart" label="Explain ROI prior vs posterior chart" />
             </div>
             {table?.available === false ? <EmptyState message={table.reason || "Prior-vs-posterior table unavailable in this payload."} /> : <PriorPosteriorChart points={points} metricLabel={metricLabel} />}
           </article>
@@ -590,19 +579,11 @@ export function PriorVsPosteriorPage() {
 
         <article className="content-panel pvp-stability-card">
           <div className="pvp-card-title">
-            <h3>Posterior Stability Summary</h3>
-            <div className="inline-help-row">
-              <ContextualHelpButton sectionId="posterior-interval" label="Open contextual help for posterior intervals" />
-              <InfoPopover label="Explain posterior stability summary table">
-                <ul>
-                  <li>Baseline Posterior ROI = posterior mean from the baseline prior variant.</li>
-                  <li>ROI Range Across Priors = minimum to maximum posterior mean across tested prior variants.</li>
-                  <li>Max Shift = largest absolute movement from the baseline posterior ROI.</li>
-                  <li>50% CI Width = average width of the posterior 50% interval.</li>
-                  <li>Stability summarizes whether the posterior conclusion stays similar as priors change.</li>
-                </ul>
-              </InfoPopover>
+            <div className="pvp-card-heading">
+              <h3>Posterior Stability Summary</h3>
+              <p>Summarizes whether each channel's posterior ROI is stable across prior settings and whether uncertainty remains high.</p>
             </div>
+            <ContextualHelpButton sectionId="posterior-stability-summary" label="Explain posterior stability summary table" />
           </div>
           {channelRows.length ? (
             <div className="table-shell">
@@ -610,11 +591,12 @@ export function PriorVsPosteriorPage() {
                 <thead>
                   <tr>
                     <th>Channel</th>
-                    <th>Baseline Posterior ROI</th>
-                    <th>ROI Range Across Priors</th>
+                    <th>Baseline ROI</th>
+                    <th>Range Across Priors</th>
                     <th>Max Shift</th>
                     <th>50% CI Width</th>
-                    <th>Stability</th>
+                    <th>Flag</th>
+                    <th>Reason</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -630,6 +612,7 @@ export function PriorVsPosteriorPage() {
                         <td>
                           <span className={`pvp-stability-pill pvp-stability-pill--${stabilityClass(row.stability)}`}>{row.stability}</span>
                         </td>
+                        <td className="pvp-stability-reason">{row.stabilityReason}</td>
                       </tr>
                     ))}
                 </tbody>

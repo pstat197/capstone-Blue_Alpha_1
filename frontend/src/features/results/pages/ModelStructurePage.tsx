@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { useMemo } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
+import { ContextualHelpButton } from "../../../shared/ContextualHelp";
 import { useCurrentResult } from "../data/resultLoader";
 import type { DashboardPayload } from "../data/resultTypes";
 
@@ -607,11 +608,11 @@ export function ModelStructurePage() {
                   <thead>
                     <tr>
                       <th>Channel</th>
-                      <th>Alpha <span className="ms-info" title="Adstock decay parameter">i</span></th>
-                      <th>EC <span className="ms-info" title="Spend index at 50% response">i</span></th>
-                      <th>Slope <span className="ms-info" title="Response curve steepness">i</span></th>
+                      <th>Alpha <ContextualHelpButton sectionId="structural-alpha" label="Explain alpha" /></th>
+                      <th>EC <ContextualHelpButton sectionId="structural-ec" label="Explain EC" /></th>
+                      <th>Slope <ContextualHelpButton sectionId="structural-slope" label="Explain slope" /></th>
                       <th>Max Lag</th>
-                      <th>Half-Life <span className="ms-info" title="Calculated from alpha using geometric decay">i</span></th>
+                      <th>Half-Life <ContextualHelpButton sectionId="structural-half-life" label="Explain half-life" /></th>
                     </tr>
                   </thead>
                   <tbody>

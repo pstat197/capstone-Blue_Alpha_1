@@ -1,0 +1,8 @@
+channel,roi_prior_dist,max_abs_pct_change,max_abs_pct_change_raw,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,pct_metric_unstable_reason,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,primary_metric,primary_value,ranking_metric_label
+beehiiv,LogNormal,,389.62359550346207,4.0894697817073515,1.0495950011505435,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.24620245186181844,delta_roi,4.0894697817073515,Max |Delta ROI|
+amazon,LogNormal,,392.8276610694812,4.008330198504652,1.0203788062154004,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.2532869600760735,delta_roi,4.008330198504652,Max |Delta ROI|
+liveintent,LogNormal,,390.43395238479167,3.952851479304954,1.012425137506798,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.2895876271544455,delta_roi,3.952851479304954,Max |Delta ROI|
+snapchat,LogNormal,,355.76627579711555,3.022936404825498,0.8496972901808719,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.33654680463337794,delta_roi,3.022936404825498,Max |Delta ROI|
+google,LogNormal,,423.3751707557169,2.3119212609436364,0.546069165278847,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.49446343004322824,delta_roi,2.3119212609436364,Max |Delta ROI|
+tiktok,LogNormal,,229.45254185222404,1.7183429142832758,0.7488881580531597,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.3834219269134969,delta_roi,1.7183429142832758,Max |Delta ROI|
+moloco,LogNormal,,92.35380819628975,0.9998060302001737,1.0825823533721268,1.0,1.0,False,baseline_qc=REVIEW,False,False,4,0.2646477300061601,delta_roi,0.9998060302001737,Max |Delta ROI|

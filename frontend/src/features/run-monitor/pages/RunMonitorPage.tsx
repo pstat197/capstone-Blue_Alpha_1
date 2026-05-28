@@ -6,7 +6,7 @@ import type { RunLifecycleStatus, RunStatus, WorkflowDraft } from "../../../api/
 import { writeActiveResultsRunId } from "../../results/data/resultLoader";
 import { formatNumber } from "../../results/data/resultSelectors";
 import { ChannelLogo, displayChannelName } from "../../workflow/data/channelRegistry";
-import { activeRunIdStorageKey } from "../../workflow/data/workflowState";
+import { readActiveRunId, writeActiveRunId } from "../../workflow/data/workflowState";
 
 type StageState = "complete" | "active" | "pending" | "failed";
 
@@ -219,10 +219,10 @@ export function RunMonitorPage() {
   const queryRunId = searchParams.get("run_id")?.trim() || null;
   const reusedExistingResult = searchParams.get("reused") === "1";
   const routeRunId = params.runId && params.runId !== "current" ? params.runId : null;
-  const sessionRunId = window.sessionStorage.getItem(activeRunIdStorageKey)?.trim() || null;
+  const storedRunId = readActiveRunId();
   const demoRunsEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_RUNS === "true";
   const explicitDemoRunId = demoRunsEnabled && searchParams.get("demo") === "true" ? "demo_32run" : null;
-  const resolvedRunId = queryRunId || routeRunId || sessionRunId || explicitDemoRunId;
+  const resolvedRunId = queryRunId || routeRunId || storedRunId || explicitDemoRunId;
   const [run, setRun] = useState<RunStatus | null>(null);
   const [workflow, setWorkflow] = useState<WorkflowDraft | null>(null);
   const [logLines, setLogLines] = useState<string[]>([]);
@@ -242,6 +242,9 @@ export function RunMonitorPage() {
       .then((status) => {
         setRun(status);
         setError(null);
+        if (status.run_id && status.run_id !== "demo_32run") {
+          writeActiveRunId(status.run_id);
+        }
         getWorkflowDraft(status.workflow_id).then(setWorkflow).catch(() => setWorkflow(null));
         return getRunLogs(resolvedRunId);
       })
@@ -275,6 +278,7 @@ export function RunMonitorPage() {
 
   useEffect(() => {
     if ((run?.status === "completed" || run?.status === "already_completed") && run.run_id) {
+      writeActiveRunId(run.run_id);
       writeActiveResultsRunId(run.run_id);
     }
   }, [run?.run_id, run?.status]);

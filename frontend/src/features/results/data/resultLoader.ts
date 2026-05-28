@@ -41,15 +41,11 @@ function readStoredActiveRunId(): string | null {
   return (
     window.sessionStorage.getItem(activeResultsRunStorageKey)?.trim() ||
     window.localStorage.getItem(activeResultsRunStorageKey)?.trim() ||
-    window.sessionStorage.getItem(activeRunIdStorageKey)?.trim() ||
-    window.localStorage.getItem(activeRunIdStorageKey)?.trim() ||
     null
   );
 }
 
 export function writeActiveResultsRunId(runId: string) {
-  window.sessionStorage.setItem(activeRunIdStorageKey, runId);
-  window.localStorage.setItem(activeRunIdStorageKey, runId);
   window.sessionStorage.setItem(activeResultsRunStorageKey, runId);
   window.localStorage.setItem(activeResultsRunStorageKey, runId);
 }

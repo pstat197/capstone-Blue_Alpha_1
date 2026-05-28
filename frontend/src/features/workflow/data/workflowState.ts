@@ -111,6 +111,24 @@ export function clearDatasetSelections() {
   ].forEach((key) => window.localStorage.removeItem(key));
 }
 
+export function readActiveRunId(): string | null {
+  return (
+    window.sessionStorage.getItem(activeRunIdStorageKey)?.trim() ||
+    window.localStorage.getItem(activeRunIdStorageKey)?.trim() ||
+    null
+  );
+}
+
+export function writeActiveRunId(runId: string) {
+  window.sessionStorage.setItem(activeRunIdStorageKey, runId);
+  window.localStorage.setItem(activeRunIdStorageKey, runId);
+}
+
+export function clearActiveRunId() {
+  window.sessionStorage.removeItem(activeRunIdStorageKey);
+  window.localStorage.removeItem(activeRunIdStorageKey);
+}
+
 export function detectedChannels(profile: CsvProfile | null): string[] {
   if (!profile) {
     return [];

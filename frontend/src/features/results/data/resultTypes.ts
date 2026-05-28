@@ -36,6 +36,9 @@ export type DashboardPayload = {
     primary_rows?: Array<Record<string, unknown>>;
     flagged_rows?: Array<Record<string, unknown>>;
     check_rows?: Array<DiagnosticCheckRow>;
+    core_model_health?: CoreModelHealth;
+    prior_sensitivity_audit?: PriorSensitivityAudit;
+    convergence_failure_rows?: ConvergenceFailureRow[];
     reason?: string;
   };
   decision_card?: {
@@ -84,6 +87,48 @@ export type DiagnosticCheckRow = {
   unknown_count?: number | string;
   coverage_pct?: number | string;
   recommendation?: string;
+};
+
+export type CoreModelHealth = {
+  available?: boolean;
+  total_runs?: number;
+  passed_runs?: number;
+  review_runs?: number;
+  failed_runs?: number;
+  unknown_runs?: number;
+  pass_rate_pct?: number;
+  excluded_checks?: string[];
+  check_rows?: Array<DiagnosticCheckRow & { pass_rate_pct?: number | string }>;
+};
+
+export type PriorSensitivityAudit = {
+  available?: boolean;
+  total_runs?: number;
+  pps_any_channel_count?: number;
+  pps_target_channel_review_count?: number | null;
+  pps_non_target_only_review_count?: number | null;
+  pps_review_convergence_fail_overlap_count?: number;
+  pps_review_runs?: number;
+  pps_pass_runs?: number;
+  pps_unknown_runs?: number;
+  pps_review_rate_pct?: number;
+  target_breakdown_available?: boolean;
+  target_channel_review_runs?: number | null;
+  non_target_only_review_runs?: number | null;
+  target_channel_any_pps_runs?: number | null;
+  non_target_only_any_pps_runs?: number | null;
+  pps_convergence_fail_overlap_runs?: number;
+};
+
+export type ConvergenceFailureRow = {
+  run_id?: string;
+  target_channel?: string;
+  roi_prior_mu?: number | string | null;
+  roi_prior_sigma?: number | string | null;
+  r_hat_trigger?: string;
+  parameter?: string | null;
+  max_r_hat?: number | string | null;
+  reason?: string;
 };
 
 export type RankRow = {

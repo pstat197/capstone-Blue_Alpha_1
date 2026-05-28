@@ -260,3 +260,22 @@ def register_completed_result(status: Any, config: dict[str, Any] | None = None)
 
 def list_index_records() -> list[dict[str, Any]]:
     return _read_index()
+
+
+def delete_index_records_for_history(history_id: str, output_tag: str | None = None, payload_path: str | None = None) -> int:
+    records = _read_index()
+    kept = []
+    deleted = 0
+    for record in records:
+        matches = record.get("history_id") == history_id
+        if output_tag:
+            matches = matches or record.get("output_tag") == output_tag
+        if payload_path:
+            matches = matches or record.get("payload_path") == payload_path or record.get("dashboard_path") == payload_path
+        if matches:
+            deleted += 1
+        else:
+            kept.append(record)
+    if deleted:
+        _write_index(kept)
+    return deleted

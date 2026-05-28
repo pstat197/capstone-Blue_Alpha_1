@@ -13,6 +13,7 @@ export type HelpSectionId =
   | "prior-mean"
   | "posterior-mean"
   | "posterior-interval"
+  | "posterior-stability-summary"
   | "roi-reference"
   | "prior-sensitivity"
   | "interpretation-confidence"
@@ -23,7 +24,15 @@ export type HelpSectionId =
   | "qc-status"
   | "qc-checks"
   | "primary-review-checks"
-  | "warnings";
+  | "warnings"
+  | "scenario-roi-heatmap"
+  | "scenario-mu-response"
+  | "scenario-sigma-response"
+  | "scenario-allocation-gap"
+  | "structural-alpha"
+  | "structural-ec"
+  | "structural-slope"
+  | "structural-half-life";
 
 type HelpSection = {
   id: HelpSectionId;
@@ -109,6 +118,17 @@ const priorPosteriorContext: HelpContext = {
       body: "The horizontal line around each dot is the central 50% of plausible posterior ROI values. Wider lines mean more uncertainty.",
     },
     {
+      id: "posterior-stability-summary",
+      title: "Posterior stability summary",
+      body: "This table answers whether the posterior ROI conclusion stays stable as prior assumptions change, and separates prior sensitivity from posterior uncertainty.",
+      bullets: [
+        "Range Across Priors and Max Shift measure prior sensitivity.",
+        "50% CI Width measures posterior uncertainty.",
+        "The Flag column names the main attention point for the channel.",
+        "The Reason column explains whether the flag is driven by prior movement, interval width, or comparative stability.",
+      ],
+    },
+    {
       id: "roi-reference",
       title: "ROI 1.0 dashed line",
       body: "ROI 1.0 is the break-even reference. Points to the right are above break-even; points to the left are below it.",
@@ -192,6 +212,82 @@ const auditContext: HelpContext = {
   ],
 };
 
+const scenarioContext: HelpContext = {
+  eyebrow: "Scenario Explorer Help",
+  title: "Help for scenario exploration",
+  intro: "Use this page to inspect how selected prior settings affect ROI and allocation-style summaries.",
+  sections: [
+    {
+      id: "scenario-roi-heatmap",
+      title: "ROI heatmap",
+      body: "Each cell shows selected-channel ROI for one Mu/Sigma prior setting.",
+      bullets: [
+        "Columns vary ROI Mu.",
+        "Rows vary ROI Sigma.",
+        "The outlined cell matches the currently selected slider scenario.",
+      ],
+    },
+    {
+      id: "scenario-mu-response",
+      title: "Mu marginal response",
+      body: "Shows how the selected channel changes as ROI Mu varies while ROI Sigma is held fixed at the selected value.",
+      bullets: [
+        "The blue line shows ROI.",
+        "The secondary line shows the available contribution/effect metric.",
+        "The emphasized point matches the currently selected scenario.",
+      ],
+    },
+    {
+      id: "scenario-sigma-response",
+      title: "Sigma marginal response",
+      body: "Shows how the selected channel changes as ROI Sigma varies while ROI Mu is held fixed at the selected value.",
+      bullets: [
+        "The blue line shows ROI.",
+        "The secondary line shows the available contribution/effect metric.",
+        "The emphasized point matches the currently selected scenario.",
+      ],
+    },
+    {
+      id: "scenario-allocation-gap",
+      title: "Allocation gap",
+      body: "Compares each channel's spend share with its effect or contribution share for the selected scenario.",
+      bullets: [
+        "Gap = effect or contribution share minus spend share.",
+        "Positive values mean the channel contributes more than its spend share.",
+        "If spend share or effect/contribution share is missing, the gap cannot be computed.",
+      ],
+    },
+  ],
+};
+
+const modelStructureContext: HelpContext = {
+  eyebrow: "Model Structure Help",
+  title: "Help for model structure",
+  intro: "Use this page to understand adstock and saturation assumptions behind the selected run.",
+  sections: [
+    {
+      id: "structural-alpha",
+      title: "Alpha",
+      body: "Alpha is the adstock decay parameter. Higher values usually mean media impact carries over for longer after the spend or exposure occurs.",
+    },
+    {
+      id: "structural-ec",
+      title: "EC",
+      body: "EC is the spend or exposure index at 50% response. It describes where the response curve reaches its midpoint.",
+    },
+    {
+      id: "structural-slope",
+      title: "Slope",
+      body: "Slope controls the steepness of the response curve. Higher values can imply a sharper transition from low response to saturation.",
+    },
+    {
+      id: "structural-half-life",
+      title: "Half-life",
+      body: "Half-life is calculated from alpha using geometric decay. It estimates how long it takes carryover impact to fall by half.",
+    },
+  ],
+};
+
 const defaultContext: HelpContext = {
   eyebrow: "Dashboard Help",
   title: "Help for this page",
@@ -261,6 +357,8 @@ export function helpContextForPath(pathname: string): HelpContext {
   if (pathname.includes("/results/prior-vs-posterior")) return priorPosteriorContext;
   if (pathname.includes("/results/prior-sensitivity")) return priorSensitivityContext;
   if (pathname.includes("/results/run-audit-diagnostics")) return auditContext;
+  if (pathname.includes("/results/scenario-explorer")) return scenarioContext;
+  if (pathname.includes("/results/model-structure")) return modelStructureContext;
   if (pathname.includes("/results/overview")) return overviewContext;
   return defaultContext;
 }

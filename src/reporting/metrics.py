@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 import math
+import re
 
 import numpy as np
 import pandas as pd
@@ -35,6 +36,13 @@ DEFAULT_STRUCTURAL = {
 DEFAULT_QC_GATE_MU = [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
 DEFAULT_QC_GATE_SIGMA = [0.5, 1.0, 1.5]
 DEFAULT_QC_GATE_DISTS = ["LogNormal"]
+CORE_DIAGNOSTIC_CHECKS = [
+    ("Convergence", "qc_convergence_status"),
+    ("Baseline", "qc_baseline_status"),
+    ("BayesianPPP", "qc_bayesianppp_status"),
+    ("GoodnessOfFit", "qc_gof_status"),
+    ("ROIConsistency", "qc_roi_consistency_status"),
+]
 
 
 def _pick_baseline(group: pd.DataFrame, rule: str) -> tuple[float, float]:
@@ -161,6 +169,35 @@ def _format_numeric_list(values: list[float], decimals: int = 3) -> str:
         else:
             parts.append(f"{float(value):.{decimals}f}".rstrip("0").rstrip("."))
     return ", ".join(parts)
+
+
+def _split_channel_tokens(raw: object) -> list[str]:
+    tokens: list[str] = []
+    seen: set[str] = set()
+    for tok in str(raw or "").split(","):
+        clean = tok.strip().lower()
+        if clean and clean not in {"none", "nan", "na", "n/a"} and clean not in seen:
+            seen.add(clean)
+            tokens.append(clean)
+    return tokens
+
+
+def _extract_convergence_detail(reason: object) -> tuple[str | None, float | None]:
+    text = str(reason or "")
+    param = None
+    max_r_hat = None
+    param_match = re.search(r"parameter\s+`?([A-Za-z0-9_]+)`?", text)
+    if param_match:
+        param = param_match.group(1)
+    rhat_match = re.search(r"`?max_r_hat`?\s+for\s+parameter\s+`?[A-Za-z0-9_]+`?\s+is\s+([0-9]+(?:\.[0-9]+)?)", text)
+    if not rhat_match:
+        rhat_match = re.search(r"R-hat[^0-9]*([0-9]+(?:\.[0-9]+)?)", text, flags=re.IGNORECASE)
+    if rhat_match:
+        try:
+            max_r_hat = float(rhat_match.group(1))
+        except ValueError:
+            max_r_hat = None
+    return param, max_r_hat
 
 
 def _humanize_token(value: str | None, *, uppercase_short: bool = False) -> str:
@@ -604,18 +641,15 @@ def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
             )
             flagged_df["pct_runs"] = np.where(n_runs > 0, 100.0 * flagged_df["count"] / float(n_runs), 0.0)
 
-    check_cols = [
-        c
-        for c in [
-            "qc_convergence_status",
-            "qc_baseline_status",
-            "qc_bayesianppp_status",
-            "qc_gof_status",
-            "qc_prior_posterior_shift_status",
-            "qc_roi_consistency_status",
-        ]
-        if c in run_rows.columns
-    ]
+    check_name_by_col = {
+        "qc_convergence_status": "Convergence",
+        "qc_baseline_status": "Baseline",
+        "qc_bayesianppp_status": "BayesianPPP",
+        "qc_gof_status": "GoodnessOfFit",
+        "qc_prior_posterior_shift_status": "PriorPosteriorShift",
+        "qc_roi_consistency_status": "ROIConsistency",
+    }
+    check_cols = [c for c in check_name_by_col if c in run_rows.columns]
     check_rows: list[dict] = []
     for col in check_cols:
         buckets = run_rows[col].map(_status_bucket)
@@ -623,7 +657,7 @@ def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
         total = int(counts.sum())
         check_rows.append(
             {
-                "check": col.replace("qc_", "").replace("_status", ""),
+                "check": check_name_by_col.get(col, col.replace("qc_", "").replace("_status", "")),
                 "pass_count": int(counts.get("PASS", 0)),
                 "review_count": int(counts.get("REVIEW", 0)),
                 "fail_count": int(counts.get("FAIL", 0)),
@@ -649,6 +683,109 @@ def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
         overview["review_rate_pct"] = 0.0
         overview["fail_rate_pct"] = 0.0
 
+    core_rows: list[dict] = []
+    core_pass_mask = pd.Series(True, index=run_rows.index)
+    core_review_mask = pd.Series(False, index=run_rows.index)
+    core_fail_mask = pd.Series(False, index=run_rows.index)
+    core_unknown_mask = pd.Series(False, index=run_rows.index)
+    for check_name, col in CORE_DIAGNOSTIC_CHECKS:
+        if col in run_rows.columns:
+            buckets = run_rows[col].map(_status_bucket)
+        else:
+            buckets = pd.Series("UNKNOWN", index=run_rows.index)
+        pass_mask = buckets == "PASS"
+        review_mask = buckets == "REVIEW"
+        fail_mask = buckets == "FAIL"
+        unknown_mask = buckets == "UNKNOWN"
+        core_pass_mask &= pass_mask
+        core_review_mask |= review_mask
+        core_fail_mask |= fail_mask
+        core_unknown_mask |= unknown_mask
+        core_rows.append(
+            {
+                "check": check_name,
+                "pass_count": int(pass_mask.sum()),
+                "review_count": int(review_mask.sum()),
+                "fail_count": int(fail_mask.sum()),
+                "unknown_count": int(unknown_mask.sum()),
+                "pass_rate_pct": (100.0 * int(pass_mask.sum()) / float(n_runs)) if n_runs > 0 else 0.0,
+            }
+        )
+    core_pass_count = int((core_pass_mask & ~core_review_mask & ~core_fail_mask & ~core_unknown_mask).sum())
+    core_review_count = int((~core_fail_mask & core_review_mask).sum())
+    core_fail_count = int(core_fail_mask.sum())
+    core_unknown_count = int((~core_fail_mask & ~core_review_mask & core_unknown_mask).sum())
+    core_model_health = {
+        "available": bool(core_rows),
+        "total_runs": n_runs,
+        "passed_runs": core_pass_count,
+        "review_runs": core_review_count,
+        "failed_runs": core_fail_count,
+        "unknown_runs": core_unknown_count,
+        "pass_rate_pct": (100.0 * core_pass_count / float(n_runs)) if n_runs > 0 else 0.0,
+        "excluded_checks": ["PriorPosteriorShift"],
+        "check_rows": core_rows,
+    }
+
+    pps_status = (
+        run_rows["qc_prior_posterior_shift_status"].map(_status_bucket)
+        if "qc_prior_posterior_shift_status" in run_rows.columns
+        else pd.Series("UNKNOWN", index=run_rows.index)
+    )
+    pps_mask = pps_status == "REVIEW"
+    convergence_status = (
+        run_rows["qc_convergence_status"].map(_status_bucket)
+        if "qc_convergence_status" in run_rows.columns
+        else pd.Series("UNKNOWN", index=run_rows.index)
+    )
+    convergence_fail_mask = convergence_status == "FAIL"
+    flagged_tokens = run_rows.get("qc_flagged_channels", pd.Series("", index=run_rows.index)).map(_split_channel_tokens)
+    target_values = run_rows.get("target_channel", pd.Series("", index=run_rows.index)).fillna("").astype(str).str.strip().str.lower()
+    has_target_breakdown = "target_channel" in run_rows.columns and "qc_flagged_channels" in run_rows.columns
+    target_pps_mask = pd.Series(False, index=run_rows.index)
+    if has_target_breakdown:
+        target_pps_mask = pd.Series(
+            [bool(target and target in tokens) for target, tokens in zip(target_values.tolist(), flagged_tokens.tolist())],
+            index=run_rows.index,
+        )
+    non_target_only_pps_mask = pps_mask & ~target_pps_mask
+    pps_overlap_mask = pps_mask & convergence_fail_mask
+    prior_sensitivity_audit = {
+        "available": "qc_prior_posterior_shift_status" in run_rows.columns,
+        "total_runs": n_runs,
+        "pps_any_channel_count": int(pps_mask.sum()),
+        "pps_target_channel_review_count": int((pps_mask & target_pps_mask & ~convergence_fail_mask).sum()) if has_target_breakdown else None,
+        "pps_non_target_only_review_count": int((non_target_only_pps_mask & ~convergence_fail_mask).sum()) if has_target_breakdown else None,
+        "pps_review_convergence_fail_overlap_count": int(pps_overlap_mask.sum()),
+        "pps_review_runs": int(pps_mask.sum()),
+        "pps_pass_runs": int((pps_status == "PASS").sum()),
+        "pps_unknown_runs": int((pps_status == "UNKNOWN").sum()),
+        "pps_review_rate_pct": (100.0 * int(pps_mask.sum()) / float(n_runs)) if n_runs > 0 else 0.0,
+        "target_breakdown_available": bool(has_target_breakdown),
+        "target_channel_review_runs": int((pps_mask & target_pps_mask & ~convergence_fail_mask).sum()) if has_target_breakdown else None,
+        "non_target_only_review_runs": int((non_target_only_pps_mask & ~convergence_fail_mask).sum()) if has_target_breakdown else None,
+        "target_channel_any_pps_runs": int((pps_mask & target_pps_mask).sum()) if has_target_breakdown else None,
+        "non_target_only_any_pps_runs": int(non_target_only_pps_mask.sum()) if has_target_breakdown else None,
+        "pps_convergence_fail_overlap_runs": int(pps_overlap_mask.sum()),
+    }
+
+    convergence_failure_rows: list[dict] = []
+    fail_rows = run_rows.loc[convergence_fail_mask].copy()
+    for row in fail_rows.to_dict(orient="records"):
+        param, max_r_hat = _extract_convergence_detail(row.get("qc_review_reason") or row.get("qc_report_full"))
+        convergence_failure_rows.append(
+            {
+                "run_id": str(row.get("run_id", "") or ""),
+                "target_channel": str(row.get("target_channel", "") or ""),
+                "roi_prior_mu": _safe_float(row.get("roi_prior_mu")),
+                "roi_prior_sigma": _safe_float(row.get("roi_prior_sigma")),
+                "r_hat_trigger": "Convergence",
+                "parameter": param,
+                "max_r_hat": max_r_hat,
+                "reason": str(row.get("qc_review_reason", "") or ""),
+            }
+        )
+
     status_df.to_csv(tables_dir / "diagnostics_status_breakdown.csv", index=False)
     primary_df.to_csv(tables_dir / "diagnostics_primary_checks.csv", index=False)
     flagged_df.to_csv(tables_dir / "diagnostics_flagged_channels.csv", index=False)
@@ -661,6 +798,9 @@ def _compute_diagnostics(run_level_df: pd.DataFrame, tables_dir: Path) -> dict:
         "primary_rows": primary_df.to_dict(orient="records"),
         "flagged_rows": flagged_df.to_dict(orient="records"),
         "check_rows": check_df.to_dict(orient="records"),
+        "core_model_health": core_model_health,
+        "prior_sensitivity_audit": prior_sensitivity_audit,
+        "convergence_failure_rows": convergence_failure_rows,
     }
 
 

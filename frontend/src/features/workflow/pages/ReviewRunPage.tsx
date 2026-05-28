@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { createFullGridRun } from "../../../api/runs";
+import { createFullGridRun, getRunStatus } from "../../../api/runs";
 import type { ConfigPreview, WorkflowDraftRequest } from "../../../api/types";
 import { createWorkflowDraft, previewWorkflowConfig } from "../../../api/workflows";
 import { WorkflowScaffold } from "../components/WorkflowScaffold";
@@ -27,7 +27,8 @@ import {
   readRevenuePerKpi,
   readRevenuePerKpiColumn,
   readRoiMode,
-  activeRunIdStorageKey,
+  readActiveRunId,
+  writeActiveRunId,
 } from "../data/workflowState";
 
 type CheckStatus = "passed" | "warning" | "missing";
@@ -206,6 +207,7 @@ export function ReviewRunPage() {
   const [isConfirming, setIsConfirming] = useState(false);
   const [isCreatingRun, setIsCreatingRun] = useState(false);
   const [runCreateError, setRunCreateError] = useState<string | null>(null);
+  const [activeRunNotice, setActiveRunNotice] = useState<string | null>(null);
 
   const enabledGrids = Object.values(channelPriorGrids).filter((grid) => grid.enabled);
   const enabledChannelCount = enabledGrids.length;
@@ -327,6 +329,38 @@ export function ReviewRunPage() {
     };
   }, [workflowRequest]);
 
+  useEffect(() => {
+    const activeRunId = readActiveRunId();
+    if (!activeRunId) {
+      setActiveRunNotice(null);
+      return;
+    }
+
+    let cancelled = false;
+    getRunStatus(activeRunId)
+      .then((status) => {
+        if (cancelled) {
+          return;
+        }
+        if (status.status === "queued" || status.status === "running") {
+          setActiveRunNotice(
+            `A previous run is still in progress (${status.display_result_id || status.output_tag || status.run_id}). Starting a new run will create a separate run and will not stop the existing one.`,
+          );
+        } else {
+          setActiveRunNotice(null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setActiveRunNotice(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const canCreateRun = Boolean(isComplete && workflowId && preview && !preview.errors.length && !isCreatingRun);
   const backendReadyStatus: CheckStatus = !isComplete || previewStatus === "error" || (preview && preview.errors.length) ? "missing" : previewStatus === "api" ? "passed" : "warning";
   const validationItems: ValidationItem[] = [
@@ -384,6 +418,7 @@ export function ReviewRunPage() {
   ];
   const blockingItems = validationItems.filter((item) => item.status === "missing");
   const warningMessages = [
+    activeRunNotice ?? "",
     hasLargeRunWarning ? "Run count is determined by your selected prior-grid configuration. Large grids may take longer to complete." : "",
     ...profileModelingWarnings(profile),
     ...(preview?.warnings || []).filter((message) => !/preview only|phase 3|sensitivity\.yaml/i.test(message)),
@@ -410,7 +445,7 @@ export function ReviewRunPage() {
     setRunCreateError(null);
     createFullGridRun({ workflow_id: workflowId, approved_config_preview: preview, mode: "real_full" })
       .then((run) => {
-        window.sessionStorage.setItem(activeRunIdStorageKey, run.run_id);
+        writeActiveRunId(run.run_id);
         const reused = run.status === "already_completed" ? "&reused=1" : "";
         navigate(`/workflow/run-monitor?run_id=${encodeURIComponent(run.run_id)}${reused}`);
       })

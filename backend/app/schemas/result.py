@@ -44,6 +44,13 @@ class ResultHistoryResponse(BaseModel):
     items: list[ResultHistoryItem]
 
 
+class ResultHistoryDeleteResponse(BaseModel):
+    history_id: str
+    deleted: bool
+    deleted_report_path: str | None = None
+    index_records_deleted: int = 0
+
+
 class ResultHistoryPayloadResponse(ResultPayloadResponse):
     history_id: str
     history_item: ResultHistoryItem

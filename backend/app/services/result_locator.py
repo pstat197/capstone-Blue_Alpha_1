@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import csv
 import base64
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -476,3 +477,37 @@ def load_saved_history_payload(history_id: str) -> tuple[dict[str, Any], dict[st
         raise FileNotFoundError("Saved result payload is missing or malformed.")
     data = _attach_baseline_prior(_load_payload_from_path(payload_path, item["output_tag"]), _string_or_none(item.get("run_id")))
     return item, data
+
+
+def delete_saved_history_result(history_id: str) -> dict[str, Any]:
+    payload_path = _payload_path_for_history_id(history_id)
+    item = _history_item_from_payload_path(payload_path)
+    if not item:
+        raise FileNotFoundError("Saved result payload is missing or malformed.")
+
+    report_dir = payload_path.parent.parent.resolve()
+    reports_root = REPORTS_ROOT.resolve()
+    try:
+        report_dir.relative_to(reports_root)
+    except ValueError as exc:
+        raise FileNotFoundError("Saved result report directory is outside the reports root.") from exc
+    if report_dir == reports_root:
+        raise FileNotFoundError("Saved result report directory is not valid.")
+
+    shutil.rmtree(report_dir)
+    try:
+        from backend.app.services.saved_result_identity import delete_index_records_for_history
+
+        index_records_deleted = delete_index_records_for_history(
+            history_id,
+            output_tag=_string_or_none(item.get("output_tag")),
+            payload_path=str(payload_path),
+        )
+    except Exception:
+        index_records_deleted = 0
+    return {
+        "history_id": history_id,
+        "deleted": True,
+        "deleted_report_path": _relative_path(report_dir),
+        "index_records_deleted": index_records_deleted,
+    }

@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { getResultHistory } from "../../../api/results";
+import { deleteResultHistory, getResultHistory } from "../../../api/results";
 import { getLatestCompletedRun } from "../../../api/runs";
 import type { ResultHistoryItem, RunStatus } from "../../../api/types";
 import { ChannelLogo, displayChannelName } from "../../workflow/data/channelRegistry";
@@ -107,12 +107,18 @@ function ChannelStack({ channels }: { channels: string[] }) {
 }
 
 export function ResultsHistoryPage() {
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const [items, setItems] = useState<ResultHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [latestRun, setLatestRun] = useState<RunStatus | null>(null);
   const [latestRunError, setLatestRunError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ResultHistoryItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [kpiFilter, setKpiFilter] = useState("all");
   const [channelFilter, setChannelFilter] = useState("all");
@@ -189,6 +195,58 @@ export function ResultsHistoryPage() {
       setSelectedId(items[0].history_id);
     }
   }, [items, selectedId]);
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (menuRef.current?.contains(target) || menuButtonRef.current?.contains(target)) return;
+      setOpenMenuId(null);
+    };
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMenuId(null);
+      }
+    };
+
+    const closeOnScroll = () => setOpenMenuId(null);
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    window.addEventListener("scroll", closeOnScroll, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+      window.removeEventListener("scroll", closeOnScroll, true);
+    };
+  }, [openMenuId]);
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget) return;
+    const targetId = deleteTarget.history_id;
+    setDeletingId(targetId);
+    setDeleteError(null);
+    deleteResultHistory(targetId)
+      .then(() => {
+        setItems((current) => {
+          const next = current.filter((item) => item.history_id !== targetId);
+          if (selectedId === targetId) {
+            setSelectedId(next[0]?.history_id || null);
+          }
+          return next;
+        });
+        setOpenMenuId(null);
+        setDeleteTarget(null);
+      })
+      .catch(() => {
+        setDeleteError("Could not delete this result. Please try again.");
+      })
+      .finally(() => setDeletingId(null));
+  };
 
   return (
     <article className="result-page results-history-page">
@@ -307,11 +365,15 @@ export function ResultsHistoryPage() {
                   <article
                     className={`history-result-row ${isSelected ? "history-result-row--selected" : ""}`}
                     key={item.history_id}
-                    onClick={() => setSelectedId(item.history_id)}
+                    onClick={() => {
+                      setSelectedId(item.history_id);
+                      setOpenMenuId(null);
+                    }}
                     onKeyDown={(event) => {
                       if ((event.key === "Enter" || event.key === " ") && event.target === event.currentTarget) {
                         event.preventDefault();
                         setSelectedId(item.history_id);
+                        setOpenMenuId(null);
                       }
                     }}
                     role="button"
@@ -368,14 +430,38 @@ export function ResultsHistoryPage() {
                       <button
                         className="history-overflow-button"
                         type="button"
+                        ref={openMenuId === item.history_id ? menuButtonRef : undefined}
                         onClick={(event) => {
                           event.stopPropagation();
                           setSelectedId(item.history_id);
+                          setOpenMenuId((current) => (current === item.history_id ? null : item.history_id));
                         }}
                         aria-label={`More actions for ${runName(item)}`}
+                        aria-expanded={openMenuId === item.history_id}
                       >
                         ...
                       </button>
+                      {openMenuId === item.history_id ? (
+                        <div
+                          className="history-row-menu"
+                          ref={menuRef}
+                          role="menu"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <button
+                            className="history-row-menu-item history-row-menu-item--danger"
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setDeleteTarget(item);
+                              setDeleteError(null);
+                              setOpenMenuId(null);
+                            }}
+                          >
+                            Delete result
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </article>
                 );
@@ -425,11 +511,6 @@ export function ResultsHistoryPage() {
                   <div><dt>QC Mix</dt><dd>{qcLabel(selectedItem)}</dd></div>
                   <div><dt>Payload Path</dt><dd title={selectedItem.payload_path}>{compactPath(selectedItem)}</dd></div>
                 </dl>
-                <div className="history-selected-actions">
-                  <Link className="history-button history-button--primary" to={`/results/overview?history_id=${encodeURIComponent(selectedItem.history_id)}`}>
-                    Open in Dashboard
-                  </Link>
-                </div>
               </>
             ) : (
               <div className="history-panel-empty">
@@ -458,6 +539,37 @@ export function ResultsHistoryPage() {
           )}
         </div>
       </footer>
+      {deleteTarget ? (
+        <div
+          className="history-modal-backdrop"
+          role="presentation"
+          onMouseDown={() => {
+            if (!deletingId) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <section
+            className="history-confirm-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-saved-result-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h3 id="delete-saved-result-title">Delete saved result?</h3>
+            <p>This will remove this saved result from the results history. This action cannot be undone.</p>
+            {deleteError ? <p className="history-delete-error" role="alert">{deleteError}</p> : null}
+            <div className="history-confirm-actions">
+              <button className="history-button history-button--secondary" type="button" disabled={Boolean(deletingId)} onClick={() => setDeleteTarget(null)}>
+                Cancel
+              </button>
+              <button className="history-button history-button--danger" type="button" disabled={Boolean(deletingId)} onClick={handleDeleteConfirm}>
+                {deletingId ? "Deleting..." : "Delete result"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </article>
   );
 }

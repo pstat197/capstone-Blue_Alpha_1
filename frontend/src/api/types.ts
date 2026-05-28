@@ -152,6 +152,13 @@ export type ResultHistoryResponse = {
   items: ResultHistoryItem[];
 };
 
+export type ResultHistoryDeleteResponse = {
+  history_id: string;
+  deleted: boolean;
+  deleted_report_path?: string | null;
+  index_records_deleted: number;
+};
+
 export type ResultHistoryPayloadResponse<TPayload = unknown> = ResultPayloadResponse<TPayload> & {
   history_id: string;
   history_item: ResultHistoryItem;

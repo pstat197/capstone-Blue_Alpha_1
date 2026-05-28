@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { getRunStatus } from "../../api/runs";
 import blueAlphaLogo from "../../assets/bluealpha_mark_blue.png";
 import { buildHistoryResultsPath, buildResultsPath, readActiveResultsRunId } from "../../features/results/data/resultLoader";
+import { readActiveRunId } from "../../features/workflow/data/workflowState";
 import { ContextualHelpDrawer, openContextualHelp, type HelpSectionId } from "../../shared/ContextualHelp";
 import { monitorNavItem, resultNavItems, workflowNavItems } from "../navigation";
 
@@ -16,6 +18,7 @@ export function AppShell() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [activeHelpSection, setActiveHelpSection] = useState<HelpSectionId | null>(null);
+  const [activeRunIndicator, setActiveRunIndicator] = useState<{ runId: string; label: string } | null>(null);
   const location = useLocation();
 
   const closeDrawer = () => setIsDrawerOpen(false);
@@ -55,6 +58,45 @@ export function AppShell() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isDrawerOpen, isHelpOpen]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const refreshActiveRun = () => {
+      const runId = readActiveRunId();
+      if (!runId) {
+        setActiveRunIndicator(null);
+        return;
+      }
+
+      getRunStatus(runId)
+        .then((status) => {
+          if (cancelled) {
+            return;
+          }
+          if (status.status === "queued" || status.status === "running") {
+            setActiveRunIndicator({
+              runId: status.run_id,
+              label: status.display_result_id || status.output_tag || status.run_id,
+            });
+          } else {
+            setActiveRunIndicator(null);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setActiveRunIndicator(null);
+          }
+        });
+    };
+
+    refreshActiveRun();
+    const timer = window.setInterval(refreshActiveRun, 10000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [location.pathname, location.search]);
 
   const activeWorkflowIndex = workflowNavItems.findIndex((item) => location.pathname.startsWith(item.path));
   const setupIsComplete = location.pathname.startsWith("/runs") || location.pathname.startsWith("/results");
@@ -175,6 +217,16 @@ export function AppShell() {
             <span>Jimmy Wu</span>
             <span>Coraline Zhu</span>
           </div>
+          {activeRunIndicator ? (
+            <Link
+              className="topbar-run-indicator"
+              to={`/workflow/run-monitor?run_id=${encodeURIComponent(activeRunIndicator.runId)}`}
+              title={`Return to ${activeRunIndicator.label}`}
+            >
+              <span aria-hidden="true" />
+              Run in progress
+            </Link>
+          ) : null}
           <button className="help-button" type="button" aria-label="Open contextual help" aria-expanded={isHelpOpen} onClick={() => openContextualHelp()}>
             ?
           </button>
