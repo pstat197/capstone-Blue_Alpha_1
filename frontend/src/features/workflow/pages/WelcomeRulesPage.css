@@ -1,0 +1,680 @@
+.start-page {
+  grid-template-columns: minmax(0, 1fr) minmax(460px, 520px);
+  gap: 22px;
+  align-items: start;
+  padding-top: 0;
+}
+
+.start-left-column,
+.start-right-column {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.start-hero-copy {
+  gap: 8px;
+  padding: 0;
+}
+
+.start-hero-copy h2 {
+  max-width: 760px;
+  font-size: clamp(32px, 2.25vw, 37px);
+  line-height: 1.04;
+}
+
+.start-hero-copy p {
+  max-width: 720px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.start-upload-main {
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  min-height: 106px;
+  padding: 14px 20px;
+}
+
+.start-upload-orb {
+  width: 72px;
+  height: 72px;
+}
+
+.start-upload-copy h3 {
+  font-size: 21px;
+}
+
+.quick-start-panel {
+  gap: 13px;
+  padding: 16px;
+}
+
+.quick-start-card {
+  grid-template-rows: 72px auto 1fr auto;
+  gap: 10px;
+  padding: 13px;
+}
+
+.quick-start-art span {
+  top: 12px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+}
+
+.quick-start-art i {
+  right: 12px;
+  bottom: 12px;
+  width: 62%;
+  height: 48%;
+}
+
+.quick-start-title-row h4 {
+  font-size: 15.5px;
+}
+
+.quick-start-copy p {
+  font-size: 12px;
+  line-height: 1.38;
+}
+
+.quick-start-bullets {
+  gap: 7px;
+}
+
+.quick-start-bullets li {
+  font-size: 11.5px;
+}
+
+.quick-start-cta {
+  min-height: 38px;
+}
+
+.start-best-practice-banner {
+  min-height: 54px;
+}
+
+@media (max-width: 1180px) {
+  .start-page {
+    grid-template-columns: 1fr;
+  }
+
+  .start-right-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Final compact launchpad overrides. These are intentionally scoped to the
+   Start page so older global styles cannot stretch this view back out. */
+.start-page.start-page {
+  margin: 0;
+  max-width: none;
+}
+
+.start-left-column.start-left-column {
+  gap: 12px;
+}
+
+.start-right-column.start-right-column {
+  gap: 16px;
+}
+
+.start-hero-copy.start-hero-copy {
+  min-height: 0;
+}
+
+.start-hero-copy.start-hero-copy h2 {
+  margin: 0;
+  font-size: clamp(31px, 2.15vw, 36px);
+  line-height: 1.04;
+  letter-spacing: 0;
+}
+
+.start-hero-copy.start-hero-copy p {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.start-pill.start-pill {
+  margin-bottom: 2px;
+}
+
+.start-card.start-card,
+.start-upload-card.start-upload-card {
+  border-color: #dbe7f8;
+  border-radius: 14px;
+  box-shadow: 0 18px 46px rgba(31, 54, 94, 0.06);
+}
+
+.start-upload-card.start-upload-card {
+  width: 100%;
+  max-width: 900px;
+  padding: 8px;
+}
+
+.start-upload-main.start-upload-main {
+  grid-template-columns: 76px minmax(0, 1fr) auto;
+  gap: 14px;
+  min-height: 96px;
+  padding: 10px 16px;
+}
+
+.start-upload-orb.start-upload-orb {
+  width: 58px;
+  height: 58px;
+}
+
+.start-upload-orb.start-upload-orb svg {
+  width: 28px;
+  height: 28px;
+}
+
+.start-upload-copy.start-upload-copy {
+  gap: 5px;
+}
+
+.start-upload-copy.start-upload-copy h3 {
+  font-size: 20px;
+  line-height: 1.12;
+}
+
+.start-upload-copy.start-upload-copy p,
+.start-upload-copy.start-upload-copy span,
+.start-upload-note.start-upload-note {
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.start-upload-note.start-upload-note {
+  min-height: 38px;
+  margin-top: 8px;
+  padding: 8px 12px;
+}
+
+.setup-glance-card.setup-glance-card {
+  min-height: 0;
+  padding: 24px 26px;
+}
+
+.setup-glance-list.setup-glance-list {
+  margin-top: 16px;
+}
+
+.setup-glance-row.setup-glance-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-height: 48px;
+  gap: 24px;
+  padding-right: 8px;
+}
+
+.setup-glance-label.setup-glance-label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.setup-glance-label.setup-glance-label svg {
+  flex: 0 0 auto;
+}
+
+.setup-glance-label.setup-glance-label strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: nowrap;
+}
+
+.setup-glance-row.setup-glance-row > span {
+  justify-self: end;
+  max-width: 100%;
+  margin-right: 0;
+  padding: 7px 12px;
+  white-space: nowrap;
+}
+
+.readiness-summary-card.readiness-summary-card {
+  padding: 24px 26px;
+}
+
+.readiness-summary-groups.readiness-summary-groups {
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.readiness-summary-group.readiness-summary-group {
+  gap: 12px;
+}
+
+.readiness-chip-list.readiness-chip-list {
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.readiness-chip-list.readiness-chip-list span {
+  font-size: 11.5px;
+  padding: 6px 10px;
+}
+
+.readiness-dynamic-note.readiness-dynamic-note {
+  margin-top: 16px;
+  padding: 9px 11px;
+}
+
+.quick-start-panel.quick-start-panel {
+  gap: 12px;
+  padding: 16px;
+}
+
+.quick-start-grid.quick-start-grid {
+  gap: 16px;
+}
+
+.quick-start-card.quick-start-card {
+  min-height: 276px;
+  padding: 14px;
+}
+
+.quick-start-art.quick-start-art {
+  min-height: 76px;
+}
+
+.quick-start-art.quick-start-art i {
+  overflow: hidden;
+}
+
+.quick-start-art.quick-start-art span {
+  box-shadow: 0 12px 22px rgba(31, 54, 94, 0.12);
+}
+
+.quick-start-art.quick-start-art i::before,
+.quick-start-art.quick-start-art i::after {
+  position: absolute;
+  content: "";
+}
+
+.quick-start-art--blue.quick-start-art--blue,
+.quick-start-art--green.quick-start-art--green,
+.quick-start-art--violet.quick-start-art--violet {
+  background:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0) 30%),
+    #f7fbff;
+}
+
+.quick-start-art--blue.quick-start-art--blue i,
+.quick-start-art--green.quick-start-art--green i {
+  background:
+    linear-gradient(90deg, transparent 0 18%, rgba(89, 127, 181, 0.14) 18% 20%, transparent 20% 38%, rgba(89, 127, 181, 0.14) 38% 40%, transparent 40% 58%, rgba(89, 127, 181, 0.14) 58% 60%, transparent 60% 78%, rgba(89, 127, 181, 0.14) 78% 80%, transparent 80%),
+    linear-gradient(180deg, transparent 0 30%, rgba(89, 127, 181, 0.14) 30% 33%, transparent 33% 63%, rgba(89, 127, 181, 0.14) 63% 66%, transparent 66%),
+    #ffffff;
+}
+
+.quick-start-art--green.quick-start-art--green i::after {
+  inset: 50% 9% 18% 9%;
+  background:
+    linear-gradient(90deg, rgba(39, 179, 92, 0.14) 0 18%, transparent 18% 25%, rgba(39, 179, 92, 0.18) 25% 44%, transparent 44% 52%, rgba(39, 179, 92, 0.14) 52% 72%, transparent 72% 80%, rgba(39, 179, 92, 0.18) 80% 100%);
+  border-radius: 5px;
+}
+
+.quick-start-art--violet.quick-start-art--violet i {
+  background:
+    linear-gradient(90deg, transparent 0 22%, rgba(89, 127, 181, 0.12) 22% 24%, transparent 24% 48%, rgba(89, 127, 181, 0.12) 48% 50%, transparent 50% 74%, rgba(89, 127, 181, 0.12) 74% 76%, transparent 76%),
+    linear-gradient(180deg, transparent 0 68%, rgba(89, 127, 181, 0.12) 68% 71%, transparent 71%),
+    #ffffff;
+}
+
+.quick-start-art--violet.quick-start-art--violet i::before {
+  right: 10%;
+  bottom: 12%;
+  left: 10%;
+  height: 68%;
+  background:
+    linear-gradient(to top, rgba(70, 130, 245, 0.25) 0 32%, transparent 32%) 0 100% / 18% 100% no-repeat,
+    linear-gradient(to top, rgba(70, 130, 245, 0.32) 0 52%, transparent 52%) 32% 100% / 18% 100% no-repeat,
+    linear-gradient(to top, rgba(70, 130, 245, 0.26) 0 43%, transparent 43%) 64% 100% / 18% 100% no-repeat,
+    linear-gradient(to top, rgba(70, 130, 245, 0.38) 0 78%, transparent 78%) 100% 100% / 18% 100% no-repeat;
+}
+
+.quick-start-art--violet.quick-start-art--violet i::after {
+  right: 9%;
+  bottom: 22%;
+  left: 9%;
+  height: 42%;
+  background: linear-gradient(135deg, transparent 0 16%, #76a5ff 16% 18%, transparent 18% 35%, #76a5ff 35% 37%, transparent 37% 54%, #76a5ff 54% 56%, transparent 56% 72%, #76a5ff 72% 74%, transparent 74%);
+  opacity: 0.95;
+}
+
+.quick-start-title-row.quick-start-title-row h4 {
+  font-size: 15px;
+}
+
+.quick-start-bullets.quick-start-bullets {
+  gap: 7px;
+}
+
+.quick-start-bullets.quick-start-bullets li {
+  font-size: 12px;
+}
+
+.quick-start-cta.quick-start-cta {
+  min-height: 36px;
+}
+
+.start-best-practice-banner.start-best-practice-banner {
+  min-height: 52px;
+  padding: 12px 18px;
+}
+
+@media (max-width: 1320px) {
+  .start-page.start-page {
+    grid-template-columns: minmax(0, 1fr) minmax(440px, 480px);
+  }
+
+  .setup-glance-label.setup-glance-label strong {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 1180px) {
+  .start-page.start-page {
+    grid-template-columns: 1fr;
+  }
+
+  .start-right-column.start-right-column {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 860px) {
+  .start-right-column.start-right-column {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Structured launchpad grid: top summary row, aligned lower row, full-width
+   banner row. */
+.start-page.start-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(460px, 520px);
+  grid-template-areas:
+    "top-left top-right"
+    "lower lower"
+    "banner banner";
+  gap: 16px 22px;
+  align-items: start;
+}
+
+.start-top-left {
+  grid-area: top-left;
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.start-top-right {
+  grid-area: top-right;
+  min-width: 0;
+}
+
+.start-lower-grid {
+  grid-area: lower;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(460px, 520px);
+  gap: 22px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.start-lower-grid > .quick-start-panel,
+.start-lower-grid > .readiness-summary-card {
+  height: 100%;
+  min-width: 0;
+}
+
+.start-lower-grid > .readiness-summary-card {
+  position: static;
+}
+
+.start-best-practice-banner.start-best-practice-banner {
+  grid-area: banner;
+}
+
+.readiness-summary-card.readiness-summary-card {
+  align-content: start;
+}
+
+.readiness-dynamic-note.readiness-dynamic-note {
+  align-self: end;
+}
+
+/* Polish pass: smaller executive-style hero and simpler icon-led option cards. */
+.start-hero-copy.start-hero-copy h2 {
+  max-width: 600px;
+  font-size: clamp(25px, 1.62vw, 30px);
+  line-height: 1.06;
+}
+
+.start-hero-copy.start-hero-copy p {
+  max-width: 660px;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.38;
+}
+
+.start-left-column.start-left-column {
+  gap: 10px;
+}
+
+.quick-start-card.quick-start-card {
+  grid-template-rows: auto auto 1fr auto;
+  min-height: 270px;
+  padding: 15px;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.quick-start-card.quick-start-card:hover {
+  border-color: #bdd2ee;
+  box-shadow: 0 18px 42px rgba(42, 68, 105, 0.09);
+  transform: translateY(-1px);
+}
+
+.quick-start-card.quick-start-card--recommended {
+  border-color: #5f91ff;
+  box-shadow: 0 18px 44px rgba(7, 91, 220, 0.12);
+}
+
+.quick-start-art.quick-start-art {
+  position: static;
+  min-height: 0;
+  overflow: visible;
+  background: transparent;
+  border-radius: 0;
+}
+
+.quick-start-art.quick-start-art span {
+  position: static;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  box-shadow: 0 12px 24px rgba(31, 54, 94, 0.12);
+}
+
+.quick-start-art.quick-start-art i,
+.quick-start-art.quick-start-art i::before,
+.quick-start-art.quick-start-art i::after {
+  display: none;
+}
+
+.quick-start-copy.quick-start-copy {
+  min-width: 0;
+}
+
+.quick-start-title-row.quick-start-title-row {
+  align-items: flex-start;
+}
+
+.quick-start-title-row.quick-start-title-row h4 {
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.quick-start-title-row.quick-start-title-row span {
+  flex: 0 0 auto;
+  margin-top: 1px;
+}
+
+.quick-start-copy.quick-start-copy p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.quick-start-bullets.quick-start-bullets {
+  align-content: start;
+  gap: 7px;
+}
+
+.quick-start-bullets.quick-start-bullets li {
+  align-items: flex-start;
+  font-size: 11.75px;
+  line-height: 1.35;
+}
+
+.quick-start-bullets.quick-start-bullets svg {
+  margin-top: 1px;
+}
+
+.quick-start-cta.quick-start-cta {
+  width: 100%;
+  min-height: 36px;
+}
+
+.setup-glance-card.setup-glance-card,
+.readiness-summary-card.readiness-summary-card {
+  padding-right: 28px;
+  padding-left: 28px;
+}
+
+.setup-glance-card.setup-glance-card h3,
+.readiness-summary-card.readiness-summary-card h3 {
+  font-size: 20px;
+  line-height: 1.15;
+}
+
+.setup-glance-card.setup-glance-card p,
+.readiness-summary-card.readiness-summary-card p {
+  font-size: 13px;
+}
+
+.setup-glance-row.setup-glance-row strong {
+  font-size: 12.5px;
+}
+
+.setup-glance-row.setup-glance-row > span {
+  font-size: 11.5px;
+}
+
+.setup-glance-row.setup-glance-row {
+  gap: 26px;
+  padding-right: 10px;
+}
+
+@media (max-width: 1320px) {
+  .start-page.start-page,
+  .start-lower-grid.start-lower-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(440px, 480px);
+  }
+}
+
+@media (max-width: 1180px) {
+  .start-page.start-page {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "top-left"
+      "top-right"
+      "lower"
+      "banner";
+  }
+
+  .start-lower-grid.start-lower-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* CSV preview modal: table first, grouped auto-mapping summary below. */
+.schema-preview-layout.schema-preview-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.start-preview-table-shell.start-preview-table-shell {
+  width: 100%;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.start-preview-table.start-preview-table {
+  min-width: 1160px;
+  width: max-content;
+}
+
+.mapping-chip-panel.mapping-chip-panel--grouped {
+  padding: 14px 16px;
+}
+
+.mapping-group-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: 0;
+}
+
+.mapping-group {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mapping-group h5 {
+  margin: 0;
+  color: #40546f;
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mapping-chip-panel--grouped .mapping-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.mapping-chip-panel--grouped .mapping-chip-list span {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 0;
+  padding: 7px 10px;
+  color: #075bdc;
+  font-size: 11px;
+  font-weight: 850;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+  background: #ffffff;
+  border: 1px solid #dfebf8;
+  border-radius: 8px;
+}
+
+@media (max-width: 960px) {
+  .mapping-group-list {
+    grid-template-columns: 1fr;
+  }
+}

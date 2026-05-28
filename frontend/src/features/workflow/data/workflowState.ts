@@ -58,6 +58,8 @@ function sanitizeProfile(profile: CsvProfile): CsvProfile {
         : "Date/time column missing",
     },
     channel_diagnostics: profile.channel_diagnostics ?? [],
+    schema_readiness: profile.schema_readiness,
+    modeling_readiness: profile.modeling_readiness,
     detected: {
       ...profile.detected,
       media_activity_candidates: sanitizeDetectedCandidates(profile.detected.media_activity_candidates ?? []),
@@ -225,6 +227,13 @@ export function readRoiMode(profile: CsvProfile | null): RoiMode {
 export function profileHasBlockingErrors(profile: CsvProfile | null) {
   if (!profile) {
     return true;
+  }
+  if (profile.schema_readiness || profile.modeling_readiness) {
+    return [...(profile.schema_readiness?.checks ?? []), ...(profile.modeling_readiness?.checks ?? [])].some((check) => {
+      const lower = check.message.toLowerCase();
+      const optional = lower.includes("geo") || lower.includes("population");
+      return check.status === "error" && !optional;
+    });
   }
   return profile.validation_badges.some((badge) => {
     const lower = badge.label.toLowerCase();

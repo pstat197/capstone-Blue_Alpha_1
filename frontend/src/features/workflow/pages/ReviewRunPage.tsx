@@ -160,6 +160,31 @@ function valuesForEnabledGrids(
     .flatMap((grid) => grid[key] as Array<number | string>);
 }
 
+function profileModelingWarnings(profile: ReturnType<typeof readActiveProfile>) {
+  if (profile?.modeling_readiness) {
+    return profile.modeling_readiness.checks
+      .filter((check) => check.status === "warning")
+      .map((check) => check.message);
+  }
+  return (profile?.validation_badges ?? [])
+    .filter((badge) => badge.status === "warning")
+    .filter((badge) => /correlated|collinear|variation|date spacing/i.test(badge.label))
+    .map((badge) => badge.label);
+}
+
+function profileBlockingMessages(profile: ReturnType<typeof readActiveProfile>) {
+  if (profile?.schema_readiness || profile?.modeling_readiness) {
+    return [...(profile.schema_readiness?.checks ?? []), ...(profile.modeling_readiness?.checks ?? [])]
+      .filter((check) => check.status === "error")
+      .filter((check) => !/geo|population/i.test(check.message))
+      .map((check) => check.message);
+  }
+  return (profile?.validation_badges ?? [])
+    .filter((badge) => badge.status === "error")
+    .filter((badge) => !/geo|population/i.test(badge.label))
+    .map((badge) => badge.label);
+}
+
 export function ReviewRunPage() {
   const navigate = useNavigate();
   const profile = useMemo(() => readActiveProfile(), []);
@@ -192,7 +217,7 @@ export function ReviewRunPage() {
   const baselineInvalidChannels = channels.filter((channel) => !gridIncludesBaseline(channelPriorGrids[channel], baselinePrior));
   const missingItems = [
     !profile ? "Complete Step 1: upload and profile a CSV." : "",
-    profileHasBlockingErrors(profile) ? "Return to Step 1: resolve upload profile validation errors." : "",
+    ...profileBlockingMessages(profile).map((message) => `Return to Step 1: ${message}`),
     !timeColumn ? "Return to Step 1: select or provide a time column." : "",
     !kpiColumn ? "Return to Step 2: choose a KPI column." : "",
     kpiType === "revenue" && !revenueColumn ? "Return to Step 2: choose a revenue column." : "",
@@ -360,6 +385,7 @@ export function ReviewRunPage() {
   const blockingItems = validationItems.filter((item) => item.status === "missing");
   const warningMessages = [
     hasLargeRunWarning ? "Run count is determined by your selected prior-grid configuration. Large grids may take longer to complete." : "",
+    ...profileModelingWarnings(profile),
     ...(preview?.warnings || []).filter((message) => !/preview only|phase 3|sensitivity\.yaml/i.test(message)),
   ].filter(Boolean);
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
+import { ContextualHelpButton } from "../../../shared/ContextualHelp";
 import { useCurrentResult } from "../data/resultLoader";
 import type { SystemImpactRow, TargetChannelSummary, TargetRobustness } from "../data/resultTypes";
 import { channelLabel, formatNumber, formatPercent } from "../data/resultSelectors";
@@ -281,7 +282,10 @@ function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
   return (
     <article className="content-panel ps-context-card ps-robust-card">
       <div className="ps-card-heading">
-        <h3>Target-Level Robustness Framework</h3>
+        <div className="ps-card-header">
+          <h3>Target-Level Robustness Framework</h3>
+          <ContextualHelpButton sectionId="prior-sensitivity" label="Explain target-level robustness" />
+        </div>
       </div>
       {robustness?.available ? (
         <>
@@ -374,8 +378,10 @@ function RobustnessCard({ robustness }: { robustness?: TargetRobustness }) {
 function ResponseChart({ rows, target, mode }: { rows: MovementRow[]; target: string; mode: MetricMode }) {
   const getLeft = (row: MovementRow) => (mode === "pct" ? row.leftPct : row.leftDeltaRoi);
   const getRight = (row: MovementRow) => (mode === "pct" ? row.rightPct : row.rightDeltaRoi);
-  const getValue = (row: MovementRow) => (mode === "pct" ? row.medianPct : row.medianDeltaRoi);
-  const maxExtent = Math.max(...rows.flatMap((row) => [Math.abs(getLeft(row) ?? 0), Math.abs(getRight(row) ?? 0), Math.abs(getValue(row) ?? 0)]), 1);
+  const maxExtent = Math.max(...rows.flatMap((row) => [Math.abs(getLeft(row) ?? 0), Math.abs(getRight(row) ?? 0)]), 1);
+  const positionFor = (value: number) => `${Math.max(0, Math.min(100, 50 + (value / maxExtent) * 50))}%`;
+  const formatEndpoint = (value: number) => (mode === "pct" ? signedPercent(value) : signedNumber(value));
+  const endpointTone = (value: number) => (value < 0 ? "below" : value > 0 ? "above" : "zero");
 
   if (!rows.length) {
     return <div className="ps-empty-state">Full-system response rows are unavailable for this target channel.</div>;
@@ -384,30 +390,51 @@ function ResponseChart({ rows, target, mode }: { rows: MovementRow[]; target: st
   return (
     <div className="ps-response-chart" role="img" aria-label={`Full-system response to ${channelLabel(target)} prior changes`}>
       {rows.map((row) => {
-        const left = getLeft(row) ?? 0;
-        const right = getRight(row) ?? 0;
-        const value = getValue(row);
-        const leftWidth = Math.min(50, (Math.abs(Math.min(left, 0)) / maxExtent) * 50);
-        const rightWidth = Math.min(50, (Math.abs(Math.max(right, 0)) / maxExtent) * 50);
+        const rawLower = getLeft(row) ?? 0;
+        const rawUpper = getRight(row) ?? 0;
+        const lowerValue = Math.min(rawLower, rawUpper);
+        const upperValue = Math.max(rawLower, rawUpper);
+        const belowStart = lowerValue < 0 ? positionFor(lowerValue) : "50%";
+        const belowEnd = lowerValue < 0 ? positionFor(Math.min(upperValue, 0)) : "50%";
+        const aboveStart = upperValue > 0 ? positionFor(Math.max(lowerValue, 0)) : "50%";
+        const aboveEnd = upperValue > 0 ? positionFor(upperValue) : "50%";
+        const labelsAreTight = Math.abs(50 + (upperValue / maxExtent) * 50 - (50 + (lowerValue / maxExtent) * 50)) < 16;
         return (
           <div className={row.isSelf ? "ps-response-row ps-response-row--self" : "ps-response-row"} key={row.channel}>
             <div className="ps-response-channel">
               {row.isSelf ? <span aria-hidden="true">★</span> : null}
               {channelLabel(row.channel)}{row.isSelf ? " (self)" : ""}
             </div>
-            <div className="ps-response-track">
+            <div
+              className="ps-response-track"
+              aria-label={`${channelLabel(row.channel)} observed range ${formatEndpoint(lowerValue)} to ${formatEndpoint(upperValue)}`}
+            >
+              <span className="ps-response-rail" aria-hidden="true" />
               <span className="ps-response-axis" aria-hidden="true" />
-              <span className="ps-response-bar ps-response-bar--negative" style={{ width: `${leftWidth}%` }} />
-              <span className="ps-response-bar ps-response-bar--positive" style={{ width: `${rightWidth}%` }} />
-            </div>
-            <div className={`ps-response-value ${signedClass(value)}`}>
-              {mode === "pct" ? signedPercent(value) : signedNumber(value)}
-              {!row.stablePct && mode === "pct" ? <span title="Unstable percentage due to weak baseline">⚠</span> : null}
+              {lowerValue < 0 ? (
+                <span className="ps-response-bar ps-response-bar--below" style={{ left: belowStart, right: `calc(100% - ${belowEnd})` }} />
+              ) : null}
+              {upperValue > 0 ? (
+                <span className="ps-response-bar ps-response-bar--above" style={{ left: aboveStart, right: `calc(100% - ${aboveEnd})` }} />
+              ) : null}
+              <span
+                className={`ps-response-endpoint ps-response-endpoint--lower ps-response-endpoint--${endpointTone(lowerValue)} ${labelsAreTight ? "ps-response-endpoint--tight" : ""}`}
+                style={{ left: positionFor(lowerValue) }}
+              >
+                {formatEndpoint(lowerValue)}
+              </span>
+              <span
+                className={`ps-response-endpoint ps-response-endpoint--upper ps-response-endpoint--${endpointTone(upperValue)} ${labelsAreTight ? "ps-response-endpoint--tight" : ""}`}
+                style={{ left: positionFor(upperValue) }}
+              >
+                {formatEndpoint(upperValue)}
+                {!row.stablePct && mode === "pct" ? <span title="Unstable percentage due to weak baseline">⚠</span> : null}
+              </span>
             </div>
           </div>
         );
       })}
-      <div className="ps-response-axis-label">{mode === "pct" ? "% Change vs Baseline ROI" : "Delta ROI vs Baseline"}</div>
+      <div className="ps-response-axis-label">{mode === "pct" ? "Observed % Change Range Across Prior Settings" : "Observed Delta ROI Range Across Prior Settings"}</div>
     </div>
   );
 }
@@ -532,14 +559,16 @@ export function PriorSensitivityPage() {
                 <div><dt>Baseline period</dt><dd>{getSetting(settings, "Date range") || missing}</dd></div>
               </dl>
             </article>
-            <RobustnessCard robustness={robustness} />
           </aside>
 
           <main className="ps-main-column">
             <article className="content-panel ps-full-system-card">
               <div className="ps-card-toolbar">
                 <div>
-                  <h3>Full-System Response to {channelLabel(selectedTarget)} Prior Changes</h3>
+                  <div className="ps-card-header">
+                    <h3>Full-System Response to {channelLabel(selectedTarget)} Prior Changes</h3>
+                    <ContextualHelpButton sectionId="movement-direction" label="Explain positive and negative movement" />
+                  </div>
                   {hasUnstablePct ? <p>Some percentage changes are marked unstable because baseline ROI is weak; Delta ROI is available as fallback.</p> : null}
                 </div>
                 <div className="ps-metric-toggle" aria-label="Chart metric">
@@ -551,15 +580,24 @@ export function PriorSensitivityPage() {
               <ResponseChart rows={selectedRows} target={selectedTarget} mode={metricMode} />
               <div className="ps-chart-legend">
                 <span><b>★</b> Target channel (self)</span>
-                <span><i className="ps-legend-up" /> Increase vs baseline</span>
-                <span><i className="ps-legend-down" /> Decrease vs baseline</span>
+                <span><i className="ps-legend-negative" /> Below-baseline range</span>
+                <span><i className="ps-legend-positive" /> Above-baseline range</span>
                 <span><i className="ps-legend-warning" /> Unstable %</span>
               </div>
             </article>
+          </main>
+        </section>
 
-            <section className="ps-detail-grid">
+        <section className="ps-detail-grid ps-lower-grid">
+              <RobustnessCard robustness={robustness} />
               <article className="content-panel ps-table-card">
-                <h3>Movement Summary</h3>
+                <div className="section-title-row section-title-row--compact ps-card-header">
+                  <h3>Movement Summary</h3>
+                  <ContextualHelpButton sectionId="max-shift" label="Explain max shift" />
+                </div>
+                <p className="ps-table-note">
+                  Median % is the typical signed response across tested prior settings. Max Abs % is the largest absolute movement observed.
+                </p>
                 <div className="table-shell ps-table-shell">
                   <table className="ps-movement-table">
                     <thead>
@@ -581,11 +619,17 @@ export function PriorSensitivityPage() {
               </article>
 
               <article className="content-panel ps-table-card">
-                <h3>Ranking by Absolute % Movement</h3>
+                <div className="section-title-row section-title-row--compact ps-card-header">
+                  <h3>Ranking by Median Absolute % Movement</h3>
+                  <ContextualHelpButton sectionId="sensitivity-ranking" label="Explain sensitivity ranking" />
+                </div>
+                <p className="ps-table-note">
+                  Ranked by absolute median movement; use Max Abs % in the summary table as the worst-case sensitivity indicator.
+                </p>
                 <div className="table-shell ps-table-shell">
                   <table className="ps-ranking-table">
                     <thead>
-                      <tr><th>Rank</th><th>Channel</th><th>Abs %</th><th>Dir.</th><th>Stability</th></tr>
+                      <tr><th>Rank</th><th>Channel</th><th title="Median absolute percent movement">Med Abs %</th><th>Dir.</th><th>Stability</th></tr>
                     </thead>
                     <tbody>
                       {rankingRows.map((row, index) => {
@@ -606,9 +650,9 @@ export function PriorSensitivityPage() {
               </article>
 
               <aside className="content-panel ps-interpretation-card ps-drilldown-interpretation">
-                <div className="ps-interpretation-title">
-                  <span aria-hidden="true">i</span>
+                <div className="ps-card-header ps-interpretation-title">
                   <h3>Interpretation</h3>
+                  <span aria-hidden="true">i</span>
                 </div>
                 <div className="ps-interpretation-group ps-interpretation-group--first">
                   <h4>What this shows</h4>
@@ -628,8 +672,6 @@ export function PriorSensitivityPage() {
                 </div>
               </aside>
             </section>
-          </main>
-        </section>
 
         <section className="ps-note-card">
           <span aria-hidden="true">i</span>

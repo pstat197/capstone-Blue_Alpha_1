@@ -1,44 +1,4 @@
-const quickTopics = [
-  "How to Read the Dashboard",
-  "What Prior Sensitivity Means",
-  "ROI Prior and Revenue-Equivalent ROI",
-  "PASS, REVIEW, and FAIL",
-  "How to Read Tornado Charts",
-  "Why Post-Run Results Are Read-Only",
-  "Data Requirements",
-];
-
-const dashboardFlow = [
-  "Overview",
-  "Prior Sensitivity",
-  "Prior vs Posterior",
-  "Scenario Explorer",
-  "Model Structure",
-  "Audit Diagnostics",
-];
-
-const referenceSections = [
-  {
-    title: "ROI Prior and Revenue-Equivalent ROI",
-    body: "ROI prior encodes the expected relationship between media spend and business response before fitting. For non-revenue KPIs, revenue-equivalent ROI converts the KPI into an estimated dollar value using the saved workflow assumption.",
-  },
-  {
-    title: "PASS, REVIEW, and FAIL",
-    body: "PASS indicates the run met the dashboard's diagnostic checks. REVIEW means the output is directional and should be interpreted cautiously. FAIL means the run or metric did not clear required quality gates.",
-  },
-  {
-    title: "How to Read Tornado Charts",
-    body: "Tornado charts rank channels by movement across prior assumptions. Longer bars indicate larger sensitivity. Use them to find where conclusions depend most on prior choice.",
-  },
-  {
-    title: "Why Post-Run Results Are Read-Only",
-    body: "Results pages show generated artifacts from a completed backend run. Editing model configuration happens only in the setup workflow before launching a new run.",
-  },
-  {
-    title: "Data Requirements",
-    body: "The expected CSV includes a date column, KPI column, media activity or spend columns by channel, and optional revenue, control, geo, and population fields. The Upload Data step validates and profiles the file before configuration.",
-  },
-];
+import { documentationFlow, documentationReferenceSections, documentationTopics } from "./ContextualHelp";
 
 export function DocumentationPage() {
   return (
@@ -58,7 +18,7 @@ export function DocumentationPage() {
         <aside className="documentation-topics content-panel" aria-label="Quick documentation topics">
           <h3>Quick Topics</h3>
           <nav className="documentation-topic-list">
-            {quickTopics.map((topic, index) => (
+            {documentationTopics.map((topic, index) => (
               <a
                 className={index === 0 ? "documentation-topic documentation-topic--active" : "documentation-topic"}
                 href={`#${topic.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`}
@@ -85,11 +45,11 @@ export function DocumentationPage() {
                 completed result views in order.
               </p>
               <div className="documentation-flow" aria-label="Recommended dashboard reading order">
-                {dashboardFlow.map((item, index) => (
+                {documentationFlow.map((item, index) => (
                   <div className="documentation-flow-step" key={item}>
                     <span>{item.split(" ").map((word) => word[0]).join("")}</span>
                     <small>{item}</small>
-                    {index < dashboardFlow.length - 1 ? <b aria-hidden="true" /> : null}
+                    {index < documentationFlow.length - 1 ? <b aria-hidden="true" /> : null}
                   </div>
                 ))}
               </div>
@@ -107,7 +67,7 @@ export function DocumentationPage() {
           </div>
 
           <div className="documentation-grid">
-            {referenceSections.map((section) => (
+            {documentationReferenceSections.map((section) => (
               <article
                 className="content-panel documentation-card documentation-card--compact"
                 id={section.title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}

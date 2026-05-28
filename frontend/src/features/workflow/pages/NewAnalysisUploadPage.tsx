@@ -2,7 +2,7 @@ import type { ChangeEvent, DragEvent } from "react";
 import { useMemo, useRef, useState } from "react";
 import { FileSpreadsheet } from "lucide-react";
 import { createUpload, getUploadPreview, getUploadProfile } from "../../../api/uploads";
-import type { ChannelDiagnostic, CsvPreview, CsvProfile } from "../../../api/types";
+import type { ChannelDiagnostic, CsvPreview, CsvProfile, ReadinessCheck } from "../../../api/types";
 import { StatusBadge } from "../components/StatusBadge";
 import { WorkflowScaffold } from "../components/WorkflowScaffold";
 import {
@@ -275,6 +275,12 @@ function effectiveRevenueClassification(profile: CsvProfile) {
 }
 
 function displayValidationBadges(profile: CsvProfile) {
+  if (profile.schema_readiness || profile.modeling_readiness) {
+    return [
+      ...(profile.schema_readiness?.checks ?? []),
+      ...(profile.modeling_readiness?.checks ?? []),
+    ].map((check) => ({ status: check.status, label: check.message }));
+  }
   const revenue = effectiveRevenueClassification(profile);
   return profile.validation_badges.map((badge) => {
     const lower = badge.label.toLowerCase();
@@ -289,6 +295,45 @@ function displayValidationBadges(profile: CsvProfile) {
     }
     return { ...badge, status: "warning", label: "Revenue column not detected" };
   });
+}
+
+function readinessGroups(profile: CsvProfile): Array<{ title: string; checks: ReadinessCheck[] }> {
+  if (profile.schema_readiness || profile.modeling_readiness) {
+    return [
+      { title: "Schema readiness", checks: profile.schema_readiness?.checks ?? [] },
+      { title: "Modeling readiness", checks: profile.modeling_readiness?.checks ?? [] },
+    ].filter((group) => group.checks.length);
+  }
+  const checks = displayValidationBadges(profile).map((badge, index) => ({
+    code: `legacy_${index}`,
+    label: compactValidationLabel(badge.label),
+    status: badge.status as ReadinessCheck["status"],
+    message: badge.label,
+  }));
+  const schemaChecks = checks.filter((check) => {
+    const lower = check.label.toLowerCase();
+    return lower.includes("date") || lower.includes("time") || lower.includes("kpi") || lower.includes("revenue");
+  });
+  const modelingChecks = checks.filter((check) => !schemaChecks.includes(check));
+  return [
+    { title: "Schema readiness", checks: schemaChecks },
+    { title: "Modeling readiness", checks: modelingChecks },
+  ].filter((group) => group.checks.length);
+}
+
+function readinessCountLabel(checks: ReadinessCheck[]): string {
+  const passed = checks.filter((check) => check.status === "valid" || check.status === "info").length;
+  return `${passed}/${checks.length} passed`;
+}
+
+function readinessTone(checks: ReadinessCheck[]): "valid" | "warning" | "error" {
+  if (checks.some((check) => check.status === "error")) {
+    return "error";
+  }
+  if (checks.some((check) => check.status === "warning")) {
+    return "warning";
+  }
+  return "valid";
 }
 
 function profileToColumnGroups(profile: CsvProfile): ColumnGroups {
@@ -396,6 +441,27 @@ function validationStatusClass(status: string) {
 
 function validationDetail(label: string, profile?: CsvProfile | null) {
   const lower = label.toLowerCase();
+  if (lower.includes("not large enough")) {
+    return "Valid for schema mapping only; blocked before Meridian run setup.";
+  }
+  if (lower.includes("historical time periods")) {
+    return "Longer weekly histories are more reliable for Meridian modeling.";
+  }
+  if (lower.includes("weekly date spacing") || lower.includes("date spacing")) {
+    return "Meridian expects consistent time periods for national weekly demos.";
+  }
+  if (lower.includes("missing required values")) {
+    return "Required model columns must be complete before fitting.";
+  }
+  if (lower.includes("non-negative") || lower.includes("negative spend")) {
+    return "Spend and media activity cannot be negative.";
+  }
+  if (lower.includes("variation")) {
+    return "Flat media variables provide little signal for MMM.";
+  }
+  if (lower.includes("correlated") || lower.includes("collinear")) {
+    return "Review redundant media or control variables before running.";
+  }
   if (lower.includes("date") || lower.includes("time")) {
     return "Required for time-series indexing";
   }
@@ -458,6 +524,7 @@ export function NewAnalysisUploadPage() {
   const [preview, setPreview] = useState<CsvPreview | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isValidationDetailsOpen, setIsValidationDetailsOpen] = useState(false);
   const chooseInputRef = useRef<HTMLInputElement | null>(null);
   const replaceInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -475,6 +542,10 @@ export function NewAnalysisUploadPage() {
   }, [profile]);
 
   const validationBadges = (profile ? displayValidationBadges(profile) : []).filter((badge) => !isGeoPopulationLabel(badge.label));
+  const validationGroups = profile ? readinessGroups(profile).map((group) => ({
+    ...group,
+    checks: group.checks.filter((check) => !isGeoPopulationLabel(check.message)),
+  })).filter((group) => group.checks.length) : [];
 
   const channelDiagnostics = profile?.channel_diagnostics ?? [];
   const activeChannels = channelDiagnostics.filter((item) => item.include_in_model).length;
@@ -682,23 +753,54 @@ export function NewAnalysisUploadPage() {
 
         {profile ? <div className="upload-side-stack">
           <div className="content-panel validation-card">
-            <h3>Required field validation</h3>
+            <h3>Schema and modeling validation</h3>
             <div className="validation-summary-strip" role="status">
               <strong>{validationBadges.some((badge) => badge.status === "error") ? "Blocking issues found" : "No blocking issues found"}</strong>
               {setupWarnings ? <span>{setupWarnings} setup warning{setupWarnings === 1 ? "" : "s"}</span> : null}
               {excludedChannels ? <span>{excludedChannels} inactive channel{excludedChannels === 1 ? "" : "s"} excluded</span> : null}
             </div>
-            <div className="validation-list">
-              {validationBadges.map((badge) => (
-                <div className="validation-item" key={badge.label}>
-                  <StatusBadge status={validationStatusClass(badge.status)} />
+            <div className="validation-readiness-grid">
+              {validationGroups.map((group) => (
+                <section className={`validation-readiness-card validation-readiness-card--${readinessTone(group.checks)}`} key={group.title}>
                   <div>
-                    <strong>{compactValidationLabel(badge.label)}</strong>
-                    <span>{validationDetail(badge.label, profile)}</span>
+                    <h4>{group.title}</h4>
+                    <strong>{readinessCountLabel(group.checks)}</strong>
                   </div>
-                </div>
+                  <div className="validation-chip-row">
+                    {group.checks.slice(0, 3).map((check) => (
+                      <span className={`validation-chip validation-chip--${validationStatusClass(check.status)}`} key={check.code}>
+                        <StatusBadge status={validationStatusClass(check.status)} />
+                        {check.label}
+                      </span>
+                    ))}
+                    {group.checks.length > 3 ? <span className="validation-chip validation-chip--more">+{group.checks.length - 3}</span> : null}
+                  </div>
+                </section>
               ))}
             </div>
+            <button className="validation-details-toggle" type="button" onClick={() => setIsValidationDetailsOpen((current) => !current)}>
+              {isValidationDetailsOpen ? "Hide details" : "View details"}
+            </button>
+            {isValidationDetailsOpen ? (
+              <div className="validation-list validation-list--details">
+                {validationGroups.map((group) => (
+                  <div className="validation-group" key={group.title}>
+                    <h4>{group.title}</h4>
+                    <div className="validation-group-list">
+                      {group.checks.map((check) => (
+                        <div className="validation-item" key={check.code}>
+                          <StatusBadge status={validationStatusClass(check.status)} />
+                          <div>
+                            <strong>{check.label}</strong>
+                            <span>{check.message || validationDetail(check.label, profile)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </div>
         </div> : (
           <aside className="upload-empty-side-stack" aria-label="Upload guidance">
@@ -712,6 +814,8 @@ export function NewAnalysisUploadPage() {
                 <li>KPI column</li>
                 <li>Matching media + spend pairs</li>
                 <li>Revenue or revenue_per_kpi handling</li>
+                <li>Enough weekly history for modeling</li>
+                <li>High-correlation warnings before run</li>
               </ul>
             </div>
 

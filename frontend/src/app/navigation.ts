@@ -55,7 +55,7 @@ export const monitorNavItem: NavItem = {
 
 export const documentationNavItem: NavItem = {
   label: "Help / Documentation",
-  path: "/documentation",
+  path: "/help",
   section: "workflow",
   description: "Guides, docs & resources",
 };
@@ -109,5 +109,4 @@ export const allNavItems: NavItem[] = [
   ...workflowNavItems,
   monitorNavItem,
   ...resultNavItems,
-  documentationNavItem,
 ];

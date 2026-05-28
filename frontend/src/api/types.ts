@@ -39,6 +39,18 @@ export type ChannelDiagnostic = {
   message: string;
 };
 
+export type ReadinessCheck = {
+  code: string;
+  label: string;
+  status: "valid" | "warning" | "error" | "info";
+  message: string;
+};
+
+export type ReadinessSummary = {
+  status: "valid" | "warning" | "error" | "info";
+  checks: ReadinessCheck[];
+};
+
 export type CsvProfile = {
   upload_id: string;
   filename: string;
@@ -58,6 +70,8 @@ export type CsvProfile = {
   };
   date_profile?: DateProfile;
   channel_diagnostics?: ChannelDiagnostic[];
+  schema_readiness?: ReadinessSummary;
+  modeling_readiness?: ReadinessSummary;
   validation_badges: Array<{ status: string; label: string }>;
 };
 

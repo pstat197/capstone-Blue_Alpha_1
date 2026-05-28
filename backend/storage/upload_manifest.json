@@ -8,6 +8,14 @@
       "first_uploaded_at": "2026-05-15T00:26:32.608502Z",
       "size_bytes": 31451
     },
+    "82629a54257cb434358ec400e4b813dc1ff16d08519de49116aea2de5abad8ab": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_edaf64facb65_meridian_example.csv",
+      "canonical_upload_id": "upload_edaf64facb65",
+      "content_hash": "82629a54257cb434358ec400e4b813dc1ff16d08519de49116aea2de5abad8ab",
+      "first_original_filename": "meridian_example.csv",
+      "first_uploaded_at": "2026-05-22T18:44:33.680397Z",
+      "size_bytes": 392
+    },
     "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b": {
       "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
       "canonical_upload_id": "upload_1bc112d58beb",
@@ -31,6 +39,14 @@
       "first_original_filename": "national_all_channels.csv",
       "first_uploaded_at": "2026-05-20T19:12:38.561317Z",
       "size_bytes": 34024
+    },
+    "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58": {
+      "canonical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_2f9be75c95cd_meridian_runnable_demo_156_weeks.csv",
+      "canonical_upload_id": "upload_2f9be75c95cd",
+      "content_hash": "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58",
+      "first_original_filename": "meridian_runnable_demo_156_weeks.csv",
+      "first_uploaded_at": "2026-05-27T22:39:54.415653Z",
+      "size_bytes": 12741
     }
   },
   "uploads": {
@@ -73,6 +89,15 @@
       "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
       "upload_id": "upload_25f8178d4d61",
       "uploaded_at": "2026-05-16T20:11:51.181499Z"
+    },
+    "upload_2f9be75c95cd": {
+      "content_hash": "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58",
+      "original_filename": "meridian_runnable_demo_156_weeks.csv",
+      "reused_existing": false,
+      "size_bytes": 12741,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_2f9be75c95cd_meridian_runnable_demo_156_weeks.csv",
+      "upload_id": "upload_2f9be75c95cd",
+      "uploaded_at": "2026-05-27T22:39:54.415950Z"
     },
     "upload_35685b6dc391": {
       "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
@@ -124,6 +149,15 @@
       "upload_id": "upload_4447a3c28e83",
       "uploaded_at": "2026-05-16T20:09:13.200639Z"
     },
+    "upload_520d3613f898": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_520d3613f898",
+      "uploaded_at": "2026-05-28T04:37:47.269670Z"
+    },
     "upload_58edefcffc5c": {
       "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
       "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_58edefcffc5c_monthly_mocha.csv",
@@ -144,6 +178,15 @@
       "upload_id": "upload_710c18f4ccc8",
       "uploaded_at": "2026-05-14T23:41:00.655470Z"
     },
+    "upload_7e87ffb72fa8": {
+      "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+      "original_filename": "monthly_mocha.csv",
+      "reused_existing": true,
+      "size_bytes": 9816,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_1bc112d58beb_monthly_mocha.csv",
+      "upload_id": "upload_7e87ffb72fa8",
+      "uploaded_at": "2026-05-22T18:59:07.129754Z"
+    },
     "upload_8ce52c632a82": {
       "content_hash": "d001b91e494a90d9c88923df6cbd15fd73af132c3609c424daaea3c57c69803a",
       "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_8ce52c632a82_national_all_channels.csv",
@@ -153,6 +196,15 @@
       "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_bf8c998df637_national_all_channels.csv",
       "upload_id": "upload_8ce52c632a82",
       "uploaded_at": "2026-05-20T19:50:49.720542Z"
+    },
+    "upload_94a8ddda379e": {
+      "content_hash": "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58",
+      "original_filename": "meridian_runnable_demo_156_weeks.csv",
+      "reused_existing": true,
+      "size_bytes": 12741,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_2f9be75c95cd_meridian_runnable_demo_156_weeks.csv",
+      "upload_id": "upload_94a8ddda379e",
+      "uploaded_at": "2026-05-28T04:37:09.403095Z"
     },
     "upload_a02b7b08b998": {
       "content_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
@@ -213,6 +265,15 @@
       "upload_id": "upload_c18cbdc003de",
       "uploaded_at": "2026-05-13T22:35:15.315950Z"
     },
+    "upload_dca15e091de7": {
+      "content_hash": "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58",
+      "original_filename": "meridian_runnable_demo_156_weeks.csv",
+      "reused_existing": true,
+      "size_bytes": 12741,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_2f9be75c95cd_meridian_runnable_demo_156_weeks.csv",
+      "upload_id": "upload_dca15e091de7",
+      "uploaded_at": "2026-05-28T04:39:59.630998Z"
+    },
     "upload_e75f9af2b0f2": {
       "content_hash": "2eff2aedea6cea91dbd92ed5d1b1fb939be68d63c099eeb8b6b4299352350db8",
       "legacy_physical_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_e75f9af2b0f2_Example Alpha(1).csv",
@@ -222,6 +283,15 @@
       "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_42cd406c6713_Example Alpha(1).csv",
       "upload_id": "upload_e75f9af2b0f2",
       "uploaded_at": "2026-05-16T20:26:44.586067Z"
+    },
+    "upload_edaf64facb65": {
+      "content_hash": "82629a54257cb434358ec400e4b813dc1ff16d08519de49116aea2de5abad8ab",
+      "original_filename": "meridian_example.csv",
+      "reused_existing": false,
+      "size_bytes": 392,
+      "stored_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/backend/storage/uploads/upload_edaf64facb65_meridian_example.csv",
+      "upload_id": "upload_edaf64facb65",
+      "uploaded_at": "2026-05-22T18:44:33.680412Z"
     }
   },
   "version": 1

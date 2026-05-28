@@ -30,7 +30,8 @@ function labelForStatus(status?: string) {
 function summaryStatusLabel(status?: string) {
   if (status === "already_completed") return "EXISTING RESULT";
   if (status === "completed") return "COMPLETED";
-  if (status === "failed" || status === "cancelled") return "FAILED";
+  if (status === "failed") return "FAILED";
+  if (status === "cancelled") return "CANCELLED";
   if (status === "queued") return "QUEUED";
   return "RUN IN PROGRESS";
 }
@@ -126,10 +127,67 @@ function activeStageIndex(run: RunStatus | null) {
 
 function timelineState(run: RunStatus | null, index: number): StageState {
   const active = activeStageIndex(run);
+  const isTerminalStep = index === 4;
+  if ((run?.status === "failed" || run?.status === "cancelled") && isTerminalStep) return "failed";
   if ((run?.status === "failed" || run?.status === "cancelled") && index === active) return "failed";
   if (run?.status === "completed" || run?.status === "already_completed" || index < active) return "complete";
   if (index === active) return "active";
   return "pending";
+}
+
+function terminalTimelineStep(run: RunStatus | null) {
+  const endedAt = run?.completed_at ?? null;
+  if (run?.status === "completed" || run?.status === "already_completed") {
+    return {
+      title: "Completed",
+      time: endedAt ? formatTime(endedAt) : "Pending",
+      description: "Results ready",
+    };
+  }
+  if (run?.status === "failed") {
+    return {
+      title: "Failed",
+      time: endedAt ? formatTime(endedAt) : "Pending",
+      description: "Run stopped before results were generated",
+    };
+  }
+  if (run?.status === "cancelled") {
+    return {
+      title: "Cancelled",
+      time: endedAt ? formatTime(endedAt) : "Pending",
+      description: "Run was cancelled before completion",
+    };
+  }
+  return {
+    title: "Completed",
+    time: "Pending",
+    description: "Results pending",
+  };
+}
+
+function extractFailureReason(run: RunStatus | null, logLines: string[]) {
+  const sources = [...logLines, ...(run?.messages ?? [])];
+  const modelErrorIndex = sources.findIndex((line) => line.includes("ModelFittingError"));
+  if (modelErrorIndex >= 0) {
+    const details = sources
+      .slice(modelErrorIndex, modelErrorIndex + 10)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .filter((line) => !line.startsWith("File ") && !line.startsWith("Traceback"))
+      .filter((line) => !line.includes("sample_posterior") && !line.includes("_run_model_fitting_guardrail"));
+    const focusedDetails = details.filter((line) => (
+      line.includes("ModelFittingError")
+      || line.includes("Check type:")
+      || line.includes("Variables with extreme VIF")
+      || line.includes("critical EDA issues")
+    ));
+    if (focusedDetails.length) return focusedDetails.join(" ");
+  }
+  const failureLine = [...sources].reverse().find((line) => {
+    const lower = line.toLowerCase();
+    return lower.includes("modelfittingerror") || lower.includes("error") || lower.includes("failed") || lower.includes("exception");
+  });
+  return failureLine?.trim() || "Review the latest logs for backend error details.";
 }
 
 function workflowValue(workflow: WorkflowDraft | null, section: string, key: string) {
@@ -233,15 +291,20 @@ export function RunMonitorPage() {
         ? run.result_url
         : `/results/overview?run_id=${encodeURIComponent(run.run_id)}`
       : null;
-  const isFailed = run?.status === "failed" || run?.status === "cancelled";
+  const isCancelled = run?.status === "cancelled";
+  const isFailed = run?.status === "failed" || isCancelled;
   const isDevelopmentMock = import.meta.env.DEV && run?.mode === "mock";
   const runSource = run?.mode === "real_full" || run?.mode === "real_tiny" ? "FastAPI" : isDevelopmentMock ? "Mock execution" : "FastAPI";
   const completedCombinations = run?.progress.completed_runs ?? 0;
   const failedCombinations = run?.progress.failed_runs ?? 0;
   const totalCombinations = run?.progress.total_runs ?? 0;
   const runStatus = isFinalizing(run) ? "Finalizing" : labelForStatus(run?.status);
+  const terminalStep = terminalTimelineStep(run);
+  const failureReason = isCancelled ? "Run was cancelled before completion." : isFailed ? extractFailureReason(run, logLines) : null;
   const pageSubtitle = !resolvedRunId
     ? "Start a run from Review & Start Run, or open a completed run from Results History."
+    : isCancelled
+    ? "The run was cancelled before completion."
     : isFailed
     ? "The run failed before completion. Review the error details below."
     : run?.status === "already_completed" || reusedExistingResult
@@ -268,14 +331,10 @@ export function RunMonitorPage() {
     },
     {
       title: "Finalizing",
-      time: activeStageIndex(run) >= 3 ? "In progress" : "Pending",
+      time: activeStageIndex(run) >= 3 && !isFailed ? "In progress" : "Pending",
       description: "Aggregating outputs and calculating metrics",
     },
-    {
-      title: "Completed",
-      time: run?.completed_at ? formatTime(run.completed_at) : "Pending",
-      description: "Results ready",
-    },
+    terminalStep,
   ];
 
   const detailRows = [
@@ -407,7 +466,7 @@ export function RunMonitorPage() {
               Open Results
             </Link>
           ) : null}
-          {run?.status === "completed" || run?.status === "already_completed" ? (
+          {hasResults && (run?.status === "completed" || run?.status === "already_completed") ? (
             <Link className="run-browse-results" to="/results/history">
               Browse Saved Results
             </Link>
@@ -435,8 +494,8 @@ export function RunMonitorPage() {
       {isFailed ? (
         <section className="run-failure-card">
           <div>
-            <strong>Run failed during {timeline[activeStageIndex(run)]?.title.toLowerCase() ?? "execution"}.</strong>
-            <span>{run?.messages.slice(-1)[0] ?? "Review the latest logs for backend error details."}</span>
+            <strong>{isCancelled ? "Run cancelled" : "Run failed"} during {timeline[activeStageIndex(run)]?.title.toLowerCase() ?? "execution"}.</strong>
+            <span>{failureReason}</span>
           </div>
           <div className="run-failure-actions">
             <button className="secondary-link" type="button" onClick={() => setShowFullLogs(true)}>View logs</button>

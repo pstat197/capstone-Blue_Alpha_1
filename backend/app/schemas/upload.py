@@ -53,6 +53,18 @@ class ChannelDiagnostic(BaseModel):
     message: str
 
 
+class ReadinessCheck(BaseModel):
+    code: str
+    label: str
+    status: Literal["valid", "warning", "error", "info"]
+    message: str
+
+
+class ReadinessSummary(BaseModel):
+    status: Literal["valid", "warning", "error", "info"]
+    checks: list[ReadinessCheck]
+
+
 class CsvProfile(BaseModel):
     upload_id: str
     filename: str
@@ -62,6 +74,8 @@ class CsvProfile(BaseModel):
     detected: DetectedColumns
     date_profile: DateProfile
     channel_diagnostics: list[ChannelDiagnostic]
+    schema_readiness: ReadinessSummary
+    modeling_readiness: ReadinessSummary
     validation_badges: list[dict[str, str]]
 
 

@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 import { SectionScaffold } from "../components/SectionScaffold";
+import { ContextualHelpButton } from "../../../shared/ContextualHelp";
 import { useCurrentResult } from "../data/resultLoader";
 import { formatNumber } from "../data/resultSelectors";
 
@@ -18,10 +19,27 @@ type PosteriorPoint = {
 type ChannelUpdate = {
   channel: string;
   avgPosterior: number | null;
+  baselinePosterior: number | null;
+  roiMin: number | null;
+  roiMax: number | null;
   ciWidth: number | null;
   sensitivity: number | null;
   avgAbsShift: number | null;
+  maxShift: number | null;
   strength: "Strong" | "Moderate" | "Weak" | "Unavailable";
+  stability: "Stable" | "Watch" | "Prior-sensitive" | "High uncertainty" | "Unavailable";
+};
+
+type SensitivityRisk = "High" | "Medium" | "Low" | "Unavailable";
+
+type ConfidenceSummary = {
+  level: "Low" | "Medium" | "High";
+  pass: number;
+  review: number;
+  fail: number;
+  completed: number;
+  reason: string;
+  guidance: string;
 };
 
 const variantColors = ["#2f80ed", "#43c59e", "#ff9f1c", "#6f52c7", "#f24472", "#c26d5f", "#e05ac5", "#29a4b5", "#7a8a9d", "#1b9aaa"];
@@ -38,6 +56,18 @@ function titleCase(value: string): string {
 function formatMaybe(value: unknown, digits = 2): string {
   const n = toNumber(value);
   return n === null ? "NA" : formatNumber(n, digits);
+}
+
+function formatRange(min: number | null, max: number | null): string {
+  return min === null || max === null ? "NA" : `${formatNumber(min, 2)} - ${formatNumber(max, 2)}`;
+}
+
+function stabilityClass(stability: ChannelUpdate["stability"]): string {
+  return stability.toLowerCase().replace(/\s+/g, "-");
+}
+
+function channelsText(rows: ChannelUpdate[]): string {
+  return rows.length ? rows.map((row) => titleCase(row.channel)).join(", ") : "Unavailable";
 }
 
 function median(values: Array<number | null | undefined>): number | null {
@@ -109,21 +139,30 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
     const baseline = nearestBaseline(channelPoints);
     const means = channelPoints.map((point) => point.mean);
     const avgAbsShift = baseline ? means.reduce((sum, mean) => sum + Math.abs(mean - baseline.mean), 0) / means.length : null;
+    const maxShift = baseline ? Math.max(...means.map((mean) => Math.abs(mean - baseline.mean))) : null;
     const sortedMeans = [...means].sort((a, b) => a - b);
     const q1 = percentile(sortedMeans, 0.25);
     const q3 = percentile(sortedMeans, 0.75);
     return {
       channel,
       avgPosterior: means.reduce((sum, value) => sum + value, 0) / means.length,
+      baselinePosterior: baseline?.mean ?? null,
+      roiMin: means.length ? Math.min(...means) : null,
+      roiMax: means.length ? Math.max(...means) : null,
       ciWidth: channelPoints.reduce((sum, point) => sum + (point.upper50 - point.lower50), 0) / channelPoints.length,
       sensitivity: q1 !== null && q3 !== null ? q3 - q1 : null,
       avgAbsShift,
+      maxShift,
       strength: "Unavailable" as ChannelUpdate["strength"],
+      stability: "Unavailable" as ChannelUpdate["stability"],
     };
   });
 
   const weakCut = percentile(baseRows.map((row) => row.avgAbsShift), 0.33);
   const strongCut = percentile(baseRows.map((row) => row.avgAbsShift), 0.67);
+  const watchShiftCut = percentile(baseRows.map((row) => row.maxShift), 0.5);
+  const priorSensitiveCut = percentile(baseRows.map((row) => row.maxShift), 0.75);
+  const highUncertaintyCut = percentile(baseRows.map((row) => row.ciWidth), 0.75);
 
   return baseRows
     .map((row) => {
@@ -138,7 +177,21 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
             : row.avgAbsShift >= weakCut
               ? "Moderate"
               : "Weak";
-      return { ...row, strength };
+      // Stability summarizes whether the posterior conclusion remains similar as priors vary.
+      // It is derived from existing posterior means and 50% interval widths within the selected run:
+      // top-quartile max shift = Prior-sensitive, top-quartile CI width = High uncertainty,
+      // above-median max shift = Watch, otherwise Stable.
+      const stability: ChannelUpdate["stability"] =
+        row.maxShift === null || row.ciWidth === null || watchShiftCut === null || priorSensitiveCut === null || highUncertaintyCut === null
+          ? "Unavailable"
+          : row.maxShift >= priorSensitiveCut
+            ? "Prior-sensitive"
+            : row.ciWidth >= highUncertaintyCut
+              ? "High uncertainty"
+              : row.maxShift >= watchShiftCut
+                ? "Watch"
+                : "Stable";
+      return { ...row, strength, stability };
     })
     .sort((a, b) => Number(b.avgAbsShift ?? -1) - Number(a.avgAbsShift ?? -1));
 }
@@ -151,6 +204,61 @@ function confidenceFromPayload(payload: ReturnType<typeof useCurrentResult>["pay
   if (decisionTier.includes("high") || (passRate !== null && passRate >= 80)) return "High";
   if (passRate !== null && passRate >= 50) return "Medium";
   return diagnostics ? "Low" : "Medium";
+}
+
+function interpretationConfidence(payload: ReturnType<typeof useCurrentResult>["payload"]): ConfidenceSummary {
+  const diagnostics = payload.diagnostics_overview || payload.diagnostics?.overview || {};
+  const pass = toNumber(diagnostics.pass_runs) ?? 0;
+  const review = toNumber(diagnostics.review_runs) ?? 0;
+  const fail = toNumber(diagnostics.fail_runs) ?? 0;
+  const unknown = toNumber(diagnostics.unknown_runs) ?? 0;
+  const completed = toNumber(diagnostics.n_runs) ?? pass + review + fail + unknown;
+  const passRate = toNumber(diagnostics.pass_rate_pct);
+  const primaryReviewCheck = String(payload.qc_followup?.primary_review_check || "").trim();
+  const reviewCount = toNumber(payload.qc_followup?.count) ?? review;
+  const level = confidenceFromPayload(payload);
+
+  let reason = "Diagnostic confidence details are unavailable in this payload.";
+  if (completed || pass || review || fail || primaryReviewCheck) {
+    const passRateText = passRate === null ? "QC pass rate is unavailable" : `${formatNumber(passRate, 0)}% QC pass rate`;
+    const allReviewText = completed && review === completed ? `All ${formatNumber(completed, 0)} completed run${completed === 1 ? " is" : "s are"} REVIEW` : `PASS ${formatNumber(pass, 0)} / REVIEW ${formatNumber(review, 0)} / FAIL ${formatNumber(fail, 0)}`;
+    const primaryText = primaryReviewCheck ? `, driven by ${primaryReviewCheck}${reviewCount && reviewCount !== review ? ` across ${formatNumber(reviewCount, 0)} review run${reviewCount === 1 ? "" : "s"}` : ""}` : "";
+    reason = `${passRateText}. ${allReviewText}${primaryText}.`;
+  }
+
+  const guidance =
+    level === "High"
+      ? "Use these results for planning decisions while continuing normal diagnostic review."
+      : level === "Medium"
+        ? "Use these results directionally and review sensitivity or QC issues before major budget changes."
+        : "Use these results directionally only. Resolve QC/stability issues before making budget-level decisions.";
+
+  return { level, pass, review, fail, completed, reason, guidance };
+}
+
+function sensitivityRiskGroups(rows: ChannelUpdate[]) {
+  const mediumCut = percentile(rows.map((row) => row.sensitivity), 0.33);
+  const highCut = percentile(rows.map((row) => row.sensitivity), 0.67);
+  const grouped: Record<SensitivityRisk, ChannelUpdate[]> = {
+    High: [],
+    Medium: [],
+    Low: [],
+    Unavailable: [],
+  };
+
+  rows.forEach((row) => {
+    if (row.sensitivity === null || mediumCut === null || highCut === null) {
+      grouped.Unavailable.push(row);
+    } else if (row.sensitivity >= highCut) {
+      grouped.High.push(row);
+    } else if (row.sensitivity >= mediumCut) {
+      grouped.Medium.push(row);
+    } else {
+      grouped.Low.push(row);
+    }
+  });
+
+  return grouped;
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -188,7 +296,39 @@ function SummaryCard({
   );
 }
 
+function ConfidenceCard({ confidence }: { confidence: ConfidenceSummary }) {
+  return (
+    <article className="content-panel pvp-confidence-card">
+      <div className="pvp-card-title pvp-card-title--compact">
+        <div className="inline-help-row">
+          <h3>Interpretation Confidence</h3>
+          <ContextualHelpButton sectionId="interpretation-confidence" label="Explain interpretation confidence" />
+        </div>
+        <span className={`pvp-confidence-badge pvp-confidence-badge--${confidence.level.toLowerCase()}`}>{confidence.level}</span>
+      </div>
+      <div className="pvp-confidence-chips" aria-label="QC status summary">
+        <span className="pvp-confidence-chip pvp-confidence-chip--pass">PASS {formatNumber(confidence.pass, 0)}</span>
+        <span className="pvp-confidence-chip pvp-confidence-chip--review">REVIEW {formatNumber(confidence.review, 0)}</span>
+        <span className="pvp-confidence-chip pvp-confidence-chip--fail">FAIL {formatNumber(confidence.fail, 0)}</span>
+        <span>{formatNumber(confidence.completed, 0)} completed runs</span>
+      </div>
+      <div className="pvp-confidence-copy">
+        <div>
+          <h4>Why confidence is {confidence.level.toLowerCase()}</h4>
+          <p>{confidence.reason}</p>
+        </div>
+        <div>
+          <h4>How to use this</h4>
+          <p>{confidence.guidance}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]; metricLabel: string }) {
+  const [highlightedVariant, setHighlightedVariant] = useState<string | null>(null);
+
   if (!points.length) return <EmptyState message="Prior-vs-posterior rows are unavailable for this run." />;
 
   const channels = [...new Set(points.map((point) => point.channel))];
@@ -198,7 +338,7 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
   const maxValue = Math.max(1, ...values);
   const span = maxValue - minValue || 1;
   const width = 1060;
-  const rowHeight = 46;
+  const rowHeight = 54;
   const top = 26;
   const left = 112;
   const right = 34;
@@ -235,9 +375,16 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
                   const offset = ((variantIndex % variants.length) - (variants.length - 1) / 2) * Math.min(4, 22 / Math.max(variants.length, 1));
                   const color = variantColors[variants.indexOf(point.variantShort) % variantColors.length];
                   const y = yBase + offset;
+                  const isDimmed = highlightedVariant !== null && highlightedVariant !== point.variantShort;
+                  const opacity = isDimmed ? 0.2 : 1;
                   return (
-                    <g key={`${channel}-${point.variantShort}`}>
-                      <line x1={x(point.lower50)} x2={x(point.upper50)} y1={y} y2={y} stroke={color} strokeWidth="2.7" opacity="0.82" />
+                    <g
+                      key={`${channel}-${point.variantShort}`}
+                      opacity={opacity}
+                      onMouseEnter={() => setHighlightedVariant(point.variantShort)}
+                      onMouseLeave={() => setHighlightedVariant(null)}
+                    >
+                      <line x1={x(point.lower50)} x2={x(point.upper50)} y1={y} y2={y} stroke={color} strokeWidth={isDimmed ? "2.2" : "3"} opacity="0.86" />
                       <line x1={x(point.lower50)} x2={x(point.lower50)} y1={y - 3.6} y2={y + 3.6} stroke={color} strokeWidth="1.8" opacity="0.76" />
                       <line x1={x(point.upper50)} x2={x(point.upper50)} y1={y - 3.6} y2={y + 3.6} stroke={color} strokeWidth="1.8" opacity="0.76" />
                       {point.priorMean !== null ? (
@@ -250,7 +397,7 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
                           transform={`rotate(45 ${x(point.priorMean)} ${y})`}
                         />
                       ) : null}
-                      <circle cx={x(point.mean)} cy={y} r="4.8" fill={color} stroke="#ffffff" strokeWidth="1.5" />
+                      <circle cx={x(point.mean)} cy={y} r={isDimmed ? "4.4" : "5.1"} fill={color} stroke="#ffffff" strokeWidth="1.5" />
                     </g>
                   );
                 })}
@@ -263,21 +410,31 @@ function PriorPosteriorChart({ points, metricLabel }: { points: PosteriorPoint[]
         </svg>
       </div>
       <div className="pvp-legend-card">
-        <h4>Prior Variants</h4>
-        <div className="pvp-legend-list">
-          {variants.map((variant, index) => (
-            <div className="pvp-legend-item" key={variant}>
-              <span style={{ background: variantColors[index % variantColors.length] }} />
-              <b>{variant}</b>
-            </div>
-          ))}
-        </div>
         <div className="pvp-marker-legend" aria-label="Chart marker legend">
-          <span><i className="pvp-marker-dot" /> Colored points = posterior mean by prior variant</span>
-          <span><i className="pvp-marker-line" /> Colored lines = 50% posterior interval</span>
-          <span><i className="pvp-marker-diamond" /> Gray diamond = channel prior mean</span>
+          <span><i className="pvp-marker-dot" /> Dots = posterior mean</span>
+          <span><i className="pvp-marker-line" /> Lines = 50% posterior interval</span>
+          <span><i className="pvp-marker-diamond" /> Diamonds = channel prior mean</span>
           <span><i className="pvp-marker-dash" /> Dashed line = ROI 1.0 reference</span>
         </div>
+        <details className="pvp-variant-accordion">
+          <summary>Prior variants</summary>
+          <div className="pvp-legend-list">
+            {variants.map((variant, index) => (
+              <button
+                className={`pvp-legend-item${highlightedVariant === variant ? " pvp-legend-item--active" : ""}`}
+                key={variant}
+                type="button"
+                onMouseEnter={() => setHighlightedVariant(variant)}
+                onMouseLeave={() => setHighlightedVariant(null)}
+                onFocus={() => setHighlightedVariant(variant)}
+                onBlur={() => setHighlightedVariant(null)}
+              >
+                <span style={{ background: variantColors[index % variantColors.length] }} />
+                <b>{variant}</b>
+              </button>
+            ))}
+          </div>
+        </details>
       </div>
     </div>
   );
@@ -287,8 +444,9 @@ function ShiftChart({ rows }: { rows: ChannelUpdate[] }) {
   const validRows = rows.filter((row) => row.avgAbsShift !== null);
   if (!validRows.length) return <EmptyState message="Baseline prior rows are unavailable, so channel shift cannot be calculated." />;
   const maxShift = Math.max(...validRows.map((row) => row.avgAbsShift || 0)) || 1;
+  const density = validRows.length <= 5 ? "compact" : validRows.length >= 9 ? "dense" : "normal";
   return (
-    <div className="pvp-shift-bars">
+    <div className={`pvp-shift-bars pvp-shift-bars--${density}`}>
       {validRows.map((row) => {
         const value = row.avgAbsShift || 0;
         return (
@@ -305,7 +463,7 @@ function ShiftChart({ rows }: { rows: ChannelUpdate[] }) {
   );
 }
 
-function SummaryGroup({
+function InterpretationGroup({
   title,
   rows,
   tone,
@@ -313,17 +471,15 @@ function SummaryGroup({
 }: {
   title: string;
   rows: ChannelUpdate[];
-  tone: "green" | "amber" | "orange" | "violet";
+  tone: "green" | "amber" | "orange" | "violet" | "blue";
   description: string;
 }) {
   return (
     <section className={`pvp-summary-group pvp-summary-group--${tone}`}>
       <span className="pvp-group-status" aria-hidden="true" />
       <div>
-        <h4>
-          {title} ({rows.length})
-        </h4>
-        <strong>{rows.length ? rows.map((row) => titleCase(row.channel)).join(", ") : "Unavailable"}</strong>
+        <h4>{title}</h4>
+        <strong>{channelsText(rows)}</strong>
         <p>{description}</p>
       </div>
     </section>
@@ -341,13 +497,14 @@ export function PriorVsPosteriorPage() {
   const strongRows = channelRows.filter((row) => row.strength === "Strong");
   const moderateRows = channelRows.filter((row) => row.strength === "Moderate");
   const weakRows = channelRows.filter((row) => row.strength === "Weak");
+  const riskGroups = sensitivityRiskGroups(channelRows);
   const followUpCount = new Set([...weakRows, ...sensitiveRows].map((row) => row.channel)).size;
   const metricLabel = payload.outcome_context?.metric_label || "Revenue-equivalent ROI";
   const revenueValue = toNumber(payload.outcome_context?.revenue_per_kpi);
   const kpiSubtitle = payload.outcome_context
     ? `${payload.outcome_context.kpi_type || "KPI"} KPI -> revenue_value=${revenueValue === null ? "NA" : formatNumber(revenueValue, 2)}`
     : "Unavailable";
-  const confidence = confidenceFromPayload(payload);
+  const confidence = interpretationConfidence(payload);
 
   return (
     <SectionScaffold
@@ -369,21 +526,31 @@ export function PriorVsPosteriorPage() {
       </section>
 
       <section className="pvp-main-grid">
-        <article className="content-panel pvp-chart-card">
-          <div className="pvp-card-title">
-            <h3>ROI Prior vs Posterior with 50% Posterior Intervals</h3>
-            <InfoPopover label="Explain ROI prior vs posterior chart">
-              <p>This chart compares how each channel's posterior ROI changes under different prior assumptions.</p>
-              <ul>
-                <li>Colored points = posterior mean by prior variant</li>
-                <li>Colored lines = 50% posterior interval</li>
-                <li>Gray diamond = channel prior mean</li>
-                <li>Dashed vertical line = ROI 1.0 reference</li>
-              </ul>
-            </InfoPopover>
-          </div>
-          {table?.available === false ? <EmptyState message={table.reason || "Prior-vs-posterior table unavailable in this payload."} /> : <PriorPosteriorChart points={points} metricLabel={metricLabel} />}
-        </article>
+        <div className="pvp-left-stack">
+          <article className="content-panel pvp-chart-card">
+            <div className="pvp-card-title">
+              <div className="pvp-card-heading">
+                <h3>ROI Prior vs Posterior with 50% Posterior Intervals</h3>
+                <p>Shows how posterior ROI estimates move under different prior assumptions.</p>
+              </div>
+              <div className="inline-help-row">
+                <ContextualHelpButton sectionId="prior-posterior-chart" label="Open contextual help for this chart" />
+                <InfoPopover label="Explain ROI prior vs posterior chart">
+                  <p>This chart compares how each channel's posterior ROI changes under different prior assumptions.</p>
+                  <ul>
+                    <li>Colored points = posterior mean by prior variant</li>
+                    <li>Colored lines = 50% posterior interval</li>
+                    <li>Gray diamond = channel prior mean</li>
+                    <li>Dashed vertical line = ROI 1.0 reference</li>
+                  </ul>
+                </InfoPopover>
+              </div>
+            </div>
+            {table?.available === false ? <EmptyState message={table.reason || "Prior-vs-posterior table unavailable in this payload."} /> : <PriorPosteriorChart points={points} metricLabel={metricLabel} />}
+          </article>
+
+          <ConfidenceCard confidence={confidence} />
+        </div>
 
         <aside className="content-panel pvp-interpretation-card">
           <div className="pvp-card-title">
@@ -391,13 +558,20 @@ export function PriorVsPosteriorPage() {
           </div>
           {points.length ? (
             <>
-              <SummaryGroup title="Strongly updated" rows={strongRows} tone="green" description="Meaningful movement across priors." />
-              <SummaryGroup title="Moderately updated" rows={moderateRows} tone="amber" description="Some movement, with overlap." />
-              <SummaryGroup title="Weakly updated" rows={weakRows} tone="orange" description="Limited movement from priors." />
-              <SummaryGroup title="Most prior-sensitive channels" rows={sensitiveRows} tone="violet" description="Wider movement under alternatives." />
-              <div className={`pvp-confidence pvp-confidence--${confidence.toLowerCase()}`}>
-                Interpretation confidence: <strong>{confidence}</strong>
-              </div>
+              <section className="pvp-interpretation-section">
+                <h4>Data Update Strength</h4>
+                <p>How much the data moved posterior ROI away from the baseline prior.</p>
+                <InterpretationGroup title="Strong data update" rows={strongRows} tone="green" description="Posteriors moved meaningfully." />
+                <InterpretationGroup title="Moderate data update" rows={moderateRows} tone="amber" description="Visible movement, with some overlap." />
+                <InterpretationGroup title="Weak data update" rows={weakRows} tone="orange" description="Limited movement from priors." />
+              </section>
+              <section className="pvp-interpretation-section">
+                <h4>Prior Sensitivity Risk</h4>
+                <p>How much posterior ROI varies across the tested prior grid.</p>
+                <InterpretationGroup title="High sensitivity" rows={riskGroups.High} tone="violet" description="Conclusion shifts more across priors." />
+                <InterpretationGroup title="Medium sensitivity" rows={riskGroups.Medium} tone="blue" description="Some dependence on prior choice." />
+                <InterpretationGroup title="Low sensitivity" rows={riskGroups.Low} tone="green" description="Conclusion is comparatively stable." />
+              </section>
             </>
           ) : (
             <EmptyState message="No posterior evidence rows are available for grouping." />
@@ -416,15 +590,19 @@ export function PriorVsPosteriorPage() {
 
         <article className="content-panel pvp-stability-card">
           <div className="pvp-card-title">
-            <h3>Interval Overlap &amp; Stability</h3>
-            <InfoPopover label="Explain interval overlap and stability table">
-              <ul>
-                <li>Avg Posterior ROI = average posterior ROI across tested prior variants.</li>
-                <li>CI Width = average width of the posterior interval.</li>
-                <li>Prior Sensitivity = how much the posterior estimate moves across prior variants.</li>
-                <li>Update Strength = qualitative label summarizing whether the data strongly, moderately, or weakly updates the prior.</li>
-              </ul>
-            </InfoPopover>
+            <h3>Posterior Stability Summary</h3>
+            <div className="inline-help-row">
+              <ContextualHelpButton sectionId="posterior-interval" label="Open contextual help for posterior intervals" />
+              <InfoPopover label="Explain posterior stability summary table">
+                <ul>
+                  <li>Baseline Posterior ROI = posterior mean from the baseline prior variant.</li>
+                  <li>ROI Range Across Priors = minimum to maximum posterior mean across tested prior variants.</li>
+                  <li>Max Shift = largest absolute movement from the baseline posterior ROI.</li>
+                  <li>50% CI Width = average width of the posterior 50% interval.</li>
+                  <li>Stability summarizes whether the posterior conclusion stays similar as priors change.</li>
+                </ul>
+              </InfoPopover>
+            </div>
           </div>
           {channelRows.length ? (
             <div className="table-shell">
@@ -432,23 +610,25 @@ export function PriorVsPosteriorPage() {
                 <thead>
                   <tr>
                     <th>Channel</th>
-                    <th>Avg Posterior ROI</th>
-                    <th>CI Width</th>
-                    <th>Prior Sensitivity</th>
-                    <th>Update Strength</th>
+                    <th>Baseline Posterior ROI</th>
+                    <th>ROI Range Across Priors</th>
+                    <th>Max Shift</th>
+                    <th>50% CI Width</th>
+                    <th>Stability</th>
                   </tr>
                 </thead>
                 <tbody>
                   {[...channelRows]
-                    .sort((a, b) => Number(b.avgAbsShift ?? b.sensitivity ?? -1) - Number(a.avgAbsShift ?? a.sensitivity ?? -1))
+                    .sort((a, b) => Number(b.maxShift ?? b.ciWidth ?? -1) - Number(a.maxShift ?? a.ciWidth ?? -1))
                     .map((row) => (
                       <tr key={row.channel}>
                         <td>{titleCase(row.channel)}</td>
-                        <td>{formatMaybe(row.avgPosterior, 2)}</td>
+                        <td>{formatMaybe(row.baselinePosterior, 2)}</td>
+                        <td>{formatRange(row.roiMin, row.roiMax)}</td>
+                        <td>{formatMaybe(row.maxShift, 2)}</td>
                         <td>{formatMaybe(row.ciWidth, 2)}</td>
-                        <td>{formatMaybe(row.sensitivity, 2)}</td>
                         <td>
-                          <span className={`pvp-strength-pill pvp-strength-pill--${row.strength.toLowerCase()}`}>{row.strength}</span>
+                          <span className={`pvp-stability-pill pvp-stability-pill--${stabilityClass(row.stability)}`}>{row.stability}</span>
                         </td>
                       </tr>
                     ))}
@@ -456,7 +636,7 @@ export function PriorVsPosteriorPage() {
               </table>
             </div>
           ) : (
-            <EmptyState message="Interval stability metrics are unavailable because posterior evidence rows are missing." />
+            <EmptyState message="Posterior stability metrics are unavailable because posterior evidence rows are missing." />
           )}
         </article>
       </section>

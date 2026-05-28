@@ -429,15 +429,6 @@ export function ResultsHistoryPage() {
                   <Link className="history-button history-button--primary" to={`/results/overview?history_id=${encodeURIComponent(selectedItem.history_id)}`}>
                     Open in Dashboard
                   </Link>
-                  {latestRun ? (
-                    <Link className="history-button history-button--secondary" to={latestRunPath}>
-                      Compare to Latest
-                    </Link>
-                  ) : (
-                    <button className="history-button history-button--secondary" type="button" disabled title={latestRunError || "No latest completed run is available."}>
-                      Compare to Latest
-                    </button>
-                  )}
                 </div>
               </>
             ) : (
@@ -451,7 +442,6 @@ export function ResultsHistoryPage() {
       ) : null}
 
       <footer className="history-page-footer">
-        <span>Viewing saved local reports</span>
         <div className="history-footer-actions">
           <Link className="history-button history-button--secondary" to="/workflow/run-monitor">
             <span aria-hidden="true">&lt;-</span>

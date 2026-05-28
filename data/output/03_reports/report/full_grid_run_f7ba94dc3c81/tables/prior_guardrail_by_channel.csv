@@ -1,0 +1,4 @@
+channel,n_rows,n_applicable,n_fail,max_prior_neg_prob,fail_rate_pct
+google,27,27,0,0.0,0.0
+meta,27,27,0,0.0,0.0
+tiktok,27,27,0,0.0,0.0

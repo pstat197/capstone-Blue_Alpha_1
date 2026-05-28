@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import { SectionScaffold } from "../components/SectionScaffold";
+import { ContextualHelpButton } from "../../../shared/ContextualHelp";
 import { useCurrentResult } from "../data/resultLoader";
 import type { DashboardPayload, DiagnosticCheckRow } from "../data/resultTypes";
 
@@ -273,7 +274,8 @@ export function RunAuditDiagnosticsPage() {
               <p>{health.summary}</p>
             </div>
           </article>
-          <article className="audit-summary-card audit-summary-card--wide">
+          <article className="audit-summary-card audit-summary-card--wide audit-summary-card--with-help">
+            <ContextualHelpButton sectionId="qc-status" label="Explain PASS, REVIEW, and FAIL" />
             <div>
               <span>QC Status Mix</span>
               <strong>PASS {displayNumber(pass)} / REVIEW {displayNumber(review)} / FAIL {displayNumber(fail)}</strong>
@@ -285,7 +287,8 @@ export function RunAuditDiagnosticsPage() {
               </div>
             </div>
           </article>
-          <article className="audit-summary-card">
+          <article className="audit-summary-card audit-summary-card--with-help">
+            <ContextualHelpButton sectionId="primary-review-checks" label="Explain primary review checks" />
             <div>
               <span>Primary Review Check</span>
               <strong>{primary.check}</strong>
@@ -328,7 +331,10 @@ export function RunAuditDiagnosticsPage() {
           </div>
 
           <article className="audit-card audit-check-card">
-            <h3>Check Status & Recommendation</h3>
+            <div className="section-title-row section-title-row--compact">
+              <h3>Check Status & Recommendation</h3>
+              <ContextualHelpButton sectionId="qc-checks" label="Explain QC checks" />
+            </div>
             <div className="audit-table-wrap">
               <table className="audit-check-table">
                 <thead>
@@ -366,7 +372,10 @@ export function RunAuditDiagnosticsPage() {
 
         <section className="audit-card audit-actionable-card">
           <div className="audit-actionable-heading">
-            <h3>Actionable Guidance</h3>
+            <div className="inline-help-row">
+              <h3>Actionable Guidance</h3>
+              <ContextualHelpButton sectionId="warnings" label="Explain diagnostic warnings" />
+            </div>
             <strong>Diagnostics support interpretation, but sensitivity robustness requires caution.</strong>
           </div>
           <div className="audit-actionable-list">

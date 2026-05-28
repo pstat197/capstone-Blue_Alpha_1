@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 import blueAlphaLogo from "../../assets/bluealpha_mark_blue.png";
 import { buildHistoryResultsPath, buildResultsPath, readActiveResultsRunId } from "../../features/results/data/resultLoader";
-import { documentationNavItem, monitorNavItem, resultNavItems, workflowNavItems } from "../navigation";
+import { ContextualHelpDrawer, openContextualHelp, type HelpSectionId } from "../../shared/ContextualHelp";
+import { monitorNavItem, resultNavItems, workflowNavItems } from "../navigation";
 
 type SetupStepState = "completed" | "active" | "upcoming";
 
@@ -13,28 +14,47 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 
 export function AppShell() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [activeHelpSection, setActiveHelpSection] = useState<HelpSectionId | null>(null);
   const location = useLocation();
 
   const closeDrawer = () => setIsDrawerOpen(false);
+  const closeHelp = () => setIsHelpOpen(false);
 
   useEffect(() => {
     setIsDrawerOpen(false);
   }, [location.pathname, location.search]);
 
   useEffect(() => {
-    if (!isDrawerOpen) {
+    setIsHelpOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const handleOpenHelp = (event: Event) => {
+      const detail = (event as CustomEvent<{ sectionId?: HelpSectionId }>).detail;
+      setActiveHelpSection(detail?.sectionId ?? null);
+      setIsHelpOpen(true);
+    };
+
+    window.addEventListener("bluealpha:open-help", handleOpenHelp);
+    return () => window.removeEventListener("bluealpha:open-help", handleOpenHelp);
+  }, []);
+
+  useEffect(() => {
+    if (!isDrawerOpen && !isHelpOpen) {
       return;
     }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsDrawerOpen(false);
+        setIsHelpOpen(false);
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isDrawerOpen]);
+  }, [isDrawerOpen, isHelpOpen]);
 
   const activeWorkflowIndex = workflowNavItems.findIndex((item) => location.pathname.startsWith(item.path));
   const setupIsComplete = location.pathname.startsWith("/runs") || location.pathname.startsWith("/results");
@@ -129,13 +149,6 @@ export function AppShell() {
             ))}
           </section>
 
-          <section className="nav-group nav-group--utility" aria-labelledby="utility-nav-heading">
-            <h2 id="utility-nav-heading">Help</h2>
-            <NavLink to={documentationNavItem.path} className={navLinkClass} onClick={closeDrawer}>
-              <span className="nav-icon" aria-hidden="true">DC</span>
-              <span>{documentationNavItem.label}</span>
-            </NavLink>
-          </section>
         </nav>
       </aside>
       {isDrawerOpen ? <button className="drawer-scrim" type="button" aria-label="Close navigation" onClick={closeDrawer} /> : null}
@@ -162,12 +175,15 @@ export function AppShell() {
             <span>Jimmy Wu</span>
             <span>Coraline Zhu</span>
           </div>
-          <button className="help-button" type="button" aria-label="Help">?</button>
+          <button className="help-button" type="button" aria-label="Open contextual help" aria-expanded={isHelpOpen} onClick={() => openContextualHelp()}>
+            ?
+          </button>
         </header>
         <main className="page-frame">
           <Outlet />
         </main>
       </div>
+      <ContextualHelpDrawer open={isHelpOpen} initialSectionId={activeHelpSection} onClose={closeHelp} />
     </div>
   );
 }

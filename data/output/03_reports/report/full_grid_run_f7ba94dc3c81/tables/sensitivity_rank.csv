@@ -1,0 +1,4 @@
+channel,roi_prior_dist,max_abs_pct_change,max_abs_pct_change_raw,max_abs_delta_roi,baseline_roi,baseline_mu,baseline_sigma,pct_metric_reliable,pct_metric_unstable_reason,baseline_qc_pass,baseline_sign_flip_zone,baseline_local_neighbor_n,baseline_local_volatility_ratio,primary_metric,primary_value,ranking_metric_label
+google,LogNormal,81.21792040270442,81.21792040270442,0.1765477083219836,0.2173753125499934,1.0,1.0,True,,True,False,4,0.604735437969653,pct_change,81.21792040270442,Max |% Change|
+tiktok,LogNormal,69.0648789681333,69.0648789681333,0.0841092328930002,0.1217829295434057,1.0,1.0,True,,True,False,4,0.6623726601780071,pct_change,69.0648789681333,Max |% Change|
+meta,LogNormal,32.56666003585797,32.56666003585797,0.2047452193933228,0.6286957863283654,1.0,1.0,True,,True,False,4,0.11238912352836497,pct_change,32.56666003585797,Max |% Change|

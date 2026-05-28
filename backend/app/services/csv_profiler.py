@@ -6,7 +6,15 @@ from typing import Any
 
 import pandas as pd
 
-from backend.app.schemas.upload import ChannelDiagnostic, ColumnProfile, CsvProfile, DateProfile, DetectedColumns
+from backend.app.schemas.upload import (
+    ChannelDiagnostic,
+    ColumnProfile,
+    CsvProfile,
+    DateProfile,
+    DetectedColumns,
+    ReadinessCheck,
+    ReadinessSummary,
+)
 
 CHANNEL_ALIASES = {
     "fb": "facebook",
@@ -50,6 +58,8 @@ REVENUE_PER_KPI_PREFIXES = (
 )
 
 CONTROL_LIKE_TOKENS = ("promo", "holiday", "competitor", "control", "sentiment", "season", "price")
+MIN_MERIDIAN_MODELING_PERIODS = 52
+SEVERE_CORRELATION_THRESHOLD = 0.95
 
 
 def _infer_type(series: pd.Series) -> str:
@@ -341,43 +351,251 @@ def _normalize_channel_name(value: str) -> str:
     return normalized
 
 
-def _validation_badges(detected: DetectedColumns, date_profile: DateProfile, channel_diagnostics: list[ChannelDiagnostic], row_count: int) -> list[dict[str, str]]:
-    active_or_fallback = [item for item in channel_diagnostics if item.include_in_model]
-    inactive = [item for item in channel_diagnostics if item.status == "inactive_all_zero"]
-    badges = [
-        {
-            "status": date_profile.status if date_profile.status != "missing" else "error",
-            "label": "Date/time column detected" if date_profile.status == "valid" else date_profile.message,
-        },
-        {
-            "status": "valid" if detected.kpi_candidates else "error",
-            "label": "KPI candidate detected" if detected.kpi_candidates else "KPI candidate missing",
-        },
-        {
-            "status": "valid" if active_or_fallback else "error",
-            "label": "Active paid channels detected" if active_or_fallback else "Active paid channels missing",
-        },
-        {
-            "status": "warning" if inactive else "valid",
-            "label": f"{len(inactive)} inactive channel excluded" if inactive else "No inactive paid channels",
-        },
-        {
-            "status": "valid" if detected.revenue_candidates or detected.revenue_per_kpi_candidates else "warning",
-            "label": _revenue_detection_label(detected),
-        },
-        {
-            "status": "valid" if detected.geo_candidates and detected.population_candidates else "info",
-            "label": "Geo/population detected" if detected.geo_candidates and detected.population_candidates else "Geo/population optional or absent",
-        },
+def _summary_status(checks: list[ReadinessCheck]) -> str:
+    statuses = {check.status for check in checks}
+    if "error" in statuses:
+        return "error"
+    if "warning" in statuses:
+        return "warning"
+    if "valid" in statuses:
+        return "valid"
+    return "info"
+
+
+def _schema_readiness(
+    detected: DetectedColumns,
+    date_profile: DateProfile,
+    channel_diagnostics: list[ChannelDiagnostic],
+) -> ReadinessSummary:
+    media_channels = {item["channel"] for item in detected.media_activity_candidates}
+    spend_channels = {item["channel"] for item in detected.spend_channel_candidates}
+    paired_channels = sorted(media_channels & spend_channels)
+    checks = [
+        ReadinessCheck(
+            code="time_column",
+            label="Time column available",
+            status="valid" if detected.time_candidates else "error",
+            message="Date/time column detected" if detected.time_candidates else date_profile.message,
+        ),
+        ReadinessCheck(
+            code="kpi_column",
+            label="KPI column available",
+            status="valid" if detected.kpi_candidates else "error",
+            message="KPI candidate detected" if detected.kpi_candidates else "KPI candidate missing",
+        ),
+        ReadinessCheck(
+            code="media_columns",
+            label="Media columns available",
+            status="valid" if media_channels else "error",
+            message="Media activity columns detected" if media_channels else "Media activity columns missing",
+        ),
+        ReadinessCheck(
+            code="matching_spend_columns",
+            label="Matching spend columns available",
+            status="valid" if paired_channels else "error",
+            message="Media activity and spend pairs detected" if paired_channels else "No media columns have matching spend columns",
+        ),
+        ReadinessCheck(
+            code="revenue_or_kpi_type",
+            label="Revenue per KPI or KPI type handled",
+            status="valid" if detected.revenue_candidates or detected.revenue_per_kpi_candidates else "warning",
+            message=_revenue_detection_label(detected),
+        ),
     ]
-    if row_count < 12:
-        badges.append(
-            {
-                "status": "warning",
-                "label": f"Only {row_count} rows detected; this is likely too few for a real Meridian run",
-            }
+    return ReadinessSummary(status=_summary_status(checks), checks=checks)
+
+
+def _modeling_readiness(
+    df: pd.DataFrame,
+    detected: DetectedColumns,
+    date_profile: DateProfile,
+    channel_diagnostics: list[ChannelDiagnostic],
+    row_count: int,
+) -> ReadinessSummary:
+    active_channels = [item for item in channel_diagnostics if item.include_in_model]
+    media_columns = [item.media_column or item.spend_column for item in active_channels if item.media_column or item.spend_column]
+    spend_columns = [item.spend_column for item in active_channels if item.spend_column]
+    required_columns = [
+        *(detected.time_candidates[:1]),
+        *(detected.kpi_candidates[:1]),
+        *media_columns,
+        *spend_columns,
+    ]
+    checks: list[ReadinessCheck] = []
+
+    if row_count == 0:
+        checks.append(
+            ReadinessCheck(
+                code="enough_history",
+                label="Enough historical time periods",
+                status="error",
+                message="This CSV has headers but no data rows. It can be used as a blank template, but it is not large enough for Meridian modeling.",
+            )
         )
-    return badges
+    elif row_count < MIN_MERIDIAN_MODELING_PERIODS:
+        checks.append(
+            ReadinessCheck(
+                code="enough_history",
+                label="Enough historical time periods",
+                status="error",
+                message="This file is valid for schema mapping, but it is not large enough for Meridian modeling. Please upload a longer historical dataset.",
+            )
+        )
+    else:
+        checks.append(ReadinessCheck(code="enough_history", label="Enough historical time periods", status="valid", message="Enough historical time periods"))
+
+    if date_profile.inferred_frequency == "weekly":
+        checks.append(ReadinessCheck(code="weekly_spacing", label="Weekly date spacing", status="valid", message="Weekly date spacing detected"))
+    elif date_profile.status == "valid":
+        checks.append(
+            ReadinessCheck(
+                code="weekly_spacing",
+                label="Weekly date spacing",
+                status="warning",
+                message=f"Date spacing appears to be {date_profile.inferred_frequency or 'irregular'}, not weekly",
+            )
+        )
+    else:
+        checks.append(
+            ReadinessCheck(
+                code="weekly_spacing",
+                label="Weekly date spacing",
+                status="error",
+                message="Weekly date spacing could not be verified because the time column is missing or invalid.",
+            )
+        )
+
+    missing_required = [
+        column
+        for column in dict.fromkeys(required_columns)
+        if column in df.columns and df[column].isna().any()
+    ]
+    checks.append(
+        ReadinessCheck(
+            code="missing_required_values",
+            label="No missing required values",
+            status="error" if missing_required else "valid",
+            message=f"Missing required values in {', '.join(missing_required[:4])}" if missing_required else "No missing required values",
+        )
+    )
+
+    negative_columns = [
+        column
+        for column in dict.fromkeys([*(detected.kpi_candidates[:1]), *media_columns, *spend_columns])
+        if column in df.columns and (pd.to_numeric(df[column], errors="coerce") < 0).any()
+    ]
+    checks.append(
+        ReadinessCheck(
+            code="non_negative_values",
+            label="KPI, spend, and media values are non-negative",
+            status="error" if negative_columns else "valid",
+            message=f"Negative KPI/spend/media values in {', '.join(negative_columns[:4])}" if negative_columns else "KPI, spend, and media values are non-negative",
+        )
+    )
+
+    low_variation_columns = []
+    for column in dict.fromkeys([*media_columns, *spend_columns]):
+        if column not in df.columns:
+            continue
+        numeric = pd.to_numeric(df[column], errors="coerce").dropna()
+        if len(numeric) and numeric.nunique() < max(4, min(10, len(numeric) // 10)):
+            low_variation_columns.append(column)
+    checks.append(
+        ReadinessCheck(
+            code="sufficient_variation",
+            label="Media variables have sufficient variation",
+            status="warning" if low_variation_columns else "valid",
+            message=f"Media/spend variables have low variation: {', '.join(low_variation_columns[:4])}" if low_variation_columns else "Media variables have sufficient variation",
+        )
+    )
+
+    severe_pairs = _severe_correlation_pairs(df, detected, media_columns)
+    if severe_pairs:
+        checks.append(
+            ReadinessCheck(
+                code="high_correlation",
+                label="No severe high-correlation / multicollinearity warning",
+                status="warning",
+                message="Several media/control variables appear highly correlated. Meridian may fail diagnostics or produce unstable estimates. Consider combining channels, removing redundant controls, or using geo-level data.",
+            )
+        )
+    else:
+        checks.append(
+            ReadinessCheck(
+                code="high_correlation",
+                label="No severe high-correlation / multicollinearity warning",
+                status="valid",
+                message="No severe high-correlation / multicollinearity warning",
+            )
+        )
+
+    control_collinear = _control_collinearity_pairs(df, detected, media_columns)
+    checks.append(
+        ReadinessCheck(
+            code="control_collinearity",
+            label="Controls are not perfectly collinear with media or time",
+            status="warning" if control_collinear else "valid",
+            message=f"Controls are highly collinear with media or time: {', '.join(control_collinear[:3])}" if control_collinear else "Controls are not perfectly collinear with media or time",
+        )
+    )
+    return ReadinessSummary(status=_summary_status(checks), checks=checks)
+
+
+def _legacy_validation_badges(schema_readiness: ReadinessSummary, modeling_readiness: ReadinessSummary) -> list[dict[str, str]]:
+    return [
+        {"status": check.status, "label": check.message}
+        for check in [*schema_readiness.checks, *modeling_readiness.checks]
+    ]
+
+
+def _severe_correlation_pairs(df: pd.DataFrame, detected: DetectedColumns, media_columns: list[str | None]) -> list[str]:
+    columns = [
+        column
+        for column in dict.fromkeys([*(column for column in media_columns if column), *detected.control_candidates])
+        if column in df.columns
+    ]
+    return _correlated_pairs(df, columns, SEVERE_CORRELATION_THRESHOLD)
+
+
+def _control_collinearity_pairs(df: pd.DataFrame, detected: DetectedColumns, media_columns: list[str | None]) -> list[str]:
+    if not detected.control_candidates:
+        return []
+    media_cols = [column for column in media_columns if column and column in df.columns]
+    compare_columns = [*media_cols]
+    if detected.time_candidates:
+        time_col = detected.time_candidates[0]
+        if time_col in df.columns:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", UserWarning)
+                parsed = pd.to_datetime(df[time_col], errors="coerce")
+            if parsed.notna().any():
+                df = df.copy()
+                df["__time_index__"] = (parsed - parsed.min()).dt.days
+                compare_columns.append("__time_index__")
+
+    flagged: list[str] = []
+    for control in detected.control_candidates:
+        if control not in df.columns:
+            continue
+        pairs = _correlated_pairs(df, [control, *compare_columns], 0.98)
+        flagged.extend(pair for pair in pairs if control in pair)
+    return flagged
+
+
+def _correlated_pairs(df: pd.DataFrame, columns: list[str], threshold: float) -> list[str]:
+    numeric = pd.DataFrame({column: pd.to_numeric(df[column], errors="coerce") for column in dict.fromkeys(columns) if column in df.columns})
+    usable = numeric.dropna(axis=1, how="all")
+    usable = usable.loc[:, usable.nunique(dropna=True) > 1]
+    if usable.shape[1] < 2:
+        return []
+    corr = usable.corr().abs()
+    flagged: list[str] = []
+    for idx, left in enumerate(corr.columns):
+        for right in corr.columns[idx + 1 :]:
+            value = corr.loc[left, right]
+            if pd.notna(value) and float(value) >= threshold:
+                flagged.append(f"{left} + {right}")
+    return flagged
 
 
 def _revenue_detection_label(detected: DetectedColumns) -> str:
@@ -405,6 +623,8 @@ def profile_csv(upload_id: str, filename: str, path: Path) -> CsvProfile:
     detected = _detect_columns(list(df.columns))
     date_profile = _date_profile(df, detected)
     channel_diagnostics = _channel_diagnostics(detected, columns)
+    schema_readiness = _schema_readiness(detected, date_profile, channel_diagnostics)
+    modeling_readiness = _modeling_readiness(df, detected, date_profile, channel_diagnostics, int(len(df)))
     return CsvProfile(
         upload_id=upload_id,
         filename=filename,
@@ -414,5 +634,7 @@ def profile_csv(upload_id: str, filename: str, path: Path) -> CsvProfile:
         detected=detected,
         date_profile=date_profile,
         channel_diagnostics=channel_diagnostics,
-        validation_badges=_validation_badges(detected, date_profile, channel_diagnostics, int(len(df))),
+        schema_readiness=schema_readiness,
+        modeling_readiness=modeling_readiness,
+        validation_badges=_legacy_validation_badges(schema_readiness, modeling_readiness),
     )

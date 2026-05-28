@@ -1,6 +1,72 @@
 [
   {
     "channels": [
+      "google",
+      "meta",
+      "tiktok"
+    ],
+    "completed_at": "2026-05-27T22:59:53.900541Z",
+    "completed_runs": 27,
+    "config_fingerprint": "cfg_20067e09093c",
+    "csv_name_prefix": "meridian_runnable_demo_156_weeks",
+    "dashboard_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_f7ba94dc3c81/tables/dashboard_payload.json",
+    "dataset_hash": "daed55d16d1cb20254c2e09a61fba99972e35575804208dc518dc8109f68ae58",
+    "display_result_id": "meridian_runnable_demo_156_weeks_01",
+    "generated_at": "2026-05-27T22:59:53.900541Z",
+    "history_id": "ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl9mN2JhOTRkYzNjODEvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "kpi": "subscriptions",
+    "kpi_path": "Revenue-equivalent ROI",
+    "original_csv_filename": "meridian_runnable_demo_156_weeks.csv",
+    "output_tag": "full_grid_run_f7ba94dc3c81",
+    "payload_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_f7ba94dc3c81/tables/dashboard_payload.json",
+    "qc_mix": {
+      "fail": 1,
+      "pass": 21,
+      "review": 5
+    },
+    "react_result_url": "/results/overview?history_id=ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl9mN2JhOTRkYzNjODEvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "report_path": null,
+    "revenue_handling": "revenue_per_kpi_col = revenue_per_subscription",
+    "run_id": "run_f7ba94dc3c81",
+    "static_report_path": null,
+    "status": "completed"
+  },
+  {
+    "channels": [
+      "amazon",
+      "google",
+      "meta",
+      "snapchat",
+      "tiktok"
+    ],
+    "completed_at": "2026-05-22T19:12:28.016864Z",
+    "completed_runs": 32,
+    "config_fingerprint": "cfg_c083da7e4fa0",
+    "csv_name_prefix": "monthly_mocha",
+    "dashboard_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_846bf5c06235/tables/dashboard_payload.json",
+    "dataset_hash": "a03d4a18f786a41547afe2e6fe829676945f6cdbe06e36b514d38c08ae43494b",
+    "display_result_id": "monthly_mocha_01",
+    "generated_at": "2026-05-22T19:12:28.016864Z",
+    "history_id": "ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl84NDZiZjVjMDYyMzUvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "kpi": "subscriptions",
+    "kpi_path": "Revenue-equivalent ROI",
+    "original_csv_filename": "monthly_mocha.csv",
+    "output_tag": "full_grid_run_846bf5c06235",
+    "payload_path": "/Users/jasper/Documents/Intern/BlueAlpha/capstone-Blue_Alpha_1/data/output/03_reports/report/full_grid_run_846bf5c06235/tables/dashboard_payload.json",
+    "qc_mix": {
+      "fail": 0,
+      "pass": 0,
+      "review": 32
+    },
+    "react_result_url": "/results/overview?history_id=ZGF0YS9vdXRwdXQvMDNfcmVwb3J0cy9yZXBvcnQvZnVsbF9ncmlkX3J1bl84NDZiZjVjMDYyMzUvdGFibGVzL2Rhc2hib2FyZF9wYXlsb2FkLmpzb24",
+    "report_path": null,
+    "revenue_handling": "revenue_per_kpi = 60",
+    "run_id": "run_846bf5c06235",
+    "static_report_path": null,
+    "status": "completed"
+  },
+  {
+    "channels": [
       "channel0",
       "channel1",
       "channel2",

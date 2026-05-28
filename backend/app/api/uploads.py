@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import pandas as pd
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Response, UploadFile
 
 from backend.app.schemas.upload import CsvPreview, CsvProfile, UploadResponse
 from backend.app.services.csv_profiler import profile_csv
+from backend.app.services.example_datasets import blank_template_csv, runnable_demo_csv, schema_preview_csv
 from backend.app.services.paths import PROJECT_ROOT, ensure_storage_dirs
 from backend.app.services.upload_store import register_upload_bytes, resolve_upload
 
@@ -42,6 +43,50 @@ def load_monthly_mocha_example() -> UploadResponse:
         raise HTTPException(status_code=404, detail="Example dataset not found: monthly_mocha.csv")
     filename = "monthly_mocha.csv"
     record = register_upload_bytes(source.read_bytes(), filename)
+    upload_id = str(record["upload_id"])
+    return UploadResponse(
+        upload_id=upload_id,
+        filename=filename,
+        profile_url=f"/api/uploads/{upload_id}/profile",
+        content_hash=str(record["content_hash"]),
+        storage_path=str(record["stored_path"]),
+        reused_existing=bool(record["reused_existing"]),
+        uploaded_at=str(record["uploaded_at"]),
+    )
+
+
+@router.get("/uploads/templates/blank")
+def download_blank_template() -> Response:
+    return Response(
+        content=blank_template_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="meridian_blank_template.csv"'},
+    )
+
+
+@router.get("/uploads/examples/schema-preview")
+def download_schema_preview() -> Response:
+    return Response(
+        content=schema_preview_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="meridian_schema_preview.csv"'},
+    )
+
+
+@router.get("/uploads/examples/runnable-demo")
+def download_runnable_demo() -> Response:
+    return Response(
+        content=runnable_demo_csv(),
+        media_type="text/csv",
+        headers={"Content-Disposition": 'attachment; filename="meridian_runnable_demo_156_weeks.csv"'},
+    )
+
+
+@router.post("/uploads/examples/runnable-demo", response_model=UploadResponse)
+def load_runnable_demo_example() -> UploadResponse:
+    ensure_storage_dirs()
+    filename = "meridian_runnable_demo_156_weeks.csv"
+    record = register_upload_bytes(runnable_demo_csv().encode("utf-8"), filename)
     upload_id = str(record["upload_id"])
     return UploadResponse(
         upload_id=upload_id,
