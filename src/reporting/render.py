@@ -19,6 +19,10 @@ def _clean_text_safe(x, missing_label: str = "-") -> str:
     return str(x).strip()
 
 
+def _to_bool_safe(x) -> bool:
+    return str(x).strip().lower() in {"true", "1", "yes"}
+
+
 def _truncate_text(s: str, max_len: int = 58) -> str:
     text = str(s)
     if len(text) <= max_len:
@@ -524,25 +528,39 @@ def _build_roi_prior_posterior_table(source_files: dict | None = None) -> dict:
 
     df = df.sort_values(["target_channel", "roi_prior_mu", "roi_prior_sigma", "roi_prior_dist"])
     rows = []
+    baseline_meta = None
     for row in df.to_dict(orient="records"):
-        rows.append(
-            {
-                "channel": _clean_text_safe(row.get("target_channel"), ""),
-                "prior_variant": (
-                    f"mu={_fmt_float_safe(row.get('roi_prior_mu'), digits=3)}, "
-                    f"sigma={_fmt_float_safe(row.get('roi_prior_sigma'), digits=3)}, "
-                    f"dist={_clean_text_safe(row.get('roi_prior_dist'), 'NA')}"
-                ),
-                "prior_roi_mu": _to_float_safe(row.get("prior_roi_mu_channel")),
-                "prior_roi_sigma": _to_float_safe(row.get("roi_prior_sigma")),
-                "posterior_roi_estimate": _to_float_safe(row.get("estimated_roi")),
-                "posterior_50_lower": _to_float_safe(row.get("posterior_roi_p25")),
-                "posterior_50_upper": _to_float_safe(row.get("posterior_roi_p75")),
-                "posterior_95_lower": _to_float_safe(row.get("posterior_roi_p05")) if has_95 else None,
-                "posterior_95_upper": _to_float_safe(row.get("posterior_roi_p95")) if has_95 else None,
+        is_baseline = _to_bool_safe(row.get("is_baseline")) if "is_baseline" in df.columns else False
+        row_payload = {
+            "channel": _clean_text_safe(row.get("target_channel"), ""),
+            "prior_variant": (
+                f"mu={_fmt_float_safe(row.get('roi_prior_mu'), digits=3)}, "
+                f"sigma={_fmt_float_safe(row.get('roi_prior_sigma'), digits=3)}, "
+                f"dist={_clean_text_safe(row.get('roi_prior_dist'), 'NA')}"
+            ),
+            "prior_roi_mu": _to_float_safe(row.get("prior_roi_mu_channel")),
+            "prior_roi_sigma": _to_float_safe(row.get("roi_prior_sigma")),
+            "prior_roi_dist": _clean_text_safe(row.get("roi_prior_dist"), ""),
+            "posterior_roi_estimate": _to_float_safe(row.get("estimated_roi")),
+            "posterior_50_lower": _to_float_safe(row.get("posterior_roi_p25")),
+            "posterior_50_upper": _to_float_safe(row.get("posterior_roi_p75")),
+            "posterior_95_lower": _to_float_safe(row.get("posterior_roi_p05")) if has_95 else None,
+            "posterior_95_upper": _to_float_safe(row.get("posterior_roi_p95")) if has_95 else None,
+            "is_baseline": is_baseline,
+            "baseline_roi_mu": _to_float_safe(row.get("roi_prior_mu")) if is_baseline else None,
+            "baseline_roi_sigma": _to_float_safe(row.get("roi_prior_sigma")) if is_baseline else None,
+            "baseline_roi_dist": _clean_text_safe(row.get("roi_prior_dist"), "") if is_baseline else "",
+            "baseline_run_id": _clean_text_safe(row.get("run_id"), "") if is_baseline else "",
+        }
+        rows.append(row_payload)
+        if is_baseline and baseline_meta is None:
+            baseline_meta = {
+                "roi_mu": row_payload["baseline_roi_mu"],
+                "roi_sigma": row_payload["baseline_roi_sigma"],
+                "roi_dist": row_payload["baseline_roi_dist"],
+                "run_id": row_payload["baseline_run_id"],
             }
-        )
-    return {"available": True, "interval": "50%", "has_95": has_95, "rows": rows, "reason": ""}
+    return {"available": True, "interval": "50%", "has_95": has_95, "baseline": baseline_meta or {}, "rows": rows, "reason": ""}
 
 
 def _build_qc_followup_summary(qc_gate: dict) -> dict:

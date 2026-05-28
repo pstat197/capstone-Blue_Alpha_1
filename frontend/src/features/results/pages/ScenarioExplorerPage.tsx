@@ -46,6 +46,11 @@ function ppLabel(value: unknown, digits = 1): string {
   return `${n >= 0 ? "+" : ""}${formatNumber(n * 100, digits)} pp`;
 }
 
+function gridValueLabel(value: unknown): string {
+  const n = numeric(value);
+  return n === undefined ? NA : formatNumber(n, 2).replace(/\.00$/, "");
+}
+
 function rowMu(row: Row): number | undefined {
   return numeric(row.roi_prior_mu ?? row.prior_roi_mu);
 }
@@ -193,14 +198,19 @@ function MiniLineChart({
   secondaryLegend,
   secondaryAxisLabel,
   selectedX,
+  fixedLabel,
+  fixedValue,
 }: {
   xLabel: string;
-  points: Array<{ x: number; roi?: number; secondary?: number }>;
+  points: Array<{ x: number; roi?: number; secondary?: number; effectShare?: number }>;
   roiLegend: string;
   secondaryLegend: string;
   secondaryAxisLabel: string;
   selectedX: number;
+  fixedLabel: string;
+  fixedValue: number;
 }) {
+  const [hoveredX, setHoveredX] = useState<number | null>(null);
   const width = 420;
   const height = 210;
   const pad = { left: 44, right: 52, top: 28, bottom: 38 };
@@ -215,6 +225,18 @@ function MiniLineChart({
   const plotH = height - pad.top - pad.bottom;
   const scaleX = (x: number) => pad.left + (maxX === minX ? plotW / 2 : ((x - minX) / (maxX - minX)) * plotW);
   const scaleY = (value: number, max: number) => pad.top + plotH - (value / max) * plotH;
+  const activePoint = hoveredX === null ? null : points.find((point) => sameNumber(point.x, hoveredX)) || null;
+  const activeX = activePoint ? scaleX(activePoint.x) : 0;
+  const activeYValues = activePoint
+    ? [
+        activePoint.roi === undefined ? null : scaleY(activePoint.roi, roiMax),
+        activePoint.secondary === undefined ? null : scaleY(activePoint.secondary, secondaryMax),
+      ].filter((value): value is number => value !== null)
+    : [];
+  const tooltipW = 168;
+  const tooltipH = 78;
+  const tooltipX = Math.max(8, Math.min(width - tooltipW - 8, activeX - tooltipW / 2));
+  const tooltipY = Math.max(8, Math.min(height - tooltipH - 8, (activeYValues.length ? Math.min(...activeYValues) : pad.top) - tooltipH - 10));
   const pathFor = (key: "roi" | "secondary", max: number) =>
     points
       .filter((point) => point[key] !== undefined)
@@ -231,7 +253,7 @@ function MiniLineChart({
         {validRoi.length ? <span><i className="legend-dot legend-dot--roi" />{roiLegend}</span> : null}
         {validSecondary.length ? <span><i className="legend-dot legend-dot--contribution" />{secondaryLegend}</span> : null}
       </div>
-      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${xLabel} marginal response chart`}>
+      <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={`${xLabel} marginal response chart`} onMouseLeave={() => setHoveredX(null)}>
         {[0, 0.25, 0.5, 0.75, 1].map((tick) => (
           <line key={tick} x1={pad.left} x2={width - pad.right} y1={pad.top + tick * plotH} y2={pad.top + tick * plotH} className="chart-grid-line" />
         ))}
@@ -241,20 +263,83 @@ function MiniLineChart({
         <line x1={pad.left} x2={pad.left} y1={pad.top} y2={height - pad.bottom} className="chart-axis-line" />
         {validRoi.length ? <path d={pathFor("roi", roiMax)} className="chart-line chart-line--roi" /> : null}
         {validSecondary.length ? <path d={pathFor("secondary", secondaryMax)} className="chart-line chart-line--contribution" /> : null}
+        {validRoi.map((point) => {
+          const active = sameNumber(point.x, selectedX) || sameNumber(point.x, hoveredX);
+          return (
+            <circle
+              key={`roi-${point.x}`}
+              cx={scaleX(point.x)}
+              cy={scaleY(point.roi || 0, roiMax)}
+              r={active ? "6" : "4"}
+              className={active ? "chart-point chart-point--roi chart-point--active" : "chart-point chart-point--roi"}
+              tabIndex={0}
+              onMouseEnter={() => setHoveredX(point.x)}
+              onFocus={() => setHoveredX(point.x)}
+              onBlur={() => setHoveredX(null)}
+              onPointerDown={() => setHoveredX(point.x)}
+            />
+          );
+        })}
+        {validSecondary.map((point) => {
+          const active = sameNumber(point.x, selectedX) || sameNumber(point.x, hoveredX);
+          return (
+            <circle
+              key={`secondary-${point.x}`}
+              cx={scaleX(point.x)}
+              cy={scaleY(point.secondary || 0, secondaryMax)}
+              r={active ? "6" : "4"}
+              className={active ? "chart-point chart-point--contribution chart-point--active" : "chart-point chart-point--contribution"}
+              tabIndex={0}
+              onMouseEnter={() => setHoveredX(point.x)}
+              onFocus={() => setHoveredX(point.x)}
+              onBlur={() => setHoveredX(null)}
+              onPointerDown={() => setHoveredX(point.x)}
+            />
+          );
+        })}
         {validRoi.map((point) => (
-          <circle key={`roi-${point.x}`} cx={scaleX(point.x)} cy={scaleY(point.roi || 0, roiMax)} r={sameNumber(point.x, selectedX) ? "6" : "4"} className={sameNumber(point.x, selectedX) ? "chart-point chart-point--roi chart-point--selected" : "chart-point chart-point--roi"}>
-            <title>{`${xLabel} ${point.x}: ROI ${metricLabel(point.roi)}`}</title>
-          </circle>
+          <circle
+            key={`hit-roi-${point.x}`}
+            cx={scaleX(point.x)}
+            cy={scaleY(point.roi || 0, roiMax)}
+            r="12"
+            className="chart-point-hit-target"
+            tabIndex={0}
+            aria-label={`${xLabel}: ${gridValueLabel(point.x)}, ${fixedLabel}: ${gridValueLabel(fixedValue)}, ROI: ${metricLabel(point.roi, 3)}, Effect Share: ${shareLabel(point.effectShare)}`}
+            onMouseEnter={() => setHoveredX(point.x)}
+            onFocus={() => setHoveredX(point.x)}
+            onBlur={() => setHoveredX(null)}
+            onPointerDown={() => setHoveredX(point.x)}
+          />
         ))}
         {validSecondary.map((point) => (
-          <circle key={`secondary-${point.x}`} cx={scaleX(point.x)} cy={scaleY(point.secondary || 0, secondaryMax)} r={sameNumber(point.x, selectedX) ? "6" : "4"} className={sameNumber(point.x, selectedX) ? "chart-point chart-point--contribution chart-point--selected" : "chart-point chart-point--contribution"}>
-            <title>{`${xLabel} ${point.x}: ${secondaryLegend} ${metricLabel(point.secondary)}`}</title>
-          </circle>
+          <circle
+            key={`hit-secondary-${point.x}`}
+            cx={scaleX(point.x)}
+            cy={scaleY(point.secondary || 0, secondaryMax)}
+            r="12"
+            className="chart-point-hit-target"
+            tabIndex={0}
+            aria-label={`${xLabel}: ${gridValueLabel(point.x)}, ${fixedLabel}: ${gridValueLabel(fixedValue)}, ROI: ${metricLabel(point.roi, 3)}, Effect Share: ${shareLabel(point.effectShare)}`}
+            onMouseEnter={() => setHoveredX(point.x)}
+            onFocus={() => setHoveredX(point.x)}
+            onBlur={() => setHoveredX(null)}
+            onPointerDown={() => setHoveredX(point.x)}
+          />
         ))}
         {points.map((point) => (
-          <text key={point.x} x={scaleX(point.x)} y={height - 14} className="chart-tick" textAnchor="middle">{formatNumber(point.x, 2).replace(/\.00$/, "")}</text>
+          <text key={point.x} x={scaleX(point.x)} y={height - 14} className="chart-tick" textAnchor="middle">{gridValueLabel(point.x)}</text>
         ))}
         <text x={pad.left + plotW / 2} y={height - 1} className="chart-axis-label" textAnchor="middle">{xLabel}</text>
+        {activePoint ? (
+          <g className="chart-tooltip" pointerEvents="none">
+            <rect x={tooltipX} y={tooltipY} width={tooltipW} height={tooltipH} rx="8" />
+            <text x={tooltipX + 10} y={tooltipY + 18}>{`${xLabel}: ${gridValueLabel(activePoint.x)}`}</text>
+            <text x={tooltipX + 10} y={tooltipY + 34}>{`${fixedLabel}: ${gridValueLabel(fixedValue)}`}</text>
+            <text x={tooltipX + 10} y={tooltipY + 50}>{`ROI: ${metricLabel(activePoint.roi, 3)}`}</text>
+            <text x={tooltipX + 10} y={tooltipY + 66}>{`Effect Share: ${shareLabel(activePoint.effectShare)}`}</text>
+          </g>
+        ) : null}
       </svg>
     </div>
   );
@@ -397,11 +482,11 @@ export function ScenarioExplorerPage() {
   const secondaryValue = (row: Row | undefined) => useShareSeries ? rowShare(row) : rowContribution(row);
   const muSeries = muSliderValues.map((mu) => {
     const row = rowByPoint.get(getRowKey(channel, mu, selectedSigma));
-    return { x: mu, roi: numeric(row?.estimated_roi), secondary: secondaryValue(row) };
+    return { x: mu, roi: numeric(row?.estimated_roi), secondary: secondaryValue(row), effectShare: rowShare(row) };
   });
   const sigmaSeries = sigmaSliderValues.map((sigma) => {
     const row = rowByPoint.get(getRowKey(channel, selectedMu, sigma));
-    return { x: sigma, roi: numeric(row?.estimated_roi), secondary: secondaryValue(row) };
+    return { x: sigma, roi: numeric(row?.estimated_roi), secondary: secondaryValue(row), effectShare: rowShare(row) };
   });
   const selectedScenarioAllocationRows = scenarioRows
     .map(allocationFromScenarioRow)
@@ -573,6 +658,8 @@ export function ScenarioExplorerPage() {
                   secondaryLegend={secondaryLegend}
                   secondaryAxisLabel={secondaryAxisLabel}
                   selectedX={selectedMu}
+                  fixedLabel="Selected sigma"
+                  fixedValue={selectedSigma}
                 />
               </article>
               <article className="scenario-chart-card">
@@ -587,6 +674,8 @@ export function ScenarioExplorerPage() {
                   secondaryLegend={secondaryLegend}
                   secondaryAxisLabel={secondaryAxisLabel}
                   selectedX={selectedSigma}
+                  fixedLabel="Selected mu"
+                  fixedValue={selectedMu}
                 />
               </article>
             </section>

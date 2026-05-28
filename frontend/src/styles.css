@@ -9779,6 +9779,8 @@ td {
 .chart-point {
   fill: #ffffff;
   stroke-width: 3;
+  cursor: pointer;
+  transition: r 120ms ease, stroke-width 120ms ease, filter 120ms ease;
 }
 
 .chart-point--roi {
@@ -9791,6 +9793,30 @@ td {
 
 .chart-point--selected {
   filter: drop-shadow(0 0 4px rgba(23, 107, 255, 0.32));
+}
+
+.chart-point--active {
+  stroke-width: 4;
+  filter: drop-shadow(0 0 6px rgba(23, 107, 255, 0.38));
+}
+
+.chart-point-hit-target {
+  fill: transparent;
+  stroke: transparent;
+  cursor: pointer;
+}
+
+.chart-tooltip rect {
+  fill: #10203d;
+  stroke: rgba(255, 255, 255, 0.72);
+  stroke-width: 1;
+  filter: drop-shadow(0 8px 18px rgba(31, 49, 80, 0.22));
+}
+
+.chart-tooltip text {
+  fill: #ffffff;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .scenario-empty-state {

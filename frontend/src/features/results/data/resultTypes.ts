@@ -224,6 +224,12 @@ export type TargetRobustness = {
 
 export type PosteriorEvidenceTable = {
   available?: boolean;
+  baseline?: {
+    roi_mu?: number | null;
+    roi_sigma?: number | null;
+    roi_dist?: string;
+    run_id?: string;
+  };
   rows?: Array<Record<string, unknown>>;
   reason?: string;
 };

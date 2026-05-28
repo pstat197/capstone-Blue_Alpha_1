@@ -120,12 +120,14 @@ const priorPosteriorContext: HelpContext = {
     {
       id: "posterior-stability-summary",
       title: "Posterior stability summary",
-      body: "This table answers whether the posterior ROI conclusion stays stable as prior assumptions change, and separates prior sensitivity from posterior uncertainty.",
+      body: "ROI Range Across Priors and Max Shift measure prior sensitivity. 50% CI Width measures posterior uncertainty. The Flag summarizes the main reason a channel needs attention.",
       bullets: [
-        "Range Across Priors and Max Shift measure prior sensitivity.",
-        "50% CI Width measures posterior uncertainty.",
-        "The Flag column names the main attention point for the channel.",
-        "The Reason column explains whether the flag is driven by prior movement, interval width, or comparative stability.",
+        "Prior-sensitive: posterior ROI depends strongly on prior choice.",
+        "Watch: moderate prior-driven movement.",
+        "High uncertainty: posterior estimate has wide uncertainty.",
+        "Stable: comparatively stable across tested priors.",
+        "Baseline Posterior ROI comes from the explicitly marked baseline Meridian run, not a direct CSV calculation.",
+        "Provisional ROI-scale thresholds: Prior-sensitive if Max Shift >= 0.40 or Range Width >= 0.50; Watch if Max Shift >= 0.25 or Range Width >= 0.30; High uncertainty if 50% CI Width >= 0.20 after prior sensitivity checks.",
       ],
     },
     {

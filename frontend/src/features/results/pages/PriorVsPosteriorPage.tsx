@@ -11,6 +11,11 @@ type PosteriorPoint = {
   variantShort: string;
   priorMean: number | null;
   sigma: number | null;
+  isBaseline: boolean;
+  baselineRoiMu: number | null;
+  baselineRoiSigma: number | null;
+  baselineRoiDist: string;
+  baselineRunId: string;
   mean: number;
   lower50: number;
   upper50: number;
@@ -31,6 +36,8 @@ type ChannelUpdate = {
   stabilityReason: string;
 };
 
+type PosteriorStability = ChannelUpdate["stability"];
+
 type SensitivityRisk = "High" | "Medium" | "Low" | "Unavailable";
 
 type ConfidenceSummary = {
@@ -45,9 +52,25 @@ type ConfidenceSummary = {
 
 const variantColors = ["#2f80ed", "#43c59e", "#ff9f1c", "#6f52c7", "#f24472", "#c26d5f", "#e05ac5", "#29a4b5", "#7a8a9d", "#1b9aaa"];
 
+// Provisional absolute ROI-scale thresholds. Current demo payloads use posterior
+// ROI values mostly around 0.1-1.2, where these cutoffs separate clear movement
+// from near-flat rows; future datasets may need relative thresholds as well.
+const POSTERIOR_STABILITY_THRESHOLDS = {
+  priorSensitiveMaxShift: 0.4,
+  priorSensitiveRangeWidth: 0.5,
+  watchMaxShift: 0.25,
+  watchRangeWidth: 0.3,
+  highUncertaintyCiWidth: 0.2,
+};
+
 function toNumber(value: unknown): number | null {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
+}
+
+function toBool(value: unknown): boolean {
+  const normalized = String(value).trim().toLowerCase();
+  return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
 function titleCase(value: string): string {
@@ -65,14 +88,6 @@ function formatRange(min: number | null, max: number | null): string {
 
 function stabilityClass(stability: ChannelUpdate["stability"]): string {
   return stability.toLowerCase().replace(/\s+/g, "-");
-}
-
-function stabilityReason(stability: ChannelUpdate["stability"]): string {
-  if (stability === "Prior-sensitive") return "Large ROI movement across prior grid";
-  if (stability === "Watch") return "Moderate prior-driven movement";
-  if (stability === "High uncertainty") return "Wide posterior interval";
-  if (stability === "Stable") return "Small prior movement and interval width";
-  return "Stability inputs unavailable";
 }
 
 function channelsText(rows: ChannelUpdate[]): string {
@@ -122,6 +137,11 @@ function parsePosteriorRows(rows: Array<Record<string, unknown>> | undefined): P
         variantShort: variant,
         priorMean: toNumber(row.prior_roi_mu),
         sigma: toNumber(row.prior_roi_sigma),
+        isBaseline: toBool(row.is_baseline),
+        baselineRoiMu: toNumber(row.baseline_roi_mu),
+        baselineRoiSigma: toNumber(row.baseline_roi_sigma),
+        baselineRoiDist: String(row.baseline_roi_dist || "").trim(),
+        baselineRunId: String(row.baseline_run_id || "").trim(),
         mean,
         lower50,
         upper50,
@@ -130,7 +150,13 @@ function parsePosteriorRows(rows: Array<Record<string, unknown>> | undefined): P
     .filter((row): row is PosteriorPoint => Boolean(row));
 }
 
-function nearestBaseline(points: PosteriorPoint[]): PosteriorPoint | null {
+function selectBaselinePoint(points: PosteriorPoint[]): PosteriorPoint | null {
+  const explicit = points.find((point) => point.isBaseline);
+  if (explicit) return explicit;
+
+  // Fallback for older payloads that predate explicit is_baseline metadata.
+  // Current reporting payloads should mark the baseline Meridian run directly.
+  if (points.length) console.warn("PriorVsPosteriorPage falling back to nearest mu=1/sigma=1 baseline lookup because is_baseline metadata is missing.");
   const withPrior = points.filter((point) => point.priorMean !== null || point.sigma !== null);
   const candidates = withPrior.length ? withPrior : points;
   return [...candidates].sort((a, b) => {
@@ -140,12 +166,38 @@ function nearestBaseline(points: PosteriorPoint[]): PosteriorPoint | null {
   })[0] || null;
 }
 
+function classifyPosteriorStability(row: Pick<ChannelUpdate, "roiMin" | "roiMax" | "maxShift" | "ciWidth">): {
+  stability: PosteriorStability;
+  stabilityReason: string;
+} {
+  const rangeWidth = row.roiMin === null || row.roiMax === null ? null : row.roiMax - row.roiMin;
+  const { priorSensitiveMaxShift, priorSensitiveRangeWidth, watchMaxShift, watchRangeWidth, highUncertaintyCiWidth } = POSTERIOR_STABILITY_THRESHOLDS;
+
+  if (row.maxShift === null || rangeWidth === null || row.ciWidth === null) {
+    return { stability: "Unavailable", stabilityReason: "Stability inputs unavailable" };
+  }
+
+  // Flags are ordered by diagnostic priority. Prior sensitivity gets precedence over
+  // posterior interval width because large ROI movement across priors changes the
+  // interpretation before uncertainty is considered.
+  if (row.maxShift >= priorSensitiveMaxShift || rangeWidth >= priorSensitiveRangeWidth) {
+    return { stability: "Prior-sensitive", stabilityReason: "Large ROI movement across prior grid" };
+  }
+  if (row.maxShift >= watchMaxShift || rangeWidth >= watchRangeWidth) {
+    return { stability: "Watch", stabilityReason: "Moderate prior-driven movement" };
+  }
+  if (row.ciWidth >= highUncertaintyCiWidth) {
+    return { stability: "High uncertainty", stabilityReason: "Wide posterior interval" };
+  }
+  return { stability: "Stable", stabilityReason: "Small prior movement and interval width" };
+}
+
 function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
   const byChannel = new Map<string, PosteriorPoint[]>();
   points.forEach((point) => byChannel.set(point.channel, [...(byChannel.get(point.channel) || []), point]));
 
   const baseRows = [...byChannel.entries()].map(([channel, channelPoints]) => {
-    const baseline = nearestBaseline(channelPoints);
+    const baseline = selectBaselinePoint(channelPoints);
     const means = channelPoints.map((point) => point.mean);
     const avgAbsShift = baseline ? means.reduce((sum, mean) => sum + Math.abs(mean - baseline.mean), 0) / means.length : null;
     const maxShift = baseline ? Math.max(...means.map((mean) => Math.abs(mean - baseline.mean))) : null;
@@ -170,9 +222,6 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
 
   const weakCut = percentile(baseRows.map((row) => row.avgAbsShift), 0.33);
   const strongCut = percentile(baseRows.map((row) => row.avgAbsShift), 0.67);
-  const watchShiftCut = percentile(baseRows.map((row) => row.maxShift), 0.5);
-  const priorSensitiveCut = percentile(baseRows.map((row) => row.maxShift), 0.75);
-  const highUncertaintyCut = percentile(baseRows.map((row) => row.ciWidth), 0.75);
 
   return baseRows
     .map((row) => {
@@ -187,22 +236,8 @@ function classifyChannels(points: PosteriorPoint[]): ChannelUpdate[] {
             : row.avgAbsShift >= weakCut
               ? "Moderate"
               : "Weak";
-      // Stability flag is a display summary derived from existing row metrics only:
-      // - Prior-sensitive: max shift is in the top quartile, so posterior ROI depends strongly on prior choice.
-      // - High uncertainty: 50% CI width is in the top quartile, so posterior uncertainty is the main concern.
-      // - Watch: max shift is above the median, so prior-driven movement is present but not extreme.
-      // - Stable: max shift and CI width are comparatively small among channels in this selected run.
-      const stability: ChannelUpdate["stability"] =
-        row.maxShift === null || row.ciWidth === null || watchShiftCut === null || priorSensitiveCut === null || highUncertaintyCut === null
-          ? "Unavailable"
-          : row.maxShift >= priorSensitiveCut
-            ? "Prior-sensitive"
-            : row.ciWidth >= highUncertaintyCut
-              ? "High uncertainty"
-              : row.maxShift >= watchShiftCut
-                ? "Watch"
-                : "Stable";
-      return { ...row, strength, stability, stabilityReason: stabilityReason(stability) };
+      const { stability, stabilityReason } = classifyPosteriorStability(row);
+      return { ...row, strength, stability, stabilityReason };
     })
     .sort((a, b) => Number(b.avgAbsShift ?? -1) - Number(a.avgAbsShift ?? -1));
 }
@@ -549,7 +584,7 @@ export function PriorVsPosteriorPage() {
             <>
               <section className="pvp-interpretation-section">
                 <h4>Data Update Strength</h4>
-                <p>How much the data moved posterior ROI away from the baseline prior.</p>
+                <p>How much posterior ROI moves relative to the baseline Meridian run.</p>
                 <InterpretationGroup title="Strong data update" rows={strongRows} tone="green" description="Posteriors moved meaningfully." />
                 <InterpretationGroup title="Moderate data update" rows={moderateRows} tone="amber" description="Visible movement, with some overlap." />
                 <InterpretationGroup title="Weak data update" rows={weakRows} tone="orange" description="Limited movement from priors." />
@@ -572,7 +607,7 @@ export function PriorVsPosteriorPage() {
         <article className="content-panel pvp-shift-card">
           <div className="pvp-card-title pvp-card-title--stacked">
             <h3>Channel-by-Channel Shift</h3>
-            <p>Average absolute posterior shift from the baseline prior.</p>
+            <p>Average absolute posterior shift from the baseline Meridian run.</p>
           </div>
           <ShiftChart rows={channelRows} />
         </article>
@@ -591,7 +626,7 @@ export function PriorVsPosteriorPage() {
                 <thead>
                   <tr>
                     <th>Channel</th>
-                    <th>Baseline ROI</th>
+                    <th>Baseline Posterior ROI</th>
                     <th>Range Across Priors</th>
                     <th>Max Shift</th>
                     <th>50% CI Width</th>
