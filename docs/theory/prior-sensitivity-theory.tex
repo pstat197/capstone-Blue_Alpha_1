@@ -359,8 +359,87 @@ which is about $3\times$ the median observed subscriptions (approximately $11{,}
 
 As a guardrail, if a candidate $\mu$ grid implies outcomes on the order of $10\times$--$50\times$ the observed KPI scale, we treat the range as too wide and adjust it.
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Current Robustness Score Implementation Notes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+The production robustness score is implemented in \texttt{src/robustness\_score.py}.
+It is a project-defined prior-sensitivity heuristic, not an official Meridian
+metric, and it is computed conditional on the selected structural profile.
+Structural settings such as adstock and saturation are context for the run; they
+are not separate robustness subscores.
 
+\subsection{Channel score}
 
+The canonical backend channel field is
+\texttt{overall\_channel\_robustness\_score}. It remains a $0$--$100$ score where
+higher means less observed fragility under the tested prior grid. The current
+composite is:
+\[
+\texttt{overall\_channel\_robustness\_score}
+=
+0.60\,\texttt{prior\_sensitivity\_subscore}
++0.25\,\texttt{data\_influence\_subscore}
++0.15\,\texttt{cross\_channel\_subscore}.
+\]
+
+The three component meanings are unchanged:
+\begin{itemize}
+  \item \texttt{prior\_sensitivity\_subscore}: output movement per unit prior
+  perturbation, mapped so lower fragility gives a higher score.
+  \item \texttt{data\_influence\_subscore}: evidence that the posterior is
+  stabilized by the data, using diffuse-prior movement, prior--posterior
+  distances, and interval overlap when available.
+  \item \texttt{cross\_channel\_subscore}: non-self channel movement when the
+  selected target channel's prior is perturbed.
+\end{itemize}
+
+\subsection{Bands and rank}
+
+The backend still writes fixed absolute bands using
+\texttt{band\_method=provisional\_fixed\_thresholds}:
+\[
+\text{Low}<50,\qquad 50\leq\text{Medium}<75,\qquad \text{High}\geq75.
+\]
+It writes both \texttt{absolute\_band} and \texttt{robustness\_band}; these are
+currently the same value.
+
+Relative rank is reported separately through \texttt{relative\_rank},
+\texttt{relative\_rank\_total}, and \texttt{relative\_rank\_label}. Rank $1$ is
+the most robust channel within the current robustness output, for example
+\texttt{1 / 5 tested channels}. This is a within-run ordering and should not be
+read as an absolute Low/Medium/High judgment.
+
+\subsection{Aggregation scope}
+
+The model-level robustness output aggregates the scored target-channel rows
+available for the requested robustness tag. It uses channel spend when spend is
+available and positive, and falls back to equal weighting otherwise. This means
+the headline model score is an aggregate over the available robustness-score rows,
+not necessarily every modeled media channel unless every channel has been included
+in that robustness output.
+
+\subsection{Near-zero baseline reporting}
+
+The scoring path still avoids unstable ROI percent changes when
+$|\text{baseline ROI}|<0.05$. It uses contribution movement when available and
+otherwise falls back to a log-scaled absolute ROI-delta movement. The field
+\texttt{near\_zero\_baseline\_fallback\_rate} currently reports the share of
+self rows whose ROI baseline was unreliable for percent-change purposes. It is
+therefore broader than the share of rows that used the final log-scaled ROI-delta
+fallback, because some weak-ROI-baseline rows may still have usable contribution
+movement.
+
+\subsection{Frontend display}
+
+The React Prior Sensitivity page displays the backend components as
+``Sensitivity Elasticity'', ``Data Influence'', and ``Cross-Channel''. For
+backward compatibility it can read older aliases such as
+\texttt{channel\_robustness\_score}, but the backend source of truth is
+\texttt{overall\_channel\_robustness\_score}. When all three subscores are
+available, the page recomputes the displayed score using the current $60/25/15$
+formula and derives the displayed band from that score. If the payload score and
+the recomputed score differ by more than 0.5 points, the page displays the
+recomputed score and logs a warning rather than silently trusting the payload.
 
 \end{document}
