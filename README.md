@@ -35,7 +35,7 @@
 ## About The Project
 
 <p align="center">
-  <img src="docs/images/dashboard_overview.png" width="950">
+  <img src="docs/images/bluealpha-group-1-poster.jpg" width="950">
 </p>
 
 This project was developed during a data science capstone internship at Blue Alpha in collaboration with UCSB and focuses on building a prior sensitivity analysis framework for Marketing Mix Modeling (MMM).
@@ -323,7 +323,10 @@ This project is intended for research. See `LICENSE.txt` for more information.
 ## Contact
 
 Jasper Luo - [LinkedIn](https://www.linkedin.com/in/jasperluo0228/) - jasperluo0228@gmail.com
+
 Quinlan Wilson - [LinkedIn](https://www.linkedin.com/in/quinlanwilson/) - quinlan.wilson@gmail.com
+
+Jimmy Wu - [LinkedIn](https://www.linkedin.com/in/jimmy-wu-a92316381/) - jimmywu2023@gmail.com
 
 Project Link: [https://github.com/pstat197/capstone-Blue_Alpha_1](https://github.com/pstat197/capstone-Blue_Alpha_1)
 
