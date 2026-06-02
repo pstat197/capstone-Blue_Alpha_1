@@ -12,15 +12,20 @@
 # Python
 __pycache__/
 *.pyc
+.pytest_cache/
 .venv/
 venv/
+env/
 
 # Frontend
 node_modules/
 dist/
+frontend/dist/
 *.tsbuildinfo
 
 # Local API state
+backend/storage/*.json
+backend/storage/audit/
 backend/storage/uploads/*
 backend/storage/workflows/*
 backend/storage/runs/*
@@ -46,16 +51,18 @@ temp/
 *.tmp
 *.log
 
-# Local reports
+# Local reports and generated outputs
 docs/reports/
-
-# Output folders are intentionally versioned for collaboration
-# (dashboards/reports/tables are shared in GitHub).
+reports/
+data/output/**
 
 # Keep folder placeholders
 !data/output/.gitkeep
+!data/output/01_runs/
 !data/output/01_runs/.gitkeep
+!data/output/02_tables/
 !data/output/02_tables/.gitkeep
+!data/output/03_reports/
 !data/output/03_reports/.gitkeep
 
 #Prompt

@@ -1,221 +1,143 @@
-# BlueAlpha FastAPI Boundary
+# Backend
 
-FastAPI scaffold for the React product workflow.
+FastAPI service for the BlueAlpha React workflow. It handles CSV uploads, draft workflow state, config previews, run records, result payload lookup, and the guarded local pipeline launcher.
 
-This backend keeps mock mode intact and adds a guarded Phase 5A `real_tiny` launcher path. Full advisor-grid execution is still disabled.
+The frontend expects the API at `http://127.0.0.1:8000` unless `VITE_API_BASE_URL` is set.
 
-The React frontend expects this API at `http://127.0.0.1:8000` by default. Override the frontend target with `VITE_API_BASE_URL` if needed.
+## Run Locally
 
-## Current Endpoints
-
-- `GET /api/health`
-- `POST /api/uploads`
-- `GET /api/uploads/{upload_id}/profile`
-- `POST /api/workflows`
-- `GET /api/workflows/{workflow_id}`
-- `PATCH /api/workflows/{workflow_id}`
-- `POST /api/workflows/{workflow_id}/config/preview`
-- `POST /api/runs`
-- `GET /api/runs/{run_id}`
-- `GET /api/runs/{run_id}/logs`
-- `POST /api/runs/{run_id}/mock/advance`
-- `GET /api/runs/{run_id}/results/payload`
-
-## Local State
-
-- Uploaded CSVs are stored under `backend/storage/uploads/`.
-- Future duplicate uploads are tracked in `backend/storage/upload_manifest.json` and reuse a canonical stored CSV by SHA-256 content hash.
-- Workflow drafts are stored under `backend/storage/workflows/`.
-- Mock run records are stored under `backend/storage/runs/`.
-- Tiny real run working directories are stored under `backend/storage/runs/{run_id}/`.
-- Tiny real run configs and logs are stored at `backend/storage/runs/{run_id}/config.yaml` and `backend/storage/runs/{run_id}/run.log`.
-- The demo result payload is read from the existing generated report artifact:
-  `data/output/03_reports/report/demo_32run/tables/dashboard_payload.json`
-
-## How To Run Locally
-
-From the repository root, create the API-only backend environment:
+From the repository root:
 
 ```bash
 uv venv .venv
 uv pip install -r backend/requirements.txt
+.venv/bin/uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-For Phase 5A.5 tiny real execution, the same `.venv` can also be the modeling runtime. Install the full repo requirements:
+To enable `real_tiny` runs, the pipeline environment must also have the root modeling dependencies:
 
 ```bash
 uv pip install --python .venv/bin/python -r requirements.txt
 ```
 
-Equivalent `venv`/`pip` setup:
+If Meridian/TensorFlow are installed in a different environment, point the backend launcher at that interpreter:
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r backend/requirements.txt
+export BLUEALPHA_PIPELINE_PYTHON=/absolute/path/to/python
 ```
-
-For `venv`/`pip` modeling installs, use the root `requirements.txt` after the backend requirements.
-
-Run the backend:
-
-```bash
-.venv/bin/uvicorn backend.app.main:app --reload --host 127.0.0.1 --port 8000
-```
-
-Run the React app in a separate terminal:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Vite serves the app at `http://127.0.0.1:5173`.
-
-The backend allows local Vite origins on `127.0.0.1` or `localhost` ports `5170` through `5179`, so API calls still work if Vite rolls to `5174` or `5175`.
 
 Run the API smoke test:
 
 ```bash
 .venv/bin/python backend/smoke_test_api.py
-```
-
-Against a running backend:
-
-```bash
 .venv/bin/python backend/smoke_test_api.py --base-url http://127.0.0.1:8000
 ```
 
-Inspect storage hygiene without deleting files:
+## API Surface
+
+Health:
+
+- `GET /api/health`
+
+Uploads and example datasets:
+
+- `POST /api/uploads`
+- `POST /api/uploads/examples/monthly-mocha`
+- `POST /api/uploads/examples/runnable-demo`
+- `GET /api/uploads/templates/blank`
+- `GET /api/uploads/examples/schema-preview`
+- `GET /api/uploads/examples/runnable-demo`
+- `GET /api/uploads/{upload_id}/profile`
+- `GET /api/uploads/{upload_id}/preview`
+
+Workflow drafts:
+
+- `POST /api/workflows`
+- `GET /api/workflows/{workflow_id}`
+- `PATCH /api/workflows/{workflow_id}`
+- `POST /api/workflows/{workflow_id}/config/preview`
+
+Runs:
+
+- `POST /api/runs`
+- `GET /api/runs/latest-completed`
+- `GET /api/runs/{run_id}`
+- `GET /api/runs/{run_id}/logs`
+- `POST /api/runs/{run_id}/mock/advance`
+
+Results:
+
+- `GET /api/results/history`
+- `GET /api/results/history/{history_id}`
+- `DELETE /api/results/history/{history_id}`
+- `GET /api/runs/{run_id}/results/payload`
+- `GET /api/runs/{run_id}/results`
+
+## Local Storage
+
+Backend state is file-backed so the app can run locally without a database.
+
+```text
+backend/storage/
+  uploads/       uploaded CSV files
+  workflows/     workflow draft JSON files
+  runs/          run status JSON, generated configs, and run logs
+```
+
+Upload deduplication is tracked in `backend/storage/upload_manifest.json` by SHA-256 content hash. Result history identities are tracked by `backend/app/services/saved_result_identity.py` and related storage helpers.
+
+Inspect storage hygiene without changing files:
 
 ```bash
 .venv/bin/python -m backend.storage_hygiene
 .venv/bin/python -m backend.storage_hygiene --dedupe-uploads
 ```
 
-The default report lists duplicate uploads by content hash, unreferenced uploads, abandoned workflow drafts, failed runs past retention, and completed run folders with safety notes. `--dedupe-uploads` dry-runs the legacy upload migration: it chooses one canonical file per content hash, plans manifest entries for all old upload ids, identifies metadata references that would be rewritten, and lists duplicate physical files that would be removed. Add `--apply` only when you want that upload dedup migration to rewrite metadata and delete duplicate upload files.
+Add `--apply` only when you intentionally want the hygiene task to rewrite metadata or remove duplicate upload files.
 
-## Mock Run Lifecycle
+## Run Modes
 
-Phase 4 adds a run lifecycle without launching Meridian:
+`POST /api/runs` supports separate execution modes:
 
-1. `POST /api/runs` accepts a `workflow_id` plus the approved config preview.
-2. The backend validates that the workflow draft exists.
-3. A local mock run record is written with `status: queued`.
-4. `GET /api/runs/{run_id}` returns stored status/progress.
-5. `POST /api/runs/{run_id}/mock/advance` updates local JSON state through `queued -> running -> completed`.
+- `mock`: creates local run state and lets the frontend advance progress for UI testing. It never imports Meridian or starts the modeling pipeline.
+- `real_tiny`: writes a run-specific config and launches `python -m src.pipeline` in a background process with strict limits.
+- `real_full`: present in service code for future work, but not the normal UI path for this PR.
 
-The mock progress endpoint is only for frontend testing. It does not import `src.main`, `src.pipeline`, call subprocesses, or run Meridian.
+For `real_tiny`, the backend narrows the approved config to one target channel, one `roi_mu`, one `roi_sigma`, one prior distribution, and one worker. Output tags use `phase5a_tiny_{run_id}`.
 
-## Phase 5A Tiny Real Execution
+The launcher writes:
 
-`POST /api/runs` also accepts `mode: "real_tiny"`:
-
-```json
-{
-  "workflow_id": "workflow_...",
-  "mode": "real_tiny",
-  "approved_config_preview": {
-    "normalized_config": {}
-  }
-}
+```text
+backend/storage/runs/{run_id}/config.yaml
+backend/storage/runs/{run_id}/run.log
 ```
 
-The intended local modeling interpreter is `.venv/bin/python` after installing root `requirements.txt`. If the working Meridian/TensorFlow stack lives somewhere else, point the launcher at it:
+Expected pipeline artifacts:
 
-```bash
-export BLUEALPHA_PIPELINE_PYTHON=/absolute/path/to/python
+```text
+data/output/01_runs/{tag}/
+data/output/02_tables/{tag}/
+data/output/03_reports/report/{tag}/tables/dashboard_payload.json
 ```
 
-The launcher writes a run-specific config and starts this command:
+## Frontend Behavior
 
-```bash
-.venv/bin/python -m src.pipeline --config backend/storage/runs/{run_id}/config.yaml --dollars-per-subscription 40
-```
+The frontend is API-first but has fallbacks:
 
-By default the launcher uses `BLUEALPHA_PIPELINE_PYTHON` when set, then `.venv/bin/python`, then the current backend interpreter. Use `BLUEALPHA_PIPELINE_PYTHON` if the modeling stack lives in a different environment from the backend API dependencies.
+- health failures show fallback mode in the shell
+- upload/profile failures use demo dataset assumptions
+- config-preview failures use local mock workflow state
+- result payload failures use the bundled demo payload where appropriate
 
-Manual one-run verification command from the repo root:
+Local Vite origins on `127.0.0.1` or `localhost` ports `5170` through `5179` are allowed by CORS.
 
-```bash
-env \
-  BLUEALPHA_CACHE_DIR="$PWD/.cache" \
-  MPLCONFIGDIR="$PWD/.cache/matplotlib" \
-  XDG_CACHE_HOME="$PWD/.cache" \
-  ARVIZ_HOME="$PWD/.cache/arviz" \
-  .venv/bin/python -m src.pipeline \
-    --config /private/tmp/bluealpha_phase5a_manual_config.yaml \
-    --dollars-per-subscription 40
-```
+## Key Files
 
-Safety guardrails:
-
-- The only enabled real mode is `real_tiny`.
-- The generated config is forced to one target channel, one `roi_mu`, one `roi_sigma`, one distribution, and one worker.
-- The output tag is always `phase5a_tiny_{run_id}`.
-- The backend refuses Phase 5A configs estimated above 3 runs.
-- Full 240-run advisor-grid execution is not enabled.
-
-Inspect status with:
-
-```bash
-curl http://127.0.0.1:8000/api/runs/{run_id}
-curl http://127.0.0.1:8000/api/runs/{run_id}/logs
-```
-
-After completion, the run status includes artifact paths when produced:
-
-- `dashboard_payload`
-- `runs_dir`
-- `tables_dir`
-- `figures_dir`
-
-If `dashboard_payload.json` exists, `result_url` points to a React result route. If the tiny pipeline fails, the monitor still shows `failed` plus the captured log output.
-
-Common failure modes:
-
-- Dependency/environment issue: missing imports such as `platformdirs`, `tensorflow`, `tensorflow_probability`, or `meridian`. Install root `requirements.txt` into `.venv` or set `BLUEALPHA_PIPELINE_PYTHON`.
-- Config validation issue: invalid channel names, missing dataset columns, missing `revenue_per_kpi`, or invalid prior/structural config.
-- Pipeline runtime issue: Meridian/model fitting raises after the subprocess starts. Inspect `backend/storage/runs/{run_id}/run.log`.
-- Missing output artifact issue: the subprocess exits successfully, but `dashboard_payload.json` or report artifacts are absent. Check `data/output/03_reports/report/phase5a_tiny_{run_id}/`.
-
-Run status schema:
-
-- `run_id`, `workflow_id`, `status`
-- `created_at`, `started_at`, `completed_at`
-- `progress.total_runs`, `progress.completed_runs`, `progress.failed_runs`
-- `progress.active_target_channel`, `progress.active_mu`, `progress.active_sigma`, `progress.active_dist`
-- `channel_progress[]`: `channel`, `total_runs`, `completedRuns`, `failedRuns`, `status`
-- `messages[]`, `monitor_url`, optional `result_url`, and `mode`
-
-Deferred real-execution work:
-
-- cancellation
-- structured progress events beyond log polling
-- full advisor-grid execution
-
-## Frontend Fallback Behavior
-
-The frontend is API-first for safe surfaces, but remains usable if FastAPI is down:
-
-- App shell calls `GET /api/health` and labels the backend as reachable or fallback mode.
-- Upload page uses `POST /api/uploads` and `GET /api/uploads/{upload_id}/profile` for uploaded CSVs; otherwise it keeps the Mocha demo profile.
-- Review & Start Run creates a draft workflow and calls `POST /api/workflows/{workflow_id}/config/preview`; otherwise it shows the mock YAML preview.
-- Review & Start Run can call `POST /api/runs` as either `Start Analysis (Mock)` or guarded `Start Tiny Real Run`.
-- Run Monitor reads `GET /api/runs/{run_id}` and can manually advance mock progress for testing.
-- Results pages call `GET /api/runs/{run_id}/results/payload`; otherwise they use the bundled demo `dashboard_payload.json`.
-
-## Deferred Work
-
-Full 240-run execution, cancellation, and production `sensitivity.yaml` writes remain deferred. The React controls are intentionally separate: `Start Analysis (Mock)` and `Start Tiny Real Run`.
-
-## Current Execution Status
-
-- Mock mode works and remains separate from real execution.
-- `real_tiny` mode works through the API launcher and completed repeatability tests.
-- Full 240-run advisor-grid execution is disabled. The public run schema accepts only `mock` or `real_tiny`; generated real-tiny configs are forced to one target/channel prior point and checked against `MAX_PHASE5A_REAL_RUNS = 3`.
-- Verified successful runs include `run_812a6bbc9bd9`, `run_bfb9120d327a`, `run_31148e5f67db`, and `run_ccf8847b30bc`.
-- Intentional failure check: `run_1419024aee3d` failed with a readable config-validation classification and no result URL.
-- Known limitation: a one-point tiny run can produce limited sensitivity/tornado outputs because there are no non-baseline grid rows. Dashboard payload/report generation still completes.
-- Known limitation: React result pages are payload-backed for real runs via `GET /api/runs/{run_id}/results/payload`; static figure asset loading is still demo/static until run-specific asset serving is added.
+- `app/main.py`: FastAPI app, CORS, router registration, health endpoint
+- `app/api/`: route handlers grouped by uploads, workflows, runs, and results
+- `app/schemas/`: Pydantic request/response contracts
+- `app/services/config_builder.py`: workflow draft to pipeline config preview
+- `app/services/pipeline_launcher.py`: guarded subprocess launcher and progress parsing
+- `app/services/result_locator.py`: result payload and artifact lookup
+- `app/services/*_store.py`: local file-backed state stores
+- `smoke_test_api.py`: end-to-end API smoke test
