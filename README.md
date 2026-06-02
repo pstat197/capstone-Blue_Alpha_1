@@ -322,6 +322,7 @@ This project is intended for research. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
+Jasper Luo - [LinkedIn](https://www.linkedin.com/in/jasperluo0228/) - jasperluo0228@gmail.com
 Quinlan Wilson - [LinkedIn](https://www.linkedin.com/in/quinlanwilson/) - quinlan.wilson@gmail.com
 
 Project Link: [https://github.com/pstat197/capstone-Blue_Alpha_1](https://github.com/pstat197/capstone-Blue_Alpha_1)
