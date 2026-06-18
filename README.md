@@ -328,6 +328,8 @@ Quinlan Wilson - [LinkedIn](https://www.linkedin.com/in/quinlanwilson/) - quinla
 
 Jimmy Wu - [LinkedIn](https://www.linkedin.com/in/jimmy-wu-a92316381/) - jimmywu2023@gmail.com
 
+Coraline Zhu - [LinkedIn](https://www.linkedin.com/in/coraline-zhu-890b54350/) - coradaisy0119@gmail.com
+
 Project Link: [https://github.com/pstat197/capstone-Blue_Alpha_1](https://github.com/pstat197/capstone-Blue_Alpha_1)
 
 <!-- ACKNOWLEDGMENTS -->
